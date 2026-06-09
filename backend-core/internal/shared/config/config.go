@@ -122,6 +122,14 @@ type Config struct {
 	KeycloakEventListenerMaxEvents int
 	// KeycloakWebhookSecret is the shared secret token to verify Keycloak SPI webhook pushes
 	KeycloakWebhookSecret string
+	// APIKey is a static shared secret accepted on Authorization: Bearer <key> for
+	// non-admin (public) API access. Independent of Keycloak — Keycloak outage 시에도
+	// swagger UI 호출 + 공개 API 조회 가능. 비어있으면 API key 인증 비활성 (Keycloak
+	// JWT 만 인정). ADR-0029. Toggle with DEVHUB_API_KEY.
+	APIKey string
+	// APIKeyAdminOnly restricts static API key callers to admin endpoints (Keycloak
+	// required for public APIs). 기본 false = 공개 API 호출 허용. 운영 가드용.
+	APIKeyAdminOnly bool
 }
 
 func Load() Config {
@@ -169,6 +177,8 @@ func Load() Config {
 		KeycloakEventListenerInterval:  strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_EVENT_LISTENER_INTERVAL")),
 		KeycloakEventListenerMaxEvents: envInt("DEVHUB_KEYCLOAK_EVENT_LISTENER_MAX_EVENTS"),
 		KeycloakWebhookSecret:          strings.TrimSpace(os.Getenv("DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET")),
+		APIKey:                         strings.TrimSpace(os.Getenv("DEVHUB_API_KEY")),
+		APIKeyAdminOnly:                envBool("DEVHUB_API_KEY_ADMIN_ONLY"),
 	}
 }
 

@@ -34,6 +34,34 @@ tags:
     description: "현재 인증된 사용자 profile 조회 — Bearer token 필요."
   - name: Operational
     description: "Prometheus 메트릭 노출 및 운영 endpoint."
+  - name: Platform
+    description: "Application platform 관리 (API-43..50)."
+  - name: Project
+    description: "Project 관리 (API-55..56)."
+  - name: Repository
+    description: "Repository 관리 + 운영 지표 (API-15..23, API-51..54)."
+  - name: Integration
+    description: "Integration provider + binding + SCM (API-58, API-69..90)."
+  - name: RiskCommand
+    description: "Risk mitigation + command approval (API-39..43, API-31..32)."
+  - name: CI
+    description: "CI run + log (API-28..30)."
+  - name: DevRequest
+    description: "DREQ intake + 조회 + admin token (API-59..68, API-79)."
+  - name: Infra
+    description: "Infra topology / nodes / edges / services (API-9..14, API-76..78)."
+  - name: Organization
+    description: "Organization hierarchy + units (API-49..56)."
+  - name: Audit
+    description: "Audit log + webhook events."
+  - name: SCM
+    description: "SCM provider catalog (API-41..42)."
+  - name: HR
+    description: "HR DB lookup."
+  - name: Realtime
+    description: "WebSocket ticket (ADR-0024)."
+  - name: ExternalTask
+    description: "External task item (API-94..96)."
 
 paths:
   # ---------------------------------------------------------------------------
@@ -100,6 +128,68 @@ paths:
           $ref: "#/components/responses/UnauthorizedEnvelope"
         "403":
           $ref: "#/components/responses/ForbiddenEnvelope"
+    patch:
+      tags:
+        - Me
+      summary: "내 profile 갱신 (display_name, email, primary_unit_id)"
+      operationId: patchMe
+      description: |
+        현재 인증된 사용자의 display_name, email, primary_unit_id field 갱신.
+        ADR-0029: staticTokenAuth (Bearer <DEVHUB_API_KEY>) 도 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                  description: "사용자 표시 이름"
+                email:
+                  type: string
+                  format: email
+                  description: "이메일 주소"
+                primary_unit_id:
+                  type: string
+                  description: "소속 조직 단위 ID"
+              example:
+                display_name: "Alice Kim Updated"
+                email: "alice@example.com"
+                primary_unit_id: "unit_org_root"
+      responses:
+        "200":
+          description: "갱신된 profile"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  user_id: "alice"
+                  email: "alice@example.com"
+                  display_name: "Alice Kim Updated"
+                  role: "developer"
+                  primary_unit_id: "unit_org_root"
+                request_id: "req_me_patch_001"
+                trace_id: "trace_me_patch_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
 
   # ---------------------------------------------------------------------------
   # /auth/logout — Bearer auth required, 204 | 200
@@ -193,6 +283,3294 @@ paths:
           $ref: "#/components/responses/ServerErrorEnvelope"
 
 # =============================================================================
+# P0 — Profile, Dashboard, Events, Users
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/me/onboarding — onboarding 제출 (P0)
+  # ---------------------------------------------------------------------------
+  /api/v1/me/onboarding:
+    post:
+      tags:
+        - Me
+      summary: "온보딩 workflow 제출"
+      operationId: postMeOnboarding
+      description: |
+        신규 사용자 온보딩 workflow 완료 제출 (organization/unit/role 설정).
+        ADR-0029: staticTokenAuth 도 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization_id:
+                  type: string
+                  description: "소속 organization ID"
+                unit_id:
+                  type: string
+                  description: "소속 unit ID"
+                role_preference:
+                  type: string
+                  description: "희망 역할 (developer / manager / admin)"
+              example:
+                organization_id: "org_devhub"
+                unit_id: "unit_platform"
+                role_preference: "developer"
+      responses:
+        "200":
+          description: "온보딩 완료"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  status: "onboarding_complete"
+                  user_id: "alice"
+                request_id: "req_onboard_001"
+                trace_id: "trace_onboard_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/dashboard/metrics — aggregate dashboard (P0)
+  # ---------------------------------------------------------------------------
+  /api/v1/dashboard/metrics:
+    get:
+      tags:
+        - Operational
+      summary: "대시보드 aggregate 지표"
+      operationId: getDashboardMetrics
+      description: |
+        role=developer 기준 PR/CI/event/risk aggregate 지표.
+        ADR-0029: staticTokenAuth 도 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+            default: developer
+          description: "대시보드 역할 필터 (developer / manager / admin)"
+      responses:
+        "200":
+          description: "대시보드 지표"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  pending_prs: 3
+                  failing_builds: 1
+                  unread_events: 12
+                  risk_count: 2
+                request_id: "req_dash_001"
+                trace_id: "trace_dash_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/events — webhook event list (P0, audit, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/events:
+    get:
+      tags:
+        - Audit
+      summary: "Webhook 이벤트 목록 조회"
+      operationId: getEvents
+      description: |
+        Keycloak / Gitea / Integration webhook 이벤트 로그 목록.
+        Bearer token (Keycloak) 만 허용 — audit 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "최대 조회 개수"
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: "페이지 오프셋"
+        - name: event_type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "이벤트 타입 필터 (push / pull_request / keycloak:* / integration:*)"
+      responses:
+        "200":
+          description: "Event 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - event_id: "evt_001"
+                      event_type: "push"
+                      source: "gitea"
+                      created_at: "2026-06-09T10:00:00Z"
+                      status: "processed"
+                request_id: "req_evt_001"
+                trace_id: "trace_evt_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/internal/keycloak-events — Keycloak SPI webhook (P0, no auth)
+  # ---------------------------------------------------------------------------
+  /api/v1/internal/keycloak-events:
+    post:
+      tags:
+        - Audit
+      summary: "Keycloak SPI webhook 수신"
+      operationId: postKeycloakEvents
+      description: |
+        Keycloak SPI 가 전송하는 session/logout event webhook.
+        X-Webhook-Secret header 로 서명 검증. Bearer token 불필요.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: X-Webhook-Secret
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "Webhook 서명 검증 secret — keycloak SPI 와 사전 공유"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type:
+                  type: string
+                  description: "Keycloak event type"
+                payload:
+                  type: object
+                  description: "Keycloak event payload"
+              example:
+                event_type: "keycloak:session:logout"
+                payload:
+                  user_id: "a1b2c3d4"
+                  timestamp: "2026-06-09T10:00:00Z"
+                  realm: "devhub"
+      responses:
+        "200":
+          description: "Webhook 수신 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  status: "accepted"
+                  event_id: "evt_kc_001"
+                request_id: "req_kc_001"
+                trace_id: "trace_kc_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/users/{user_id} — user 조회 (P0 bonus, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/users/{user_id}:
+    get:
+      tags:
+        - Me
+      summary: "사용자 정보 조회"
+      operationId: getUserById
+      description: |
+        user_id 로 사용자 profile 조회. admin / manager 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "조회할 사용자 ID"
+      responses:
+        "200":
+          description: "사용자 profile"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  user_id: "bob"
+                  email: "bob@example.com"
+                  display_name: "Bob Lee"
+                  role: "manager"
+                  status: "active"
+                  idp_subject: "x9y8z7w6-..."
+                request_id: "req_user_001"
+                trace_id: "trace_user_001"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — Platform CRUD
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms — platform 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms:
+    get:
+      tags:
+        - Platform
+      summary: "Platform 목록 조회"
+      operationId: listPlatforms
+      description: |
+        등록된 application platform 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (active / archived)"
+      responses:
+        "200":
+          description: "Platform 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "plat_001"
+                      name: "devhub-core"
+                      description: "DevHub backend core platform"
+                      status: "active"
+                      repository_count: 5
+                      created_at: "2026-01-15T00:00:00Z"
+                request_id: "req_plat_list"
+                trace_id: "trace_plat_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    post:
+      tags:
+        - Platform
+      summary: "Platform 생성 (admin)"
+      operationId: createPlatform
+      description: |
+        새 application platform 등록. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Platform 이름 (고유)"
+                description:
+                  type: string
+                  description: "Platform 설명"
+              required:
+                - name
+              example:
+                name: "new-platform"
+                description: "New application platform"
+      responses:
+        "201":
+          description: "Platform 생성 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "plat_new_001"
+                  name: "new-platform"
+                  status: "active"
+                  created_at: "2026-06-09T12:00:00Z"
+                request_id: "req_plat_create"
+                trace_id: "trace_plat_create"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms/{platform_id} — platform 상세 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}:
+    get:
+      tags:
+        - Platform
+      summary: "Platform 상세 조회"
+      operationId: getPlatformById
+      description: |
+        platform_id 기준 단일 platform 상세 정보.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      responses:
+        "200":
+          description: "Platform 상세"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "plat_001"
+                  name: "devhub-core"
+                  description: "DevHub backend core platform"
+                  status: "active"
+                  repository_count: 5
+                  project_count: 3
+                  created_at: "2026-01-15T00:00:00Z"
+                request_id: "req_plat_get"
+                trace_id: "trace_plat_get"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    patch:
+      tags:
+        - Platform
+      summary: "Platform 갱신 (admin)"
+      operationId: updatePlatform
+      description: |
+        platform metadata 갱신. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "새 platform 이름"
+                description:
+                  type: string
+                  description: "새 platform 설명"
+              example:
+                description: "Updated platform description"
+      responses:
+        "200":
+          description: "갱신된 platform"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "plat_001"
+                  name: "devhub-core"
+                  description: "Updated platform description"
+                  status: "active"
+                request_id: "req_plat_patch"
+                trace_id: "trace_plat_patch"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    delete:
+      tags:
+        - Platform
+      summary: "Platform 아카이브 (admin)"
+      operationId: archivePlatform
+      description: |
+        platform 을 archived 상태로 전환 (hard delete 아님). admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      responses:
+        "204":
+          description: "아카이브 성공 (body 없음)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms/{platform_id}/repositories — platform 저장소 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}/repositories:
+    get:
+      tags:
+        - Platform
+      summary: "Platform 소속 저장소 목록"
+      operationId: listPlatformRepositories
+      description: |
+        특정 platform 에 등록된 repository 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      responses:
+        "200":
+          description: "Repository 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "repo_001"
+                      name: "devhub-core"
+                      language: "Go"
+                      default_branch: "main"
+                request_id: "req_plat_repo_list"
+                trace_id: "trace_plat_repo_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    post:
+      tags:
+        - Platform
+      summary: "Platform 에 저장소 등록 (admin)"
+      operationId: createPlatformRepository
+      description: |
+        platform 에 repository 연결 등록. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repo_key:
+                  type: string
+                  description: "Repository key (예: owner/repo)"
+                scm_provider:
+                  type: string
+                  description: "SCM provider (gitea / github / gitlab)"
+                default_branch:
+                  type: string
+                  description: "Default branch (기본값: main)"
+              required:
+                - repo_key
+                - scm_provider
+              example:
+                repo_key: "myorg/my-repo"
+                scm_provider: "gitea"
+                default_branch: "main"
+      responses:
+        "201":
+          description: "저장소 등록 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "repo_new_001"
+                  repo_key: "myorg/my-repo"
+                  platform_id: "plat_001"
+                  status: "active"
+                request_id: "req_plat_repo_create"
+                trace_id: "trace_plat_repo_create"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # DELETE /api/v1/platforms/{platform_id}/repositories/{repo_key} (admin)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}/repositories/{repo_key}:
+    delete:
+      tags:
+        - Platform
+      summary: "Platform 에서 저장소 제거 (admin)"
+      operationId: deletePlatformRepository
+      description: |
+        platform 에서 repository 연결 해제. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+        - name: repo_key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository key (owner/repo 포맷)"
+      responses:
+        "204":
+          description: "제거 성공 (body 없음)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms/{platform_id}/rollup — rollup 지표 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}/rollup:
+    get:
+      tags:
+        - Platform
+      summary: "Platform rollup 지표"
+      operationId: getPlatformRollup
+      description: |
+        platform 전체 repository 의 rollup aggregate (merged PR / open issue / build pass ratio).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "집계 시작 시각"
+        - name: until
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "집계 종료 시각"
+      responses:
+        "200":
+          description: "Rollup 지표"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  total_repositories: 5
+                  total_projects: 3
+                  merged_prs_24h: 2
+                  open_issues: 8
+                  build_pass_ratio: 0.92
+                request_id: "req_plat_rollup"
+                trace_id: "trace_plat_rollup"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms/{platform_id}/dashboard — platform dashboard (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}/dashboard:
+    get:
+      tags:
+        - Platform
+      summary: "Platform 대시보드"
+      operationId: getPlatformDashboard
+      description: |
+        platform 단위 대시보드 (repository health, recent activity).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      responses:
+        "200":
+          description: "Platform 대시보드"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  health_score: 85
+                  recent_commits: 12
+                  active_branches: 7
+                  last_build: "2026-06-09T11:00:00Z"
+                request_id: "req_plat_dash"
+                trace_id: "trace_plat_dash"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — Project
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/projects/standalone — standalone project 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/projects/standalone:
+    get:
+      tags:
+        - Project
+      summary: "Standalone project 목록"
+      operationId: listStandaloneProjects
+      description: |
+        platform 에 속하지 않은 standalone project 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Standalone project 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "proj_001"
+                      name: "infra-tooling"
+                      description: "Shared infra tooling"
+                      status: "active"
+                request_id: "req_proj_standalone"
+                trace_id: "trace_proj_standalone"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms/{platform_id}/projects — platform project 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}/projects:
+    get:
+      tags:
+        - Project
+      summary: "Platform 소속 project 목록"
+      operationId: listPlatformProjects
+      description: |
+        특정 platform 에 속한 project 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      responses:
+        "200":
+          description: "Project 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "proj_plat_001"
+                      name: "core-api"
+                      status: "active"
+                      repository_id: "repo_001"
+                request_id: "req_plat_proj_list"
+                trace_id: "trace_plat_proj_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    post:
+      tags:
+        - Project
+      summary: "Platform 에 project 생성 (admin)"
+      operationId: createPlatformProject
+      description: |
+        platform 에 새 project 추가. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Project 이름"
+                description:
+                  type: string
+                  description: "Project 설명"
+                repository_id:
+                  type: string
+                  description: "연결할 repository ID"
+              required:
+                - name
+              example:
+                name: "new-project"
+                description: "New platform project"
+                repository_id: "repo_001"
+      responses:
+        "201":
+          description: "Project 생성 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "proj_new_001"
+                  name: "new-project"
+                  platform_id: "plat_001"
+                  status: "active"
+                request_id: "req_plat_proj_create"
+                trace_id: "trace_plat_proj_create"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories — repository 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories:
+    get:
+      tags:
+        - Repository
+      summary: "Repository 목록 조회"
+      operationId: listRepositories
+      description: |
+        전체 repository 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Platform ID 필터"
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "언어 필터"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (active / archived)"
+      responses:
+        "200":
+          description: "Repository 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "repo_001"
+                      name: "devhub-core"
+                      language: "Go"
+                      default_branch: "main"
+                      platform_id: "plat_001"
+                      status: "active"
+                request_id: "req_repo_list"
+                trace_id: "trace_repo_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    post:
+      tags:
+        - Repository
+      summary: "Repository 등록 (admin)"
+      operationId: createRepository
+      description: |
+        새 repository 등록 (platform 독립 가능). admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Repository 이름"
+                repo_key:
+                  type: string
+                  description: "SCM repo key (예: owner/repo)"
+                language:
+                  type: string
+                  description: "주 언어"
+                scm_provider:
+                  type: string
+                  description: "SCM provider (gitea / github / gitlab)"
+                default_branch:
+                  type: string
+                  description: "Default branch"
+                platform_id:
+                  type: string
+                  description: "연결할 platform ID (선택)"
+              required:
+                - name
+                - repo_key
+              example:
+                name: "my-service"
+                repo_key: "org/my-service"
+                language: "TypeScript"
+                scm_provider: "gitea"
+                default_branch: "main"
+                platform_id: "plat_001"
+      responses:
+        "201":
+          description: "Repository 등록 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "repo_new_001"
+                  name: "my-service"
+                  repo_key: "org/my-service"
+                  status: "active"
+                request_id: "req_repo_create"
+                trace_id: "trace_repo_create"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id} — repository 상세 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}:
+    get:
+      tags:
+        - Repository
+      summary: "Repository 상세 조회"
+      operationId: getRepositoryById
+      description: |
+        repository_id 기준 단일 repository 상세.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository ID"
+      responses:
+        "200":
+          description: "Repository 상세"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "repo_001"
+                  name: "devhub-core"
+                  repo_key: "org/devhub-core"
+                  language: "Go"
+                  default_branch: "main"
+                  platform_id: "plat_001"
+                  status: "active"
+                  created_at: "2026-01-15T00:00:00Z"
+                request_id: "req_repo_get"
+                trace_id: "trace_repo_get"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id}/activity — 활동 로그 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/activity:
+    get:
+      tags:
+        - Repository
+      summary: "Repository 활동 로그"
+      operationId: getRepositoryActivity
+      description: |
+        repository 의 최근 commit / PR / build 활동 로그.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository ID"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "최대 조회 개수"
+      responses:
+        "200":
+          description: "활동 로그"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - type: "push"
+                      ref: "refs/heads/main"
+                      author: "alice"
+                      timestamp: "2026-06-09T10:30:00Z"
+                      message: "fix: resolve NPE on null input"
+                request_id: "req_repo_activity"
+                trace_id: "trace_repo_activity"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id}/pull-requests — PR 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/pull-requests:
+    get:
+      tags:
+        - Repository
+      summary: "Repository PR 목록"
+      operationId: listRepositoryPullRequests
+      description: |
+        repository 의 pull request 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository ID"
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "PR 상태 필터 (open / closed / merged)"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "최대 조회 개수"
+      responses:
+        "200":
+          description: "PR 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "pr_001"
+                      title: "fix: resolve NPE on null input"
+                      author: "alice"
+                      state: "open"
+                      created_at: "2026-06-08T14:00:00Z"
+                request_id: "req_repo_pr_list"
+                trace_id: "trace_repo_pr_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id}/build-runs — build 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/build-runs:
+    get:
+      tags:
+        - Repository
+      summary: "Repository build run 목록"
+      operationId: listRepositoryBuildRuns
+      description: |
+        repository 의 CI build run 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository ID"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Build 상태 필터 (pending / running / passed / failed)"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "최대 조회 개수"
+      responses:
+        "200":
+          description: "Build run 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "build_001"
+                      commit_sha: "abc123"
+                      status: "passed"
+                      branch: "main"
+                      started_at: "2026-06-09T10:00:00Z"
+                      duration_sec: 120
+                request_id: "req_repo_build_list"
+                trace_id: "trace_repo_build_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id}/quality-snapshots — quality (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/quality-snapshots:
+    get:
+      tags:
+        - Repository
+      summary: "Repository quality snapshot 목록"
+      operationId: listRepositoryQualitySnapshots
+      description: |
+        repository 의 code quality snapshot (lint / coverage / security scan).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository ID"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: "최대 조회 개수"
+      responses:
+        "200":
+          description: "Quality snapshot 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - snapshot_id: "qs_001"
+                      coverage_pct: 87.5
+                      lint_score: 95
+                      critical_vulnerabilities: 0
+                      captured_at: "2026-06-09T06:00:00Z"
+                request_id: "req_repo_qs_list"
+                trace_id: "trace_repo_qs_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — SCM Provider
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/scm/providers — SCM provider 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/scm/providers:
+    get:
+      tags:
+        - SCM
+      summary: "SCM provider 목록 조회"
+      operationId: listScmProviders
+      description: |
+        등록된 SCM provider catalog (gitea / github / gitlab).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "SCM provider 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - provider_key: "gitea"
+                      name: "Gitea"
+                      base_url: "https://gitea.example.com"
+                      status: "connected"
+                request_id: "req_scm_list"
+                trace_id: "trace_scm_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # PATCH /api/v1/scm/providers/{provider_key} — SCM provider 갱신 (admin)
+  # ---------------------------------------------------------------------------
+  /api/v1/scm/providers/{provider_key}:
+    patch:
+      tags:
+        - SCM
+      summary: "SCM provider 설정 갱신 (admin)"
+      operationId: updateScmProvider
+      description: |
+        SCM provider 연결 설정 갱신 (base_url, token, status). admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: provider_key
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "SCM provider key (gitea / github / gitlab)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                base_url:
+                  type: string
+                  description: "SCM 서버 base URL"
+                api_token:
+                  type: string
+                  description: "SCM API token"
+                status:
+                  type: string
+                  description: "연결 상태 (connected / disconnected)"
+              example:
+                base_url: "https://gitea.example.com"
+                status: "connected"
+      responses:
+        "200":
+          description: "갱신된 provider"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  provider_key: "gitea"
+                  base_url: "https://gitea.example.com"
+                  status: "connected"
+                request_id: "req_scm_patch"
+                trace_id: "trace_scm_patch"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — Integration
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/integrations — integration 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/integrations:
+    get:
+      tags:
+        - Integration
+      summary: "Integration 목록 조회"
+      operationId: listIntegrations
+      description: |
+        등록된 integration (Keycloak / Gitea / Jenkins 등) 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Integration 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "int_001"
+                      provider: "gitea"
+                      status: "active"
+                      config:
+                        base_url: "https://gitea.example.com"
+                request_id: "req_int_list"
+                trace_id: "trace_int_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    post:
+      tags:
+        - Integration
+      summary: "Integration 등록 (admin)"
+      operationId: createIntegration
+      description: |
+        새 integration 등록. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  description: "Integration provider (gitea / keycloak / jenkins)"
+                config:
+                  type: object
+                  description: "Provider-specific config"
+              required:
+                - provider
+              example:
+                provider: "jenkins"
+                config:
+                  base_url: "https://jenkins.example.com"
+                  api_token: "encrypted_token_placeholder"
+      responses:
+        "201":
+          description: "Integration 등록 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "int_new_001"
+                  provider: "jenkins"
+                  status: "pending_verify"
+                request_id: "req_int_create"
+                trace_id: "trace_int_create"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/integration/providers — integration provider catalog (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/providers:
+    get:
+      tags:
+        - Integration
+      summary: "Integration provider catalog 조회"
+      operationId: listIntegrationProviders
+      description: |
+        지원 가능한 integration provider catalog (gitea / keycloak / jenkins / slack).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Provider catalog"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - provider: "gitea"
+                      display_name: "Gitea"
+                      version: "1.21"
+                      status: "available"
+                request_id: "req_int_prov_list"
+                trace_id: "trace_int_prov_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+    post:
+      tags:
+        - Integration
+      summary: "Integration provider 인스턴스 등록 (admin)"
+      operationId: createIntegrationProvider
+      description: |
+        integration provider 인스턴스 등록 (base_url, credential). admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  description: "Provider type"
+                display_name:
+                  type: string
+                  description: "표시 이름"
+                base_url:
+                  type: string
+                  description: "Provider base URL"
+                credential_ref:
+                  type: string
+                  description: "Vault credential reference"
+              required:
+                - provider
+                - base_url
+              example:
+                provider: "slack"
+                display_name: "DevHub Slack"
+                base_url: "https://slack.com/api"
+                credential_ref: "vault://devhub/slack"
+      responses:
+        "201":
+          description: "Provider 등록 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "prov_new_001"
+                  provider: "slack"
+                  status: "active"
+                request_id: "req_int_prov_create"
+                trace_id: "trace_int_prov_create"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/integration/providers/{provider_id}/sync — sync trigger (admin)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/providers/{provider_id}/sync:
+    post:
+      tags:
+        - Integration
+      summary: "Integration provider sync trigger (admin)"
+      operationId: triggerIntegrationSync
+      description: |
+        integration provider 의 data sync 수동 트리거. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Provider instance ID"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sync_type:
+                  type: string
+                  description: "Sync 유형 (full / incremental / webhook_replay)"
+              example:
+                sync_type: "incremental"
+      responses:
+        "202":
+          description: "Sync 요청 접수"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  sync_id: "sync_001"
+                  status: "queued"
+                  provider_id: "prov_001"
+                request_id: "req_int_sync"
+                trace_id: "trace_int_sync"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/integration/test-connection — connection test (admin)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/test-connection:
+    post:
+      tags:
+        - Integration
+      summary: "Integration connection test (admin)"
+      operationId: testIntegrationConnection
+      description: |
+        integration provider 연결 설정 검증. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  description: "Provider type"
+                base_url:
+                  type: string
+                  description: "Provider base URL"
+                credential_ref:
+                  type: string
+                  description: "Vault credential reference"
+              required:
+                - provider
+                - base_url
+              example:
+                provider: "gitea"
+                base_url: "https://gitea.example.com"
+                credential_ref: "vault://devhub/gitea"
+      responses:
+        "200":
+          description: "Connection test 결과"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  success: true
+                  latency_ms: 245
+                  server_version: "1.21.0"
+                request_id: "req_int_test_conn"
+                trace_id: "trace_int_test_conn"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/integration/bindings — integration binding 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/integration/bindings:
+    get:
+      tags:
+        - Integration
+      summary: "Integration binding 목록 조회"
+      operationId: listIntegrationBindings
+      description: |
+        integration-provider binding mapping 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Binding 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - binding_id: "bind_001"
+                      integration_id: "int_001"
+                      provider_id: "prov_001"
+                      event_types:
+                        - "push"
+                        - "pull_request"
+                      status: "active"
+                request_id: "req_int_bind_list"
+                trace_id: "trace_int_bind_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/integrations/gitea/webhooks — Gitea webhook (no auth)
+  # ---------------------------------------------------------------------------
+  /api/v1/integrations/gitea/webhooks:
+    post:
+      tags:
+        - Integration
+      summary: "Gitea webhook 수신"
+      operationId: postGiteaWebhook
+      description: |
+        Gitea 가 전송하는 push / pull_request webhook 수신.
+        X-Webhook-Secret header 로 서명 검증. Bearer token 불필요.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: X-Webhook-Secret
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "Gitea webhook secret"
+        - name: X-Gitea-Event
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "Gitea event type (push / pull_request / issues)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ref:
+                  type: string
+                repository:
+                  type: object
+                commits:
+                  type: array
+                  items:
+                    type: object
+              example:
+                ref: "refs/heads/main"
+                repository:
+                  full_name: "org/devhub-core"
+                  html_url: "https://gitea.example.com/org/devhub-core"
+                commits:
+                  - id: "abc123def456"
+                    message: "fix: resolve NPE"
+                    author:
+                      name: "alice"
+                      email: "alice@example.com"
+      responses:
+        "200":
+          description: "Webhook 수신 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  status: "accepted"
+                  event_id: "evt_gitea_001"
+                request_id: "req_gitea_wb_001"
+                trace_id: "trace_gitea_wb_001"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — Domain Read Endpoints (staticTokenAuth OR bearerAuth)
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/issues — issue 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/issues:
+    get:
+      tags:
+        - RiskCommand
+      summary: "Issue 목록 조회"
+      operationId: listIssues
+      description: |
+        등록된 issue / risk item 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (open / closed / resolved)"
+        - name: severity
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "심각도 필터 (critical / major / minor / info)"
+        - name: repository_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Repository ID 필터"
+      responses:
+        "200":
+          description: "Issue 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "iss_001"
+                      title: "Security vulnerability in auth module"
+                      severity: "critical"
+                      status: "open"
+                      repository_id: "repo_001"
+                      created_at: "2026-06-01T00:00:00Z"
+                request_id: "req_iss_list"
+                trace_id: "trace_iss_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/pull-requests — 전체 PR 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/pull-requests:
+    get:
+      tags:
+        - RiskCommand
+      summary: "전체 Pull Request 목록"
+      operationId: listPullRequests
+      description: |
+        모든 repository 의 pull request cross-section.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "PR 상태 필터 (open / closed / merged)"
+        - name: author
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "작성자 ID 필터"
+        - name: repository_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Repository ID 필터"
+      responses:
+        "200":
+          description: "PR 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "pr_001"
+                      title: "feat: add dashboard widget"
+                      repository_id: "repo_001"
+                      author: "alice"
+                      state: "open"
+                      created_at: "2026-06-08T14:00:00Z"
+                request_id: "req_pr_list"
+                trace_id: "trace_pr_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/ci-runs — CI run 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/ci-runs:
+    get:
+      tags:
+        - CI
+      summary: "CI run 목록 조회"
+      operationId: listCiRuns
+      description: |
+        모든 repository 의 CI pipeline run 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (pending / running / passed / failed / cancelled)"
+        - name: repository_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Repository ID 필터"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "최대 조회 개수"
+      responses:
+        "200":
+          description: "CI run 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "cirun_001"
+                      pipeline: "test-and-lint"
+                      commit_sha: "abc123"
+                      status: "passed"
+                      branch: "main"
+                      started_at: "2026-06-09T10:00:00Z"
+                      duration_sec: 180
+                request_id: "req_ci_list"
+                trace_id: "trace_ci_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/ci-runs/{ci_run_id}/logs — CI run log (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/ci-runs/{ci_run_id}/logs:
+    get:
+      tags:
+        - CI
+      summary: "CI run 로그 조회"
+      operationId: getCiRunLogs
+      description: |
+        특정 CI run 의 step-by-step 로그 출력.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: ci_run_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "CI run ID"
+        - name: step
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Step 필터 (예: lint / test / build)"
+      responses:
+        "200":
+          description: "CI run 로그"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  ci_run_id: "cirun_001"
+                  steps:
+                    - name: "lint"
+                      status: "passed"
+                      log: "all linters passed"
+                      duration_sec: 30
+                    - name: "test"
+                      status: "passed"
+                      log: "42 tests passed, 0 failed"
+                      duration_sec: 120
+                request_id: "req_ci_logs"
+                trace_id: "trace_ci_logs"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/risks — risk 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/risks:
+    get:
+      tags:
+        - RiskCommand
+      summary: "Risk 목록 조회"
+      operationId: listRisks
+      description: |
+        등록된 risk item 목록 (mitigation tracking).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (open / mitigated / closed)"
+        - name: severity
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "심각도 필터 (high / medium / low)"
+      responses:
+        "200":
+          description: "Risk 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "risk_001"
+                      title: "Keycloak single point of failure"
+                      severity: "high"
+                      status: "open"
+                      owner: "alice"
+                      created_at: "2026-05-01T00:00:00Z"
+                request_id: "req_risk_list"
+                trace_id: "trace_risk_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — DevRequest & ExternalTask (admin, bearerAuth)
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/dev-requests — DREQ 목록 (admin, bearerAuth)
+  # POST /api/v1/dev-requests — DREQ intake (no security, intake token)
+  # ---------------------------------------------------------------------------
+  /api/v1/dev-requests:
+    get:
+      tags:
+        - DevRequest
+      summary: "DevRequest 목록 조회 (admin)"
+      operationId: listDevRequests
+      description: |
+        개발 요청 (DREQ) 목록. admin 전용 — bearerAuth 강제.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (pending / approved / rejected / completed)"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "최대 조회 개수"
+      responses:
+        "200":
+          description: "DevRequest 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "dreq_001"
+                      title: "Add audit log export endpoint"
+                      requester: "bob"
+                      status: "approved"
+                      priority: "P1"
+                      created_at: "2026-06-05T00:00:00Z"
+                request_id: "req_dreq_list"
+                trace_id: "trace_dreq_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+    post:
+      tags:
+        - DevRequest
+      summary: "DevRequest 접수 (intake token)"
+      operationId: createDevRequest
+      description: |
+        외부/내부 개발 요청 접수. X-Intake-Token header 로 검증.
+        Bearer token 불필요 — intake 전용.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: X-Intake-Token
+          in: header
+          required: true
+          schema:
+            type: string
+          description: "DREQ intake token — 사전 발급된 요청 key"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: "요청 제목"
+                description:
+                  type: string
+                  description: "요청 상세"
+                priority:
+                  type: string
+                  description: "우선순위 (P0 / P1 / P2 / P3)"
+                requester_contact:
+                  type: string
+                  description: "요청자 연락처 (email / slack)"
+              required:
+                - title
+              example:
+                title: "Add CSV export for audit logs"
+                description: "Need REST endpoint to export audit logs as CSV for compliance"
+                priority: "P1"
+                requester_contact: "bob@example.com"
+      responses:
+        "201":
+          description: "DREQ 접수 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "dreq_new_001"
+                  status: "pending"
+                  intake_token_used: true
+                request_id: "req_dreq_create"
+                trace_id: "trace_dreq_create"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/dev-requests/{dev_request_id} — DREQ 상세 (admin, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/dev-requests/{dev_request_id}:
+    get:
+      tags:
+        - DevRequest
+      summary: "DevRequest 상세 조회 (admin)"
+      operationId: getDevRequestById
+      description: |
+        dev_request_id 기준 단일 DREQ 상세. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: dev_request_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "DevRequest ID"
+      responses:
+        "200":
+          description: "DevRequest 상세"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "dreq_001"
+                  title: "Add audit log export endpoint"
+                  description: "Need REST endpoint to export audit logs as CSV"
+                  requester: "bob"
+                  status: "approved"
+                  priority: "P1"
+                  assignee: "alice"
+                  created_at: "2026-06-05T00:00:00Z"
+                request_id: "req_dreq_get"
+                trace_id: "trace_dreq_get"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/dev-request-tokens — DREQ admin token (admin, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/dev-request-tokens:
+    get:
+      tags:
+        - DevRequest
+      summary: "DevRequest token 목록 (system_admin)"
+      operationId: listDevRequestTokens
+      description: |
+        발급된 DREQ intake token 목록. system_admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Token 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - token_id: "tok_001"
+                      label: "intake-cicd-pipeline"
+                      status: "active"
+                      created_at: "2026-05-01T00:00:00Z"
+                      created_by: "admin"
+                request_id: "req_dreq_tok_list"
+                trace_id: "trace_dreq_tok_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/external-tasks — external task 목록 (admin, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/external-tasks:
+    get:
+      tags:
+        - ExternalTask
+      summary: "External task 목록 조회 (admin)"
+      operationId: listExternalTasks
+      description: |
+        외부 시스템 (Jira / Linear / Asana) 연동 task 목록. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (open / in_progress / done / blocked)"
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "외부 소스 필터 (jira / linear / asana)"
+      responses:
+        "200":
+          description: "External task 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "xtask_001"
+                      source: "jira"
+                      external_id: "PROJ-123"
+                      title: "Implement RBAC for audit logs"
+                      status: "in_progress"
+                      assignee: "alice"
+                request_id: "req_xtask_list"
+                trace_id: "trace_xtask_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/external-tasks/{task_id} — external task 상세 (admin)
+  # ---------------------------------------------------------------------------
+  /api/v1/external-tasks/{task_id}:
+    get:
+      tags:
+        - ExternalTask
+      summary: "External task 상세 조회 (admin)"
+      operationId: getExternalTaskById
+      description: |
+        task_id 기준 단일 external task 상세. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "External task ID"
+      responses:
+        "200":
+          description: "External task 상세"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "xtask_001"
+                  source: "jira"
+                  external_id: "PROJ-123"
+                  title: "Implement RBAC for audit logs"
+                  description: "Add role-based access control for the audit log viewer"
+                  status: "in_progress"
+                  assignee: "alice"
+                  priority: "P1"
+                  url: "https://jira.example.com/browse/PROJ-123"
+                request_id: "req_xtask_get"
+                trace_id: "trace_xtask_get"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — Infra Topology (staticTokenAuth OR bearerAuth)
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/infra/nodes — infra node 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/infra/nodes:
+    get:
+      tags:
+        - Infra
+      summary: "Infra node 목록 조회"
+      operationId: listInfraNodes
+      description: |
+        인프라 토폴로지 노드 (서버 / 컨테이너 / DB 인스턴스).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "노드 타입 필터 (server / container / database / loadbalancer)"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "상태 필터 (active / degraded / down)"
+      responses:
+        "200":
+          description: "Infra node 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "node_001"
+                      name: "api-server-01"
+                      type: "server"
+                      status: "active"
+                      region: "us-east-1"
+                request_id: "req_infra_nodes"
+                trace_id: "trace_infra_nodes"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/infra/edges — infra edge 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/infra/edges:
+    get:
+      tags:
+        - Infra
+      summary: "Infra edge (연결) 목록 조회"
+      operationId: listInfraEdges
+      description: |
+        인프라 노드 간 연결 (network / dependency).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Infra edge 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - source_id: "node_001"
+                      target_id: "node_002"
+                      relation: "depends_on"
+                      weight: 1
+                request_id: "req_infra_edges"
+                trace_id: "trace_infra_edges"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/infra/topology — infra topology graph (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/infra/topology:
+    get:
+      tags:
+        - Infra
+      summary: "Infra topology graph 조회"
+      operationId: getInfraTopology
+      description: |
+        전체 인프라 토폴로지 graph (nodes + edges).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "Infra topology"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  nodes:
+                    - id: "node_001"
+                      label: "api-server-01"
+                      type: "server"
+                  edges:
+                    - source: "node_001"
+                      target: "node_002"
+                      label: "HTTP"
+                request_id: "req_infra_top"
+                trace_id: "trace_infra_top"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/infra/services — infra service 목록 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/infra/services:
+    get:
+      tags:
+        - Infra
+      summary: "Infra service 목록 조회"
+      operationId: listInfraServices
+      description: |
+        인프라 서비스 (DB / cache / message queue) 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "서비스 타입 필터 (database / cache / queue / dns)"
+      responses:
+        "200":
+          description: "Infra service 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - id: "svc_001"
+                      name: "postgres-primary"
+                      type: "database"
+                      status: "active"
+                      version: "16.2"
+                request_id: "req_infra_svc"
+                trace_id: "trace_infra_svc"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — Organization (staticTokenAuth OR bearerAuth)
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/organization/hierarchy — 조직 계층 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/organization/hierarchy:
+    get:
+      tags:
+        - Organization
+      summary: "조직 계층 구조 조회"
+      operationId: getOrganizationHierarchy
+      description: |
+        조직 트리 계층 (org → unit → team).
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: "조직 계층"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  organization_id: "org_devhub"
+                  name: "DevHub"
+                  units:
+                    - unit_id: "unit_platform"
+                      name: "Platform Team"
+                      teams:
+                        - team_id: "team_api"
+                          name: "API Team"
+                request_id: "req_org_hier"
+                trace_id: "trace_org_hier"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/organization/units/{unit_id} — 조직 unit 상세 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/organization/units/{unit_id}:
+    get:
+      tags:
+        - Organization
+      summary: "조직 unit 상세 조회"
+      operationId: getOrganizationUnitById
+      description: |
+        unit_id 기준 조직 unit 상세 + member 목록.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: unit_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "조직 unit ID"
+      responses:
+        "200":
+          description: "Unit 상세"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  unit_id: "unit_platform"
+                  name: "Platform Team"
+                  parent_organization_id: "org_devhub"
+                  member_count: 12
+                  teams:
+                    - team_id: "team_api"
+                      name: "API Team"
+                    - team_id: "team_ui"
+                      name: "UI Team"
+                request_id: "req_org_unit"
+                trace_id: "trace_org_unit"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/organizations/search — organization 검색 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/organizations/search:
+    get:
+      tags:
+        - Organization
+      summary: "Organization 검색"
+      operationId: searchOrganizations
+      description: |
+        organization 이름/키워드 검색.
+        ADR-0029: staticTokenAuth 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "검색어"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "최대 결과 개수"
+      responses:
+        "200":
+          description: "검색 결과"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - organization_id: "org_devhub"
+                      name: "DevHub"
+                      description: "DevHub organization"
+                request_id: "req_org_search"
+                trace_id: "trace_org_search"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
+# P1 — Audit / Command / HR / Realtime
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/audit-logs — audit log 목록 (admin, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/audit-logs:
+    get:
+      tags:
+        - Audit
+      summary: "Audit log 목록 조회 (admin)"
+      operationId: listAuditLogs
+      description: |
+        시스템 audit log (user action / admin action / security event). admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: actor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "행위자 ID 필터"
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Action 타입 필터 (create / update / delete / login / logout)"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "시작 시각"
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "종료 시각"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+          description: "최대 조회 개수"
+      responses:
+        "200":
+          description: "Audit log 목록"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - log_id: "audit_001"
+                      timestamp: "2026-06-09T10:00:00Z"
+                      actor: "alice"
+                      action: "update"
+                      resource: "platform:plat_001"
+                      details:
+                        field: "description"
+                        old_value: "old desc"
+                        new_value: "new desc"
+                request_id: "req_audit_list"
+                trace_id: "trace_audit_list"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/commands/{command_id} — command 상태 조회 (admin, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/commands/{command_id}:
+    get:
+      tags:
+        - RiskCommand
+      summary: "Command 상태 조회 (admin)"
+      operationId: getCommandById
+      description: |
+        비동기 command (mitigation / approval) 상태 조회. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: command_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Command ID"
+      responses:
+        "200":
+          description: "Command 상태"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  command_id: "cmd_001"
+                  type: "risk_mitigation"
+                  status: "executing"
+                  progress_pct: 65
+                  started_at: "2026-06-09T10:00:00Z"
+                request_id: "req_cmd_get"
+                trace_id: "trace_cmd_get"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/hr/lookup — HR DB lookup (admin, bearerAuth)
+  # ---------------------------------------------------------------------------
+  /api/v1/hr/lookup:
+    get:
+      tags:
+        - HR
+      summary: "HR DB lookup (admin)"
+      operationId: getHrLookup
+      description: |
+        HR 데이터베이스 사용자/조직 lookup. admin 전용.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "검색어 (이름 / 이메일 / 사번)"
+      responses:
+        "200":
+          description: "HR lookup 결과"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  items:
+                    - employee_id: "EMP001"
+                      name: "Alice Kim"
+                      email: "alice@example.com"
+                      department: "Engineering"
+                      title: "Senior Developer"
+                request_id: "req_hr_lookup"
+                trace_id: "trace_hr_lookup"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # POST /api/v1/realtime/ticket — WebSocket ticket 발급 (P1)
+  # ---------------------------------------------------------------------------
+  /api/v1/realtime/ticket:
+    post:
+      tags:
+        - Realtime
+      summary: "WebSocket 연결 ticket 발급"
+      operationId: postRealtimeTicket
+      description: |
+        WebSocket 연결용 일회용 ticket 발급. ADR-0024.
+        ADR-0029: staticTokenAuth 도 허용.
+      security:
+        - bearerAuth: []
+        - staticTokenAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channel:
+                  type: string
+                  description: "WebSocket channel (events / dashboard / admin)"
+              required:
+                - channel
+              example:
+                channel: "events"
+      responses:
+        "200":
+          description: "Ticket 발급 성공"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  ticket: "wss_ticket_abc123"
+                  expires_in_sec: 300
+                  ws_url: "wss://devhub.example.com/ws?ticket=wss_ticket_abc123"
+                request_id: "req_rt_ticket"
+                trace_id: "trace_rt_ticket"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+# =============================================================================
 # Components
 # =============================================================================
 components:
@@ -217,6 +3595,42 @@ components:
           oneOf:
             - $ref: "#/components/schemas/UserSummary"
             - $ref: "#/components/schemas/LogoutData"
+            - $ref: "#/components/schemas/PaginatedResponse"
+            - $ref: "#/components/schemas/UserSummaryExtended"
+            - $ref: "#/components/schemas/OnboardingSubmissionResponse"
+            - $ref: "#/components/schemas/AuthError"
+            - $ref: "#/components/schemas/Organization"
+            - $ref: "#/components/schemas/OrgUnit"
+            - $ref: "#/components/schemas/OrganizationSearchResult"
+            - $ref: "#/components/schemas/Platform"
+            - $ref: "#/components/schemas/PlatformRepository"
+            - $ref: "#/components/schemas/Project"
+            - $ref: "#/components/schemas/PlatformRollup"
+            - $ref: "#/components/schemas/PlatformDashboard"
+            - $ref: "#/components/schemas/Repository"
+            - $ref: "#/components/schemas/RepositoryActivity"
+            - $ref: "#/components/schemas/PullRequestSummary"
+            - $ref: "#/components/schemas/BuildRunSummary"
+            - $ref: "#/components/schemas/QualitySnapshot"
+            - $ref: "#/components/schemas/IssueSummary"
+            - $ref: "#/components/schemas/Risk"
+            - $ref: "#/components/schemas/Command"
+            - $ref: "#/components/schemas/CIRun"
+            - $ref: "#/components/schemas/CIRunLog"
+            - $ref: "#/components/schemas/IntegrationProvider"
+            - $ref: "#/components/schemas/IntegrationBinding"
+            - $ref: "#/components/schemas/IntegrationTestResult"
+            - $ref: "#/components/schemas/InfraTopology"
+            - $ref: "#/components/schemas/InfraService"
+            - $ref: "#/components/schemas/DashboardMetrics"
+            - $ref: "#/components/schemas/AuditLog"
+            - $ref: "#/components/schemas/WebhookEvent"
+            - $ref: "#/components/schemas/RBACPolicy"
+            - $ref: "#/components/schemas/DevRequest"
+            - $ref: "#/components/schemas/DevRequestIntakeToken"
+            - $ref: "#/components/schemas/ExternalTaskItem"
+            - $ref: "#/components/schemas/HRDBLookupResult"
+            - $ref: "#/components/schemas/RealtimeTicket"
         request_id:
           type: string
           description: "X-Request-ID header 와 동일한 correlation ID"
@@ -385,19 +3799,2068 @@ components:
         - "validation_failed"
         - "unauthenticated"
         - "not_found"
-        - "unavailable"
-      description: |
-        에러 코드 enum (subset — 도메인 endpoint 확장 시 추가 예정).
-        - auth_failed: Bearer token 검증 실패
-        - auth_row_denied: RBAC row-level deny
-        - internal_error: 예상치 못한 서버 오류
-        - oidc_config_missing: OIDC backend config 결함
-        - oidc_network_unreachable: Keycloak network/5xx
-        - request_id_invalid: 잘못된 X-Request-ID 형식
-        - validation_failed: 요청 payload 검증 실패
-        - unauthenticated: 인증 정보 없음
-        - not_found: 리소스 미존재
         - unavailable: 서비스 일시 불가
+
+    # -----------------------------------------------------------------------
+    # PaginatedResponse — generic paginated envelope data
+    # -----------------------------------------------------------------------
+    PaginatedResponse:
+      type: object
+      description: |
+        Generic paginated response wrapper. Type parameter T omitted — items are plain objects.
+        제너릭 페이지네이션 응답. 타입 파라미터는 생략 — items 는 object 배열.
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+          description: "페이지 항목 배열"
+        total:
+          type: integer
+          format: int64
+          description: "전체 항목 수"
+        limit:
+          type: integer
+          format: int64
+          description: "페이지 당 최대 항목 수"
+          example: 50
+        offset:
+          type: integer
+          format: int64
+          description: "페이지 offset"
+          example: 0
+
+    # =========================================================================
+    # Auth / User 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # UserSummaryExtended — /me + onboarding fields
+    # -----------------------------------------------------------------------
+    UserSummaryExtended:
+      type: object
+      required:
+        - user_id
+        - role
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "내부 PK (users.id)"
+          example: 42
+        user_id:
+          type: string
+          description: "OIDC sub 와 매핑되는 내부 식별자"
+          example: "alice"
+        email:
+          type: string
+          format: email
+          description: "사용자 email"
+          example: "alice@example.com"
+        display_name:
+          type: string
+          description: "표시 이름"
+          example: "Alice Kim"
+        role:
+          $ref: "#/components/schemas/AppRole"
+        status:
+          $ref: "#/components/schemas/AccountStatus"
+        type:
+          type: string
+          description: "사용자 유형 — member / bot / token"
+          example: "member"
+        primary_unit_id:
+          type: string
+          description: "주요 소속 조직 unit ID"
+          example: "team-platform"
+        current_unit_id:
+          type: string
+          description: "현재 배정된 조직 unit ID (겸임 시 primary 와 다를 수 있음)"
+          example: "team-platform"
+        is_seconded:
+          type: boolean
+          description: "겸임 여부"
+          example: false
+        joined_at:
+          type: string
+          format: date-time
+          description: "가입 일시"
+          example: "2026-01-15T09:00:00Z"
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "온보딩 완료 일시 — 미완료 시 null"
+          example: "2026-05-21T08:30:00Z"
+        review_status:
+          type: string
+          nullable: true
+          enum:
+            - "pending_review"
+            - "reviewed"
+          description: "관리자 검토 상태 — 미완료 시 null"
+          example: "reviewed"
+
+    # -----------------------------------------------------------------------
+    # AppRole enum — full role set
+    # -----------------------------------------------------------------------
+    AppRole:
+      type: string
+      enum:
+        - "developer"
+        - "team_manager"
+        - "system_admin"
+      description: |
+        DevHub role wire format.
+        - developer: 개발자
+        - team_manager: 팀 관리자
+        - system_admin: 시스템 관리자
+
+    # -----------------------------------------------------------------------
+    # OnboardingSubmissionRequest — POST /me/onboarding body
+    # -----------------------------------------------------------------------
+    OnboardingSubmissionRequest:
+      type: object
+      required:
+        - display_name
+        - primary_unit_id
+      properties:
+        display_name:
+          type: string
+          description: "표시 이름 — 1~100자"
+          example: "Alice Kim"
+        primary_unit_id:
+          type: string
+          description: "주요 소속 조직 unit ID"
+          example: "team-platform"
+        role:
+          type: string
+          description: "role 은 request 단계에서 받지 않음 (claim 매핑 전용)"
+          readOnly: true
+
+    # -----------------------------------------------------------------------
+    # OnboardingSubmissionResponse — POST /me/onboarding 201
+    # -----------------------------------------------------------------------
+    OnboardingSubmissionResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: "OIDC sub 와 매핑되는 내부 식별자"
+          example: "alice"
+        email:
+          type: string
+          format: email
+          description: "사용자 email"
+          example: "alice@example.com"
+        display_name:
+          type: string
+          description: "표시 이름"
+          example: "Alice Kim"
+        primary_unit_id:
+          type: string
+          description: "주요 소속 조직 unit ID"
+          example: "team-platform"
+        role:
+          $ref: "#/components/schemas/AppRole"
+        onboarding_required:
+          type: boolean
+          description: "온보딩 필요 여부"
+          example: false
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "온보딩 완료 일시"
+          example: "2026-05-21T08:30:00Z"
+        review_status:
+          type: string
+          nullable: true
+          description: "관리자 검토 상태"
+          example: "pending_review"
+
+    # -----------------------------------------------------------------------
+    # PatchMeRequest — PATCH /me body
+    # -----------------------------------------------------------------------
+    PatchMeRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          description: "표시 이름 — 1~100자 (선택)"
+          example: "Alice K."
+        email:
+          type: string
+          format: email
+          description: "이메일 주소 (선택)"
+          example: "alice@newdomain.com"
+        primary_unit_id:
+          type: string
+          description: "주요 소속 조직 unit ID (선택)"
+          example: "team-data"
+
+    # -----------------------------------------------------------------------
+    # AuthError — auth-failure response envelope
+    # -----------------------------------------------------------------------
+    AuthError:
+      type: object
+      description: |
+        인증 실패 응답. code 필드로 구체적 실패 원인 식별.
+        Auth failure response. Use code field to discriminate.
+      properties:
+        code:
+          type: string
+          enum:
+            - "auth_failed"
+            - "auth_row_denied"
+            - "unauthenticated"
+            - "unauthorized"
+          description: "인증/인가 실패 코드"
+        message:
+          type: string
+          description: "사람 가독 에러 메시지"
+          example: "invalid bearer token"
+        details:
+          type: object
+          description: "추가 디버그 정보 (선택)"
+        request_id:
+          type: string
+          description: "X-Request-ID header 값"
+          example: "req_abc123"
+
+    # =========================================================================
+    # Organization 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # Organization
+    # -----------------------------------------------------------------------
+    Organization:
+      type: object
+      required:
+        - id
+        - key
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "조직 UUID"
+          example: "a1b2c3d4-1111-2222-3333-444455556666"
+        key:
+          type: string
+          description: "조직 key (시스템 전역 unique)"
+          example: "devhub-org"
+        name:
+          type: string
+          description: "조직 이름"
+          example: "DevHub Organization"
+        visibility:
+          type: string
+          enum:
+            - "public"
+            - "internal"
+            - "restricted"
+          description: "조직 가시성"
+          example: "internal"
+        status:
+          type: string
+          enum:
+            - "active"
+            - "inactive"
+          description: "조직 상태"
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-01-01T00:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # OrgUnit
+    # -----------------------------------------------------------------------
+    OrgUnit:
+      type: object
+      required:
+        - id
+        - key
+        - name
+      properties:
+        id:
+          type: string
+          description: "조직 unit ID"
+          example: "team-platform"
+        parent_id:
+          type: string
+          nullable: true
+          description: "상위 unit ID (root 시 null)"
+          example: "dept-engineering"
+        key:
+          type: string
+          description: "unit key"
+          example: "team-platform"
+        name:
+          type: string
+          description: "unit 이름"
+          example: "AI/플랫폼팀"
+        leader_user_id:
+          type: string
+          nullable: true
+          description: "unit 장 user_id"
+          example: "yklee"
+        type:
+          type: string
+          enum:
+            - "HQ"
+            - "division"
+            - "team"
+            - "group"
+          description: "조직 단위 유형"
+          example: "team"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-05-14T01:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # OrgUnitMember
+    # -----------------------------------------------------------------------
+    OrgUnitMember:
+      type: object
+      required:
+        - user_id
+        - role
+      properties:
+        user_id:
+          type: string
+          description: "사용자 ID"
+          example: "alice"
+        role:
+          type: string
+          description: "unit 내 역할"
+          example: "member"
+        joined_at:
+          type: string
+          format: date-time
+          description: "가입 일시"
+          example: "2026-02-01T09:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # OrganizationSearchResult
+    # -----------------------------------------------------------------------
+    OrganizationSearchResult:
+      type: object
+      required:
+        - organizations
+        - total
+      properties:
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Organization"
+          description: "검색 결과 조직 목록"
+        total:
+          type: integer
+          format: int64
+          description: "전체 검색 결과 수"
+          example: 17
+
+    # =========================================================================
+    # Platform / Project / Repository 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # Platform
+    # -----------------------------------------------------------------------
+    Platform:
+      type: object
+      required:
+        - id
+        - key
+        - name
+        - owner_user_id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Platform UUID"
+          example: "1a2b3c4d-1111-2222-3333-444455556666"
+        key:
+          type: string
+          description: "Platform key — immutable, 시스템 전역 unique"
+          example: "A1B2C3D4E5"
+        name:
+          type: string
+          description: "Platform 이름"
+          example: "DevHub Platform 2026"
+        description:
+          type: string
+          description: "Platform 설명"
+          example: "Cross-repo delivery governance"
+        owner_user_id:
+          type: string
+          description: "소유자 user_id"
+          example: "u-1001"
+        status:
+          type: string
+          enum:
+            - "planning"
+            - "active"
+            - "on_hold"
+            - "closed"
+            - "archived"
+          description: "Platform 상태"
+          example: "active"
+        visibility:
+          type: string
+          enum:
+            - "public"
+            - "internal"
+            - "restricted"
+          description: "가시성"
+          example: "internal"
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: "시작일"
+          example: "2026-01-01T00:00:00Z"
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: "마감일"
+          example: "2026-12-31T00:00:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-14T01:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-05-14T01:00:00Z"
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "보관 일시"
+          example: null
+
+    # -----------------------------------------------------------------------
+    # PlatformRepository
+    # -----------------------------------------------------------------------
+    PlatformRepository:
+      type: object
+      required:
+        - id
+        - platform_id
+        - provider_key
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "PK"
+          example: 101
+        platform_id:
+          type: string
+          format: uuid
+          description: "Platform UUID"
+          example: "1a2b3c4d-1111-2222-3333-444455556666"
+        provider_key:
+          type: string
+          description: "SCM provider key"
+          example: "gitea-main"
+        owner:
+          type: string
+          description: "Repository owner"
+          example: "team"
+        name:
+          type: string
+          description: "Repository 이름"
+          example: "devhub-core"
+        default_branch:
+          type: string
+          description: "기본 브랜치"
+          example: "main"
+        sync_status:
+          type: string
+          enum:
+            - "requested"
+            - "verifying"
+            - "active"
+            - "degraded"
+            - "disconnected"
+          description: "동기화 상태"
+          example: "active"
+        last_sync_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "마지막 동기화 일시"
+          example: "2026-05-14T01:10:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-14T01:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # Project
+    # -----------------------------------------------------------------------
+    Project:
+      type: object
+      required:
+        - id
+        - key
+        - name
+        - owner_user_id
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "Project PK"
+          example: 42
+        key:
+          type: string
+          description: "Project key"
+          example: "PROJ1"
+        name:
+          type: string
+          description: "Project 이름"
+          example: "DevHub API v2"
+        description:
+          type: string
+          description: "Project 설명"
+          example: "REST API v2 마이그레이션"
+        owner_user_id:
+          type: string
+          description: "소유자 user_id"
+          example: "charlie"
+        status:
+          type: string
+          enum:
+            - "planning"
+            - "active"
+            - "on_hold"
+            - "closed"
+            - "archived"
+          description: "Project 상태"
+          example: "active"
+        visibility:
+          type: string
+          enum:
+            - "public"
+            - "internal"
+            - "restricted"
+          description: "가시성"
+          example: "internal"
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: "시작일"
+          example: "2026-03-01T00:00:00Z"
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: "마감일"
+          example: "2026-09-30T00:00:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-03-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-05-14T01:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # ProjectRepositoryLink
+    # -----------------------------------------------------------------------
+    ProjectRepositoryLink:
+      type: object
+      required:
+        - project_id
+        - repository_id
+      properties:
+        project_id:
+          type: integer
+          format: int64
+          description: "Project PK"
+          example: 42
+        repository_id:
+          type: integer
+          format: int64
+          description: "Repository PK"
+          example: 101
+        weight:
+          type: number
+          format: float
+          description: "가중치 (0.0 ~ 1.0)"
+          example: 0.5
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-03-01T00:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # PlatformRollup
+    # -----------------------------------------------------------------------
+    PlatformRollup:
+      type: object
+      required:
+        - platform_id
+      properties:
+        platform_id:
+          type: string
+          format: uuid
+          description: "Platform UUID"
+          example: "1a2b3c4d-1111-2222-3333-444455556666"
+        repository_count:
+          type: integer
+          format: int64
+          description: "연결 Repository 수"
+          example: 5
+        open_pr_count:
+          type: integer
+          format: int64
+          description: "열린 PR 수"
+          example: 24
+        critical_risk_count:
+          type: integer
+          format: int64
+          description: "Critical risk 수"
+          example: 2
+        last_calculated_at:
+          type: string
+          format: date-time
+          description: "마지막 집계 일시"
+          example: "2026-05-14T02:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # PlatformDashboard
+    # -----------------------------------------------------------------------
+    PlatformDashboard:
+      type: object
+      properties:
+        rollup:
+          $ref: "#/components/schemas/PlatformRollup"
+        recent_activity:
+          type: array
+          items:
+            type: object
+            description: "최근 활동 항목"
+          description: "최근 활동 목록"
+        build_run_summary:
+          $ref: "#/components/schemas/BuildRunSummary"
+
+    # -----------------------------------------------------------------------
+    # SCMProvider
+    # -----------------------------------------------------------------------
+    SCMProvider:
+      type: object
+      required:
+        - provider_key
+        - provider_type
+      properties:
+        provider_key:
+          type: string
+          description: "SCM provider key"
+          example: "gitea-main"
+        provider_type:
+          type: string
+          description: "Provider 유형"
+          example: "gitea"
+        display_name:
+          type: string
+          description: "표시 이름"
+          example: "Gitea (Main)"
+        enabled:
+          type: boolean
+          description: "활성화 여부"
+          example: true
+        adapter_version:
+          type: string
+          description: "어댑터 semver"
+          example: "1.4.0"
+        last_sync_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "마지막 동기화 일시"
+          example: "2026-05-14T01:10:00Z"
+
+    # -----------------------------------------------------------------------
+    # Repository
+    # -----------------------------------------------------------------------
+    Repository:
+      type: object
+      required:
+        - id
+        - owner
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "Repository PK"
+          example: 101
+        owner:
+          type: string
+          description: "저장소 소유자"
+          example: "team"
+        name:
+          type: string
+          description: "저장소 이름"
+          example: "devhub-core"
+        default_branch:
+          type: string
+          description: "기본 브랜치"
+          example: "main"
+        description:
+          type: string
+          description: "저장소 설명"
+          example: "DevHub Go Core"
+        visibility:
+          type: string
+          enum:
+            - "public"
+            - "private"
+            - "internal"
+          description: "저장소 가시성"
+          example: "internal"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-05-14T01:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # RepositoryActivity
+    # -----------------------------------------------------------------------
+    RepositoryActivity:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            description: "commit / PR / issue 요약"
+          description: "활동 항목 배열"
+
+    # -----------------------------------------------------------------------
+    # PullRequestSummary
+    # -----------------------------------------------------------------------
+    PullRequestSummary:
+      type: object
+      required:
+        - id
+        - number
+        - title
+        - state
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "PR PK"
+          example: 501
+        number:
+          type: integer
+          format: int64
+          description: "PR 번호"
+          example: 42
+        title:
+          type: string
+          description: "PR 제목"
+          example: "feat: add RBAC policy API"
+        state:
+          type: string
+          enum:
+            - "open"
+            - "closed"
+            - "merged"
+          description: "PR 상태"
+          example: "merged"
+        author:
+          type: string
+          description: "작성자 login"
+          example: "yklee"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-01T10:00:00Z"
+        merged_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "병합 일시"
+          example: "2026-05-05T14:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # BuildRunSummary
+    # -----------------------------------------------------------------------
+    BuildRunSummary:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "빌드 run PK"
+          example: 1001
+        status:
+          type: string
+          enum:
+            - "queued"
+            - "running"
+            - "success"
+            - "failed"
+            - "cancelled"
+            - "skipped"
+            - "unknown"
+          description: "빌드 상태"
+          example: "success"
+        branch:
+          type: string
+          description: "브랜치"
+          example: "main"
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "시작 일시"
+          example: "2026-05-14T01:00:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "완료 일시"
+          example: "2026-05-14T01:05:00Z"
+
+    # -----------------------------------------------------------------------
+    # QualitySnapshot
+    # -----------------------------------------------------------------------
+    QualitySnapshot:
+      type: object
+      required:
+        - id
+        - score
+        - measured_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "품질 스냅샷 PK"
+          example: 201
+        score:
+          type: number
+          format: float
+          description: "품질 점수 (0~100)"
+          example: 83.4
+        measured_at:
+          type: string
+          format: date-time
+          description: "측정 일시"
+          example: "2026-05-14T01:00:00Z"
+        metrics:
+          type: object
+          description: "추가 메트릭 맵"
+          example:
+            coverage: 78.5
+            lint_score: 95.0
+
+    # -----------------------------------------------------------------------
+    # IssueSummary
+    # -----------------------------------------------------------------------
+    IssueSummary:
+      type: object
+      required:
+        - id
+        - number
+        - title
+        - state
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "Issue PK"
+          example: 301
+        number:
+          type: integer
+          format: int64
+          description: "Issue 번호"
+          example: 88
+        title:
+          type: string
+          description: "Issue 제목"
+          example: "Fix pagination offset bug"
+        state:
+          type: string
+          enum:
+            - "open"
+            - "closed"
+          description: "Issue 상태"
+          example: "open"
+        labels:
+          type: array
+          items:
+            type: string
+          description: "레이블 목록"
+          example: ["bug", "p1"]
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-10T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-05-14T01:00:00Z"
+
+    # =========================================================================
+    # Risk / Command 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # Risk
+    # -----------------------------------------------------------------------
+    Risk:
+      type: object
+      required:
+        - id
+        - title
+        - severity
+        - status
+      properties:
+        id:
+          type: string
+          description: "Risk key"
+          example: "ci_failure:502"
+        title:
+          type: string
+          description: "Risk 제목"
+          example: "CI failure in devhub-core main"
+        severity:
+          type: string
+          enum:
+            - "low"
+            - "medium"
+            - "high"
+            - "critical"
+          description: "심각도"
+          example: "critical"
+        status:
+          type: string
+          enum:
+            - "detected"
+            - "investigation"
+            - "action_required"
+            - "mitigated"
+            - "dismissed"
+          description: "Risk 상태"
+          example: "action_required"
+        affected_repos:
+          type: array
+          items:
+            type: string
+          description: "영향받는 Repository 목록"
+          example: ["team/devhub-core"]
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-14T01:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # RiskMitigationCommandRequest
+    # -----------------------------------------------------------------------
+    RiskMitigationCommandRequest:
+      type: object
+      required:
+        - risk_id
+        - command
+        - expected_outcome
+        - actor_login
+      properties:
+        risk_id:
+          type: string
+          description: "Risk key"
+          example: "ci_failure:502"
+        command:
+          type: string
+          description: "완화 명령"
+          example: "restart_ci_runner"
+        expected_outcome:
+          type: string
+          description: "기대 결과"
+          example: "CI runner 재시작으로 빌드 복구"
+        actor_login:
+          type: string
+          description: "요청자 login"
+          example: "yklee"
+
+    # -----------------------------------------------------------------------
+    # Command
+    # -----------------------------------------------------------------------
+    Command:
+      type: object
+      required:
+        - id
+        - type
+        - status
+        - requested_by
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Command UUID"
+          example: "cmd_1f2a3b4c5d6e"
+        type:
+          type: string
+          description: "Command 유형"
+          example: "service_action"
+        status:
+          type: string
+          enum:
+            - "pending"
+            - "running"
+            - "succeeded"
+            - "failed"
+            - "rejected"
+            - "cancelled"
+          description: "Command 상태"
+          example: "pending"
+        payload:
+          type: object
+          description: "Command payload"
+          example: {"action": "restart", "target": "runner-asia-01"}
+        requested_by:
+          type: string
+          description: "요청자 login"
+          example: "yklee"
+        approved_by:
+          type: string
+          nullable: true
+          description: "승인자 login"
+          example: "admin"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-14T01:00:00Z"
+        decided_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "처리(승인/거절) 일시"
+          example: "2026-05-14T02:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # CommandApprovalRequest
+    # -----------------------------------------------------------------------
+    CommandApprovalRequest:
+      type: object
+      required:
+        - approver_login
+      properties:
+        approver_login:
+          type: string
+          description: "승인자 login"
+          example: "admin"
+        comment:
+          type: string
+          description: "승인/거절 코멘트"
+          example: "승인합니다"
+
+    # =========================================================================
+    # CI 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # CIRun
+    # -----------------------------------------------------------------------
+    CIRun:
+      type: object
+      required:
+        - id
+        - repository_id
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "CI run PK"
+          example: 1001
+        repository_id:
+          type: integer
+          format: int64
+          description: "Repository PK"
+          example: 101
+        branch:
+          type: string
+          description: "브랜치"
+          example: "main"
+        status:
+          type: string
+          enum:
+            - "queued"
+            - "running"
+            - "success"
+            - "failed"
+            - "cancelled"
+            - "skipped"
+          description: "CI 실행 상태"
+          example: "success"
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "시작 일시"
+          example: "2026-05-14T01:00:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "완료 일시"
+          example: "2026-05-14T01:05:00Z"
+        external_id:
+          type: string
+          description: "외부 CI 시스템 ID"
+          example: "jenkins-job-42"
+
+    # -----------------------------------------------------------------------
+    # CIRunLog
+    # -----------------------------------------------------------------------
+    CIRunLog:
+      type: object
+      required:
+        - ci_run_id
+      properties:
+        ci_run_id:
+          type: integer
+          format: int64
+          description: "CI run PK"
+          example: 1001
+        log_lines:
+          type: array
+          items:
+            type: string
+          description: "로그 라인 배열"
+          example: ["Cloning repository...", "Running build...", "BUILD SUCCESS"]
+        truncated:
+          type: boolean
+          description: "로그 잘림 여부"
+          example: false
+
+    # =========================================================================
+    # Integration 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # IntegrationProvider
+    # -----------------------------------------------------------------------
+    IntegrationProvider:
+      type: object
+      required:
+        - id
+        - provider_key
+        - provider_type
+        - display_name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Provider UUID"
+          example: "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d"
+        provider_key:
+          type: string
+          description: "Provider key"
+          example: "jira-main"
+        provider_type:
+          type: string
+          enum:
+            - "alm"
+            - "scm"
+            - "ci_cd"
+            - "doc"
+            - "infra"
+          description: "Provider 유형"
+          example: "alm"
+        display_name:
+          type: string
+          description: "표시 이름"
+          example: "Jira Cloud (Main)"
+        enabled:
+          type: boolean
+          description: "활성화 여부"
+          example: true
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: "제공 기능 목록"
+          example: ["issue.read", "epic.read", "issue.link"]
+        sync_status:
+          type: string
+          enum:
+            - "requested"
+            - "verifying"
+            - "active"
+            - "degraded"
+            - "disconnected"
+          description: "동기화 상태"
+          example: "active"
+        last_sync_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "마지막 동기화 일시"
+          example: "2026-05-14T01:10:00Z"
+        last_error_code:
+          type: string
+          nullable: true
+          description: "마지막 에러 코드"
+          example: null
+        base_url:
+          type: string
+          format: uri
+          nullable: true
+          description: "외부 시스템 base URL"
+          example: "https://jira.example.com"
+
+    # -----------------------------------------------------------------------
+    # IntegrationProviderCreate
+    # -----------------------------------------------------------------------
+    IntegrationProviderCreate:
+      type: object
+      required:
+        - provider_key
+        - provider_type
+        - display_name
+        - auth_mode
+        - capabilities
+      properties:
+        provider_key:
+          type: string
+          description: "Provider key"
+          example: "jira-main"
+        provider_type:
+          type: string
+          enum:
+            - "alm"
+            - "scm"
+            - "ci_cd"
+            - "doc"
+            - "infra"
+          description: "Provider 유형"
+          example: "alm"
+        display_name:
+          type: string
+          description: "표시 이름"
+          example: "Jira Cloud (Main)"
+        auth_mode:
+          type: string
+          enum:
+            - "token"
+            - "basic"
+            - "oauth2"
+            - "agent"
+          description: "인증 방식"
+          example: "oauth2"
+        capabilities:
+          type: array
+          items:
+            type: string
+          description: "제공 기능 목록"
+          example: ["issue.read", "epic.read", "issue.link"]
+        base_url:
+          type: string
+          format: uri
+          nullable: true
+          description: "외부 시스템 base URL"
+          example: "https://jira.example.com"
+        api_token:
+          type: string
+          writeOnly: true
+          description: "API token (write-only, 설정 시 응답에 api_token_set=true)"
+          example: "pat_abc123"
+        auth_username:
+          type: string
+          description: "Basic auth username"
+          example: "svc-account"
+        auth_secret:
+          type: string
+          writeOnly: true
+          description: "Auth secret (write-only, 설정 시 응답에 auth_secret_set=true)"
+          example: "s3cr3t!"
+        auth_client_id:
+          type: string
+          description: "OAuth2 client ID"
+          example: "devhub-client"
+        auth_token_url:
+          type: string
+          format: uri
+          description: "OAuth2 token endpoint URL"
+          example: "https://idp.example.com/token"
+
+    # -----------------------------------------------------------------------
+    # IntegrationBinding
+    # -----------------------------------------------------------------------
+    IntegrationBinding:
+      type: object
+      required:
+        - id
+        - scope_type
+        - scope_id
+        - provider_id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Binding UUID"
+          example: "a1b2c3d4-5555-6666-7777-88889999aaaa"
+        scope_type:
+          type: string
+          enum:
+            - "application"
+            - "project"
+          description: "Scope 유형"
+          example: "application"
+        scope_id:
+          type: string
+          description: "Scope 식별자"
+          example: "APP-001"
+        provider_id:
+          type: string
+          format: uuid
+          description: "Provider UUID"
+          example: "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d"
+        config:
+          type: object
+          description: "추가 설정"
+          example: {"policy": "execution_system", "external_key": "PROJ"}
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-15T14:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # IntegrationTestResult
+    # -----------------------------------------------------------------------
+    IntegrationTestResult:
+      type: object
+      required:
+        - provider_key
+        - reachable
+      properties:
+        provider_key:
+          type: string
+          description: "Provider key"
+          example: "gitea-main"
+        reachable:
+          type: boolean
+          description: "도달 가능 여부"
+          example: true
+        latency_ms:
+          type: integer
+          format: int64
+          description: "지연 시간 (ms)"
+          example: 28
+        error_code:
+          type: string
+          nullable: true
+          description: "에러 코드 (미도달 시)"
+          example: "connection_timeout"
+
+    # =========================================================================
+    # Infra 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # InfraNode
+    # -----------------------------------------------------------------------
+    InfraNode:
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        id:
+          type: string
+          description: "노드 ID"
+          example: "node-nas-01"
+        name:
+          type: string
+          description: "노드 이름"
+          example: "NAS-01"
+        type:
+          type: string
+          description: "노드 유형"
+          example: "storage"
+        status:
+          type: string
+          enum:
+            - "stable"
+            - "degraded"
+            - "down"
+          description: "노드 상태"
+          example: "stable"
+        provider_key:
+          type: string
+          description: "연동 provider key"
+          example: "gitea-main"
+        metadata:
+          type: object
+          description: "추가 메타데이터"
+          example: {"ip": "192.168.0.20", "cpu_cores": 4}
+
+    # -----------------------------------------------------------------------
+    # InfraEdge
+    # -----------------------------------------------------------------------
+    InfraEdge:
+      type: object
+      required:
+        - source
+        - target
+        - relationship
+      properties:
+        source:
+          type: string
+          description: "소스 노드 ID"
+          example: "gitea"
+        target:
+          type: string
+          description: "대상 노드 ID"
+          example: "backend-core"
+        relationship:
+          type: string
+          description: "관계 유형"
+          example: "WEBHOOK"
+        metadata:
+          type: object
+          description: "추가 메타데이터"
+          example: {"latency_ms": 28.5}
+
+    # -----------------------------------------------------------------------
+    # InfraTopology
+    # -----------------------------------------------------------------------
+    InfraTopology:
+      type: object
+      required:
+        - nodes
+        - edges
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/InfraNode"
+          description: "토폴로지 노드 목록"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/InfraEdge"
+          description: "토폴로지 엣지 목록"
+
+    # -----------------------------------------------------------------------
+    # InfraService
+    # -----------------------------------------------------------------------
+    InfraService:
+      type: object
+      required:
+        - id
+        - name
+        - status
+      properties:
+        id:
+          type: string
+          description: "서비스 ID"
+          example: "svc-jenkins"
+        name:
+          type: string
+          description: "서비스 이름"
+          example: "jenkins"
+        status:
+          type: string
+          enum:
+            - "healthy"
+            - "degraded"
+            - "down"
+          description: "서비스 상태"
+          example: "healthy"
+        host:
+          type: string
+          description: "호스트"
+          example: "192.168.0.20"
+        port:
+          type: integer
+          format: int64
+          description: "포트"
+          example: 8080
+        last_heartbeat:
+          type: string
+          format: date-time
+          nullable: true
+          description: "마지막 heartbeat 일시"
+          example: "2026-05-15T14:09:59Z"
+
+    # -----------------------------------------------------------------------
+    # InfraSnapshotRequest
+    # -----------------------------------------------------------------------
+    InfraSnapshotRequest:
+      type: object
+      required:
+        - services
+      properties:
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/InfraService"
+          description: "스냅샷 서비스 목록"
+
+    # -----------------------------------------------------------------------
+    # DashboardMetrics
+    # -----------------------------------------------------------------------
+    DashboardMetrics:
+      type: object
+      properties:
+        open_prs:
+          type: integer
+          format: int64
+          description: "열린 PR 수"
+          example: 24
+        critical_risks:
+          type: integer
+          format: int64
+          description: "Critical risk 수"
+          example: 2
+        active_deployments:
+          type: integer
+          format: int64
+          description: "활성 배포 수"
+          example: 3
+        last_updated:
+          type: string
+          format: date-time
+          description: "마지막 갱신 일시"
+          example: "2026-05-14T02:00:00Z"
+
+    # =========================================================================
+    # Audit / Events 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # AuditLog
+    # -----------------------------------------------------------------------
+    AuditLog:
+      type: object
+      required:
+        - id
+        - actor_login
+        - action
+        - target_type
+        - created_at
+      properties:
+        id:
+          type: string
+          description: "Audit log ID"
+          example: "audit_1f2a3b4c5d6e"
+        actor_login:
+          type: string
+          description: "실행자 login"
+          example: "admin"
+        action:
+          type: string
+          description: "실행 action"
+          example: "user.created"
+        target_type:
+          type: string
+          description: "대상 유형"
+          example: "user"
+        target_id:
+          type: string
+          nullable: true
+          description: "대상 식별자"
+          example: "u3"
+        payload:
+          type: object
+          description: "추가 payload"
+          example: {"actor_source": "bearer", "role": "developer"}
+        source_ip:
+          type: string
+          format: ipv4
+          description: "요청 출발 IP"
+          example: "10.0.0.1"
+        request_id:
+          type: string
+          description: "요청 correlation ID"
+          example: "req_abc123"
+        source_type:
+          type: string
+          description: "출처 유형"
+          example: "api"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-07T10:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # WebhookEvent
+    # -----------------------------------------------------------------------
+    WebhookEvent:
+      type: object
+      required:
+        - id
+        - provider_key
+        - event_type
+        - received_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "이벤트 PK"
+          example: 7
+        provider_key:
+          type: string
+          description: "Provider key"
+          example: "gitea-main"
+        event_type:
+          type: string
+          description: "이벤트 유형"
+          example: "push"
+        payload:
+          type: object
+          description: "원본 payload"
+          example: {"ref": "refs/heads/main"}
+        received_at:
+          type: string
+          format: date-time
+          description: "수신 일시"
+          example: "2026-05-02T10:00:00Z"
+        status:
+          type: string
+          enum:
+            - "received"
+            - "validated"
+            - "processed"
+            - "failed"
+            - "ignored"
+          description: "처리 상태"
+          example: "validated"
+        error:
+          type: string
+          nullable: true
+          description: "에러 메시지"
+          example: null
+
+    # =========================================================================
+    # RBAC 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # RBACPolicy
+    # -----------------------------------------------------------------------
+    RBACPolicy:
+      type: object
+      required:
+        - role
+        - resource
+        - action
+        - allowed
+      properties:
+        role:
+          type: string
+          description: "Role ID"
+          example: "developer"
+        resource:
+          type: string
+          description: "Resource 이름"
+          example: "pipelines"
+        action:
+          type: string
+          enum:
+            - "view"
+            - "create"
+            - "edit"
+            - "delete"
+          description: "Action"
+          example: "view"
+        allowed:
+          type: boolean
+          description: "허용 여부"
+          example: true
+        constraints:
+          type: object
+          description: "추가 제약 조건"
+          example: {"scope": "self"}
+
+    # -----------------------------------------------------------------------
+    # RBACPolicyUpdate
+    # -----------------------------------------------------------------------
+    RBACPolicyUpdate:
+      type: object
+      required:
+        - policies
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/RBACPolicy"
+          description: "갱신할 정책 목록"
+
+    # =========================================================================
+    # DevRequest 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # DevRequest
+    # -----------------------------------------------------------------------
+    DevRequest:
+      type: object
+      required:
+        - id
+        - title
+        - status
+        - received_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "DREQ UUID"
+          example: "11111111-2222-3333-4444-555555555555"
+        title:
+          type: string
+          description: "의뢰 제목"
+          example: "Backend 검색 성능 개선"
+        details:
+          type: string
+          description: "상세 내용"
+          example: "p95 응답시간 2s 이상 발생"
+        requester:
+          type: string
+          description: "의뢰자 식별자"
+          example: "ops_portal/user/jane"
+        assignee_user_id:
+          type: string
+          nullable: true
+          description: "담당자 user_id"
+          example: "charlie"
+        source_system:
+          type: string
+          description: "출처 시스템"
+          example: "ops_portal"
+        external_ref:
+          type: string
+          nullable: true
+          description: "외부 참조 ID"
+          example: "OPS-2026-00482"
+        status:
+          type: string
+          enum:
+            - "pending"
+            - "in_progress"
+            - "registered"
+            - "rejected"
+            - "closed"
+          description: "DREQ 상태"
+          example: "pending"
+        registered_target_type:
+          type: string
+          nullable: true
+          enum:
+            - "application"
+            - "project"
+          description: "등록 대상 유형"
+          example: null
+        registered_target_id:
+          type: string
+          nullable: true
+          description: "등록 대상 식별자"
+          example: null
+        rejected_reason:
+          type: string
+          nullable: true
+          description: "거절 사유"
+          example: null
+        received_at:
+          type: string
+          format: date-time
+          description: "수신 일시"
+          example: "2026-05-15T04:55:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-15T04:55:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-05-15T04:55:00Z"
+
+    # -----------------------------------------------------------------------
+    # DevRequestIntakeRequest
+    # -----------------------------------------------------------------------
+    DevRequestIntakeRequest:
+      type: object
+      required:
+        - title
+        - details
+        - requester
+      properties:
+        title:
+          type: string
+          description: "의뢰 제목"
+          example: "Backend 검색 성능 개선"
+        details:
+          type: string
+          description: "상세 내용"
+          example: "p95 응답시간 2s 이상 발생"
+        requester:
+          type: string
+          description: "의뢰자 식별자"
+          example: "ops_portal/user/jane"
+        assignee_user_id:
+          type: string
+          nullable: true
+          description: "담당자 user_id (선택)"
+          example: "charlie"
+        external_ref:
+          type: string
+          nullable: true
+          description: "외부 참조 ID (선택)"
+          example: "OPS-2026-00482"
+
+    # -----------------------------------------------------------------------
+    # DevRequestIntakeToken
+    # -----------------------------------------------------------------------
+    DevRequestIntakeToken:
+      type: object
+      required:
+        - id
+        - name
+        - source_system
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Token UUID"
+          example: "a1b2c3d4-9999-8888-7777-666655554444"
+        name:
+          type: string
+          description: "토큰 식별 label"
+          example: "ops_portal"
+        source_system:
+          type: string
+          description: "출처 시스템"
+          example: "ops"
+        token_prefix:
+          type: string
+          description: "토큰 prefix (4자)"
+          example: "dreq"
+        allowed_ips:
+          type: array
+          items:
+            type: string
+          description: "허용 IP CIDR 목록"
+          example: ["10.0.0.0/24", "192.0.2.7"]
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-15T14:00:00Z"
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "마지막 사용 일시"
+          example: "2026-05-20T10:00:00Z"
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "만료 일시"
+          example: "2026-12-31T23:59:59Z"
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "폐기 일시"
+          example: null
+
+    # -----------------------------------------------------------------------
+    # DevRequestIntakeTokenCreate
+    # -----------------------------------------------------------------------
+    DevRequestIntakeTokenCreate:
+      type: object
+      required:
+        - name
+        - source_system
+        - allowed_ips
+      properties:
+        name:
+          type: string
+          description: "토큰 식별 label"
+          example: "ops_portal"
+        source_system:
+          type: string
+          description: "출처 시스템"
+          example: "ops"
+        allowed_ips:
+          type: array
+          items:
+            type: string
+          description: "허용 IP CIDR 목록 (1개 이상 필수)"
+          example: ["10.0.0.0/24", "192.0.2.7"]
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "만료 일시 (선택)"
+          example: "2026-12-31T23:59:59Z"
+
+    # -----------------------------------------------------------------------
+    # DevRequestIntakeTokenIPsUpdate
+    # -----------------------------------------------------------------------
+    DevRequestIntakeTokenIPsUpdate:
+      type: object
+      required:
+        - allowed_ips
+      properties:
+        allowed_ips:
+          type: array
+          items:
+            type: string
+          description: "허용 IP CIDR 목록"
+          example: ["10.0.0.1/32"]
+
+    # =========================================================================
+    # ExternalTask 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # ExternalTaskItem
+    # -----------------------------------------------------------------------
+    ExternalTaskItem:
+      type: object
+      required:
+        - id
+        - provider_id
+        - external_id
+        - title
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: "Task PK"
+          example: 1
+        provider_id:
+          type: string
+          format: uuid
+          description: "Provider UUID"
+          example: "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d"
+        external_id:
+          type: string
+          description: "외부 시스템 task ID"
+          example: "EXT-001"
+        title:
+          type: string
+          description: "Task 제목"
+          example: "Implement RBAC view"
+        status:
+          type: string
+          description: "외부 상태"
+          example: "in_progress"
+        url:
+          type: string
+          format: uri
+          description: "외부 시스템 URL"
+          example: "https://jira.example.com/browse/PROJ-123"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-05-15T14:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-05-20T10:00:00Z"
+        metadata:
+          type: object
+          description: "추가 메타데이터"
+          example: {"priority": "high", "assignee": "alice"}
+
+    # =========================================================================
+    # HR 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # HRDBLookupResult
+    # -----------------------------------------------------------------------
+    HRDBLookupResult:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: "사용자 email"
+          example: "alice@example.com"
+        user_id:
+          type: string
+          description: "사용자 ID"
+          example: "alice"
+        dept:
+          type: string
+          description: "부서 정보"
+          example: "Engineering"
+
+    # =========================================================================
+    # Realtime 도메인
+    # =========================================================================
+
+    # -----------------------------------------------------------------------
+    # RealtimeTicket
+    # -----------------------------------------------------------------------
+    RealtimeTicket:
+      type: object
+      required:
+        - ticket
+        - expires_at
+      properties:
+        ticket:
+          type: string
+          description: "Single-use WebSocket ticket"
+          example: "rt_4b2c1f..."
+        expires_at:
+          type: string
+          format: date-time
+          description: "티켓 만료 일시 (60s TTL)"
+          example: "2026-05-29T01:23:45Z"
 
   # =========================================================================
   # Security Schemes
@@ -408,6 +5871,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: "Keycloak-issued access token (ADR-0019)"
+
+    staticTokenAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Static
+      description: |
+        DEVHUB_API_KEY 정적 키. Keycloak-independent 인증.
+        공개 read-only API 조회용. admin endpoints 는 bearerAuth 강제.
+        ADR-0029.
 
   # =========================================================================
   # Parameters

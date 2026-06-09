@@ -153,6 +153,12 @@ type RouterConfig struct {
 	CommandStore          CommandStore
 	AuditStore            AuditStore
 	BearerTokenVerifier   BearerTokenVerifier
+	// APIKey — ADR-0029. cfg.APIKey 가 비어있지 않으면 AuthHandler 가 Bearer token
+	// 의 JWT 형식이 아닐 때 DEVHUB_API_KEY 와 비교. Keycloak-independent 인증.
+	APIKey string
+	// APIKeyAdminOnly — ADR-0029 운영 가드. true 면 API key caller 는 admin-only
+	// endpoints 만 접근 가능. RBAC 가 deny.
+	APIKeyAdminOnly bool
 	OrganizationStore     OrganizationStore
 	PlatformStore      PlatformStore
 	// IntegrationStore — integration-registry 도메인 (API-58, API-69..75). issue
@@ -321,6 +327,8 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 			OIDCLogoutClient:      cfg.OIDCLogoutClient,
 			AuditStore:            cfg.AuditStore,
 			OnboardingGateEnabled: cfg.OnboardingGateEnabled,
+			APIKey:                cfg.APIKey,
+			APIKeyAdminOnly:       cfg.APIKeyAdminOnly,
 		}),
 		audit: auditview.NewAuditHandler(auditview.AuditConfig{
 			AuditStore:            cfg.AuditStore,
