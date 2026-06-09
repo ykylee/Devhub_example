@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-12 main. PR #514 (voc + notification) + PR #515 (v1.0 출시 직전 finalizing, 4 commit + codex P2 fix) 머지 완료. CI 9/9 green. 본 sprint `maintenance/work_260612-c-inbound-source-plan` push — option D (project.inbound_source 자동 routing) post-MVP 검토 (sprint plan + N-13 + ADR-0028 §6 정합). v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정 영역).",
-  "updated_at": "2026-06-12T07:30:00Z",
-  "head_commit": "2222cb0",
-  "head_summary": "docs(roadmap,adr-0028): N-13 (project.inbound_source 자동 routing) post-MVP 검토 정합",
+  "status": "2026-06-12 main. PR #514 + #515 + #516 머지 완료. option D (project.inbound_source 자동 routing) sprint plan + N-13 + ADR-0028 §6 정합 (codex P2 2건 fix 동봉). main HEAD `2b3c766`. v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정 영역).",
+  "updated_at": "2026-06-12T07:40:00Z",
+  "head_commit": "2b3c766",
+  "head_summary": "docs(planning,roadmap,adr-0028): option D 검토 — project.inbound_source 자동 routing sprint plan (#516)",
   "milestones": {
     "M0": {
       "status": "done",
