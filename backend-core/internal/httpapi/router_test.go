@@ -97,15 +97,23 @@ func TestRouter_SwaggerSpecWhenConfigured(t *testing.T) {
 	}
 }
 
-// TestRouter_SwaggerSpecEmptyOmitsMount verifies that an empty OpenAPISpecPath
-// does not mount the /swagger/openapi.yaml route (codex P2 fix, PR #508).
-func TestRouter_SwaggerSpecEmptyOmitsMount(t *testing.T) {
+// TestRouter_SwaggerSpecEmptyEmbedsFallback verifies that an empty
+// OpenAPISpecPath falls back to the embedded openapi.yaml (build-time
+// copy of docs/openapi.yaml) so the spec is reachable out of the box in
+// staging/test without DEVHUB_OPENAPI_SPEC_PATH plumbing. This supersedes
+// the PR #508 silent-404 behaviour: the operator's request (option D in
+// the prior conversation) is for the UI to just work in test environments.
+func TestRouter_SwaggerSpecEmptyEmbedsFallback(t *testing.T) {
 	router := NewRouter(RouterConfig{SwaggerEnabled: true, OpenAPISpecPath: ""})
 	req := httptest.NewRequest(http.MethodGet, "/swagger/openapi.yaml", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("GET /swagger/openapi.yaml with empty spec path: got %d, want %d (spec must be omitted)", rec.Code, http.StatusNotFound)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /swagger/openapi.yaml with empty spec path: got %d, want %d (embed fallback must serve the spec)", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.Bytes()
+	if !bytes.Contains(body, []byte("openapi:")) {
+		t.Fatalf("embedded openapi.yaml missing 'openapi:' preamble; body[:200]=%q", body[:min(200, len(body))])
 	}
 }
 

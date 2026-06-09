@@ -261,16 +261,23 @@ var swaggerAssetFS embed.FS
 
 // swaggerFS wraps an embedded http.FileSystem with an optional disk-backed
 // override for /openapi.yaml, allowing the spec to be dynamically updated
-// without rebuild.  Used as a single StaticFS mount to avoid gin radix-tree
-// conflicts between StaticFile and StaticFS under the same prefix.
+// without rebuild.  When specPath is empty the embedded openapi.yaml (kept
+// in sync with docs/openapi.yaml as a build-time copy) is served, so the
+// spec is reachable out of the box in staging/test without the operator
+// having to plumb DEVHUB_OPENAPI_SPEC_PATH through their env file.
 type swaggerFS struct {
 	embed    http.FileSystem
 	specPath string
 }
 
 func (fs swaggerFS) Open(name string) (http.File, error) {
-	if name == "/openapi.yaml" && fs.specPath != "" {
-		return os.Open(fs.specPath)
+	if name == "/openapi.yaml" {
+		if fs.specPath != "" {
+			return os.Open(fs.specPath)
+		}
+		// embed.FS fallback — the asset was embedded at build time via
+		// //go:embed swaggerui/asset/* (see swaggerAssetFS).
+		return fs.embed.Open(name)
 	}
 	return fs.embed.Open(name)
 }
