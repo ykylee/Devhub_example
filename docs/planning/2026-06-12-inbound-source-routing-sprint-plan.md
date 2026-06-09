@@ -55,7 +55,7 @@ ALTER TABLE public.applications
 
 **backend 구현**:
 1. `internal/domain/platform-lifecycle/repository/applications.go` 의 `CreatePlatform` / `UpdatePlatform` 에 inbound_source 2 field 추가.
-2. `internal/infrastructure/routing/auto_route.go` 신규 — 외부 시스템 ID 매칭 + project 자동 결정. **worker** 가 아니고 **synchronous routing** (voc 등록 시점에 즉시 적용) — **post-MVP 검토에서 worker vs sync 결정 필요**.
+2. `internal/domain/platform-lifecycle/routing/auto_route.go` 신규 (기존 platform-lifecycle domain path 정합) — 외부 시스템 ID 매칭 + project 자동 결정. **worker** 가 아니고 **synchronous routing** (voc 등록 시점에 즉시 적용) — **post-MVP 검토에서 worker vs sync 결정 필요**.
 3. `internal/domain/dev-request/view/voc_handler.go` `createOrGetVoc` 에 자동 routing 호출 — match 시 voc skip + dev-request 직접 등록.
 
 **API**:
@@ -121,7 +121,7 @@ ALTER TABLE public.applications
 
 ### 3.4 정합 항목
 
-- **traceability §2.1 REQ-FR-113 + §2.2 ARCH-23 + §2.2 API-103 + §2.3 RM-DEV-REQ-15 + §2.4 IMPL-inbound-source-01 + §2.4 IMPL-platform-patch-02 + §2.5 UT-inbound-source-01 + §2.6 TC-INBOUND-SRC-01**: 8 row 추가.
+- **traceability §2.1 REQ-FR-113 + §2.1.5 UC-DEV-REQ-15 + §2.2 ARCH-23 + §2.2 API-103 + §2.3 RM-DEV-REQ-15 + §2.4 IMPL-inbound-source-01 + §2.4 IMPL-platform-patch-02 + §2.5 UT-inbound-source-01 + §2.6 TC-INBOUND-SRC-01**: 9 row 추가.
 - **release_v1_roadmap §3.5 N-13 row 신규** + §4.2 v1.1 milestone 정합.
 - **ADR-0028 §6 amendment**: 본 plan 결정 사항을 ADR-0028 §6 의 (a) carve out 에 정합 노트 (sprint 진입 시점).
 
