@@ -37,7 +37,8 @@ test.describe("/repositories — repository list/detail UI", () => {
 
     // ---- Repository header (preserved from legacy page) ----
     await expect(page.getByRole("heading", { name: /e2e-repo-a/i })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("devhub/e2e-repo-a", { exact: false })).toBeVisible();
+    // full_name text renders slightly after the heading; default 5s is too tight.
+    await expect(page.getByText("devhub/e2e-repo-a", { exact: false })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("link", { name: /view on scm/i })).toBeVisible();
 
     // ---- New dashboard subheader (PR #482 revamp) ----

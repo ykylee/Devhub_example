@@ -68,7 +68,8 @@ test.describe("Repository Detailed Dashboard E2E", () => {
 
     // 2. 저장소 목록으로 이동하여 e2e-repo-a 상세 화면 진입
     await page.goto(appPath("/repositories"));
-    await expect(page.getByText("e2e-repo-a", { exact: false })).toBeVisible({ timeout: 20_000 });
+    // .first() to bypass strict mode when prior run residue (e.g. e2e-repo-a3xd7) is present.
+    await expect(page.getByText("e2e-repo-a", { exact: false }).first()).toBeVisible({ timeout: 20_000 });
     await page.getByRole("link", { name: /e2e-repo-a/i }).first().click();
 
     // 3. 상세 대시보드 로딩 완료 확인
