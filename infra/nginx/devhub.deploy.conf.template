@@ -124,6 +124,22 @@ server {
         proxy_send_timeout 300s;
     }
 
+    # `/devhub/swagger/*` 를 backend 의 swagger UI mount 로 전달 (ADR-0027, sprint
+    # work_260610-a). default opt-out: backend 가 DEVHUB_SWAGGER_ENABLED=true 일 때만
+    # /swagger/* 노출. 본 location 은 backend 에 1:1 rewrite + forward.
+    location /devhub/swagger/ {
+        rewrite ^/devhub/swagger/(.*)$ /swagger/$1 break;
+        proxy_pass http://devhub_backend_core;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+    }
+
     # Keycloak Admin REST API — internal-only (carve G — P3 정합).
     # 본 location 은 /devhub/auth/keycloak/ 의 일반 location 보다 우선 매칭되어야 하므로
     # location ^~ (prefix 가장 우선 매칭) 로 선언한다. ${KEYCLOAK_ADMIN_ALLOW_CIDR} 미지정

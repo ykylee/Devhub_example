@@ -5,8 +5,8 @@
 - 대상 독자: Backend / 프론트엔드 개발자, AI agent, 외부 API consumer, QA.
 - 상태: accepted
 - 기준일: 2026-05-04
-- 최종 수정일: 2026-05-29 (Phase 3 split — 도메인별 본문 §11~§17 sub-document 로 이관, 본 문서는 master index 로 전환)
-- 관련 문서: [공통 규약 (envelope/enum)](./api/conventions.md), [아키텍처 (master index)](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [백엔드 로드맵](../docs/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
+- 최종 수정일: 2026-06-10 (swagger UI 1차 bootstrap 문서 정합 — §0 메타 헤더 갱신 + §1 envelope cross-link + §3 Health spec 위치 명시 + [ADR-0027](./adr/0027-openapi-hand-maintained.md) + IMPL-swagger-01)
+- 관련 문서: [공통 규약 (envelope/enum)](./api/conventions.md), [OpenAPI spec: [openapi.yaml](./openapi.yaml) (1차 bootstrap, 도메인 endpoint 확장 별도 sprint)](./openapi.yaml), [아키텍처 (master index)](./architecture.md), [기술 스택](./tech_stack.md), [프론트 연동 요구사항](./backend/frontend_integration_requirements.md), [백엔드 요구사항 리뷰](./backend/requirements_review.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0027 OpenAPI hand-maintained](./adr/0027-openapi-hand-maintained.md), [백엔드 로드맵](../docs/backend_development_roadmap.md), [추적성 매트릭스](./traceability/report.md).
 
 ## 1. 공통 응답 원칙
 
@@ -17,6 +17,8 @@
 - API role wire format은 `developer`, `manager`, `system_admin`을 사용하고 UI 표시명과 분리한다.
 
 > 본 절 + §2 의 단일 동기 본은 [`./api/conventions.md`](./api/conventions.md) 다. 신규 cross-cutting 결정은 conventions.md 에 먼저 작성.
+
+> OpenAPI spec 의 components.schemas.Envelope / EnvelopeError 가 본 envelope 정의의 machine-readable mirror. 변경 시 둘 다 갱신.
 
 ## 2. 공통 enum 및 상태 값
 
@@ -45,7 +47,7 @@ Webhook event는 signature 검증과 raw 저장이 끝나면 `validated`가 되�
 
 ### `GET /health` (API-01)
 
-Go Core 상태를 확인한다.
+Go Core 상태를 확인한다. OpenAPI spec 의 본 endpoint 본문은 [`./openapi.yaml`](./openapi.yaml) § paths./health (system tag, 인증 불필요) 에 위치.
 
 #### 응답 예시
 
