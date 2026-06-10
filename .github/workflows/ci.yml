@@ -431,6 +431,16 @@ jobs:
           sudo tar -C /usr/local -xzf /tmp/e2e-artifacts/e2e-tools.tgz
       
       - name: Start Keycloak (container)
+        env:
+          # Tier: 사내 (Keycloak container is internal infrastructure). PR #536
+          # governance enforcement — hardcoded admin password moved to GitHub
+          # repository variable `E2E_KEYCLOAK_ADMIN_PASSWORD` (public-readable,
+          # plaintext OK for test container). The DEVHUB_KEYCLOAK_*_CLIENT_SECRET
+          # is moved to repository secret (private) below. See `docs/governance/
+          # worker_division.md` §6.4 for the full enforcement matrix.
+          E2E_KEYCLOAK_ADMIN_USERNAME: ${{ vars.E2E_KEYCLOAK_ADMIN_USERNAME }}
+          E2E_KEYCLOAK_ADMIN_PASSWORD: ${{ vars.E2E_KEYCLOAK_ADMIN_PASSWORD }}
+          E2E_KEYCLOAK_SPI_WEBHOOK_SECRET: ${{ vars.E2E_KEYCLOAK_SPI_WEBHOOK_SECRET }}
         run: |
           set -euo pipefail
           image="quay.io/keycloak/keycloak:26.0"
@@ -457,11 +467,11 @@ jobs:
             -v "${realm_import}:/opt/keycloak/data/import/devhub-realm.json:ro" \
             --add-host=host.docker.internal:host-gateway \
             -e DEVHUB_BACKEND_SPI_WEBHOOK_URL=http://host.docker.internal:8080/api/v1/internal/keycloak-events \
-            -e DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET=test-spi-webhook-token-12345 \
-            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-            -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-            -e KEYCLOAK_ADMIN=admin \
-            -e KEYCLOAK_ADMIN_PASSWORD=admin \
+            -e DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET="${E2E_KEYCLOAK_SPI_WEBHOOK_SECRET}" \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME="${E2E_KEYCLOAK_ADMIN_USERNAME}" \
+            -e KC_BOOTSTRAP_ADMIN_PASSWORD="${E2E_KEYCLOAK_ADMIN_PASSWORD}" \
+            -e KEYCLOAK_ADMIN="${E2E_KEYCLOAK_ADMIN_USERNAME}" \
+            -e KEYCLOAK_ADMIN_PASSWORD="${E2E_KEYCLOAK_ADMIN_PASSWORD}" \
             -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \
             "$image" start-dev --import-realm --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
 
@@ -490,7 +500,11 @@ jobs:
           DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
           DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
-          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: secret-change-me-backend
+          # Tier: 사내. PR #536 governance enforcement — moved from plaintext
+          # hardcoded value to GitHub repository secret. Owner 가 GitHub UI 에서
+          # `E2E_DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET` 시크릿을 추가해야 함
+          # (`docs/governance/worker_division.md` §6.4 + §6.5).
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${{ secrets.E2E_DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET }}
         run: |
           ./devhub-backend > backend.log 2>&1 &
       
@@ -520,7 +534,9 @@ jobs:
           DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
           DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
-          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: secret-change-me-backend
+          # Tier: 사내. PR #536 governance enforcement — GitHub repository
+          # secret (동일 시크릿 E2E_DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET).
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: ${{ secrets.E2E_DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET }}
       
       - name: Upload Playwright Report
         if: always()

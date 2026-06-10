@@ -7,6 +7,7 @@
 - 작성일: 2026-05-18
 - 결정일: 2026-05-16 (PR #137 활성화), 2026-05-18 사후 명문화 (sprint `claude/work_260518-c`)
 - 결정 근거 sprint: `gemini/dreq_e2e_260515` (PR #137, sha `72bf265`).
+- **Tier**: 사내
 - 관련 문서: [ADR-0012 DREQ 외부 수신 인증](./0012-dreq-external-intake-auth.md), [ADR-0014 DREQ intake token admin](./0014-dreq-intake-token-admin.md), [`docs/backend_api_contract.md`](../backend_api_contract.md) §14.10 (API-79), [추적성 매트릭스 §3 Dev Request 행 + §4 ADR](../traceability/report.md).
 
 ## 1. 컨텍스트

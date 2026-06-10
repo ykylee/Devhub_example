@@ -6,6 +6,7 @@
 - **수정일**: 2026-05-21
 - **결정 근거 sprint**: `claude/keycloak-user-onboarding-concept` (PR #260, 컨셉 1차) + `claude/keycloak-onboarding-concept-2026-05-21` (PR #265, §5.9 skip-and-resume) + `claude/onboarding-requirements-2026-05-21` (PR #266, REQ §5.7) + `claude/onboarding-arch-2026-05-21` (PR #267, ARCH §9 + API §16) + `claude/onboarding-adr-2026-05-21` (본 ADR 발급)
 - **partial supersedes**: [ADR-0020 외부 Keycloak 가정 하의 계정/사용자 관리 책임 경계 (2026-05-20)](./0020-account-user-management-boundary.md) — §3.2 의 "신규 user 의 unit 초기 배치" row 의 lazy-auto-create-후 정책 + §4.1 sub-carve B 의 lazy auto-create 실 구현 결정 + §4.2 의 lazy auto-create 관련 보안 영향 + §6.1 후속 ADR 후보 row + §6.2 carve out 의 동일 항목 (5 위치, 상세는 §4.1). ADR-0020 의 **핵심 결정** (옵션 A 책임 경계 — Keycloak account vs DevHub user 분리) 은 reverse 하지 않고 **자연 확장**.
+- **Tier**: 사내
 - **관련 문서**: [`docs/domain/onboarding/concept.md`](../domain/onboarding/concept.md), [`docs/requirements.md §5.7`](../requirements.md), [`docs/architecture.md §9`](../architecture.md), [`docs/backend_api_contract.md §16`](../backend_api_contract.md), [`docs/planning/system_usecases.md §2.13`](../planning/system_usecases.md), [`docs/setup/onboarding_operations.md`](../setup/onboarding_operations.md) (운영 SOP — staging 1주 monitoring + rollback + incident response), [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [ADR-0020 계정/사용자 책임 경계](./0020-account-user-management-boundary.md)
 
 ## 2. 컨텍스트

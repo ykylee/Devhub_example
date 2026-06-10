@@ -1,0 +1,126 @@
+# 사내 한정 (tier=internal) CI — Keycloak 기반 e2e.
+#
+# 정책 (`docs/governance/worker_division.md` §6):
+#   - GitHub main PR CI (ci.yml `e2e` job) — 사외-safe 사변 검증 (Keycloak container +
+#     plaintext repository variable 기반). PR open 시 자동.
+#   - 본 workflow (`ci-internal.yml`) — 사내 staging/prod-smoke 환경 검증
+#     (GitHub repository secret 사용, real staging Keycloak 도달성 + ReadOnly
+#     verify). 수동 trigger 만 (`workflow_dispatch`). main push 시 자동 실행 X.
+#
+# 정합:
+#   - workflow_dispatch trigger (사내 운영자 수동 실행)
+#   - `if: github.event_name == 'workflow_dispatch'` 로 main push 자동 실행 차단
+#   - 시크릿은 `secrets.E2E_*` (PR #536 governance enforcement)
+#   - 사내 SCM 의 CI runner 에서도 동일 contract 로 실행 가능
+#
+# Setup (Owner 가 GitHub UI 에서 1회):
+#   1. GitHub repository secrets 추가 (사내 staging 자격증명):
+#      - E2E_DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET (staging devhub-backend client secret)
+#      - E2E_KEYCLOAK_STAGING_ISSUER_URL (e.g. https://kc.internal.example.com/devhub/auth/keycloak/realms/devhub)
+#      - E2E_KEYCLOAK_STAGING_ADMIN_URL (e.g. https://kc.internal.example.com/devhub/auth/keycloak)
+#   2. GitHub repository variables 추가 (사내 staging admin):
+#      - E2E_KEYCLOAK_ADMIN_USERNAME (= "admin")
+#      - E2E_KEYCLOAK_ADMIN_PASSWORD (= staging admin password)
+#      - E2E_KEYCLOAK_SPI_WEBHOOK_SECRET
+#   3. workflow_dispatch 로 수동 실행
+#
+# 본 workflow 는 scaffold — owner 가 staging 도달 + Playwright step 등 세부 단계
+# 를 추가하여 운영. 초기 단계: staging Keycloak 도달성 check + OIDC discovery verify.
+
+name: CI — internal (tier=internal, manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target internal environment (staging/prod-smoke)"
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - prod-smoke
+
+# 사내 한정 workflow. main push 자동 실행 X — 사내 운영자 수동 trigger 만.
+# 사내 SCM 의 CI runner 에서도 동일 contract 로 실행 가능하도록 runner label
+# 을 generic 으로 두지 않고 사내 명시 가능.
+concurrency:
+  group: ci-internal-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  e2e-internal:
+    name: E2E (internal — ${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PostgreSQL (native) + Go + Node + Playwright
+        # ADR-0003 no-docker policy. inline setup — ci.yml `e2e` job 과 동일 contract.
+        # 사내 staging 도달성 검증 + read-only OIDC verify 가 본 workflow 의 1차 목적.
+        # 세부 backend/frontend 띄우기 + Playwright 실행 단계는 후속 PR.
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-15
+          sudo pg_ctlcluster 15 main start
+          sudo -u postgres psql -c "CREATE USER runner WITH PASSWORD 'runner' SUPERUSER;" || true
+          sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;" || true
+
+      - name: Setup Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Validate 사내 staging Keycloak 도달성 + OIDC discovery
+        env:
+          STAGING_ISSUER_URL: ${{ secrets.E2E_KEYCLOAK_STAGING_ISSUER_URL }}
+          STAGING_ADMIN_URL: ${{ secrets.E2E_KEYCLOAK_STAGING_ADMIN_URL }}
+        run: |
+          set -euo pipefail
+          # 사내 staging Keycloak 도달성 + realm 활성화 검증. 본 workflow 는
+          # staging 인스턴스를 수정하지 않고 read-only verify 만.
+          timeout 60s bash -c "until curl -fsS \"${STAGING_ISSUER_URL}/.well-known/openid-configuration\" >/dev/null; do sleep 2; done"
+          echo "staging Keycloak reachable: $STAGING_ISSUER_URL"
+          # OIDC discovery 응답의 issuer 가 STAGING_ISSUER_URL 와 일치하는지 확인.
+          discovered=$(curl -fsS "${STAGING_ISSUER_URL}/.well-known/openid-configuration" | python3 -c "import json,sys;print(json.load(sys.stdin)['issuer'])")
+          if [ "$discovered" != "$STAGING_ISSUER_URL" ]; then
+            echo "OIDC issuer mismatch: configured=$STAGING_ISSUER_URL discovered=$discovered"
+            exit 1
+          fi
+          echo "OIDC issuer verified: $discovered"
+          # Admin URL 도달성 (admin-cli)
+          timeout 30s curl -fsS "${STAGING_ADMIN_URL}/admin/master/console/" -o /dev/null || true
+          echo "staging Keycloak admin URL reachable: $STAGING_ADMIN_URL"
+
+      - name: Apply app migrations (against staging DB)
+        env:
+          # ⚠️ 본 step 은 staging DB 에 직접 migration. staging 운영자 가 수동
+          # trigger 시에만 실행. main PR CI 에는 영향 없음.
+          DB_URL: ${{ secrets.E2E_STAGING_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "E2E_STAGING_DB_URL secret not set — skipping migration (verification only mode)"
+            exit 0
+          fi
+          migrate -path backend-core/migrations -database "$DB_URL" up
+
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-e2e-report-${{ inputs.environment }}
+        path: |
+          *.log
+        retention-days: 14

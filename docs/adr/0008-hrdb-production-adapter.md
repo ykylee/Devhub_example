@@ -6,6 +6,7 @@
 - 상태: accepted
 - 결정일: 2026-05-13
 - 결정 근거 sprint: `claude/work_260513-l`.
+- **Tier**: 사내
 - 관련 문서: [`backend_api_contract.md` §11.5.2](../backend_api_contract.md#1152-post-apiv1authsignup-api-23-rm-m3-01), [`internal/hrdb/mock.go`](../../backend-core/internal/hrdb/mock.go), [ADR-0003 No-Docker CI](./0003-no-docker-policy-ci-scope.md), [추적성 매트릭스 §2.3.1 RM-M3](../traceability/report.md#231-rm-m3-정의-sprint-claudework_260513-k).
 
 ## 1. 컨텍스트

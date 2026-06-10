@@ -5,6 +5,7 @@
 - **작성일**: 2026-05-18
 - **수정일**: 2026-05-18
 - **결정 근거 sprint**: `adr0018-reverse-proxy`
+- **Tier**: 사내
 
 ## 2. 컨텍스트
 DevHub 플랫폼은 5개의 독립된 프로세스(Next.js Frontend, Go Backend-Core, Python AI Gardener, Ory Hydra, Ory Kratos)가 서로 다른 포트에서 Native하게 기동되는 멀티 프로세스 지향 아키텍처(ADR-0003 no-docker 정책)를 고수하고 있습니다.

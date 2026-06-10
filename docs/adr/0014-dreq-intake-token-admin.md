@@ -7,6 +7,7 @@
 - 작성일: 2026-05-15
 - 결정일: 2026-05-15 (sprint `claude/work_260515-o`)
 - 결정 근거 sprint: `claude/work_260515-o` — DREQ-Admin-UI backend (carve 2/4 part 1).
+- **Tier**: 사내
 - 관련 문서: [ADR-0012 DREQ 외부 수신 인증](./0012-dreq-external-intake-auth.md), [ADR-0013 DREQ RBAC row-scoping](./0013-dreq-rbac-row-scoping.md), [`docs/domain/dev-request/concept.md`](../domain/dev-request/concept.md) §10, [`docs/requirements.md`](../requirements.md) §5.5, [추적성 매트릭스 §3 Dev Request 행 + §4 ADR](../traceability/report.md).
 
 ## 1. 컨텍스트
