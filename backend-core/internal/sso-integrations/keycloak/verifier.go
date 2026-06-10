@@ -1,4 +1,30 @@
-package service
+// real.go — 사내 build 용 Keycloak adapter real implementation.
+//
+// 정책 (`docs/governance/worker_division.md` §6 + ADR-0030 §2.3):
+//   - runtime injection: 단일 binary, main.go 에서 DEVHUB_BUILD_TIER=internal
+//     시 본 real adapter 가 wiring. default (외부) 시 saovae_stub 사용.
+//   - 본 파일의 verifier + admin_client 는 **사내 build** 용 (real Keycloak
+//     JWKS 검증 + admin REST 호출 + event polling). 사외 build 시 stub 으로
+//     compile 되지 않도록 별도 file 분리 (build tag 미사용, runtime 분기).
+//
+// real adapter 의 책임:
+//   - KeycloakJWKSVerifier: OIDC Bearer JWT 검증 (JWKS + RS256/RS384/RS512
+//     + stale-while-error fallback, ADR-0020 sub-carve D).
+//   - KeycloakAdminClient: Keycloak admin REST (user lifecycle + logout +
+//     event polling). KeycloakEventPort + IdentityAdmin + OIDCLogoutClient
+//     3 port 모두 충족.
+//
+// 이전 위치 (v1.0):
+//   - service/keycloak_verifier.go (477 lines) + service/keycloak_verifier_test.go (853 lines)
+//   - httpapi/keycloak_admin_client.go (410 lines) + 관련 test files
+//
+// 이전 사유 (v1.1 sprint -a follow-up):
+//   - domain layer 의 IdP 결합 제거 (Adapter pattern) — port interface 는
+//     integration/, 구현은 sso-integrations/. import 방향 단방향 (sso-integrations
+//     → integration, httpapi → integration). httpapi 가 sso-integrations 을
+//     import 하지 않음 (architecture purity).
+
+package keycloak
 
 import (
 	"context"
@@ -14,16 +40,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/devhub/backend-core/internal/httpapi"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/devhub/backend-core/internal/domain/auth-session/integration"
 )
+
+// --- KeycloakJWKSVerifier (real, JWKS-based) ---
 
 // KeycloakJWKSVerifier verifies JWT bearer tokens against a Keycloak-compatible
 // JWKS endpoint. JWKS can be configured explicitly or discovered from issuer.
 type KeycloakJWKSVerifier struct {
-	IssuerURL  string
-	JWKSURL    string
-	ClientID   string
+	IssuerURL string
+	JWKSURL   string
+	ClientID  string
 	HTTPClient *http.Client
 
 	// Optional cache TTL. Zero means defaultTTL.
@@ -55,9 +84,9 @@ const (
 // sprint claude/work_260519-r 구현.
 var errKidMismatch = errors.New("jwks key not found")
 
-func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token string) (httpapi.AuthenticatedActor, error) {
+func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token string) (integration.AuthenticatedActor, error) {
 	if strings.TrimSpace(v.IssuerURL) == "" && strings.TrimSpace(v.JWKSURL) == "" {
-		return httpapi.AuthenticatedActor{}, errors.New("KeycloakJWKSVerifier requires DEVHUB_OIDC_ISSUER_URL or DEVHUB_OIDC_JWKS_URL")
+		return integration.AuthenticatedActor{}, errors.New("KeycloakJWKSVerifier requires DEVHUB_OIDC_ISSUER_URL or DEVHUB_OIDC_JWKS_URL")
 	}
 
 	parserOpts := []jwt.ParserOption{jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"})}
@@ -81,19 +110,19 @@ func (v *KeycloakJWKSVerifier) VerifyBearerToken(ctx context.Context, token stri
 		v.invalidateCache()
 		actor, err = v.parseWithJWKS(ctx, token, parserOpts)
 		if err != nil {
-			return httpapi.AuthenticatedActor{}, err
+			return integration.AuthenticatedActor{}, err
 		}
 		return actor, nil
 	}
 
-	return httpapi.AuthenticatedActor{}, err
+	return integration.AuthenticatedActor{}, err
 }
 
 // parseWithJWKS — VerifyBearerToken 의 핵심 parse 단계 분리. retry path 의 단일 entry.
-func (v *KeycloakJWKSVerifier) parseWithJWKS(ctx context.Context, token string, parserOpts []jwt.ParserOption) (httpapi.AuthenticatedActor, error) {
+func (v *KeycloakJWKSVerifier) parseWithJWKS(ctx context.Context, token string, parserOpts []jwt.ParserOption) (integration.AuthenticatedActor, error) {
 	keySet, err := v.fetchJWKS(ctx)
 	if err != nil {
-		return httpapi.AuthenticatedActor{}, err
+		return integration.AuthenticatedActor{}, err
 	}
 
 	claims := jwt.MapClaims{}
@@ -111,17 +140,17 @@ func (v *KeycloakJWKSVerifier) parseWithJWKS(ctx context.Context, token string, 
 	if err != nil {
 		// errKidMismatch 는 wrap 해서 errors.Is 가 동작하도록 — caller 가 retry 분기.
 		if errors.Is(err, errKidMismatch) {
-			return httpapi.AuthenticatedActor{}, err
+			return integration.AuthenticatedActor{}, err
 		}
-		return httpapi.AuthenticatedActor{}, fmt.Errorf("verify keycloak token: %w", err)
+		return integration.AuthenticatedActor{}, fmt.Errorf("verify keycloak token: %w", err)
 	}
 	if !parsed.Valid {
-		return httpapi.AuthenticatedActor{}, errors.New("invalid token")
+		return integration.AuthenticatedActor{}, errors.New("invalid token")
 	}
 
 	subject := claimString(claims, "sub")
 	if subject == "" {
-		return httpapi.AuthenticatedActor{}, errors.New("token subject(sub) is required")
+		return integration.AuthenticatedActor{}, errors.New("token subject(sub) is required")
 	}
 	login := claimString(claims, "preferred_username")
 	if login == "" {
@@ -131,7 +160,7 @@ func (v *KeycloakJWKSVerifier) parseWithJWKS(ctx context.Context, token string, 
 		login = subject
 	}
 
-	return httpapi.AuthenticatedActor{
+	return integration.AuthenticatedActor{
 		Subject:     subject,
 		Login:       login,
 		Role:        extractKeycloakRole(claims),

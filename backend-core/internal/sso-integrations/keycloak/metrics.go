@@ -1,11 +1,15 @@
-// Package auth 의 Prometheus metric — JWKS stale-while-error 운영 가시성.
+// Package keycloak 의 Prometheus metric — JWKS stale-while-error 운영 가시성.
 // ADR-0020 sub-carve D (sprint -l, issue #213). 본 sprint 가 keycloak_verifier
 // 의 cache fetch 실패 시 stale cache fallback 흐름을 추가하면서 운영 dashboard
 // 가 fallback 활성 여부 + stale_age 분포 추적 가능하도록 metric 등록.
 //
 // audit/metrics.go + devrequest/metrics.go + integrations/adapters/metrics.go
 // 패턴 정합 — sync.Once init + registerCollector + observe helpers.
-package service
+//
+// v1.1 sprint -a follow-up: metrics 가 sso-integrations/keycloak/ 으로 이동
+// (verifier 와 동거). 다른 domain 의 metrics 와는 별개 prometheus registry
+// 공유 (sso-integrations → shared/metrics reverse import 회피).
+package keycloak
 
 import (
 	"sync"

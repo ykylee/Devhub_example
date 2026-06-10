@@ -13,7 +13,6 @@ import (
 	auditsvc "github.com/devhub/backend-core/internal/domain/audit-ops/service"
 	"github.com/devhub/backend-core/internal/domain/auth-session/integration"
 	authapikeyrep "github.com/devhub/backend-core/internal/domain/auth-session/repository"
-	authsvc "github.com/devhub/backend-core/internal/domain/auth-session/service"
 	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
 	devreqrep "github.com/devhub/backend-core/internal/domain/dev-request/repository"
 	devreqsvc "github.com/devhub/backend-core/internal/domain/dev-request/service"
@@ -152,7 +151,7 @@ func main() {
 	}
 
 	var verifier httpapi.BearerTokenVerifier
-	jwksVerifier := &authsvc.KeycloakJWKSVerifier{
+	jwksVerifier := &keycloakadapter.KeycloakJWKSVerifier{
 		IssuerURL: cfg.OIDCIssuerURL,
 		JWKSURL:   cfg.OIDCJWKSURL,
 		ClientID:  cfg.OIDCClientID,
@@ -186,10 +185,15 @@ func main() {
 	// (IdentityAdmin + OIDCLogoutClient + KeycloakEventPort via
 	// ListUserEvents/ListAdminEvents) 모두 충족하므로 단일 instance 가
 	// 3 슬롯에 동시 주입.
+	//
+	// v1.1 sprint -a follow-up PR1 (real adapter 이전): KeycloakAdminClient 가
+	// sso-integrations/keycloak/ 으로 이동. canonical struct (integration.*) 가
+	// wire 시 type assertion 없이 port 를 직접 충족하므로 별도 adapter 불요.
 	if strings.EqualFold(os.Getenv("DEVHUB_BUILD_TIER"), "internal") {
-		// 사내 build: real KeycloakAdminClient. 기존 path 보존 (sprint -a 본 PR).
+		// 사내 build: real KeycloakAdminClient. sso-integrations/keycloak/ 패키지의
+		// real adapter instance (sprint -a follow-up PR1 에서 이전).
 		if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
-			kc := &httpapi.KeycloakAdminClient{
+			kc := &keycloakadapter.KeycloakAdminClient{
 				AdminURL:     cfg.KeycloakAdminURL,
 				Realm:        cfg.KeycloakAdminRealm,
 				ClientID:     cfg.KeycloakAdminClientID,
@@ -212,14 +216,8 @@ func main() {
 			// 동일 인스턴스를 두 슬롯에 주입. (codex P1 review #1 정합)
 			oidcLogout = kc
 			// KeycloakEventPort (ListUserEvents/ListAdminEvents) — KeycloakAdminClient
-			// 가 본 port 도 충족 (audit-ops 의 KeycloakEventLister 와 호환). 단일
-			// instance 가 3 슬롯에 동시 주입.
-			//
-			// 단 port 의 KeycloakAdminEvent/KeycloakUserEvent 가 httpapi 의 동명
-			// struct 와 distinct type 이라 wire 시 type assertion 이 필요. 본 PR
-			// (sprint -a follow-up) 에서는 wiring 만 수행하고 event listener 의
-			// type assertion 정리 (keycloakEventPort 사용) 는 다음 PR (real
-			// adapter 이전) 에서 처리.
+			// 가 본 port 도 충족. 단일 instance 가 3 슬롯에 동시 주입. type assertion
+			// 불요 (canonical struct 정합).
 			keycloakEventPort = kc
 			log.Printf("identity admin + OIDC logout + keycloak event port: real keycloak (admin_client=%q oidc_client=%q realm=%q)",
 				cfg.KeycloakAdminClientID, cfg.OIDCClientID, cfg.KeycloakAdminRealm)
@@ -436,45 +434,35 @@ func main() {
 	// audit_logs 로 emit (source_type=keycloak_event). 모든 wire 의존이 모두 준비된
 	// 경우에만 활성화 — config gate / KeycloakEventPort / auditStore / eventCursorStore.
 	//
-	// v1.1 sprint -a follow-up (ADR-0030) — keycloakEventPort 가 sprint -a 본 PR
-	// 에서 wiring 됨 (단일 instance 가 3 슬롯 모두). 본 event listener 의
-	// type assertion (`*httpapi.KeycloakAdminClient`) 은 sprint -a follow-up 의
-	// 다음 PR (real adapter 이전) 에서 port interface 로 변경. 본 PR 에서는
-	// type assertion 그대로 유지하되 keycloakEventPort 도 wiring 만 하고
-	// 다음 PR 의 type assertion 정리를 위해 reference 유지.
-	if cfg.KeycloakEventListenerEnabled && idpAdmin != nil && auditStore != nil && eventCursorStore != nil {
-		kc, ok := idpAdmin.(*httpapi.KeycloakAdminClient)
-		if !ok {
-			log.Printf("keycloak event listener skipped: identity admin is not *httpapi.KeycloakAdminClient (got %T) — provider mode mismatch or test fake", idpAdmin)
-		} else {
-			interval := 30 * time.Second
-			if strings.TrimSpace(cfg.KeycloakEventListenerInterval) != "" {
-				if parsed, err := time.ParseDuration(cfg.KeycloakEventListenerInterval); err == nil && parsed > 0 {
-					interval = parsed
-				} else {
-					log.Printf("invalid DEVHUB_KEYCLOAK_EVENT_LISTENER_INTERVAL=%q; fallback to %s", cfg.KeycloakEventListenerInterval, interval)
-				}
+	// v1.1 sprint -a follow-up PR1 (real adapter 이전): type assertion 제거.
+	// integration.KeycloakEventPort (canonical port) 를 keycloakEventPort 가 직접
+	// 충족하므로 idpAdmin 의 type assertion 불요. event listener 가 port 를 직접 받음.
+	if cfg.KeycloakEventListenerEnabled && keycloakEventPort != nil && auditStore != nil && eventCursorStore != nil {
+		interval := 30 * time.Second
+		if strings.TrimSpace(cfg.KeycloakEventListenerInterval) != "" {
+			if parsed, err := time.ParseDuration(cfg.KeycloakEventListenerInterval); err == nil && parsed > 0 {
+				interval = parsed
+			} else {
+				log.Printf("invalid DEVHUB_KEYCLOAK_EVENT_LISTENER_INTERVAL=%q; fallback to %s", cfg.KeycloakEventListenerInterval, interval)
 			}
-			maxEvents := cfg.KeycloakEventListenerMaxEvents
-			if maxEvents <= 0 {
-				maxEvents = 500
-			}
-			_ = keycloakEventPort // sprint -a follow-up 다음 PR 에서 event listener 가 본 port 사용 예정
-			lister := auditsvc.NewHTTPAPIEventListerAdapter(&keycloakAdminEventLister{kc: kc})
-			emitter := buildKeycloakEventAuditEmitter(auditStore)
-			opts := auditsvc.KeycloakEventPullerOptions{
-				Interval:     interval,
-				MaxEvents:    maxEvents,
-				AuditEmitter: emitter,
-			}
-			go func() {
-				err := auditsvc.RunKeycloakEventPuller(ctx, lister, eventCursorStore, opts)
-				if err != nil && err != context.Canceled {
-					log.Printf("keycloak event listener stopped: %v", err)
-				}
-			}()
-			log.Printf("keycloak event listener enabled (interval=%s max_events=%d)", interval, maxEvents)
 		}
+		maxEvents := cfg.KeycloakEventListenerMaxEvents
+		if maxEvents <= 0 {
+			maxEvents = 500
+		}
+		emitter := buildKeycloakEventAuditEmitter(auditStore)
+		opts := auditsvc.KeycloakEventPullerOptions{
+			Interval:     interval,
+			MaxEvents:    maxEvents,
+			AuditEmitter: emitter,
+		}
+		go func() {
+			err := auditsvc.RunKeycloakEventPuller(ctx, keycloakEventPort, eventCursorStore, opts)
+			if err != nil && err != context.Canceled {
+				log.Printf("keycloak event listener stopped: %v", err)
+			}
+		}()
+		log.Printf("keycloak event listener enabled (interval=%s max_events=%d)", interval, maxEvents)
 	}
 
 	// Onboarding pending_review count Gauge cron refresh (SOP §8 P3 carve).
@@ -507,59 +495,6 @@ func main() {
 	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("run server: %v", err)
 	}
-}
-
-// keycloakAdminEventLister — httpapi.KeycloakAdminClient 를 audit.HTTPAPIEventLister
-// 로 변환하는 thin adapter. audit ← httpapi 순방향 의존만 유지하기 위해 본 wrapper 가
-// main.go 측에 존재. struct 필드는 동일하므로 named-type 변환만 수행.
-type keycloakAdminEventLister struct {
-	kc *httpapi.KeycloakAdminClient
-}
-
-func (a *keycloakAdminEventLister) ListUserEvents(ctx context.Context, dateFrom time.Time, max int) ([]auditsvc.HTTPAPIUserEvent, error) {
-	src, err := a.kc.ListUserEvents(ctx, dateFrom, max)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]auditsvc.HTTPAPIUserEvent, len(src))
-	for i, ev := range src {
-		out[i] = auditsvc.HTTPAPIUserEvent{
-			Time:     ev.Time,
-			Type:     ev.Type,
-			RealmID:  ev.RealmID,
-			ClientID: ev.ClientID,
-			UserID:   ev.UserID,
-			IPAddr:   ev.IPAddr,
-			Details:  ev.Details,
-			Error:    ev.Error,
-		}
-	}
-	return out, nil
-}
-
-func (a *keycloakAdminEventLister) ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]auditsvc.HTTPAPIAdminEvent, error) {
-	src, err := a.kc.ListAdminEvents(ctx, dateFrom, max)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]auditsvc.HTTPAPIAdminEvent, len(src))
-	for i, ev := range src {
-		flat := auditsvc.HTTPAPIAdminEvent{
-			Time:          ev.Time,
-			RealmID:       ev.RealmID,
-			OperationType: ev.OperationType,
-			ResourceType:  ev.ResourceType,
-			ResourcePath:  ev.ResourcePath,
-			Error:         ev.Error,
-		}
-		if ev.AuthDetails != nil {
-			flat.AuthUserID = ev.AuthDetails.UserID
-			flat.AuthClientID = ev.AuthDetails.ClientID
-			flat.AuthIPAddr = ev.AuthDetails.IPAddr
-		}
-		out[i] = flat
-	}
-	return out, nil
 }
 
 // buildKeycloakEventAuditEmitter — Keycloak event listener 의 best-effort audit emit

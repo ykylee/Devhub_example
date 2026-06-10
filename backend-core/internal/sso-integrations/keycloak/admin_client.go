@@ -1,4 +1,21 @@
-package httpapi
+// admin_client.go — 사내 build 용 Keycloak admin REST client real implementation.
+//
+// 정책 (verifier.go 헤더 + ADR-0030 §2.3):
+//   - runtime injection: main.go 의 DEVHUB_BUILD_TIER=internal 분기에서 본
+//     KeycloakAdminClient 가 wiring 됨.
+//   - 다음 3 port 를 단일 instance 가 충족:
+//       - integration.IdentityAdmin  (FindIdentityByUserID, LogoutUserSession)
+//       - integration.OIDCLogoutClient (OIDCLogout)
+//       - integration.KeycloakEventPort (ListUserEvents, ListAdminEvents)
+//
+// wire format ↔ canonical struct 매핑:
+//   - canonical struct (integration.KeycloakUserEvent, integration.KeycloakAdminEvent)
+//     는 **flat** 구조 (audit-ops caller 가 nested 탐색 없이 일관되게 접근).
+//   - Keycloak wire 의 nested authDetails 는 본 file 의 private
+//     rawKeycloakAdminEvent 로 unmarshal 후 canonical 로 평탄화.
+//
+// 이전 위치 (v1.0): httpapi/keycloak_admin_client.go (410 lines).
+package keycloak
 
 import (
 	"bytes"
@@ -13,17 +30,14 @@ import (
 	"strings"
 	"time"
 
-	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
+	"github.com/devhub/backend-core/internal/domain/auth-session/integration"
 )
 
-// ErrIdentityNotFound is returned by IdentityAdmin implementations when no
-// identity matches the supplied DevHub user_id (or the underlying GET returns
-// 404). Defined here because KeycloakAdminClient is the source-of-truth impl
-// (ADR-0019).
-var ErrIdentityNotFound = errors.New("identity not found")
+// --- KeycloakAdminClient (real, admin REST + OIDC logout) ---
 
 // KeycloakAdminClient maps account-admin operations to Keycloak Admin API +
-// OIDC user-facing endpoints. It satisfies IdentityAdmin and OIDCLogoutClient.
+// OIDC user-facing endpoints. It satisfies IdentityAdmin, OIDCLogoutClient,
+// and KeycloakEventPort.
 //
 // 두 client 구분 — RFC 6749 §4.1.3 / Keycloak 의 token binding 정책:
 //   - ClientID/ClientSecret: **admin client** (e.g. devhub-backend). Admin
@@ -33,15 +47,17 @@ var ErrIdentityNotFound = errors.New("identity not found")
 //     호출용. Keycloak 은 token 발급 client 와 다른 client 의 logout 을 거부함
 //     (production 401 회피).
 type KeycloakAdminClient struct {
-	AdminURL        string
-	Realm           string
-	ClientID        string
-	ClientSecret    string
-	IssuerURL       string
-	OIDCClientID    string
+	AdminURL         string
+	Realm            string
+	ClientID         string
+	ClientSecret     string
+	IssuerURL        string
+	OIDCClientID     string
 	OIDCClientSecret string
-	HTTPClient      *http.Client
+	HTTPClient       *http.Client
 }
+
+// --- IdentityAdmin port ---
 
 func (c *KeycloakAdminClient) FindIdentityByUserID(ctx context.Context, userID string) (string, error) {
 	q := url.Values{}
@@ -62,7 +78,7 @@ func (c *KeycloakAdminClient) FindIdentityByUserID(ctx context.Context, userID s
 			return strings.TrimSpace(u.ID), nil
 		}
 	}
-	return "", ErrIdentityNotFound
+	return "", integration.ErrIdentityNotFound
 }
 
 // LogoutUserSession terminates all active sessions for the given Keycloak
@@ -72,11 +88,13 @@ func (c *KeycloakAdminClient) FindIdentityByUserID(ctx context.Context, userID s
 // the method returns nil (already logged out).
 func (c *KeycloakAdminClient) LogoutUserSession(ctx context.Context, identityID string) error {
 	_, _, err := c.adminJSON(ctx, http.MethodPost, "users/"+url.PathEscape(identityID)+"/logout", nil)
-	if errors.Is(err, ErrIdentityNotFound) {
+	if errors.Is(err, integration.ErrIdentityNotFound) {
 		return nil
 	}
 	return err
 }
+
+// --- OIDCLogoutClient port ---
 
 // OIDCLogout — sprint mvs/work_260608-i-488-sign-out (N-8 / P1-6). Keycloak
 // OIDC /protocol/openid-connect/logout endpoint 로 refresh_token 폐기.
@@ -91,20 +109,18 @@ func (c *KeycloakAdminClient) LogoutUserSession(ctx context.Context, identityID 
 // 자격증명 필요. devhub-backend admin client 자격증명 사용 시 Keycloak 이
 // 401 반환 (codex P1 review #2 정합).
 //
-// N-8 hotfix 4차 codex P1 follow-up: error 카테고리 구분. sentinel errors:
-//   - authview.ErrOIDCConfigMissing : backend config 결함 (missing realm/oidc_client_id/secret) —
-//                                    OIDC 호출 *전* 발견. handler 가 marker 미부착
-//                                    + 정상 OIDC 분기 결정.
-//   - authview.ErrOIDCNetworkUnreachable : 네트워크 error (c.client().Do) + 5xx —
-//                                         Keycloak 도달 실패. handler 가 marker
-//                                         부착 + frontend OIDC skip 결정.
+// sentinel errors:
+//   - integration.ErrOIDCConfigMissing : backend config 결함 (missing realm/oidc_client_id/secret) —
+//     OIDC 호출 *전* 발견. handler 가 marker 미부착 결정.
+//   - integration.ErrOIDCNetworkUnreachable : 네트워크 error (c.client().Do) + 5xx —
+//     Keycloak 도달 실패. handler 가 marker 부착 결정.
 func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken string) error {
 	if strings.TrimSpace(refreshToken) == "" {
 		return errors.New("OIDC logout requires non-empty refresh_token")
 	}
 	if strings.TrimSpace(c.Realm) == "" || strings.TrimSpace(c.OIDCClientID) == "" || strings.TrimSpace(c.OIDCClientSecret) == "" {
 		// sentinel: ErrOIDCConfigMissing — handler 가 marker 미부착 결정.
-		return fmt.Errorf("%w: KeycloakAdminClient requires realm, oidc_client_id, oidc_client_secret for OIDC logout (separate from admin client)", authview.ErrOIDCConfigMissing)
+		return fmt.Errorf("%w: KeycloakAdminClient requires realm, oidc_client_id, oidc_client_secret for OIDC logout (separate from admin client)", integration.ErrOIDCConfigMissing)
 	}
 	logoutURL := c.oidcLogoutEndpoint()
 	form := url.Values{}
@@ -122,7 +138,7 @@ func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken strin
 	resp, err := c.client().Do(req)
 	if err != nil {
 		// sentinel: ErrOIDCNetworkUnreachable — handler 가 marker 부착 결정.
-		return fmt.Errorf("%w: call keycloak logout endpoint: %v", authview.ErrOIDCNetworkUnreachable, err)
+		return fmt.Errorf("%w: call keycloak logout endpoint: %v", integration.ErrOIDCNetworkUnreachable, err)
 	}
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, resp.Body)
@@ -136,7 +152,7 @@ func (c *KeycloakAdminClient) OIDCLogout(ctx context.Context, refreshToken strin
 		return nil
 	}
 	// 5xx: sentinel: ErrOIDCNetworkUnreachable — Keycloak 서버 측 outage.
-	return fmt.Errorf("%w: keycloak logout status %d", authview.ErrOIDCNetworkUnreachable, resp.StatusCode)
+	return fmt.Errorf("%w: keycloak logout status %d", integration.ErrOIDCNetworkUnreachable, resp.StatusCode)
 }
 
 // oidcLogoutEndpoint — issuer url 기반 derive. tokenEndpoint 와 같은 패턴.
@@ -173,19 +189,12 @@ type KeycloakUserDetails struct {
 }
 
 // GetUserDetails fetches the current user record from Keycloak. Returns
-// ErrIdentityNotFound when the user has already been deleted (HTTP 404).
+// integration.ErrIdentityNotFound when the user has already been deleted (HTTP 404).
 // admin event handler 가 본 메서드로 최신 email/name/enabled 를 가져와
 // DevHub users 컬럼 sync 에 사용 (ADR-0020 §5.3.2).
 func (c *KeycloakAdminClient) GetUserDetails(ctx context.Context, identityID string) (KeycloakUserDetails, error) {
-	body, headers, err := c.adminGET(ctx, "/users/"+url.PathEscape(identityID))
+	body, _, err := c.adminGET(ctx, "/users/"+url.PathEscape(identityID))
 	if err != nil {
-		if headers != nil && http.StatusText(http.StatusNotFound) != "" {
-			// adminGET 가 HTTP error 를 wrapping 한 경우 404 식별을 위해 body
-			// 가 nil 이면서 status 가 명시되어야 한다. 현재 adminJSON/adminGET
-			// 의 error 형식이 status 명시이므로 ErrIdentityNotFound 변환은
-			// caller 가 처리 (admin event 의 ResourcePath 가 유효하면 404 는
-			// 이미 삭제된 race 상황이라 caller 가 USER:DELETE 흐름으로 분기).
-		}
 		return KeycloakUserDetails{}, err
 	}
 	var details KeycloakUserDetails
@@ -217,10 +226,14 @@ func (c *KeycloakAdminClient) GetUserGroups(ctx context.Context, identityID stri
 	return groups, nil
 }
 
-// KeycloakUserEvent — sprint -u (PR-B) audit event listener 의 user events
-// (LOGIN / LOGOUT / REGISTER / UPDATE_PASSWORD 등). design 문서 §3.1 + §4.1 매핑 표.
-// Keycloak Admin REST: GET /admin/realms/{realm}/events?dateFrom=...
-type KeycloakUserEvent struct {
+// --- KeycloakEventPort (ListUserEvents / ListAdminEvents) ---
+
+// rawKeycloakUserEvent — Keycloak wire format (Keycloak Admin REST
+// GET /admin/realms/{realm}/events?dateFrom=...). field shape 가 canonical
+// (flat) 과 일치하므로 단순 매핑만 수행. JSON tag 가 canonical 에 없는 이유는
+// integration package 가 wire-format-agnostic 으로 유지 (다른 IdP 도입 시
+// canonical struct 재설계 가능).
+type rawKeycloakUserEvent struct {
 	Time     int64             `json:"time"` // unix ms
 	Type     string            `json:"type"` // LOGIN / LOGIN_ERROR / LOGOUT / REGISTER 등
 	RealmID  string            `json:"realmId,omitempty"`
@@ -231,10 +244,10 @@ type KeycloakUserEvent struct {
 	Error    string            `json:"error,omitempty"`
 }
 
-// KeycloakAdminEvent — admin events (USER:CREATE / USER:UPDATE / USER:DELETE /
-// ROLE:CREATE 등). design 문서 §3.1 + §4.2 매핑 표. Keycloak Admin REST:
-// GET /admin/realms/{realm}/admin-events?dateFrom=... (codex review #9 정정 정합).
-type KeycloakAdminEvent struct {
+// rawKeycloakAdminEvent — Keycloak wire format. nested authDetails → flat
+// canonical KeycloakAdminEvent 으로 매핑. Keycloak Admin REST:
+// GET /admin/realms/{realm}/admin-events?dateFrom=...
+type rawKeycloakAdminEvent struct {
 	Time        int64  `json:"time"`
 	RealmID     string `json:"realmId,omitempty"`
 	AuthDetails *struct {
@@ -252,7 +265,7 @@ type KeycloakAdminEvent struct {
 // ListUserEvents — Keycloak user events polling (sprint -u PR-B).
 // dateFrom 은 ISO8601 (codex review #9 정정 정합 — `?dateFrom=` 이지 `?from=` 아님).
 // max 는 page size (Keycloak default 100, 권장 500).
-func (c *KeycloakAdminClient) ListUserEvents(ctx context.Context, dateFrom time.Time, max int) ([]KeycloakUserEvent, error) {
+func (c *KeycloakAdminClient) ListUserEvents(ctx context.Context, dateFrom time.Time, max int) ([]integration.KeycloakUserEvent, error) {
 	q := url.Values{}
 	if !dateFrom.IsZero() {
 		q.Set("dateFrom", dateFrom.UTC().Format("2006-01-02T15:04:05Z"))
@@ -265,16 +278,30 @@ func (c *KeycloakAdminClient) ListUserEvents(ctx context.Context, dateFrom time.
 	if err != nil {
 		return nil, err
 	}
-	var events []KeycloakUserEvent
-	if err := json.Unmarshal(body, &events); err != nil {
+	var raw []rawKeycloakUserEvent
+	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, fmt.Errorf("decode keycloak user events: %w", err)
 	}
-	return events, nil
+	out := make([]integration.KeycloakUserEvent, len(raw))
+	for i, ev := range raw {
+		out[i] = integration.KeycloakUserEvent{
+			Time:     ev.Time,
+			Type:     ev.Type,
+			RealmID:  ev.RealmID,
+			ClientID: ev.ClientID,
+			UserID:   ev.UserID,
+			IPAddr:   ev.IPAddr,
+			Details:  ev.Details,
+			Error:    ev.Error,
+		}
+	}
+	return out, nil
 }
 
 // ListAdminEvents — Keycloak admin events polling (sprint -u PR-B).
 // dateFrom 은 ISO8601. path = `/admin-events` (codex review #9 정정 정합 — `/events/admin` 아님).
-func (c *KeycloakAdminClient) ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]KeycloakAdminEvent, error) {
+// nested authDetails → flat canonical 매핑.
+func (c *KeycloakAdminClient) ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]integration.KeycloakAdminEvent, error) {
 	q := url.Values{}
 	if !dateFrom.IsZero() {
 		q.Set("dateFrom", dateFrom.UTC().Format("2006-01-02T15:04:05Z"))
@@ -287,12 +314,31 @@ func (c *KeycloakAdminClient) ListAdminEvents(ctx context.Context, dateFrom time
 	if err != nil {
 		return nil, err
 	}
-	var events []KeycloakAdminEvent
-	if err := json.Unmarshal(body, &events); err != nil {
+	var raw []rawKeycloakAdminEvent
+	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, fmt.Errorf("decode keycloak admin events: %w", err)
 	}
-	return events, nil
+	out := make([]integration.KeycloakAdminEvent, len(raw))
+	for i, ev := range raw {
+		flat := integration.KeycloakAdminEvent{
+			Time:          ev.Time,
+			RealmID:       ev.RealmID,
+			OperationType: ev.OperationType,
+			ResourceType:  ev.ResourceType,
+			ResourcePath:  ev.ResourcePath,
+			Error:         ev.Error,
+		}
+		if ev.AuthDetails != nil {
+			flat.AuthUserID = ev.AuthDetails.UserID
+			flat.AuthClientID = ev.AuthDetails.ClientID
+			flat.AuthIPAddr = ev.AuthDetails.IPAddr
+		}
+		out[i] = flat
+	}
+	return out, nil
 }
+
+// --- internal admin REST helpers ---
 
 func (c *KeycloakAdminClient) adminGET(ctx context.Context, adminPath string) ([]byte, http.Header, error) {
 	return c.adminCall(ctx, http.MethodGet, adminPath, nil)
@@ -341,7 +387,8 @@ func (c *KeycloakAdminClient) adminCall(ctx context.Context, method, adminPath s
 		return nil, nil, fmt.Errorf("read keycloak admin response: %w", err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, resp.Header, ErrIdentityNotFound
+		// canonical sentinel: integration.ErrIdentityNotFound (alias to httphelp.ErrIdentityNotFound)
+		return nil, resp.Header, integration.ErrIdentityNotFound
 	}
 	if resp.StatusCode/100 != 2 {
 		return nil, resp.Header, fmt.Errorf("keycloak admin status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
@@ -407,4 +454,3 @@ func (c *KeycloakAdminClient) client() *http.Client {
 	}
 	return &http.Client{Timeout: 5 * time.Second}
 }
-

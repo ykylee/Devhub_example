@@ -1,4 +1,4 @@
-package httpapi
+package keycloak
 
 import (
 	"context"
