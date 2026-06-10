@@ -216,3 +216,37 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 - **real adapter PR 시작**: branch `feat/work_260610-v1-1-sprint-a-real-adapter` 분기. C-a → C-b → C-c → C-d → C-e → C-f 순서로 진행.
 - **C-g traceability 갱신**: `docs/traceability/report.md` IMPL-30/31/32 row 추가.
 - **또는 다른 sprint 진입**: PR #538 이전의 carry-over, ADR-0030 §5 timeline 갱신 등.
+
+## 6. 본 세션 (2026-06-10, sprint -a follow-up PR1 (PR #540) 의 carry-over C-g + C-h 정공법 PR — docs only)
+
+### PR 결과
+
+| PR | 상태 | 의의 |
+| --- | --- | --- |
+| **#540** (sprint -a follow-up PR1 — real adapter + v1.0 mirror struct 제거) | ✅ MERGED (squash, branch delete) | `sso-integrations/keycloak/{verifier,admin_client,metrics}.go` 신규 (real KeycloakJWKSVerifier + KeycloakAdminClient 3 port 동시 충족 + raw wire → flat canonical struct 매핑) + saovae_stub 보강 (PR #539 머지 후) + v1.0 mirror struct 제거 (`httpapi.KeycloakUserEvent` + `KeycloakAdminEvent` 폐기) + audit-ops mirror 통합 (`KeycloakEventLister` interface 통폐합) + `infra/idp/_archive_2026-06-10/identity.schema.json` archive + `infra/idp/README.md` 갱신. main `58d163f`. CI 7/7 PASS. |
+| **본 PR (carry-over C-g + C-h 정합 PR)** | ⏳ PUSH (사용자 confirm 대기) | `docs/work_260610-traceability-impl-sso-keycloak` 분기 (docs only, 코드 0줄). §2.4 IMPL 개요 paragraph 갱신 + 5 row IMPL 신규 sub-table (`sso-keycloak-01` + `sso-keycloak-stub-01` + `sso-keycloak-metrics-01` + `auth-session-port-01` + `audit-ops-event-mirror-01`, conventions.md §1 kebab-case 정합) + §3.1 auth-session/audit-ops + §3.3 keycloak-idp 매트릭스 row 갱신 + §4 ADR 인덱스 ADR-0030 row + §6 변경 이력 row + ADR-0030 §5 timeline accepted/done + §9 변경 이력 row. 신규 ID 5건 (모두 IMPL, REQ/UC/ARCH/API/RM/UT/TC 신규 발급 0건). |
+
+### C-g / C-h 정합 PR scope
+
+sprint -a follow-up PR1 (PR #540) 의 carry-over C-g + C-h 의 정공법. 본 PR 은 **문서만 변경** (코드 0줄). 5 row ID 의 정공법 = `conventions.md §1` 의 kebab-case module ID 정합 (메모리 출발점의 `IMPL-30/31/32` 표기는 형식 위반 → 정정).
+
+### Tier 분류
+
+본 PR 의 모든 변경 = **공용** (사내 한정 정보 미포함, `docs/traceability/report.md` + `docs/adr/0030-...` 의 문서 정합). `check-tier-separation.sh` PASS 예상.
+
+### 후속 carry-over (C-i + C-j)
+
+- **C-i (P2)**: E2E saovae_stub + real adapter CI matrix — DEVHUB_BUILD_TIER=internal env var + e2e shard 양쪽 정합. 본 PR 후속 별도 PR.
+- **C-j (P3)**: build tag 정책 재검토 — runtime injection (현재) ↔ build tag 전환 trade-off. 별도 ADR 후보.
+
+### Memory 갱신
+
+- `ai-workflow/memory/docs/work_260610-traceability-impl-sso-keycloak/` 신규 (state.json + session_handoff.md + work_backlog.md + backlog/2026-06-10.md).
+- main flat `state.json` status + head_commit 갱신 (PR #540 baseline = `58d163f`, 본 PR 머지 시점은 head_commit main = PR 본 PR 머지 commit).
+- 본 `session_handoff.md` §6 append.
+
+### 다음 세션 directive
+
+- 본 PR commit + push + PR 발행 (사용자 confirm 후).
+- 또는 C-i (E2E CI matrix) 진입.
+- 또는 다른 sprint (N-10 RBAC E2E 6 TC / release_v1_roadmap.md 갱신).
