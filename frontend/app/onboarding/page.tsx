@@ -7,12 +7,14 @@ import { Loader2, UserPlus } from "lucide-react";
 import { identityService, type ResolvedActor } from "@/domain/organization-management/service/identity.service";
 import { ApiError } from "@/shared/api/api-client";
 import { useStore } from "@/lib/store";
+import { useBranding } from "@/lib/branding-context";
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
 import { defaultLandingFor } from "@/domain/auth-session/service/role-routing";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { setActor } = useStore();
+  const { appShortName } = useBranding();
   const [me, setMe] = useState<ResolvedActor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +102,7 @@ export default function OnboardingPage() {
             <UserPlus className="w-7 h-7 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-black tracking-tighter uppercase">
-            DevHub에 <span className="text-primary">환영합니다</span>
+            {appShortName}에 <span className="text-primary">환영합니다</span>
           </h1>
           <p className="text-sm text-muted-foreground">
             서비스 이용을 위해 프로필을 등록해주세요. 관리자 검토 후 활성화됩니다.

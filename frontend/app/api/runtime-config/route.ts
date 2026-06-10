@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { branding } from "@/shared/config/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -6,6 +7,9 @@ interface RuntimeConfigResponse {
   oidc_auth_url: string;
   oidc_redirect_uri: string;
   oidc_issuer_url: string;
+  app_name: string;
+  app_short_name: string;
+  brand_tagline: string;
 }
 
 function trimTrailingSlash(value: string): string {
@@ -78,6 +82,9 @@ export async function GET(request: NextRequest) {
     oidc_auth_url: oidcAuthURL,
     oidc_redirect_uri: oidcRedirectURI,
     oidc_issuer_url: oidcIssuerURL,
+    app_name: branding.appName,
+    app_short_name: branding.appShortName,
+    brand_tagline: branding.brandTagline,
   };
 
   return NextResponse.json(payload, {
