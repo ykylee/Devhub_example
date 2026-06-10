@@ -24,6 +24,10 @@ type OrganizationStore interface {
 	UpdateUser(ctx context.Context, login string, input domain.UpdateUserInput) (domain.AppUser, error)
 }
 
+// IdentityAdmin — DEPRECATED (v1.1 sprint -a, ADR-0030). canonical port 는
+// `domain/auth-session/integration` 의 동일 interface. 본 type 은 value alias
+// 로 유지되어 기존 호출 site 가 무수정 컴파일. 신규 호출은
+// `integration.IdentityAdmin` 사용.
 type IdentityAdmin interface {
 	FindIdentityByUserID(ctx context.Context, userID string) (string, error)
 	LogoutUserSession(ctx context.Context, identityID string) error
@@ -194,6 +198,10 @@ type logoutRequest struct {
 // OIDC /protocol/openid-connect/logout endpoint wrapper. IdentityAdmin 과
 // 분리: admin endpoint 가 아닌 user-facing OIDC endpoint. 인터페이스는
 // 최소 단일 메서드 (test fixture 주입용).
+//
+// DEPRECATED (v1.1 sprint -a, ADR-0030). canonical port 는
+// `domain/auth-session/integration` 의 동일 interface. 본 type 은 value alias
+// 로 유지. 신규 호출은 `integration.OIDCLogoutClient` 사용.
 type OIDCLogoutClient interface {
 	OIDCLogout(ctx context.Context, refreshToken string) error
 }
@@ -202,19 +210,19 @@ type OIDCLogoutClient interface {
 // OIDCLogoutClient 의 error 가 다음 두 카테고리 중 어디에 속하는지 handler 가
 // 구분 가능하도록 typed error 정의. sentinel 은 `errors.Is` 로 비교.
 //
-//   ErrOIDCConfigMissing    : backend config 결함 (missing realm/oidc_client_id/
-//                             oidc_client_secret 등) — Keycloak 자체는 reachable
-//                             한데 OIDC 호출 자체를 못 함. 이 경우엔 marker
-//                             미부착 + 정상 OIDC 분기 (frontend 가 RP-initiated
-//                             logout 시도) + audit revoke_status=config_error.
-//   ErrOIDCNetworkUnreachable : 네트워크/5xx outage (DNS 실패, connection refused,
-//                             timeout, Keycloak 5xx 등) — Keycloak 도달 실패.
-//                             이 경우에만 marker (X-Keycloak-Likely-Down: true)
-//                             부착 + frontend 가 OIDC skip + 강제 /login.
+//	ErrOIDCConfigMissing    : backend config 결함 (missing realm/oidc_client_id/
+//	                          oidc_client_secret 등) — Keycloak 자체는 reachable
+//	                          한데 OIDC 호출 자체를 못 함. 이 경우엔 marker
+//	                          미부착 + 정상 OIDC 분기 (frontend 가 RP-initiated
+//	                          logout 시도) + audit revoke_status=config_error.
+//	ErrOIDCNetworkUnreachable : 네트워크/5xx outage (DNS 실패, connection refused,
+//	                          timeout, Keycloak 5xx 등) — Keycloak 도달 실패.
+//	                          이 경우에만 marker (X-Keycloak-Likely-Down: true)
+//	                          부착 + frontend 가 OIDC skip + 강제 /login.
 //
-//   그 외 error (nil 아닌 미분류) 는 conservative: marker 부착 + audit
-//   revoke_status=unreachable (네트워크/5xx 와 동일 처리 — Keycloak 도달 실패
-//   가능성 보수적 분류).
+//	그 외 error (nil 아닌 미분류) 는 conservative: marker 부착 + audit
+//	revoke_status=unreachable (네트워크/5xx 와 동일 처리 — Keycloak 도달 실패
+//	가능성 보수적 분류).
 //
 // codex P1 follow-up 의 핵심: "reachable Keycloak SSO session is not terminated"
 // 문제 (config error 를 outage 로 오인) 회피.

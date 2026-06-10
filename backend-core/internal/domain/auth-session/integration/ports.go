@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain/auth-session/view"
+	"github.com/devhub/backend-core/internal/httpapi"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
 )
 
@@ -67,31 +68,15 @@ type KeycloakEventPort interface {
 	ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]KeycloakAdminEvent, error)
 }
 
-// KeycloakUserEvent — Keycloak event 의 user-side mirror. audit-ops 의 mirror 와
-// 동일 정의 (circular import 회피). v1.0 의 httpapi.KeycloakUserEvent 와
-// field-compatible. sprint -a follow-up 에서 v1.0 의 mirror 들은 본 정의로
-// 통합 (별도 PR).
-type KeycloakUserEvent struct {
-	Time     time.Time
-	Type     string
-	RealmID  string
-	ClientID string
-	UserID   string
-	IPAddr   string
-	Details  map[string]any
-	Error    string
-}
+// KeycloakUserEvent — Keycloak event 의 user-side mirror. v1.0 의
+// httpapi.KeycloakUserEvent 와 field-compatible. sprint -a follow-up 에서 v1.0
+// 의 mirror 들은 본 alias 로 통합 (별도 PR — 본 PR 에서 alias 만).
+type KeycloakUserEvent = httpapi.KeycloakUserEvent
 
-// KeycloakAdminEvent — Keycloak event 의 admin-side mirror.
-type KeycloakAdminEvent struct {
-	Time          time.Time
-	RealmID       string
-	AuthDetails   map[string]any
-	OperationType string
-	ResourceType  string
-	ResourcePath  string
-	Error         string
-}
+// KeycloakAdminEvent — Keycloak event 의 admin-side mirror. v1.0 의
+// httpapi.KeycloakAdminEvent 와 field-compatible. sprint -a follow-up 에서
+// alias 로 통합.
+type KeycloakAdminEvent = httpapi.KeycloakAdminEvent
 
 // --- Sentinel errors (shared with view/handler.go) ---
 

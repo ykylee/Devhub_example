@@ -7,30 +7,32 @@ import (
 	"strings"
 	"time"
 
-	auditsvc "github.com/devhub/backend-core/internal/domain/audit-ops/service"
+	"github.com/devhub/backend-core/internal/domain"
+	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
 	auditrep "github.com/devhub/backend-core/internal/domain/audit-ops/repository"
+	auditsvc "github.com/devhub/backend-core/internal/domain/audit-ops/service"
+	"github.com/devhub/backend-core/internal/domain/auth-session/integration"
 	authapikeyrep "github.com/devhub/backend-core/internal/domain/auth-session/repository"
 	authsvc "github.com/devhub/backend-core/internal/domain/auth-session/service"
 	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
-	devreqsvc "github.com/devhub/backend-core/internal/domain/dev-request/service"
 	devreqrep "github.com/devhub/backend-core/internal/domain/dev-request/repository"
+	devreqsvc "github.com/devhub/backend-core/internal/domain/dev-request/service"
 	devreqview "github.com/devhub/backend-core/internal/domain/dev-request/view"
-	notifrep "github.com/devhub/backend-core/internal/domain/user-notification/repository"
-	orgrep "github.com/devhub/backend-core/internal/domain/organization-management/repository"
-	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
-	rbacrep "github.com/devhub/backend-core/internal/domain/rbac-permissions/repository"
-	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
 	intgregrep "github.com/devhub/backend-core/internal/domain/integration-registry/repository"
 	onboardview "github.com/devhub/backend-core/internal/domain/onboarding/view"
-	"github.com/devhub/backend-core/internal/domain"
+	orgrep "github.com/devhub/backend-core/internal/domain/organization-management/repository"
+	rbacrep "github.com/devhub/backend-core/internal/domain/rbac-permissions/repository"
+	realtimeview "github.com/devhub/backend-core/internal/domain/realtime/view"
+	notifrep "github.com/devhub/backend-core/internal/domain/user-notification/repository"
 	"github.com/devhub/backend-core/internal/httpapi"
-	"github.com/devhub/backend-core/internal/shared/config"
 	"github.com/devhub/backend-core/internal/infrastructure/commandworker"
 	"github.com/devhub/backend-core/internal/infrastructure/gitea"
 	"github.com/devhub/backend-core/internal/infrastructure/hrdb"
 	"github.com/devhub/backend-core/internal/infrastructure/serviceaction"
 	"github.com/devhub/backend-core/internal/integrations/adapters"
 	"github.com/devhub/backend-core/internal/normalize"
+	"github.com/devhub/backend-core/internal/shared/config"
+	keycloakadapter "github.com/devhub/backend-core/internal/sso-integrations/keycloak"
 	"github.com/devhub/backend-core/internal/store"
 )
 
@@ -173,36 +175,63 @@ func main() {
 	}
 
 	var (
-		idpAdmin       httpapi.IdentityAdmin
-		oidcLogout     httpapi.OIDCLogoutClient
+		idpAdmin          httpapi.IdentityAdmin
+		oidcLogout        httpapi.OIDCLogoutClient
+		keycloakEventPort integration.KeycloakEventPort
 	)
-	if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
-		kc := &httpapi.KeycloakAdminClient{
-			AdminURL:     cfg.KeycloakAdminURL,
-			Realm:        cfg.KeycloakAdminRealm,
-			ClientID:     cfg.KeycloakAdminClientID,
-			ClientSecret: cfg.KeycloakAdminClientSecret,
-			// IssuerURL 은 OIDC logout endpoint URL 결정 전용
-			// (oidcLogoutEndpoint 만 사용). tokenEndpoint() (admin service-
-			// account token) 는 절대 IssuerURL 을 보지 않음 — admin endpoint 와
-			// user-facing OIDC endpoint 가 deployment 별로 다른 host 일 수 있음
-			// (DEVHUB_KEYCLOAK_ADMIN_URL = internal docker vs
-			// DEVHUB_OIDC_ISSUER_URL = public ingress). codex P1 review #3 정합.
-			IssuerURL:        cfg.OIDCIssuerURL,
-			OIDCClientID:     cfg.OIDCClientID,
-			OIDCClientSecret: cfg.OIDCClientSecret,
-			// OIDC logout 은 token 발급 client (frontend) 자격증명 사용
-			// (RFC 6749 §4.1.3 / Keycloak token binding). admin client 와
-			// 분리 — codex P1 review #2 정합 (sprint -i fix).
+	// v1.1 sprint -a follow-up (ADR-0030 §2.3) — runtime injection via
+	// DEVHUB_BUILD_TIER. default = saovae_stub (외부 환경, Keycloak 인프라
+	// 의존성 0). `internal` 시 real KeycloakAdminClient (현 path) 사용 —
+	// 사내 staging/prod-smoke 검증. keycloakAdminClient 가 3 개 port
+	// (IdentityAdmin + OIDCLogoutClient + KeycloakEventPort via
+	// ListUserEvents/ListAdminEvents) 모두 충족하므로 단일 instance 가
+	// 3 슬롯에 동시 주입.
+	if strings.EqualFold(os.Getenv("DEVHUB_BUILD_TIER"), "internal") {
+		// 사내 build: real KeycloakAdminClient. 기존 path 보존 (sprint -a 본 PR).
+		if cfg.KeycloakAdminURL != "" && cfg.KeycloakAdminRealm != "" && cfg.KeycloakAdminClientID != "" && cfg.KeycloakAdminClientSecret != "" {
+			kc := &httpapi.KeycloakAdminClient{
+				AdminURL:     cfg.KeycloakAdminURL,
+				Realm:        cfg.KeycloakAdminRealm,
+				ClientID:     cfg.KeycloakAdminClientID,
+				ClientSecret: cfg.KeycloakAdminClientSecret,
+				// IssuerURL 은 OIDC logout endpoint URL 결정 전용
+				// (oidcLogoutEndpoint 만 사용). tokenEndpoint() (admin service-
+				// account token) 는 절대 IssuerURL 을 보지 않음 — admin endpoint 와
+				// user-facing OIDC endpoint 가 deployment 별로 다른 host 일 수 있음
+				// (DEVHUB_KEYCLOAK_ADMIN_URL = internal docker vs
+				// DEVHUB_OIDC_ISSUER_URL = public ingress). codex P1 review #3 정합.
+				IssuerURL:        cfg.OIDCIssuerURL,
+				OIDCClientID:     cfg.OIDCClientID,
+				OIDCClientSecret: cfg.OIDCClientSecret,
+				// OIDC logout 은 token 발급 client (frontend) 자격증명 사용
+				// (RFC 6749 §4.1.3 / Keycloak token binding). admin client 와
+				// 분리 — codex P1 review #2 정합 (sprint -i fix).
+			}
+			idpAdmin = kc
+			// KeycloakAdminClient 가 OIDCLogoutClient 인터페이스도 충족하므로
+			// 동일 인스턴스를 두 슬롯에 주입. (codex P1 review #1 정합)
+			oidcLogout = kc
+			// KeycloakEventPort (ListUserEvents/ListAdminEvents) — KeycloakAdminClient
+			// 가 본 port 도 충족 (audit-ops 의 KeycloakEventLister 와 호환). 단일
+			// instance 가 3 슬롯에 동시 주입.
+			//
+			// 단 port 의 KeycloakAdminEvent/KeycloakUserEvent 가 httpapi 의 동명
+			// struct 와 distinct type 이라 wire 시 type assertion 이 필요. 본 PR
+			// (sprint -a follow-up) 에서는 wiring 만 수행하고 event listener 의
+			// type assertion 정리 (keycloakEventPort 사용) 는 다음 PR (real
+			// adapter 이전) 에서 처리.
+			keycloakEventPort = kc
+			log.Printf("identity admin + OIDC logout + keycloak event port: real keycloak (admin_client=%q oidc_client=%q realm=%q)",
+				cfg.KeycloakAdminClientID, cfg.OIDCClientID, cfg.KeycloakAdminRealm)
+		} else {
+			log.Println("keycloak provider mode (internal tier): account admin adapter is not fully configured")
 		}
-		idpAdmin = kc
-		// KeycloakAdminClient 가 OIDCLogoutClient 인터페이스도 충족하므로
-		// 동일 인스턴스를 두 슬롯에 주입. (codex P1 review #1 정합)
-		oidcLogout = kc
-		log.Printf("identity admin + OIDC logout: keycloak (admin_client=%q oidc_client=%q realm=%q)",
-			cfg.KeycloakAdminClientID, cfg.OIDCClientID, cfg.KeycloakAdminRealm)
 	} else {
-		log.Println("keycloak provider mode: account admin adapter is not fully configured")
+		// 사외 build (default): saovae_stub. Keycloak 인프라 의존성 0.
+		idpAdmin = keycloakadapter.NewIdentityAdminStub()
+		oidcLogout = keycloakadapter.NewOIDCLogoutClientStub()
+		keycloakEventPort = keycloakadapter.NewKeycloakEventPortStub()
+		log.Println("identity admin + OIDC logout + keycloak event port: saovae_stub (DEVHUB_BUILD_TIER not set or != internal)")
 	}
 
 	// ADR-0020 sub-carve E (sprint -n) — seedLocalAdmin Keycloak `CreateIdentity`
@@ -228,11 +257,11 @@ func main() {
 	swaggerSpecPath := strings.TrimSpace(os.Getenv("DEVHUB_OPENAPI_SPEC_PATH"))
 
 	router := httpapi.NewRouter(httpapi.RouterConfig{
-		SwaggerEnabled:             cfg.SwaggerEnabled,
+		SwaggerEnabled: cfg.SwaggerEnabled,
 		// ADR-0029 §6 (e) P2 — 운영 환경 default = true (swagger UI 자체에
 		// system_admin gate). 로컬 dev / e2e test 는 false 로 명시적 override
 		// 가능 (env DEVHUB_SWAGGER_REQUIRE_SYSTEM_ADMIN).
-		SwaggerRequireSystemAdmin: cfg.SwaggerRequireSystemAdmin,
+		SwaggerRequireSystemAdmin:  cfg.SwaggerRequireSystemAdmin,
 		OpenAPISpecPath:            swaggerSpecPath,
 		WebhookSecret:              cfg.GiteaWebhookSecret,
 		KeycloakWebhookSecret:      cfg.KeycloakWebhookSecret,
@@ -246,32 +275,32 @@ func main() {
 		CommandStore:               commandStore,
 		AuditStore:                 auditStore,
 		OrganizationStore:          organizationStore,
-		PlatformStore:           platformStore,
+		PlatformStore:              platformStore,
 		IntegrationStore:           integrationStore,
 		DevRequestStore:            devRequestStore,
 		DevRequestIntakeTokenStore: devRequestIntakeTokenStore,
 		// ADR-0028: voc + notification
-		VocStore:          vocStore,
-		NotificationStore: notificationStore,
-		RBACStore:                  rbacStore,
-		BearerTokenVerifier:        verifier,
-		APIKey:                     cfg.APIKey,
-		APIKeyAdminOnly:            cfg.APIKeyAdminOnly,
+		VocStore:            vocStore,
+		NotificationStore:   notificationStore,
+		RBACStore:           rbacStore,
+		BearerTokenVerifier: verifier,
+		APIKey:              cfg.APIKey,
+		APIKeyAdminOnly:     cfg.APIKeyAdminOnly,
 		// ADR-0029 §6 (f) P3 — multi-key store wire. nil 이면 multi-key 비활성.
-		APIKeyStore:                apiKeyViewStore,
-		APIKeyStoreAdmin:           apiKeyStoreAdmin,
-		IdentityAdmin:              idpAdmin,
-		OIDCLogoutClient:           oidcLogout,
-		IdPProvider:                cfg.IdPProvider,
-		HRDB:                       hrdbMock,
+		APIKeyStore:      apiKeyViewStore,
+		APIKeyStoreAdmin: apiKeyStoreAdmin,
+		IdentityAdmin:    idpAdmin,
+		OIDCLogoutClient: oidcLogout,
+		IdPProvider:      cfg.IdPProvider,
+		HRDB:             hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
 			Base:         httpapi.StaticSnapshotProvider{},
 			HealthStore:  healthStore,
 			GiteaURL:     cfg.GiteaURL,
 			BackendAIURL: cfg.BackendAIURL,
 		},
-		RealtimeHub:           realtimeHub,
-		RealtimeTickets:       realtimeview.NewRealtimeTicketStoreFor(pgStore),
+		RealtimeHub:     realtimeHub,
+		RealtimeTickets: realtimeview.NewRealtimeTicketStoreFor(pgStore),
 		// codex P1 (#390) — task item ingestion 의 PostgresExternalTaskStore wire.
 		// pgStore 는 위 cfg.DBURL gate 에서 fatal 처리되므로 여기서는 non-nil 보장.
 		ExternalTaskStore:     intgregrep.NewPostgresExternalTaskStoreFor(pgStore),
@@ -405,7 +434,14 @@ func main() {
 	// Keycloak event listener cron — ADR-0019 §5.3 (9), sprint claude/work_260519-v PR-C.
 	// KeycloakAdminClient 로 /admin/realms/{realm}/events + /admin-events polling,
 	// audit_logs 로 emit (source_type=keycloak_event). 모든 wire 의존이 모두 준비된
-	// 경우에만 활성화 — config gate / KeycloakAdminClient / auditStore / eventCursorStore.
+	// 경우에만 활성화 — config gate / KeycloakEventPort / auditStore / eventCursorStore.
+	//
+	// v1.1 sprint -a follow-up (ADR-0030) — keycloakEventPort 가 sprint -a 본 PR
+	// 에서 wiring 됨 (단일 instance 가 3 슬롯 모두). 본 event listener 의
+	// type assertion (`*httpapi.KeycloakAdminClient`) 은 sprint -a follow-up 의
+	// 다음 PR (real adapter 이전) 에서 port interface 로 변경. 본 PR 에서는
+	// type assertion 그대로 유지하되 keycloakEventPort 도 wiring 만 하고
+	// 다음 PR 의 type assertion 정리를 위해 reference 유지.
 	if cfg.KeycloakEventListenerEnabled && idpAdmin != nil && auditStore != nil && eventCursorStore != nil {
 		kc, ok := idpAdmin.(*httpapi.KeycloakAdminClient)
 		if !ok {
@@ -423,6 +459,7 @@ func main() {
 			if maxEvents <= 0 {
 				maxEvents = 500
 			}
+			_ = keycloakEventPort // sprint -a follow-up 다음 PR 에서 event listener 가 본 port 사용 예정
 			lister := auditsvc.NewHTTPAPIEventListerAdapter(&keycloakAdminEventLister{kc: kc})
 			emitter := buildKeycloakEventAuditEmitter(auditStore)
 			opts := auditsvc.KeycloakEventPullerOptions{
