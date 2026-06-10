@@ -224,7 +224,7 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 | PR | 상태 | 의의 |
 | --- | --- | --- |
 | **#540** (sprint -a follow-up PR1 — real adapter + v1.0 mirror struct 제거) | ✅ MERGED (squash, branch delete) | `sso-integrations/keycloak/{verifier,admin_client,metrics}.go` 신규 (real KeycloakJWKSVerifier + KeycloakAdminClient 3 port 동시 충족 + raw wire → flat canonical struct 매핑) + saovae_stub 보강 (PR #539 머지 후) + v1.0 mirror struct 제거 (`httpapi.KeycloakUserEvent` + `KeycloakAdminEvent` 폐기) + audit-ops mirror 통합 (`KeycloakEventLister` interface 통폐합) + `infra/idp/_archive_2026-06-10/identity.schema.json` archive + `infra/idp/README.md` 갱신. main `58d163f`. CI 7/7 PASS. |
-| **본 PR (carry-over C-g + C-h 정합 PR)** | ⏳ PUSH (사용자 confirm 대기) | `docs/work_260610-traceability-impl-sso-keycloak` 분기 (docs only, 코드 0줄). §2.4 IMPL 개요 paragraph 갱신 + 5 row IMPL 신규 sub-table (`sso-keycloak-01` + `sso-keycloak-stub-01` + `sso-keycloak-metrics-01` + `auth-session-port-01` + `audit-ops-event-mirror-01`, conventions.md §1 kebab-case 정합) + §3.1 auth-session/audit-ops + §3.3 keycloak-idp 매트릭스 row 갱신 + §4 ADR 인덱스 ADR-0030 row + §6 변경 이력 row + ADR-0030 §5 timeline accepted/done + §9 변경 이력 row. 신규 ID 5건 (모두 IMPL, REQ/UC/ARCH/API/RM/UT/TC 신규 발급 0건). |
+| **본 PR (carry-over C-g + C-h 정합 PR)** | ✅ MERGED (squash, PR #541, main `88681f4`, branch delete) | `docs/work_260610-traceability-impl-sso-keycloak` 분기 (docs only, 코드 0줄). §2.4 IMPL 개요 paragraph 갱신 + 5 row IMPL 신규 sub-table (`sso-keycloak-01` + `sso-keycloak-stub-01` + `sso-keycloak-metrics-01` + `auth-session-port-01` + `audit-ops-event-mirror-01`, conventions.md §1 kebab-case 정합) + §3.1 auth-session/audit-ops + §3.3 keycloak-idp 매트릭스 row 갱신 + §4 ADR 인덱스 ADR-0030 row + §6 변경 이력 row + ADR-0030 §5 timeline accepted/done + §9 변경 이력 row. 신규 ID 5건 (모두 IMPL, REQ/UC/ARCH/API/RM/UT/TC 신규 발급 0건). CI 4/4 PASS (docs only PR — backend/e2e/frontend skip, 4 path-detect + lint). commit `22e8c84` → squash merge `88681f4`. Tier: **공용** (문서만). |
 
 ### C-g / C-h 정합 PR scope
 
@@ -250,3 +250,34 @@ sprint -a follow-up PR1 (PR #540) 의 carry-over C-g + C-h 의 정공법. 본 PR
 - 본 PR commit + push + PR 발행 (사용자 confirm 후).
 - 또는 C-i (E2E CI matrix) 진입.
 - 또는 다른 sprint (N-10 RBAC E2E 6 TC / release_v1_roadmap.md 갱신).
+
+## 7. 본 세션 (2026-06-10, sprint -a follow-up PR1 PR #540 의 carry-over C-i 정공법 PR — ci.yml + script 2 file)
+
+### PR 결과
+
+| PR | 상태 | 의의 |
+| --- | --- | --- |
+| **#542** (C-i E2E Internal job) | ✅ MERGED (squash, branch delete) | `feat/work_260610-c-i-e2e-internal-job` 분기. `.github/workflows/ci.yml` 에 `e2e-internal` job 신규 (+202 lines, 23 step, PG 15 + Keycloak container port 8181 + apply migrations + validate E2E-CI sync contract + Start Backend DEVHUB_BUILD_TIER=internal + Start Frontend + Wait + Run E2E Tests shard 1/1 + Upload Report + Upload Logs). `scripts/ci-e2e-sync-check.sh` 에 DEVHUB_BUILD_TIER 의도적 미포함 rationale comment (+5 lines). e2e shard 1/2/3 (saovae_stub default) 의 env block, start command, test invocation 모두 변경 0. main `24674b8`. CI 4/4 PASS (workflow 변경만, backend/e2e/frontend skip). Tier: **공용** (`.github/workflows/*` + `scripts/*` 모두 사내 한정 정보 미포함). |
+
+### scope 결정 (옵션 A 채택)
+
+e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_BUILD_TIER=internal`) 의 CI matrix 1쌍. 옵션 B (unit test cover only) / C (6 matrix) / D (matrix shard 1/2/3 × 2) 모두 거부.
+
+### trade-off
+
+- **Keycloak container port 8181** (e2e shard 의 8180 과 분리) — e2e shard 와 e2e-internal 동시 trigger 가능
+- **Playwright shard 1/1** (단일 shard, ≈ 4-5min) — logout flow 외 다른 e2e suite (auth, RBAC, CRUD) 는 backend 의 build tier 무관
+- **DEVHUB_BUILD_TIER token** required_e2e_tokens 에 의도적 미포함 — e2e shard 1/2/3 의 saovae_stub default env block 미설정 유지. e2e-internal 의 DEVHUB_BUILD_TIER env 정합은 actionlint + 실제 e2e run 이 검증
+
+### Memory 갱신
+
+- `ai-workflow/memory/feat/work_260610-c-i-e2e-internal-job/` 신규 (state.json + session_handoff.md + work_backlog.md + backlog/2026-06-10.md + pr_body.md).
+- main flat `state.json` head_commit = `24674b8` (PR #542 머지 baseline).
+- 본 `session_handoff.md` §7 append.
+
+### 다음 세션 directive
+
+- **C-j (P3)**: build tag 정책 재검토 (runtime injection ↔ build tag 전환 trade-off). 별도 ADR 후보.
+- **backend-integration DEVHUB_BUILD_TIER matrix** (sprint -a follow-up 본 PR #539 의 backend-integration 재활성화 + DEVHUB_BUILD_TIER=internal matrix).
+- **release_v1_roadmap.md §3.5 N-13** 정합 (C-i done 마킹).
+- 또는 N-10 RBAC E2E 6 TC 보강 / release_v1_roadmap.md 갱신.

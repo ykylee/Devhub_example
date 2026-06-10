@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-10 main. v1.1 sprint -a follow-up 본 PR (#539) + PR1 (PR #540) 머지 완료. PR #540 의 carry-over C-g + C-h 의 후속 정합 PR = `docs/work_260610-traceability-impl-sso-keycloak` (문서만, 5 row IMPL ID 신규 발급 + §3.1/§3.3 매트릭스 row 갱신 + §4 ADR 인덱스 ADR-0030 row + §6 변경 이력 row + ADR-0030 §5 timeline accepted/done). main HEAD `58d163f` (PR #540 머지). CI 7/7 PASS 유지. Tier 분류: 변경 영역 = docs/traceability/report.md + docs/adr/0030-... = **공용** (사내 한정 정보 미포함, 문서만). 후속 carry-over = C-i (E2E saovae_stub + real adapter CI matrix) + C-j (build tag 정책 재검토) 별도 PR.",
-  "updated_at": "2026-06-10T06:00:00Z",
-  "head_commit": "58d163f",
-  "head_summary": "feat(backend): sso-integrations/keycloak/ real adapter + v1.0 mirror struct 제거 (v1.1 sprint -a real adapter) (#540) (main 정합 baseline; 본 PR 은 docs only PR, 머지 시점 head = main @ 머지 commit)",
+  "status": "2026-06-10 main. PR #542 (sprint -a follow-up PR1 PR #540 의 carry-over C-i 정공법 PR, `feat/work_260610-c-i-e2e-internal-job`) 머지 완료. main HEAD `24674b8`. CI 4/4 PASS (workflow 변경만, backend/e2e/frontend skip). Tier: 본 PR 의 모든 변경 = **공용** (`.github/workflows/*` + `scripts/*` 모두 사내 한정 정보 미포함). 후속 carry-over: C-j (build tag 정책 재검토, P3) + backend-integration DEVHUB_BUILD_TIER matrix (P3) + release_v1_roadmap.md §3.5 N-13 정합 (P3) + N-10 RBAC E2E 6 TC 보강 별도 PR.",
+  "updated_at": "2026-06-10T13:40:00Z",
+  "head_commit": "24674b8",
+  "head_summary": "ci(workflow): E2E Internal (real Keycloak adapter) job — DEVHUB_BUILD_TIER=internal matrix 1쌍 (sprint -a follow-up PR1 PR #540 의 carry-over C-i) (#542)",
   "milestones": {
     "M0": {
       "status": "done",
