@@ -1,0 +1,49 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-10T05:55:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/docs/work_260610-traceability-impl-sso-keycloak/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/docs/work_260610-traceability-impl-sso-keycloak/work_backlog.md"
+  },
+  "project": {
+    "project_name": "DevHub Example"
+  },
+  "session": {
+    "current_focus": "docs/work_260610-traceability-impl-sso-keycloak — v1.1 sprint -a follow-up PR1 (PR #540) 의 carry-over C-g / C-h 의 후속 정합 PR. 문서만 변경 (코드 0줄). main HEAD 87e6c1f5 (PR #539) → 58d163f (PR #540 머지 후) 분기.",
+    "sprint_branch": "docs/work_260610-traceability-impl-sso-keycloak (코드 0줄 변경, docs only PR)",
+    "in_progress_items": [
+      "T-impl-sso-keycloak-9 (commit + push + PR 발행 — 사용자 confirm 대기)"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "T-impl-sso-keycloak-8 (doc validation + tier-separation lint + openapi lint)",
+      "T-impl-sso-keycloak-7 (main flat state.json + session_handoff.md + work_backlog.md 동기화)",
+      "T-impl-sso-keycloak-6 (sprint memory 디렉터리 4종 신규 — state.json + session_handoff.md + work_backlog.md + backlog/2026-06-10.md)",
+      "T-impl-sso-keycloak-5 (ADR-0030 §5 timeline 갱신 + §9 변경 이력 row 추가)",
+      "T-impl-sso-keycloak-4 (report.md §4 ADR 인덱스 ADR-0030 row 신규 + §6 변경 이력 row 신규)",
+      "T-impl-sso-keycloak-3 (report.md §3.1 auth-session / audit-ops + §3.3 keycloak-idp 매트릭스 row 의 IMPL 컬럼 5 row cross-ref)",
+      "T-impl-sso-keycloak-2 (report.md §2.4 IMPL 개요 paragraph 갱신 + 새 sub-table 5 row 신규 = sso-keycloak-01 + sso-keycloak-stub-01 + sso-keycloak-metrics-01 + auth-session-port-01 + audit-ops-event-mirror-01)",
+      "T-impl-sso-keycloak-1 (branch 생성 + 작업 scope 확정 + 5 row ID 형식 결정 — conventions.md §1 kebab-case 정합)"
+    ],
+    "background_tasks": {
+      "bg_carries_4cf2a1": {
+        "description": "C-g + C-h 후속 carry-over: sprint -a follow-up PR1 (PR #540) 의 C-i (E2E saovae_stub + real adapter CI matrix) + C-j (build tag 정책 재검토)",
+        "status": "planned",
+        "session_id": "ses_followup_pr2",
+        "file": "ai-workflow/memory/feat/work_260610-v1-1-sprint-a-real-adapter/work_backlog.md (carry-over C-i + C-j)"
+      }
+    },
+    "deliverables": [
+      "docs/traceability/report.md (IMPL 개요 paragraph + 5 row 신규 sub-table + §3.1 auth-session/audit-ops + §3.3 keycloak-idp 매트릭스 row 갱신 + §4 ADR 인덱스 ADR-0030 row + §6 변경 이력 row)",
+      "docs/adr/0030-sso-integrations-and-auth-session-port.md (§5 timeline 1.1a + 1.1b status accepted/done + C-h row 신규 + §9 변경 이력 row 추가)",
+      "ai-workflow/memory/docs/work_260610-traceability-impl-sso-keycloak/{state.json,session_handoff.md,work_backlog.md,backlog/2026-06-10.md} (sprint memory 4종)",
+      "ai-workflow/memory/{state.json,session_handoff.md,work_backlog.md} (main flat sync)"
+    ]
+  },
+  "next_documents": [
+    "AGENTS.md (참조만, 변경 없음)",
+    "docs/traceability/conventions.md (참조만, IMPL ID kebab-case 정합 확인)",
+    "docs/traceability/sync-checklist.md (참조만, §3.4 IMPL + §3.6 매트릭스 + §3.7 PR body 절차 정합)"
+  ]
+}

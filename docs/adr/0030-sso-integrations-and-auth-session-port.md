@@ -105,16 +105,15 @@ v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 imp
 - **`main.go` runtime injection** 안 함. sprint -a follow-up.
 - **`infra/idp/_archive_2026-06-10/` immutable archive** 안 함. sprint -a follow-up (별도 PR).
 
-## 5. 결정 timeline
-
 | Phase | Sprint | Status |
 |---|---|---|
-| 1.1a (Keycloak port interface + interface 의 canonical 위치) — **본 PR (sprint -a)** | v1.1 sprint -a | accepted (P1) |
-| 1.1b (sso-integrations/ 실제 구현 + saovae stub + main wiring + infra/idp archive) | v1.1 sprint -a follow-up | planned (P1) |
+| 1.1a (Keycloak port interface + interface 의 canonical 위치) — 본 PR (sprint -a) | v1.1 sprint -a | **accepted (P1), done (PR #538 머지, 2026-06-10)** |
+| 1.1b (sso-integrations/ 실제 구현 + saovae stub + main wiring + infra/idp archive) | v1.1 sprint -a follow-up | **accepted (P1), done (PR #539 + PR #540 머지, 2026-06-10)** |
 | 1.2 (gitea + ci port) | v1.1 sprint -b | planned (P1) |
 | 1.3 (hrdb + commandworker + serviceaction) | v1.1 sprint -c | planned (P1) |
 | 1.4 (homelab + adapters 통합 + legacy archive) | v1.1 sprint -d | planned (P1) |
 | 2.2 (Agentic planner + tool registry + ssoKeycloakPort 도 invoke) | v1.2 sprint -b | planned (P1) |
+| C-h (ADR-0030 §5 timeline + traceability report.md IMPL row 갱신) | `docs/work_260610-traceability-impl-sso-keycloak` PR | **done (2026-06-10)** — §5 1.1a + 1.1b status accepted/done 명시 + `docs/traceability/report.md` §2.4 + §3.1/§3.3 matrix 갱신 + §4 ADR-0030 row 신규 + §6 변경 이력 row 신규. |
 
 ## 6. Cross-tier impact
 
@@ -159,3 +158,4 @@ v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 imp
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-06-10 | 1차 작성 — auth-session 도메인의 port interface 도입 + sso-integrations/ 분리 결정. view/ 의 interface 는 deprecated alias 로 backward compat. sprint -a follow-up 에서 실제 구현 이전. 사용자 2026-06-10 결정 (외부 시스템 연동 = agentic RAG 와 함께 발전) + PR #537 §0.4 (Keycloak 분류 재정의) 의 code-level 적용. | `feat/work_260610-v1-1-sprint-a-sso-integrations` |
+| 2026-06-10 | §5 결정 timeline 갱신 — 1.1a (sprint -a, port interface) status = **accepted/done** (PR #538 머지) + 1.1b (sprint -a follow-up, real adapter + saovae_stub + main wiring + infra/idp archive) status = **accepted/done** (PR #539 + PR #540 머지). C-h (ADR timeline + traceability 정합 PR) row 신규 — `docs/work_260610-traceability-impl-sso-keycloak` PR 의 후속 정합. | `docs/work_260610-traceability-impl-sso-keycloak` |
