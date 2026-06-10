@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Server, Settings, Zap, ShieldCheck, X, ChevronLeft, ChevronRight, Boxes } from "lucide-react";
+import { LayoutDashboard, Users, Server, Settings, Zap, ShieldCheck, X, ChevronLeft, ChevronRight, Boxes, TestTube } from "lucide-react";
 import { cn } from "@/shared/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -27,6 +27,7 @@ const baseMenu: MenuItem[] = [
  
 const systemMenu: MenuItem[] = [
   { href: "/admin/catalog", icon: Boxes, label: "Admin Catalog", color: "text-emerald-700 dark:text-emerald-300" },
+  { href: "/admin/reception-test", icon: TestTube, label: "Reception Test", color: "text-orange-700 dark:text-orange-300" },
 ];
  
 const systemBottomMenu: MenuItem = {

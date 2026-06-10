@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-10T05:45:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/feat/work_260610-v1-1-sprint-a-followup/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/feat/work_260610-v1-1-sprint-a-followup/work_backlog.md"
+  },
+  "project": {
+    "project_name": "DevHub Example"
+  },
+  "session": {
+    "current_focus": "feat/work_260610-v1-1-sprint-a-followup — sso-integrations/keycloak/ stub + main.go wiring + view/ deprecation (v1.1 sprint -a follow-up)",
+    "sprint_branch": "feat/work_260610-v1-1-sprint-a-followup (PR #539, MERGED main @ 87e6c1f5)",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "T-b1a02e8c (sprint -a follow-up: saovae_stub 작성)",
+      "T-d2f1a7b3 (main.go DEVHUB_BUILD_TIER env var 분기 + 3 port wiring)",
+      "T-c3a9e4d2 (ports.go KeycloakUserEvent/KeycloakAdminEvent alias 통합)",
+      "T-9f8b6c1d (view/ deprecation comment 3 interface)",
+      "T-7e4d2f8a (commit a00793bc + push + PR #539 + CI 7/7 PASS + merge)"
+    ],
+    "background_tasks": {
+      "bg_f83bacdf": {
+        "description": "sprint -a baseline: Keycloak 호출 surface 매핑 (PR #538 작성 시 사용됨)",
+        "status": "completed",
+        "session_id": "ses_xxx",
+        "file": "n/a (sprint -a 본 PR #538 의 baseline 분석, 본 follow-up 에서는 사용 안 함)"
+      }
+    },
+    "deliverables": [
+      "backend-core/internal/sso-integrations/keycloak/saovae_stub.go (NEW, 105 lines)",
+      "backend-core/main.go (DEVHUB_BUILD_TIER env var 분기 + 3 port wiring)",
+      "backend-core/internal/domain/auth-session/integration/ports.go (KeycloakUserEvent/KeycloakAdminEvent alias)",
+      "backend-core/internal/domain/auth-session/view/auth.go (BearerTokenVerifier deprecation comment)",
+      "backend-core/internal/domain/auth-session/view/handler.go (IdentityAdmin + OIDCLogoutClient deprecation comment)",
+      "PR #539 — https://github.com/ykylee/Devhub_example/pull/539"
+    ]
+  },
+  "next_documents": [
+    "AGENTS.md",
+    "docs/planning/external-integrations-agentic-rag-roadmap.md (참조만, 변경 없음)",
+    "docs/adr/0030-sso-integrations-and-auth-session-port.md (참조만, PR #538 에서 작성)",
+    "docs/traceability/report.md (IMPL-30/31/32 row 갱신 — 후속 PR 작업)"
+  ]
+}

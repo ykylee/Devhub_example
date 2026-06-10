@@ -4,8 +4,10 @@
 // docs/planning/keycloak_event_audit_integration.md.
 //
 // 책임 분리:
-//   - KeycloakAdminClient.ListUserEvents + ListAdminEvents — Keycloak Admin REST API 호출
-//     (internal/httpapi/keycloak_admin_client.go, sprint -u PR-B)
+//   - sso-integrations/keycloak.KeycloakAdminClient.ListUserEvents + ListAdminEvents
+//     — Keycloak Admin REST API 호출 (canonical struct: integration.KeycloakUserEvent
+//     / integration.KeycloakAdminEvent, v1.1 sprint -a follow-up PR1 에서 port 직접
+//     정의 + v1.0 mirror struct 제거).
 //   - EventCursorStore — dedup state 영구화 (internal/store/event_cursors.go, sprint -u PR-B)
 //   - KeycloakEventPuller — cron worker (본 파일, sprint -u PR-B skeleton)
 //   - main.go wire + Prometheus metric + integration test — 별도 PR-C carve (sprint -v 후보)
@@ -24,41 +26,16 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain/audit-ops/repository"
+	"github.com/devhub/backend-core/internal/domain/auth-session/integration"
 )
 
-// KeycloakEventLister — KeycloakEventPuller 가 의존하는 admin client interface.
-// internal/httpapi.KeycloakAdminClient 의 ListUserEvents + ListAdminEvents 부분집합 —
-// circular import 회피.
-type KeycloakEventLister interface {
-	ListUserEvents(ctx context.Context, dateFrom time.Time, max int) ([]KeycloakUserEvent, error)
-	ListAdminEvents(ctx context.Context, dateFrom time.Time, max int) ([]KeycloakAdminEvent, error)
-}
+// KeycloakUserEvent — integration.KeycloakUserEvent 의 type alias. v1.1 sprint -a
+// follow-up PR1 에서 audit-ops 의 mirror struct 제거 — canonical struct 직접 사용.
+// sso-integrations/keycloak.KeycloakAdminClient.ListUserEvents 가 본 type 반환.
+type KeycloakUserEvent = integration.KeycloakUserEvent
 
-// KeycloakUserEvent — internal/httpapi.KeycloakUserEvent 의 미러 (circular import 회피).
-// main.go wire 시 adapter 로 변환.
-type KeycloakUserEvent struct {
-	Time     int64
-	Type     string
-	RealmID  string
-	ClientID string
-	UserID   string
-	IPAddr   string
-	Details  map[string]string
-	Error    string
-}
-
-// KeycloakAdminEvent — internal/httpapi.KeycloakAdminEvent 의 미러.
-type KeycloakAdminEvent struct {
-	Time          int64
-	RealmID       string
-	OperationType string
-	ResourceType  string
-	ResourcePath  string
-	AuthUserID    string
-	AuthClientID  string
-	AuthIPAddr    string
-	Error         string
-}
+// KeycloakAdminEvent — integration.KeycloakAdminEvent 의 type alias. 위와 동일.
+type KeycloakAdminEvent = integration.KeycloakAdminEvent
 
 // AuditEmitter — Keycloak event 1건마다 audit_logs INSERT 콜백. main.go wire 시 주입.
 // design 문서 §3.4 audit_logs INSERT 매핑 정합 (action / target_type / target_id / payload 등).
@@ -89,9 +66,14 @@ const (
 
 // RunKeycloakEventPuller — Keycloak event polling cron loop. ctx cancel 까지 실행.
 // design 문서 §3.2 cron worker 패턴 정합 (HomeLab pull / DREQ intake token cron 정합).
+//
+// v1.1 sprint -a follow-up PR1: lister 가 integration.KeycloakEventPort (canonical
+// port) 를 직접 받음. v1.0 의 KeycloakAdminEventLister local interface + main.go
+// 의 keycloakAdminEventLister adapter wrapper 가 모두 제거됨. sso-integrations/
+// keycloak.KeycloakAdminClient 가 KeycloakEventPort 를 충족하므로 그대로 주입.
 func RunKeycloakEventPuller(
 	ctx context.Context,
-	lister KeycloakEventLister,
+	lister integration.KeycloakEventPort,
 	cursors repository.EventCursorStore,
 	opts KeycloakEventPullerOptions,
 ) error {
@@ -138,7 +120,7 @@ func RunKeycloakEventPuller(
 // (cursor lag dashboard 가 한 cursor 만 stuck 인 케이스를 식별할 수 있게).
 func pullOnce(
 	ctx context.Context,
-	lister KeycloakEventLister,
+	lister integration.KeycloakEventPort,
 	cursors repository.EventCursorStore,
 	opts KeycloakEventPullerOptions,
 	now func() time.Time,
@@ -160,7 +142,7 @@ func pullOnce(
 // pullUserEvents — Keycloak user events 1회 poll + dedup + audit emit + cursor 갱신.
 func pullUserEvents(
 	ctx context.Context,
-	lister KeycloakEventLister,
+	lister integration.KeycloakEventPort,
 	cursors repository.EventCursorStore,
 	opts KeycloakEventPullerOptions,
 	now func() time.Time,
@@ -235,7 +217,7 @@ func pullUserEvents(
 // pullAdminEvents — Keycloak admin events 1회 poll.
 func pullAdminEvents(
 	ctx context.Context,
-	lister KeycloakEventLister,
+	lister integration.KeycloakEventPort,
 	cursors repository.EventCursorStore,
 	opts KeycloakEventPullerOptions,
 	now func() time.Time,

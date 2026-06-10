@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/shared/httphelp"
 )
 
 // Cache hit: when the DevHub users row already carries a idp_subject,
@@ -123,11 +124,11 @@ func TestResolveIdPSubject_NoUserRowFallsBackToScan(t *testing.T) {
 // 500.
 func TestResolveIdPSubject_NotFoundPropagates(t *testing.T) {
 	orgStore := newMemoryOrganizationStore()
-	idp := &MockIdentityAdmin{FindError: ErrIdentityNotFound}
+	idp := &MockIdentityAdmin{FindError: httphelp.ErrIdentityNotFound}
 	h := Handler{cfg: RouterConfig{OrganizationStore: orgStore, IdentityAdmin: idp}}
 
 	_, err := h.resolveIdPSubject(context.Background(), "ghost")
-	if !errors.Is(err, ErrIdentityNotFound) {
+	if !errors.Is(err, httphelp.ErrIdentityNotFound) {
 		t.Errorf("err = %v, want ErrIdentityNotFound", err)
 	}
 }
