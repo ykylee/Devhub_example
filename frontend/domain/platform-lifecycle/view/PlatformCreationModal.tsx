@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Box, Info, Globe, Eye, Lock, Loader2, Calendar, GitBranch, FolderKanban } from "lucide-react";
+import { useBranding } from "@/lib/branding-context";
 import { Platform, PlatformStatus, PlatformVisibility, Project } from "@/domain/platform-lifecycle/schema/project.types";
 import { projectService } from "@/domain/platform-lifecycle/service/project.service";
 import { identityService } from "@/domain/organization-management/service/identity.service";
@@ -17,6 +18,7 @@ interface PlatformCreationModalProps {
 }
 
 export function PlatformCreationModal({ onClose, onCreated, initialData }: PlatformCreationModalProps) {
+  const { appShortName } = useBranding();
   const [formData, setFormData] = useState({
     key: initialData?.key || "",
     name: initialData?.name || "",
@@ -293,7 +295,7 @@ export function PlatformCreationModal({ onClose, onCreated, initialData }: Platf
                 required
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. DevHub Platform 2026"
+                placeholder={`e.g. ${appShortName} Platform 2026`}
                 className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-3 text-sm text-foreground dark:text-primary-foreground focus:outline-none focus:ring-1 focus:ring-purple-400/50"
               />
             </div>
