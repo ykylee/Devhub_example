@@ -977,6 +977,72 @@ func TestRoleRank_UnknownRoleReturnsZero(t *testing.T) {
 	}
 }
 
+// PR #528 follow-up 회귀 가드 — DB multi-key path (auth_source="api_key_db")
+// 가 EnforceRoutePermission 가드에 의해 mutation endpoint 차단되는지 확인.
+// PR #528 직전의 가드는 "api_key" 만 검사하여 DB path 의 mutation 가드를
+// 우회 (system_admin RBAC 매트릭스에만 의존) — 정공법 §3.4 SOP 위반 가능.
+// 본 test 는 두 source 모두 동일하게 enforce 됨을 확인.
+// 라우터를 직접 build + c.Set 으로 inject (TestEnforceRoutePermission_DenyByDefaultUnmappedRoute
+// 패턴). authenticateActor 미들웨어를 skip 하여 c.Set 한 devhub_auth_source 가
+// 덮어쓰이지 않도록 함.
+func TestEnforceRoutePermission_APIKeyDBMultiKey_BlocksMutation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	audits := &fakeRBACAuditStore{}
+	h := NewRBACHandler(RBACConfig{AuditStore: audits})
+
+	router := gin.New()
+	v1 := router.Group("/api/v1")
+	// c.Set 으로 inject 하는 미들웨어 — enforceRoutePermission 직전에 실행되어
+	// source 가 정확히 api_key_db 로 set 됨. authenticateActor 는 사용 안 함
+	// (DB multi-key 경로는 별도 인증 미들웨어에서 c.Set 처리).
+	injectKey := func(c *gin.Context) {
+		c.Set("devhub_auth_source", "api_key_db")
+		c.Set("devhub_actor_role", "system_admin")
+		c.Set("devhub_actor_login", "api-key:dhk_test_prefix_8")
+		c.Next()
+	}
+	v1.Use(injectKey)
+	v1.Use(h.EnforceRoutePermission)
+	v1.POST("/users", func(c *gin.Context) { c.Status(200) })
+	v1.PATCH("/users/:user_id", func(c *gin.Context) { c.Status(200) })
+	v1.DELETE("/users/:user_id", func(c *gin.Context) { c.Status(200) })
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"api_key_db blocks POST /api/v1/users", "POST", "/api/v1/users"},
+		{"api_key_db blocks PATCH /api/v1/users/u-1", "PATCH", "/api/v1/users/u-1"},
+		{"api_key_db blocks DELETE /api/v1/users/u-1", "DELETE", "/api/v1/users/u-1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != 403 {
+				t.Fatalf("expected 403 for api_key_db %s %s, got %d (body=%s)", tc.method, tc.path, rec.Code, rec.Body.String())
+			}
+		})
+	}
+
+	// audit log 확인 — 3 row 가 auth.api_key_denied + auth_source="api_key_db"
+	// 로 정확히 capture (PR #528 follow-up fix 검증의 핵심).
+	if len(audits.created) != len(cases) {
+		t.Fatalf("expected %d auth.api_key_denied audits, got %d (logs=%+v)", len(cases), len(audits.created), audits.created)
+	}
+	for i, log := range audits.created {
+		if log.Action != "auth.api_key_denied" {
+			t.Errorf("audit[%d].action = %q, want auth.api_key_denied", i, log.Action)
+		}
+		if log.Payload["auth_source"] != "api_key_db" {
+			t.Errorf("audit[%d].payload.auth_source = %v, want api_key_db", i, log.Payload["auth_source"])
+		}
+	}
+}
+
 func TestRoleRank_KnownRoles(t *testing.T) {
 	if got := roleRank("system_admin"); got == 0 {
 		t.Fatal("expected non-zero rank for system_admin")
