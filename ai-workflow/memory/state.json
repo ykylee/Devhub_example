@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-12 main. PR #514 + #515 + #516 + #517 + #527 + #528 + #529 머지 완료. PR #528 — ADR-0029 §6 (f) P3 multi-key 관리 (Phase 1 backend). PR #529 — PR #528 follow-up (DB multi-key path admin gate 확장 + dead code 5 lines 삭제, 4 unit test + 1 regression guard). main HEAD `dc381fb3`. v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정 영역).",
-  "updated_at": "2026-06-12T10:30:00Z",
-  "head_commit": "dc381fb3",
-  "head_summary": "fix(httpapi): swagger UI openapi.yaml embed fallback (staging/test env, supersede PR #508 silent 404) (#517)",
+  "status": "2026-06-10 main. v1.1 sprint -a follow-up PR #539 머지 완료. PR #538 (sprint -a 본 — port interface) + PR #539 (follow-up — sso-integrations/keycloak/ stub + main.go DEVHUB_BUILD_TIER env var 분기 + view/ deprecation + ports.go alias 통합). main HEAD `87e6c1f5`. CI 7/7 PASS (Backend Unit/Integration + E2E Playwright 1/2/3 + OpenAPI Lint + Workflow Lint + Migration Prefix Uniqueness + Detect Changed Paths). Tier 분류: ports.go / view/ = 공용, sso-integrations/keycloak/ = 사외 (saovae_stub). 후속 carry-over = real adapter 별도 PR (sso-integrations/keycloak/{verifier,admin_client}.go + main.go type assertion 정리 + v1.0 mirror struct 제거 + audit-ops mirror 통합 + infra/idp/_archive_2026-06-10/).",
+  "updated_at": "2026-06-10T05:45:00Z",
+  "head_commit": "87e6c1f5",
+  "head_summary": "feat(backend): sso-integrations/keycloak/ stub + main.go wiring + view/ deprecation (v1.1 sprint -a follow-up) (#539)",
   "milestones": {
     "M0": {
       "status": "done",

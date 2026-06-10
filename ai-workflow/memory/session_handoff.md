@@ -142,3 +142,77 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 * **N-10 IT 3 TC 완료 정합** (본 sprint): `TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01` ✅ verified.
 * **option D 검토 완료**: N-13 + ADR-0028 §6 정합. 구현 = v1.1 milestone 진입 시점.
 * **V1.1 진입 준비**: X-1/X-2 로드맵 백로그 분석.
+
+---
+
+## 5. 본 세션 (2026-06-10, v1.1 sprint -a follow-up — PR #539 머지)
+
+### PR 머지 결과
+
+| PR | 상태 | 의의 |
+| --- | --- | --- |
+| **#538** (sprint -a 본 — port interface, 이전 머지) | ✅ MERGED | `domain/auth-session/integration/ports.go` 신규 (4 port + 4 type alias + 3 sentinel error alias). ADR-0030. main `20b4bb3b`. |
+| **#539** (sprint -a follow-up — stub + main wiring + view/ deprecation) | ✅ MERGED (squash, branch delete) | saovae_stub (4 port + webhook handler) + main.go `DEVHUB_BUILD_TIER` env var 분기 + ports.go mirror alias 통합 + view/ 3 interface deprecation. main `87e6c1f5`. CI 7/7 PASS. |
+
+### PR #539 5 file (commit `a00793bc`, +238 -97)
+
+1. `backend-core/internal/sso-integrations/keycloak/saovae_stub.go` (NEW, 105 lines) — 4 port stub + webhook handler. `go build ./...` PASS. no test files (의도적 — 사외 stub, keycloak infra 비의존).
+2. `backend-core/main.go` (L148-235 분기 + 2 import 추가) — `var (idpAdmin httpapi.IdentityAdmin; oidcLogout httpapi.OIDCLogoutClient; keycloakEventPort integration.KeycloakEventPort)` + `DEVHUB_BUILD_TIER` env var. default (사외) = saovae_stub, `=internal` 시 real KeycloakAdminClient.
+3. `backend-core/internal/domain/auth-session/integration/ports.go` — `KeycloakUserEvent` / `KeycloakAdminEvent` mirror struct → `type X = httpapi.X` alias. `*KeycloakAdminClient` 가 `KeycloakEventPort` 충족 위해 필수.
+4. `backend-core/internal/domain/auth-session/view/auth.go:59` — `BearerTokenVerifier` interface deprecation comment.
+5. `backend-core/internal/domain/auth-session/view/handler.go:27 + :197` — `IdentityAdmin` + `OIDCLogoutClient` interface deprecation comment.
+
+### CI 7/7 PASS
+
+| Check | Result | Duration |
+|---|---|---|
+| Backend Integration Tests | pass | 1m15s |
+| Backend Unit Tests | pass | 1m8s |
+| E2E Build Artifacts | pass | 1m49s |
+| E2E Tests (Playwright, shard 1/3) | pass | 4m0s |
+| E2E Tests (Playwright, shard 2/3) | pass | 4m2s |
+| E2E Tests (Playwright, shard 3/3) | pass | 5m30s |
+| Detect Changed Paths | pass | 11s |
+| Migration Prefix Uniqueness | pass | 7s |
+| OpenAPI YAML Lint | pass | 9s |
+| Workflow Lint (actionlint) | pass | 13s |
+| Frontend Unit Tests | skip (path-detect 결과 — backend-only 변경) | - |
+
+### Tier 분류 (PR #539 self-check)
+
+- **ports.go / view/ = 공용** (interface 만 노출)
+- **sso-integrations/keycloak/ = 사외** (saovae_stub — Keycloak 인프라 비의존)
+- **main.go 변경 = 공용** (runtime injection branch 만, 사내 한정 패턴 미도입 — `check-tier-separation.sh no changes` 확인)
+
+### 사용자 결정 사항 (in-session)
+
+- **PR scope 분리**: sprint -a follow-up 본 PR = stub + main wiring (Recommended). real adapter 별도 PR.
+- **Build 정책**: `//go:build` tag 미사용, **runtime injection** (단일 binary, `DEVHUB_BUILD_TIER` env var).
+- **Default = 사외 (saovae_stub)**: env var 미설정 시 saovae_stub 자동 사용.
+- **`=internal` 시 real KeycloakAdminClient**: 사내 staging/prod-smoke 검증.
+- **Type alias**: ports.go 의 mirror struct 를 httpapi alias 로 통합 (distinct type → alias).
+
+### 후속 carry-over (다음 PR)
+
+1. **C-a** real adapter: `sso-integrations/keycloak/{verifier,admin_client}.go` (P0)
+2. **C-b** main.go event listener type assertion 정리 (P0)
+3. **C-c** `_ = keycloakEventPort` placeholder 제거 (P0, C-b 완료 시)
+4. **C-d** v1.0 mirror struct 제거: `httpapi.KeycloakUserEvent` / `httpapi.KeycloakAdminEvent` (P1)
+5. **C-e** audit-ops 의 mirror 와 통합 (P1)
+6. **C-f** `infra/idp/_archive_2026-06-10/` immutable archive (P1)
+7. **C-g** traceability report.md IMPL-30/31/32 row 갱신 (P2)
+8. **C-h** ADR-0030 §5 timeline 갱신 (P2)
+9. **C-i** E2E test saovae_stub + real adapter CI matrix (P2)
+10. **C-j** build tag 정책 재검토 (P3)
+
+### Memory 갱신
+
+- `ai-workflow/memory/feat/work_260610-v1-1-sprint-a-followup/` 신규 작성 (state.json + session_handoff.md + work_backlog.md + backlog/2026-06-10.md).
+- main `state.json` status 갱신 (PR #539 entry).
+- 본 `session_handoff.md` §5 append.
+
+### 다음 세션 directive (sprint -a follow-up 완료 후)
+
+- **real adapter PR 시작**: branch `feat/work_260610-v1-1-sprint-a-real-adapter` 분기. C-a → C-b → C-c → C-d → C-e → C-f 순서로 진행.
+- **C-g traceability 갱신**: `docs/traceability/report.md` IMPL-30/31/32 row 추가.
+- **또는 다른 sprint 진입**: PR #538 이전의 carry-over, ADR-0030 §5 timeline 갱신 등.
