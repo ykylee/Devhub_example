@@ -2,8 +2,11 @@
   "id": "devhub",
   "realm": "devhub",
   "enabled": true,
-  "displayName": "DevHub Local Testing (dev-only — DO NOT import into production)",
-  "eventsListeners": [ "jboss-logging", "devhub-event-listener" ],
+  "displayName": "DevHub Local Testing (dev-only \u2014 DO NOT import into production)",
+  "eventsListeners": [
+    "jboss-logging",
+    "devhub-event-listener"
+  ],
   "sslRequired": "none",
   "registrationAllowed": false,
   "roles": {
@@ -18,7 +21,9 @@
     {
       "name": "devhub-users",
       "path": "/devhub-users",
-      "realmRoles": [ "user" ]
+      "realmRoles": [
+        "user"
+      ]
     }
   ],
   "clients": [
@@ -29,21 +34,29 @@
       "publicClient": true,
       "directAccessGrantsEnabled": false,
       "redirectUris": [
+        "http://100.90.113.29/*",
+        "http://100.90.113.29/devhub/*",
+        "http://100.90.113.29/devhub/auth/callback",
+        "http://100.90.113.29:13000/*",
+        "http://100.90.113.29:13000/devhub/*",
+        "http://100.90.113.29:13000/devhub/auth/callback",
         "http://localhost/devhub/*",
+        "http://localhost:13000/*",
+        "http://localhost:13000/devhub/*",
+        "http://localhost:13000/devhub/auth/callback",
         "http://localhost:3000/*",
         "http://localhost:3000/auth/callback",
         "http://localhost:3000/devhub/auth/callback",
-        "http://localhost:8080/devhub/*",
-        "http://localhost:13000/*",
-        "http://localhost:13000/devhub/*",
-        "http://localhost:13000/devhub/auth/callback"
+        "http://localhost:8080/devhub/*"
       ],
       "webOrigins": [
         "+",
-        "http://localhost:3000",
+        "http://100.90.113.29",
+        "http://100.90.113.29:13000",
         "http://localhost",
-        "http://localhost:8080",
-        "http://localhost:13000"
+        "http://localhost:13000",
+        "http://localhost:3000",
+        "http://localhost:8080"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
