@@ -317,4 +317,39 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **release_v1_roadmap.md §3.5 N-13** 정합 (P3): C-i + C-j + C-g/C-h + C-j done 마킹. N-13 row close.
 - **N-10 RBAC E2E 6 TC 보강** (sprint `maintenance/work_260610-c-N10-rbac-e2e-tcs`): v1.0 출시 직전 잔여.
 - 또는 다른 sprint 진입.
+
+## 9. 본 세션 (2026-06-10, D-72 Phase 1 — `~/wiki/` LLM Wiki 통합 의 in-repo source-of-truth + sync script)
+
+### PR 결과
+
+| PR | 상태 | 의의 |
+| --- | --- | --- |
+| **#544** (D-72 Phase 1 LLM Wiki 통합) | ✅ MERGED (squash, branch delete) | `feat/work_260610-d-72-wiki-phase-1` 분기. **`docs/llm-wiki/` 5 file 신규** (README 7.8KB + scope-and-rationale 10.6KB + mirror-list 10KB + lint-config.toml 4.4KB + operation-sop 10.7KB = 43.5KB) + **`scripts/wiki-sync-devhub.sh` 6.4KB executable** (BSD-rsync safe, 7 source 패턴, 82 file, --dry-run + vault 부재 no-op). **D-72 응답 §2 Q1~Q6 전체 적용**: 단일 vault + per-project 동거 + Q3 단순화 (lint L11 + sa-internal/ 격리 불요) + Q4 L01~L10 + L07 ADR 면제 + Q5 v1.5 동시 시작 + Q6 단일 AGENTS.md + per-project lint report. `docs/wiki/` (Public, GitHub Wiki 게시 source) vs `docs/llm-wiki/` (LLM Wiki SSOT) 의 분리. main `a96f586`. CI 4/4 PASS (docs only PR, backend/e2e/frontend skip). Tier: **공용**. |
+
+### scope 결정
+
+**코드 0줄 변경** (스크립트 6.4KB + docs 5 file 신규). mirror list = **core subset ~82 file** (ADR 31 + Governance 5 + Planning 26 + Setup 15 + Requirements 1 + OpenAPI 1 + AI-workflow memory 3). domain (66) + architecture + infrastructure + validation (~100 file) 은 Phase 3 (mass ingest) 의 별도 PR. **mirror 실행은 본 PR scope 외** (`~/wiki/raw/projects/devhub/` 의 out-of-repo 변경) — 사용자 confirm 후 T-d-72-5.
+
+### trade-off
+
+- **`docs/llm-wiki/` 선택 (vs `docs/wiki/` 또는 `docs/wiki-integration/`)**: 기존 `docs/wiki/` = **Public Wiki** (GitHub Wiki 게시 source, 인간 큐레이션, mtime 2026-05-20). 본 Phase 1 의 **LLM Wiki SSOT** 와 audience 다름. 디렉터리 이름 분리 = 두 wiki 의 명확한 구분. `docs/wiki/` (Public) ↔ `docs/llm-wiki/` (LLM) 의 cross-link 없음.
+- **mirror list 의 scope = core subset ~82 file**: D-72 응답 §4 #3 의 "100~200 파일" 의 1/2. domain (66) + architecture + infrastructure + validation (~100 file) 은 **Phase 3 (mass ingest)** 에서 별도 PR. 본 PR 의 검증 가능한 정공법 (CI 4/4 + script smoke test) = 작은 core subset.
+- **lint-config.toml 의 L07 ADR 면제 config 작성 (옵션 미사용)**: wiki-lint 의 `--project` + `--project-config` 옵션은 my_harness 측 D-73 의 작업. 본 PR 은 config 의 source 만 제공. 옵션 추가 후 자동 활성.
+
+### Memory 갱신
+
+- `ai-workflow/memory/feat/work_260610-d-72-wiki-phase-1/` 신규 (state.json + session_handoff.md + work_backlog.md + backlog/2026-06-10.md + pr_body.md).
+- main flat `state.json` head_commit = `a96f586` (PR #544 머지 baseline).
+- 본 `session_handoff.md` §9 append.
+
+### 다음 세션 directive
+
+- **T-d-72-5** (P3, 사용자 trigger): `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `~/wiki/raw/projects/devhub/` 에 ~82 file mirror + `_manifest.md` 자동 생성. **본 PR 머지 후 사용자 confirm 시점**.
+- **D-73** (P3, my_harness 측): wiki-lint skill 에 `--project` + `--project-config` 옵션 추가. 본 저장소 의 lint-config.toml 활성.
+- **D-74** (P3, my_harness 측): my_harness 의 `_lint/my-harness/` + 본 저장소 의 `_lint/devhub/` 디렉터리 셋업.
+- **Phase 3** (P3, mass ingest, 별도 PR): domain (66) + architecture + infrastructure + validation (~100 file) mirror + 30~50 wiki page.
+- **wiki/cross/** (P3, Phase 3 후속): cross-project 종합 (my_harness 의 LLM Wiki 패턴 ↔ DevHub 의 ADR-0030 runtime injection).
+- **v2.0** (P3, forward): LLM 호출 + BM25+vector+MCP. my_harness 의 v2.0 경험 보고 진입.
+- **N-13 release_v1_roadmap §3.5 정합** (P3, housekeeping): N-13 row status = done 마킹.
+- 또는 다른 sprint (backend-integration matrix / N-10 RBAC E2E 6 TC).
 - 또는 N-10 RBAC E2E 6 TC 보강 / release_v1_roadmap.md 갱신.

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-10 main. PR #543 (sprint -a follow-up PR1 PR #540 의 carry-over C-j 정공법 PR, `docs/work_260610-c-j-build-tag-review`) 머지 완료. main HEAD `d3488ca`. CI 4/4 PASS (docs only PR, backend/e2e/frontend skip). Tier: 본 PR 의 모든 변경 = **공용** (docs/adr/ + docs/traceability/ + ai-workflow/memory/ 모두 사내 한정 정보 미포함). **ADR-0031 confirmed**: ADR-0030 §2.3 runtime injection 결정을 정량 측정 후 confirmed. 후속 carry-over: backend-integration DEVHUB_BUILD_TIER matrix (P3) + release_v1_roadmap.md §3.5 N-13 정합 (P3) + N-10 RBAC E2E 6 TC 보강 별도 PR.",
-  "updated_at": "2026-06-10T14:00:00Z",
-  "head_commit": "d3488ca",
-  "head_summary": "docs(adr,traceability,memory): ADR-0031 build tag 정책 재검토 — ADR-0030 §2.3 confirmed (sprint -a follow-up PR1 PR #540 의 carry-over C-j) (#543)",
+  "status": "2026-06-10 main. PR #544 (D-72 Phase 1, LLM Wiki 통합 in-repo source-of-truth + sync script, `feat/work_260610-d-72-wiki-phase-1`) 머지 완료. main HEAD `a96f586`. CI 4/4 PASS (docs only PR, backend/e2e/frontend skip). Tier: 본 PR 의 모든 변경 = **공용** (docs/llm-wiki/ + scripts/ 모두 사내 한정 정보 미포함). **D-72 권장안 전체 적용**: 단일 `~/wiki/` vault + per-project 동거 + Q3 단순화 (lint L11 + sa-internal/ 격리 불요) + Q4 (L01~L10 + L07 ADR 면제) + Q5 v1.5 동시 시작 + Q6 (단일 AGENTS.md + per-project lint report). 본 PR 의 scope = in-repo 변경 (코드 0줄). 후속: T-d-72-5 (`bash scripts/wiki-sync-devhub.sh` 1회 실행, 사용자 confirm 후) + D-73 (my_harness 측 wiki-lint 옵션 추가) + D-74 (my_harness 측 _lint/ 셋업) + Phase 3 (mass ingest, ~100 file mirror + 30~50 wiki page) + wiki/cross/ + v2.0 (full compile) + N-13 release_v1_roadmap §3.5 정합.",
+  "updated_at": "2026-06-10T14:50:00Z",
+  "head_commit": "a96f586",
+  "head_summary": "docs(llm-wiki,scripts): D-72 Phase 1 — `~/wiki/` LLM Wiki 통합 의 in-repo source-of-truth + sync script (#544)",
   "milestones": {
     "M0": {
       "status": "done",
