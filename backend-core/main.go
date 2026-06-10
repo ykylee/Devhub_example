@@ -9,7 +9,9 @@ import (
 
 	auditsvc "github.com/devhub/backend-core/internal/domain/audit-ops/service"
 	auditrep "github.com/devhub/backend-core/internal/domain/audit-ops/repository"
+	authapikeyrep "github.com/devhub/backend-core/internal/domain/auth-session/repository"
 	authsvc "github.com/devhub/backend-core/internal/domain/auth-session/service"
+	authview "github.com/devhub/backend-core/internal/domain/auth-session/view"
 	devreqsvc "github.com/devhub/backend-core/internal/domain/dev-request/service"
 	devreqrep "github.com/devhub/backend-core/internal/domain/dev-request/repository"
 	devreqview "github.com/devhub/backend-core/internal/domain/dev-request/view"
@@ -31,6 +33,33 @@ import (
 	"github.com/devhub/backend-core/internal/normalize"
 	"github.com/devhub/backend-core/internal/store"
 )
+
+// apiKeyViewStoreAdapter — repository.APIKeyStore (repository-local struct
+// 반환) 를 view.APIKeyStore (view-local APIKeyView 반환) 로 wrap. cross-domain
+// import cycle 회피 + struct 정의 1쌍 (repository + view) 의 단일 adapter.
+// auth.go 의 APIKeyStore 가 APIKeyView 만 보면 되므로 변환 1회로 충분.
+type apiKeyViewStoreAdapter struct {
+	inner authapikeyrep.APIKeyStore
+}
+
+func (a *apiKeyViewStoreAdapter) GetAPIKeyByHash(ctx context.Context, keyHash []byte) (authview.APIKeyView, error) {
+	k, err := a.inner.GetAPIKeyByHash(ctx, keyHash)
+	if err != nil {
+		return authview.APIKeyView{}, err
+	}
+	return authview.APIKeyView{
+		ID:           k.ID,
+		Name:         k.Name,
+		KeyPrefix:    k.KeyPrefix,
+		CreatedBy:    k.CreatedBy,
+		ExpiresAt:    k.ExpiresAt,
+		AllowedCIDRs: k.AllowedCIDRs,
+	}, nil
+}
+
+func (a *apiKeyViewStoreAdapter) UpdateLastUsedAt(ctx context.Context, id string, when time.Time) error {
+	return a.inner.UpdateLastUsedAt(ctx, id, when)
+}
 
 func main() {
 	cfg := config.Load()
@@ -60,6 +89,10 @@ func main() {
 	var homeLabAdapterStore adapters.InfraSnapshotStore
 	var eventCursorStore auditrep.EventCursorStore
 	var pgStore *store.PostgresStore
+	// apiKeyStore — ADR-0029 §6 (f) P3 multi-key. nil 이면 admin endpoints 503.
+	var apiKeyStore authapikeyrep.APIKeyStore
+	var apiKeyStoreAdmin authapikeyrep.APIKeyStore
+	var apiKeyViewStore authview.APIKeyStore
 
 	if cfg.DBURL != "" {
 		var err error
@@ -76,6 +109,18 @@ func main() {
 		auditStore = auditrep.NewAuditRepository(pgStore)
 		organizationStore = orgrep.NewOrganizationRepository(pgStore)
 		platformStore = apprep.NewPlatformRepository(pgStore)
+		// ADR-0029 §6 (f) P3 — multi-key 관리 store. auth middleware (read-only
+		// hot path) + admin handler (write) 양쪽 동일 store 사용. pgStore.Pool()
+		// 가 nil 아닌 경우에만 wire — cfg.DBURL 이 빈 경우 (sqlite/in-memory
+		// 환경) nil 로 두고 AuthConfig.APIKeyStore/Admin 둘 다 nil → admin
+		// endpoints 가 503 응답.
+		apiKeyStore = authapikeyrep.NewPgAPIKeyStore(pgStore.Pool())
+		apiKeyStoreAdmin = apiKeyStore
+		// view-local APIKeyStore (read-only) adapter — view 가 repository
+		// package 의존하지 않도록 cross-domain import cycle 회피. view 의
+		// auth.go 가 APIKeyView 를 받고, admin handler 가 repository.APIKey
+		// 를 받음 — 두 adapter 가 동일 underlying store 를 wrap.
+		apiKeyViewStore = &apiKeyViewStoreAdapter{inner: apiKeyStore}
 		integrationStore = intgregrep.NewIntegrationRepository(pgStore)
 		devRequestRepository := devreqrep.NewDevRequestRepository(pgStore)
 		devRequestStore = devRequestRepository
@@ -212,6 +257,9 @@ func main() {
 		BearerTokenVerifier:        verifier,
 		APIKey:                     cfg.APIKey,
 		APIKeyAdminOnly:            cfg.APIKeyAdminOnly,
+		// ADR-0029 §6 (f) P3 — multi-key store wire. nil 이면 multi-key 비활성.
+		APIKeyStore:                apiKeyViewStore,
+		APIKeyStoreAdmin:           apiKeyStoreAdmin,
 		IdentityAdmin:              idpAdmin,
 		OIDCLogoutClient:           oidcLogout,
 		IdPProvider:                cfg.IdPProvider,

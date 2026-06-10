@@ -24,6 +24,10 @@ const (
 	// ResourceDevRequestIntakeTokens — sprint claude/work_260515-o (ADR-0014).
 	// system_admin 일임 자원: intake token 발급/조회/revoke admin endpoint.
 	ResourceDevRequestIntakeTokens Resource = "dev_request_intake_tokens"
+	// ResourceAPIKeys — sprint feat/work_260609-k-api-key-management (ADR-0029 §6 (f) P3).
+	// system_admin 일임 자원: API key 발급/조회/회수 admin endpoint. ADR-0029 §6 (f)
+	// multi-key 관리 (DB hashed + key prefix + CIDR allowlist).
+	ResourceAPIKeys Resource = "api_keys"
 )
 
 // Action is the RBAC action axis defined by docs/backend_api_contract.md section 12.0.3.
@@ -76,6 +80,7 @@ func AllResources() []Resource {
 		ResourceSCMProviders,
 		ResourceDevRequests,
 		ResourceDevRequestIntakeTokens,
+		ResourceAPIKeys,
 	}
 }
 
@@ -172,6 +177,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceDevRequests: {View: true},
 			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). developer 는 차단.
 			ResourceDevRequestIntakeTokens: {},
+			// api_keys: system_admin 일임 (ADR-0029 §6 (f) P3). developer 차단.
+			ResourceAPIKeys: {},
 		}, true
 	case string(AppRoleTeamManager):
 		return PermissionMatrix{
@@ -189,6 +196,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceDevRequests: {View: true, Edit: true},
 			// dev_request_intake_tokens: system_admin 일임 (ADR-0014). team_manager 차단.
 			ResourceDevRequestIntakeTokens: {},
+			// api_keys: system_admin 일임 (ADR-0029 §6 (f) P3). team_manager 차단.
+			ResourceAPIKeys: {},
 		}, true
 	case string(AppRoleSystemAdmin):
 		return PermissionMatrix{
@@ -203,6 +212,8 @@ func DefaultPermissionMatrix(roleID string) (PermissionMatrix, bool) {
 			ResourceSCMProviders:            {View: true, Create: true, Edit: true, Delete: true},
 			ResourceDevRequests:             {View: true, Create: true, Edit: true, Delete: true},
 			ResourceDevRequestIntakeTokens:  {View: true, Create: true, Edit: true, Delete: true},
+			// api_keys: system_admin 4 axis 모두 true (ADR-0029 §6 (f) P3).
+			ResourceAPIKeys:                 {View: true, Create: true, Edit: true, Delete: true},
 		}, true
 	default:
 		return nil, false

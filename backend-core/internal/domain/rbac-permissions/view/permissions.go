@@ -317,6 +317,14 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// Task item 조회 — infrastructure:view (provider 관리자 권한).
 	{http.MethodGet, "/api/v1/external-tasks"}:          {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/external-tasks/:task_id"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+
+	// ADR-0029 §6 (f) P3 — multi-key 관리 (sprint feat/work_260609-k-api-key-management).
+	// system_admin 일임 (api_keys resource). raw key 1회 응답 (POST) + list/revoke/update
+	// 는 key_prefix 만 노출 (보안). 자세한 동작: [`docs/planning/api-key-management-sprint-plan.md` §3.3].
+	{http.MethodPost, "/api/v1/admin/api-keys"}:             {Resource: domain.ResourceAPIKeys, Action: domain.ActionCreate},
+	{http.MethodGet, "/api/v1/admin/api-keys"}:              {Resource: domain.ResourceAPIKeys, Action: domain.ActionView},
+	{http.MethodPatch, "/api/v1/admin/api-keys/:api_key_id"}:  {Resource: domain.ResourceAPIKeys, Action: domain.ActionEdit},
+	{http.MethodDelete, "/api/v1/admin/api-keys/:api_key_id"}: {Resource: domain.ResourceAPIKeys, Action: domain.ActionDelete},
 }
 
 // lookupRoutePolicy is exported for tests to assert the table contents without
@@ -439,17 +447,20 @@ func (h *RBACHandler) EnforceRoutePermission(c *gin.Context) {
 	}
 
 	// ADR-0029 §6 (a) P0 — API key caller 의 admin endpoint RBAC 가드. ADR-0029
-	// API key 는 정적 키 (DEVHUB_API_KEY) — §2.2 옵션 B (공개 read-only 만 API
-	// key 허용, admin API 는 Keycloak 강제) 의 §3.4 trade-off 완화. authenticateActor
-	// 가 `devhub_auth_source = "api_key"` 를 set 한 경우, policy.Action 이
-	// View 가 아닌 (mutation) 경로만 차단 — read-only (infrastructure:view 등)
-	// 는 그대로 통과. cache.Allows 호출 직전에 위치하여 role 매트릭스 가드와
-	// 독립적으로 enforce. 운영 SOP (DEVHUB_API_KEY 는 staging/dev 전용) 와
-	// 백엔드 RBAC 가드의 2중 방어.
-	if source, _ := c.Get("devhub_auth_source"); source == "api_key" && policy.Action != domain.ActionView {
+	// API key 는 두 경로 — §3.4 정적 키 (DEVHUB_API_KEY, source="api_key") 와
+	// PR #528 §6 (f) DB multi-key (source="api_key_db"). 두 경로 모두
+	// §2.2 옵션 B (공개 read-only 만 API key 허용, admin API 는 Keycloak 강제)
+	// 동일 SOP 적용. authenticateActor 가 위 두 source 중 하나를 set 한 경우,
+	// policy.Action 이 View 가 아닌 (mutation) 경로만 차단 — read-only
+	// (infrastructure:view 등) 는 그대로 통과. cache.Allows 호출 직전에
+	// 위치하여 role 매트릭스 가드와 독립적으로 enforce. 운영 SOP
+	// (DEVHUB_API_KEY 는 staging/dev 전용) 와 백엔드 RBAC 가드의 2중 방어.
+	source, _ := c.Get("devhub_auth_source")
+	isAPIKeyCaller := source == "api_key" || source == "api_key_db"
+	if isAPIKeyCaller && policy.Action != domain.ActionView {
 		h.recordAuditBestEffort(c, "auth.api_key_denied", "route", c.FullPath(), map[string]any{
 			"actor_role":  c.GetString("devhub_actor_role"),
-			"auth_source": "api_key",
+			"auth_source": source,
 			"resource":    string(policy.Resource),
 			"action":      string(policy.Action),
 			"reason":      "admin_gate_mutation",
