@@ -1,6 +1,7 @@
 # DevHub Example
 
 - 문서 목적: DevHub Example 프로젝트의 개요 및 통합 가이드를 제공한다.
+- **저장소 이름** (이 GitHub repo) = "DevHub Example" — 사외 공개 시 사용되는 코드 명. 사내 deploy 시에도 동일 코드 베이스가 사용되지만 **product 명칭** (브라우저 tab title / sidebar brand / 페이지 heading) 은 `DEVHUB_APP_NAME` / `DEVHUB_APP_SHORT_NAME` env var 로 override 가능 (사외=DevHub, 사내=운영자 결정). 자세한 정책: [PR #532 commit message + docs/governance/worker_division.md §6.7](docs/governance/worker_division.md#67-명명-재검토-2026-06-10).
 - 범위: 전체 시스템 구조, 개발 환경 구축, 서브 시스템 안내, SDLC 도메인 진입점
 - 대상 독자: 모든 개발자 및 운영자
 - 상태: stable
