@@ -1,11 +1,11 @@
 # AGENTS.md
 
 - 문서 목적: 모든 AI 에이전트(어떤 워커든)가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
-- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 (워커 분업 전면 취소 결정 2026-06-09 반영)**
+- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 (워커 분업 전면 취소 결정 2026-06-09 반영)**, **사외/사내 2-tier 형상관리 분리 (2026-06-10 결정)**
 - 대상 독자: 모든 AI 워커 (Claude/Codex/Gemini/Reasonix/OpenCode/Mavis/기타), 저장소 관리자, workflow 설계자
 - 상태: active
-- 최종 수정일: 2026-06-09 (워커 분업 전면 취소 + branch prefix 자유화 반영)
-- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**2026-06-09 워커 분업 전면 취소 결정**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
+- 최종 수정일: 2026-06-10 (워커 분업 전면 취소 + branch prefix 자유화 + 사외/사내 2-tier 분업 정책 추가)
+- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**§0 워커 분업 전면 취소 + §6 사외/사내 2-tier 분업**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
 
 ## v1.0 릴리즈 로드맵
 
@@ -15,7 +15,28 @@
 
 - [`docs/planning/release_v1_roadmap.md`](docs/planning/release_v1_roadmap.md) — v1.0 scope + 잔여 carve 우선순위 (P0~P3) + 마일스톤 (워커 분담 표 §5 는 2026-06-09 취소, 작업 우선순위/P0~P3 자체는 유효)
 
-> 참고: [`docs/governance/worker_division.md`](docs/governance/worker_division.md) 는 2026-06-09 전면 취소 결정의 historical record + 유지되는 정책 (ADR supersession 정공법, Owner 권한) 만 보존. 강제력 없음.
+> 참고: [`docs/governance/worker_division.md`](docs/governance/worker_division.md) 는 2026-06-09 전면 취소 결정의 historical record + 유지되는 정책 (ADR supersession 정공법, Owner 권한) + **2026-06-10 §6 사외/사내 2-tier 분업** 만 보존. 강제력 없음.
+
+## 사외 / 사내 2-tier 형상관리 분리 (2026-06-10 결정)
+
+**배경**: GitHub (사외) 가 단일 source-of-truth (push-only), 사내 형상관리 툴은 GitHub 에서 read-only pull. 사내 한정 코드/문서/시크릿이 GitHub `main` 으로 push 되면 사내 동기화 시 충돌 또는 사내 한정 정보 노출 위험.
+
+**3-tier 정책** ([`docs/governance/worker_division.md` §6](../docs/governance/worker_division.md) 본문):
+
+| Tier | 의미 | Push 대상 |
+|---|---|---|
+| **사외** | 사내 인프라 의존 없음. GitHub `main` push. | GitHub (single source-of-truth) |
+| **사내** | 사내 호스트/시크릿/사내 IdP 팀 SOP. 사내 SCM 에만 push. | 사내 SCM (GitHub 에서 pull 만) |
+| **공용** | 양쪽 byte-identical 유지 필수. drift 시 governance/agent prompt/추적성 ID 회귀. | GitHub (synchronization) |
+
+**PR 작성 시 self-check** (사외 PR 의 경우):
+- `DEVHUB_KEYCLOAK_*` / `GITEA_URL` / `HR_EXPORT_CMD` / `internal-registry.example.com` / `kc.internal.example.com` / `devhub.example.com` / `172.16.0.0/12` 등 사내 한정 패턴 누락 여부
+- `infrastructure/`, `infra/idp/`, `scripts/setup-keycloak.sh`, `docker-compose.{local,test,deploy,colima}.yml` 등 사내 한정 경로 변경 여부
+- `.env.deploy`, `.env.test`, `frontend/.env.example` 의 사내 env var 추가/변경 여부
+
+**PR template 의 Tier 필드** (`.github/pull_request_template.md`): 본 §6.5 도입 예정. 도입 시 본인이 push 하는 PR 의 tier 명시 필수.
+
+**자세한 디렉터리/문서 tier 매핑**: `docs/governance/worker_division.md` §6.3 (SoT).
 
 ## 목적
 
@@ -52,6 +73,7 @@
 - 검증하지 않은 결과는 완료로 확정하지 않는다. 모든 신규 기능은 `docs/tests/e2e_testing_strategy.md` 지침에 따라 E2E 테스트를 작성/수행해야 한다.
 - 세션 종료 전에는 브랜치별 `state.json`, `session_handoff.md`, `work_backlog.md`, 최신 backlog 를 갱신한다.
 - **추적성 동기화**: 모든 PR 은 `docs/traceability/sync-checklist.md` 절차를 따른다. 영향 받는 단계의 ID (REQ/ARCH/API/RM/IMPL/UT/TC) 발급 또는 갱신 + `docs/traceability/report.md` 매트릭스 row 갱신 + PR body 의 "추적성 영향" 섹션 채움 (`.github/pull_request_template.md` 참조).
+- **Tier 분리**: 본인의 PR 이 사외/사내/공용 어느 tier 인지 식별하고, 사내 한정 정보 누락 여부를 self-review 한다 (§사외/사내 2-tier 형상관리 분리 참조).
 
 ## 언어와 컨텍스트 원칙
 
@@ -78,6 +100,7 @@
 - session handoff 위치: `ai-workflow/memory/<agent>/<branch>/session_handoff.md`
 - flat memory 위치: legacy fallback 및 공용 색인 전용
 - 문서 포맷 원칙: 원본은 Markdown(`.md`) 유지, HTML은 보고/취합용 파생 산출물로만 사용 (`docs/governance/document-standards.md` §0)
+- **문서 tier 라벨**: `docs/` 하위 신규/수정 문서는 `docs/governance/document-standards.md` §2 메타 헤더에 `Tier: 사외 / 사내 / 공용` 필드 명시 필수 (다음 `document-standards.md` 갱신 시 정식 도입)
 
 ## 워커 일반 메모 (2026-06-09 전면 갱신)
 
@@ -114,7 +137,7 @@
 - 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `opencode/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
 - 브랜치 prefix `opencode/` → `ai-workflow/memory/opencode/<branch-suffix>/`
 - OpenCode 의 기본 에이전트 식별자는 **Sisyphus** 이며, 기본 모델은 `MiniMax-M3` 다. 복잡한 cross-file 리팩토링·아키텍처 결정은 Oracle 같은 specialist 호출로 escalate 한다.
-- OpenCode 는 메인 에이전트 조정/통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 `explore` / `librarian` / `Sisyphus-Junior` 같은 worker 성격 서브에이전트에 위임하는 패턴을 권장한다.
+- OpenCode 는 메인 에이전트 조정/통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 `explore` / `librarian` / `Sisyphus-Junior` 같은 worker 성격 서브 에이전트에 위임하는 패턴을 권장한다.
 - 사용자에게 보이는 작업 보고, handoff, backlog, 사용자 안내 문구는 기본 한국어로 작성한다 (Reasonix 와 동일). 코드/명령어/경로/외부 시스템 명칭은 원문 유지.
 - 현재 브랜치가 `main`이 아닐 때는 `ai-workflow/` 메타 레이어를 기본 탐색 범위에 포함하지 말고, workflow 문서 갱신이나 세션 복원 시에만 참조한다.
 

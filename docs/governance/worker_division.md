@@ -153,10 +153,171 @@ P0 > P1 > P2 > P3 강제 (governance 정합). P0 carve 진행 중 P2 carve 진�
 - **결정 권한**: ADR 결정 + 우선순위 변경 + 마일스톤 변경 + 워커 분업 변경 (본 결정 2026-06-09 의 예)
 - **review 최종 승인**: 모든 PR 의 squash merge 권한
 
-## 6. 변경 이력
+## 6. 사외 / 사내 2-tier 분업 (2026-06-10 결정)
+
+**배경**: 형상관리 분리 정책 — GitHub (사외) 이 단일 source-of-truth (push-only), 사내 형상관리 툴은 GitHub 에서 read-only pull. 사내 한정 코드/문서가 GitHub `main` 으로 push 되면 사내 동기화 시 충돌 또는 사내 한정 정보 노출 위험. 따라서 **사외 (GitHub main 에 push) / 사내 (사내 SCM 에만 머지) / 공용 (양쪽 byte-identical 유지)** 의 3-tier 분리 정책.
+
+**본 정책은 §0 의 워커 분업 취소 결정과 직교** — 워커 분업 (누가 어떤 일을 하는가) 이 아니라 **deploy tier (어디로 push 되는가) 의 분리** 다. §1~§4 의 워커 분업 (Claude/Codex/Gemini) 은 본 §6 와 무관하게 여전히 **무효**. §5 Owner 권한은 여전히 유지.
+
+### 6.1 Tier 정의
+
+| Tier | 의미 | Push 대상 | 비고 |
+|---|---|---|---|
+| **사외 (External/Public)** | GitHub `main` 에 push. 사내 인프라 의존 없음. | GitHub (single source-of-truth) | 사외 코드는 사내 형상관리에서 read-only 로 받음 |
+| **사내 (Internal/Private)** | 사내 격리망. 내부 호스트/시크릿/사내 IdP 팀 SOP. | 사내 SCM (GitHub 에서 pull 만) | **GitHub `main` 으로 push 금지** |
+| **공용 (Shared/Must-be-identical)** | 양쪽 환경에서 byte-identical 유지 필수. | GitHub (synchronization) | **drift 발생 시 governance/agent prompt/추적성 ID 회귀** |
+
+### 6.2 Tier 분류 기준 (decision tree)
+
+```
+1. 해당 코드/문서가 사내 호스트/시크릿/사내 IdP 팀 SOP 를 직접 참조?
+   ├─ YES → 사내 (GitHub push 금지)
+   └─ NO ↓
+
+2. 해당 코드/문서가 사외 도메인 (외부 IdP / GitHub.com / public cloud) 만 참조?
+   ├─ YES → 사외
+   └─ NO (어느 환경에서나 동일) → 공용
+```
+
+판단 보조: `code-taxonomy.md` 의 3-layer 매핑:
+- **Domain** (비즈니스 핵심) → 기본 사외
+- **Shared** → 대부분 공용 (config/env boundary)
+- **Infrastructure** (외부 시스템 어댑터) → 기본 사내 (단, pure transformation 의 `normalize/` 는 사외)
+
+### 6.3 디렉터리별 Tier 매핑 (SoT — 1차 분류)
+
+#### 6.3.1 Backend (`backend-core/internal/`)
+
+| 경로 | Tier | 근거 |
+|---|---|---|
+| `domain/<name>/` (10개 도메인 전체) | **사외** | Pure business logic, 외부 시스템 무관 |
+| `shared/httphelp/`, `shared/integrationcaps/`, `shared/metrics/`, `shared/authkey/` | **사외** | Generic utility |
+| `shared/config/` | **공용** | Env injection boundary (사외+사내 env vars 동시 load) |
+| `crypt/` (envelope encryption) | **공용** (algorithm), 사내 (encrypt write path) | AES-GCM-256 algorithm 은 generic. DEVHUB_ENCRYPTION_KEY 는 사내. |
+| `normalize/` | **사외** | Pure JSON transformation, I/O 없음 |
+| `infrastructure/gitea/`, `infrastructure/ci/`, `infrastructure/commandworker/`, `infrastructure/hrdb/`, `infrastructure/serviceaction/` | **사내** | 사내 시스템 어댑터 |
+| `integrations/adapters/homelab*`, `integrations/adapters/task_item_puller*` | **사내** | 사내 infra polling |
+| `integrations/adapters/metrics` | **사외** | Standard Prometheus |
+| `httpapi/` (Go 코드) | **사외** | Router + view layer |
+| `httpapi/main.go` (wiring) | **공용** | Config injection 만 |
+| `store/` | **사외** | DB driver (DevHub's own DB) |
+| `migrations/` (schema) | **사외** | Generic DDL |
+
+#### 6.3.2 Frontend (`frontend/`)
+
+| 경로 | Tier | 근거 |
+|---|---|---|
+| `shared/ui-foundation/`, `shared/utils.ts`, `shared/api/wire.ts`, `shared/api/types.ts` | **사외** | Pure UI/type |
+| `shared/config/endpoints.ts` | **공용** | Env injection boundary |
+| `shared/api/api-client.ts` | **사내** | Keycloak token refresh 직접 호출 |
+| `lib/store.ts`, `lib/utils/` | **사외** | Client state |
+| `lib/auth/` (Keycloak 토큰 관리) | **사내** | Keycloak token endpoint 직접 호출 |
+| `domain/<name>/service/` (auth-session 제외) | **사외** | same-origin API 호출 only |
+| `domain/auth-session/service/` (auth.service, token-store, refresh, refresh-scheduler, session-death) | **사내** | Keycloak 직접 호출 |
+| `domain/auth-session/service/pkce.ts`, `domain/auth-session/service/role-routing.ts` | **사외/공용** | Pure crypto / pure logic |
+| `app/(dashboard)/`, `app/onboarding/`, `app/api/` (auth/callback, auth/error, login, runtime-config) | **사내** (auth/*) / **사외** (나머지) | |
+| `tests/unit/` | **사외** | Mock only |
+| `tests/e2e/` | **사내** | Real Keycloak 필요 |
+
+#### 6.3.3 Infra / Scripts / Docs
+
+| 경로 | Tier | 근거 |
+|---|---|---|
+| `infra/idp/keycloak-realm.dev.json` | **공용** | localhost wildcards, dev only |
+| `infra/idp/keycloak-realm.ci.json` | **공용** | CI test realm only |
+| `infra/idp/keycloak-realm.prod.json` | **사내** | Real corporate redirect URIs |
+| `infra/idp/keycloak-event-listener-spi/` | **사내** | Keycloak SPI plugin, 사내 JVM |
+| `infra/nginx/` (template) | **공용** | Generic reverse proxy template |
+| `docker-compose.yml` | **공용** | Generic dev compose (postgres only) |
+| `docker-compose.override.localports.yml` | **공용** | Port remapping only |
+| `docker-compose.{local,test,deploy,colima}.yml` | **사내** | Keycloak + 사내 network |
+| `scripts/setup-keycloak.sh`, `scripts/deploy-*.sh`, `scripts/nginx-conf-sync.sh`, `scripts/hrdb_etl_sync.sh`, `scripts/dogfood*.sh`, `scripts/verify-keycloak-groups.sh` | **사내** | 사내 IdP/infra 운영 |
+| `scripts/{check-*,ci-e2e-sync-check,setup-test-db,build-artifacts}.sh` | **공용** | Generic dev tooling |
+| `docs/governance/code-taxonomy.md`, `document-standards.md`, `worker_division.md`, `README.md` | **공용** | Governance mechanics — drift 시 agent/추적성 회귀 |
+| `docs/governance/keycloak_admin_responsibility.md` | **사내** | 사내 IdP 팀 책임 매트릭스 |
+| `docs/traceability/` 전체 | **공용** | ID format/PROCEDURE byte-identical 필수 |
+| `docs/adr/` (ADR-0002/0003/0004/0005/0006/0007/0009/0010/0011/0013/0024/0025/0027/0028/0029 — 15개) | **사외** | General architecture/auth/API decisions |
+| `docs/adr/` (ADR-0001/0008/0012/0014/0015/0016/0017/0018/0019/0020/0021/0022/0023/0026 — 14개) | **사내** | 사내 IdP, HRDB, HomeLab, deploy topology |
+| `docs/setup/`, `docs/infrastructure/`, `docs/dogfood/`, `docs/reports/`, `docs/analysis/` 전체 | **사내** | 사내 운영/배포/SOP |
+| `docs/planning/release_v1_roadmap.md` (메타/우선순위), `README.md` | **공용** | Roadmap priority system |
+| `docs/planning/release_v1_roadmap.md` (sprint 진행/사내 staging), `sprint-plan-*`, `integrated_test_*`, `*_plan_2026*.md` | **사내** | Sprint-specific + 사내 staging |
+| `docs/planning/system_usecases.md`, `system_erd.md`, `role-access-concept.md`, `view_menu_screen_api_matrix.md`, `ws_subprotocol_vs_ticket_poc.md` | **사외** | General design |
+| `docs/domain/`, `docs/api/`, `docs/shared/`, `docs/tests/`, `docs/wiki/` 전체 | **사외** | General 도메인/API/UI 문서 |
+| `ai-workflow/memory/PROJECT_PROFILE.md`, `repository_assessment.md` | **사외** | Project spec, generic onboarding |
+| `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `branch 메모리/`, `environments/`, 그 외 보고서 | **사내** | Sprint-specific + 사내 env vars |
+| `ai-workflow/` root, `ai-workflow/README.md`, `MEMORY_GOVERNANCE.md`, `minimax_code_workflow.md` | **공용** | Workflow mechanics |
+| `AGENTS.md`, `GEMINI.md` | **공용** | Agent entry point — drift 시 모든 에이전트 영향 |
+| `.github/pull_request_template.md` | **공용** | PR body format — Tier 필드 추가 필요 (§6.5) |
+
+#### 6.3.4 CI / Workflows
+
+| Job | Tier | 근거 |
+|---|---|---|
+| `ci.yml` — `changed-paths`, `workflow-lint`, `migration-prefix-lint`, `openapi-yaml-lint` | **사외** | Lint only, no I/O |
+| `ci.yml` — `backend-unit` | **사외** | `go test ./...` only |
+| `ci.yml` — `backend-integration` | **사외** | Native PostgreSQL (OSS) |
+| `ci.yml` — `frontend-unit` | **사외** | Vitest only |
+| `ci.yml` — `e2e-build` | **사외** | Build only |
+| `ci.yml` — `e2e` (shard 1/2/3) | **사내** | Keycloak container + hardcoded secrets + 사내 localhost |
+| `docker-image-publish.yml` | **사외** | GITHUB_TOKEN automatic |
+
+### 6.4 운영 절차 (충돌 방지)
+
+**PR 작성 시** (`.github/pull_request_template.md` 의 Tier 필드):
+1. PR 작성자가 **본 PR 이 어느 tier 에 push 되는지** 명시
+2. **사외 (GitHub main)** PR: code/tier 변경 모두 사외/공용만 포함. 사내 한정 코드/문서/시크릿/내부 호스트명 누락 여부 self-review
+3. **사내 (사내 SCM)** PR: 사내 한정 코드/문서/시크릿. GitHub `main` 으로 push 금지 (별도 사내 저장소/branch 운영)
+4. **공용** 변경: 양쪽 모두 동일. drift 시 governance/agent/추적성 ID 회귀 → **반드시 양쪽 동기화**
+
+**사내 한정 정보 누출 방지 (PR review 시)**:
+- 사외 PR review 시 codex/P2 가 다음을 자동 검사:
+  - `DEVHUB_KEYCLOAK_*` / `GITEA_URL` / `HR_EXPORT_CMD` / `internal-registry.example.com` / `kc.internal.example.com` / `devhub.example.com` / `172.16.0.0/12` 등 사내 한정 패턴 매칭
+  - `infrastructure/`, `infra/idp/`, `scripts/setup-keycloak.sh`, `docker-compose.{local,test,deploy,colima}.yml` 경로 변경 시 자동 flag
+- 사내 PR review 시: 사내 code-owner 의 명시적 review 필수
+
+### 6.5 PR Template 변경
+
+`.github/pull_request_template.md` 에 Tier 필드 추가 (다음 PR 에서 적용):
+```
+## Tier
+
+본 PR 의 push 대상. 체크:
+- [ ] 사외 (GitHub main)
+- [ ] 사내 (사내 SCM)
+- [ ] 공용 (양쪽)
+
+## 사내 한정 정보 self-check
+
+사외 PR 인 경우, 다음 패턴이 변경에 포함되지 않았는지 확인:
+- [ ] DEVHUB_KEYCLOAK_*, GITEA_URL, HR_EXPORT_CMD 등 사내 env var
+- [ ] internal-registry.example.com, kc.internal.example.com, devhub.example.com, sahub.example.com 등 사내 호스트
+- [ ] 172.16.0.0/12, 10.x, 192.168.x 사내 IP 대역
+- [ ] infrastructure/, infra/idp/, scripts/setup-keycloak.sh, docker-compose.{local,test,deploy,colima}.yml 등 사내 경로
+```
+
+### 6.6 §0 / §1~§5 와의 관계
+
+| § | 내용 | §6 (2-tier) 와의 관계 |
+|---|---|---|
+| §0 | 워커 분업 전면 취소 (2026-06-09) | **무관**. §6 은 deploy tier 분리. 워커 분업과 독립. |
+| §1~§4 | (Historical) 워커별 영역 | **무관**. 사외/사내 tier 와는 별개 차원. |
+| §4.2 | ADR supersession 정공법 | **계속 유효 + §6 에서 재강조**. 사내/사외 양쪽에서 byte-identical governance |
+| §5 | Owner 권한 | **유지 + §6 에서 보강**. Owner 가 §6 의 tier 분류 최종 결정 |
+
+### 6.7 명명 재검토 (2026-06-10)
+
+사용자 결정: "사내 개발 = 외부 시스템 연동 위주 → 명명도 integration 중심으로". `infrastructure/` 디렉터리 명명 재검토 후보:
+- `infrastructure/` → `internal-integrations/` (사내 시스템 연동 명시)
+- `integrations/adapters/` (현재) → 그대로 유지 (어댑터 패턴 PoC 후보)
+- **어댑터 패턴**: domain layer 는 interface 만 의존, 구현은 `internal-integrations/<system>/` 어댑터로 분리. 사외 build 시 stub adapter, 사내 build 시 real adapter. build tag (`//go:build saovae` / `//go:build sarae`) 또는 env var 기반 동적 주입.
+
+**현재 상태**: 명명 재검토는 결정되었으나 실제 코드 마이그레이션은 별도 sprint (P2 follow-up). 본 §6.7 은 결정 기록 + 후속 작업 안내.
+
+## 7. 변경 이력
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
+| 2026-06-10 | **§6 신규** — 사외/사내/공용 2-tier 분업 정책 (deploy tier 분리). §0 의 워커 분업 취소와 직교. §4.2 ADR supersession 정공법 + §5 Owner 권한 유지. PR template Tier 필드 추가 권고. 명명 재검토 (`infrastructure/` → `internal-integrations/`) 결정. | `fix/work_260610-tier-governance-setup` |
 | 2026-06-09 | **§0 신규 + §1~§4 전면 改 編 (historical 標記) + §2.5 branch prefix 자유화 + §5 Owner 권한 명시 (워커 분업 전면 취소)** — 사용자 결정 (Claude/Codex 자유 이용 불가) 으로 §1.1~1.4 의 영역별 분담 / §2 sprint 별 분담 / §3 인계 SOP 4 패턴 / §4.1·4.3 충돌 처리 SOP 모두 무효. §4.2 ADR reversal 의 supersession 정공법 + §5 Owner 의 결정 권한은 유지. branch `<worker>` prefix 강제 해제, 권장 패턴만 유지 | `maintenance/work_260609-a-cancel-worker-division` |
 | 2026-05-20 | 1차 작성 — Claude (backend+design) / Codex (infra+CI+security) / Gemini (frontend+UX) 분담 + 인계 SOP 4 패턴 + 충돌 처리 SOP + 사용자 역할 명시 | `claude/work_260520-f-roadmap` |
 | 2026-05-20 | codex review hotfix (P2) — §4.2 ADR reversal 의 dead link 정정 + 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019/ADR-0001 supersession 인용 | `claude/work_260520-g-codex-hotfix` |
