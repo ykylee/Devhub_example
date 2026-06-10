@@ -6,6 +6,7 @@
 - **수정일**: 2026-05-19
 - **결정 근거 sprint**: `claude/work_260519-a`
 - **supersedes**: [ADR-0001 (Ory Hydra + Kratos 선정, 2026-05-07)](./0001-idp-selection.md)
+- **Tier**: 사내
 - **관련 문서**: [docs/infrastructure/keycloak-idp/refactor_execution_plan.md](../infrastructure/keycloak-idp/refactor_execution_plan.md) (실행 계획), [docs/infrastructure/keycloak-idp/sso_federation.md](../infrastructure/keycloak-idp/sso_federation.md) (rejected 옵션 B design), [ADR-0018 단일 포트 reverse proxy](./0018-single-port-reverse-proxy-policy.md)
 
 ## 2. 컨텍스트

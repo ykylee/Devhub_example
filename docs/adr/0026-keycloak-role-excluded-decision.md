@@ -3,6 +3,7 @@
 - **상태**: accepted (2026-06-02)
 - **영향 도메인**: `rbac-permissions`, `auth-session`, `audit-ops`, `infra-idp`
 - **결정 근거 브랜치**: `deepseek/work_260602`
+- **Tier**: 사내
 - **관련 ADR**: [ADR-0019 (Keycloak-only IdP)](0019-keycloak-only-idp.md), [ADR-0020 (Account/User Management Boundary)](0020-account-user-management-boundary.md), [ADR-0021 (Onboarding Self-Service)](0021-onboarding-self-service-unit-selection.md)
 - **관련 문서**: [RBAC 요구사항](../domain/rbac-permissions/requirements.md), [Keycloak Groups Mapping](../domain/rbac-permissions/keycloak_groups_mapping.md), [통합 테스트 리포트](../planning/integrated_test_report_20260601.md)
 - **대체 방안**: Keycloak Admin REST API polling + group composite role → `users.role` 동기화 (PR #460 BUG-02, P1-1 carve)

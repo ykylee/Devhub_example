@@ -7,6 +7,7 @@
 - 작성일: 2026-05-18
 - 결정일: 2026-05-16 (실 결정), 2026-05-18 사후 명문화 (sprint `claude/work_260518-c`)
 - 결정 근거 sprint: `codex/next-step-20260516` (PR #139, sha `e2a76fb`) — External Integration backend 1차 활성화.
+- **Tier**: 사내
 - 관련 문서: [`docs/domain/integration-registry/homelab_pull_strategy.md`](../domain/integration-registry/homelab_pull_strategy.md) (1차 결정 초안 — 본 ADR 이 source-of-truth 로 승격), [`docs/domain/integration-registry/external_system_concept.md`](../domain/integration-registry/external_system_concept.md), [ADR-0016 Prometheus alerts policy](./0016-prometheus-alerts-policy.md), [추적성 매트릭스 §3 External Integration 행 + §4 ADR](../traceability/report.md).
 
 ## 1. 컨텍스트
