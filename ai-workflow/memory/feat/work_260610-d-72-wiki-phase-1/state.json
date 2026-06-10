@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-10T14:30:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/feat/work_260610-d-72-wiki-phase-1/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/feat/work_260610-d-72-wiki-phase-1/work_backlog.md"
+  },
+  "project": {
+    "project_name": "DevHub Example"
+  },
+  "session": {
+    "current_focus": "D-72 Phase 1 — ~/wiki/ LLM Wiki 통합 의 in-repo source-of-truth (docs/llm-wiki/ 5 file) + sync script (scripts/wiki-sync-devhub.sh). D-72 응답 §2 Q1~Q6 권장안 본 저장소 측 적용. 코드 0줄 변경 (스크립트 6.4KB + docs 5 file 신규).",
+    "sprint_branch": "feat/work_260610-d-72-wiki-phase-1",
+    "in_progress_items": [
+      "T-d-72-3 (사용자 confirm 후 commit + push + gh pr create --body-file pr_body.md + gh pr merge --squash --delete-branch)"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "T-d-72-2 (lint 4종 all PASS + script dry-run smoke test PASS + vault 부재 smoke test PASS)",
+      "T-d-72-1 (scripts/wiki-sync-devhub.sh 작성 — BSD-rsync safe, --dry-run + vault 부재 no-op + 82 file source list 출력 정상)"
+    ],
+    "deliverables": [
+      "docs/llm-wiki/{README.md, scope-and-rationale.md, mirror-list.md, lint-config.toml, operation-sop.md} (5 file 신규)",
+      "scripts/wiki-sync-devhub.sh (NEW, 6.4KB, executable)",
+      "ai-workflow/memory/feat/work_260610-d-72-wiki-phase-1/{state.json, session_handoff.md, work_backlog.md, backlog/2026-06-10.md, pr_body.md} (5 file sprint memory)"
+    ]
+  },
+  "next_documents": [
+    "AGENTS.md (참조만)",
+    "scratch/devhub_wiki_integration_response/RESPONSE.md (D-72 권장안, 15KB)",
+    "my_harness 의 D-71 디자인 + wiki-sync-ai-workflow.sh (BSD-rsync safe pattern source)",
+    "my_harness 의 wiki-lint SKILL.md (L01~L10 의 lint target)"
+  ]
+}

@@ -1,0 +1,98 @@
+# wiki-lint per-project config — DevHub project (D-72)
+#
+# 본 config 는 my_harness 의 wiki-lint skill 에 `--project-config` 옵션 추가 후 (D-73,
+# my_harness 측 작업) 자동으로 활성화. 현시점 (Phase 1) 에는 source-of-truth 만 제공.
+#
+# 형식: TOML (Q4 의 D-72 권장안 §4). wiki-lint skill 의 L01~L10 의 rule ID 별 override.
+# 단 L11 (사내 패턴 검출) + L12 (이하 사용자 정의) 는 D-72 응답 §3 + yklee 결정으로 미사용.
+
+[project]
+# Project key. ~/wiki/wiki/projects/<project>/ 의 sub-directory 와 1:1 대응.
+name = "devhub"
+
+# DevHub 의 SSOT 위치. wiki 의 mirror source 의 source-of-truth.
+# 본 config 의 source-of-truth = 본 저장소 의 docs/llm-wiki/ + scripts/.
+ssot_path = "~/repos/Devhub_example_omp"
+
+# mirror source 위치 (Phase 1 + Phase 3 의 raw/ mirror 경로).
+# wiki-lint 의 sources: 경로 검증 시 사용.
+mirror_path = "~/wiki/raw/projects/devhub"
+
+# lint 의 L08 (index.md 미등록) 의 index 위치. wiki-lint 의 index.md 경로 검증.
+index_path = "~/wiki/index.md"
+
+# Tier (D-72 응답 §3 + yklee 결정): wiki 는 Gitea private 만. lint L11 (사내 패턴 검출) 불요.
+tier = "sa-private-wiki"  # sa-private-wiki | sa-public | internal
+
+# L11/L12 (D-72 응답 §3 의 lint L11 + 사용자 정의 L12 등) — 본 config 에서 미정의
+# = lint 의 L11/L12 비활성화 (default).
+
+# ------------------------------------------------------------------------------------
+# Rule override — DevHub 의 의도적 supersede (ADR-*.md) 의 L07 면제
+# ------------------------------------------------------------------------------------
+# L07 (모순) — same title 의 두 페이지 감지. DevHub 의 ADR supersede 가 의도적 (예: ADR-0030
+# → ADR-0031) 이므로 L07 의 false positive 회피.
+#
+# 면제 조건: wiki/pages/<path> 의 frontmatter 에 `type: source` + `supersedes: [[ADR-XXXX]]`
+# 가 있으면 L07 skip. 또는 path 가 `wiki/projects/devhub/sources/ADR-*.md` 패턴이면 L07 skip.
+
+[rules.L07]
+# DevHub 의 ADR-*.md 의 의도적 supersede (ADR-0030 → ADR-0031 등) 가 L07 false positive
+# 회피. my_harness 의 모든 page 는 L07 그대로 적용 (의도적 supersede 같은 개념 없음).
+skip_paths = ["wiki/projects/devhub/sources/ADR-*.md"]
+
+# 면제 조건: frontmatter `supersedes:` 가 있으면 L07 skip (DevHub 의 의도적 supersede).
+skip_if_frontmatter = ["supersedes"]
+
+# ------------------------------------------------------------------------------------
+# Rule override — L10 (raw source 0) 의 DevHub 적용 정책
+# ------------------------------------------------------------------------------------
+# L10 (raw/ source 0) — wiki page 에 raw/ source 가 1건도 없는 경우.
+# DevHub 의 ADR-*.md 는 raw/ source 가 `~/wiki/raw/projects/devhub/docs/adr/ADR-XXXX.md`
+# 의 1:1 mirror 이므로 L10 자동 충족. 면제 불요.
+
+[rules.L10]
+# DevHub 의 ADR page 의 raw/ source = `~/wiki/raw/projects/devhub/docs/adr/<id>-<title>.md`
+# 자동 검증. 면제 불요 (모든 ADR page 가 raw/ source 1:1).
+devhub_adr_source_pattern = "~/wiki/raw/projects/devhub/docs/adr/*.md"
+
+# ------------------------------------------------------------------------------------
+# DevHub 의 의도적 supersede 명시 (참고)
+# ------------------------------------------------------------------------------------
+# DevHub 의 supersede chain (현시점 2026-06-10):
+# - ADR-0030 (sso-integrations-and-auth-session-port, accepted 2026-06-10)
+#   → ADR-0031 (build-tag-policy-review, accepted 2026-06-10, confirmed ADR-0030 §2.3)
+#   → (Phase 3 forward, 별도)
+#
+# 위 chain 의 supersede 가 의도적 (ADR-0031 = ADR-0030 의 re-evaluation, supersede X).
+# lint-config 의 L07 skip_if_frontmatter = "supersedes" 가 frontmatter 검증.
+#
+# wiki page 작성 시 (Phase 3):
+# ---
+# title: "ADR-0031 build tag 정책 재검토"
+# type: source
+# sources: [[~/wiki/raw/projects/devhub/docs/adr/0031-build-tag-policy-review.md]]
+# supersedes: [[ADR-0030 sso-integrations-and-auth-session-port]]
+# last_touched: 2026-06-10
+# related: [[ADR-0030]]
+# status: reviewed
+# ---
+
+# ------------------------------------------------------------------------------------
+# 메타데이터
+# ------------------------------------------------------------------------------------
+
+[meta]
+config_version = "1"
+created = "2026-06-10"
+created_by = "yklee"
+rationale = "D-72 Phase 1. my_harness 의 wiki-lint skill 의 --project-config 옵션 추가 후 자동 활성. lint L11 (사내 패턴 검출) 미사용 (yklee 결정: wiki 는 Gitea private 만)."
+source_of_truth = "~/repos/Devhub_example_omp/docs/llm-wiki/lint-config.toml"
+related_docs = [
+  "~/repos/Devhub_example_omp/docs/llm-wiki/README.md",
+  "~/repos/Devhub_example_omp/docs/llm-wiki/scope-and-rationale.md",
+  "~/repos/Devhub_example_omp/docs/llm-wiki/mirror-list.md",
+  "~/repos/Devhub_example_omp/docs/llm-wiki/operation-sop.md",
+  "~/repos/Devhub_example_omp/scripts/wiki-sync-devhub.sh",
+  "https://github.com/ykylee/my_harness/blob/main/docs/architecture/DETAILED_DESIGN_LLM_WIKI.md"
+]
