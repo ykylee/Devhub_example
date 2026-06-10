@@ -301,6 +301,12 @@ func TestEnforceRoutePermission_APIKeyCallerReadOnlyAllowed(t *testing.T) {
 	}
 }
 
+// PR #528 follow-up 회귀 가드 — DB multi-key path 회귀 검증은
+// rbac-permissions/view/handler_test.go::TestEnforceRoutePermission_APIKeyDBMultiKey_BlocksMutation
+// 에서 unit test 로 enforce (c.Set 으로 직접 inject). 통합 NewRouter flow
+// 검증은 APIKeyStore 셋업 + AuthenticatedActor.Source wiring 이 필요하여 본
+// file 의 권한 통합 회귀 가드와 별도 layer.
+
 // --- ADR-0011 §4.2 enforceRowOwnership ---
 //
 // helper 의 세 allow 규칙(system_admin / allowedRoles / owner-self) 과 deny

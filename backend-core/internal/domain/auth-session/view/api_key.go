@@ -207,13 +207,6 @@ func (h *AuthHandler) CreateAPIKey(c *gin.Context) {
 		})
 		return
 	}
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"status": "internal_error",
-			"error":  "failed to persist api key: " + err.Error(),
-		})
-		return
-	}
 
 	// audit emit — sprint plan §3.8 audit.api_key.created. ADR-0029 §6 (g) 정합.
 	h.recordAuditBestEffort(c, "auth.api_key.created", "api_key", persisted.ID, map[string]any{
