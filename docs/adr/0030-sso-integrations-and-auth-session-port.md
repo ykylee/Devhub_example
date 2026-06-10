@@ -65,8 +65,7 @@ v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 imp
 
 | # | 옵션 | 장점 | 단점 | 결정 |
 | --- | --- | --- | --- | --- |
-| 1 | **Build tag** (`//go:build saovae \|\| dev`) | binary 2개, 명확한 분리 | CI / build matrix 복잡 | ❌ |
-| 2 | **Runtime injection** (main.go 에서 `DEVHUB_BUILD_TIER` env var 로 분기) | 단일 binary, CI 단순, saovae default | stub 이 binary 에 항상 포함 (binary size) | ⭐ **채택** (PR #535 design doc §3.4 권고) |
+| 2 | **Runtime injection** (main.go 에서 `DEVHUB_BUILD_TIER` env var 로 분기) | 단일 binary, CI 단순, saovae default | stub 이 binary 에 항상 포함 (binary size) | ⭐ **채택** (PR #535 design doc §3.4 권고) — **2026-06-10 confirmed (ADR-0031 §4 재평가)**: sprint -a follow-up PR #540 (real adapter) + PR #542 (e2e-internal job) 머지 후 정량 측정 결과, binary overhead < 5KB (전체 backend-core < 50MB 대비 0.01%) vs build tag 전환 시 CI matrix 2배 + +5~10 file 변경. runtime injection 유지 결정 confirmed. |
 
 ## 3. 결정
 
@@ -159,3 +158,4 @@ v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 imp
 | --- | --- | --- |
 | 2026-06-10 | 1차 작성 — auth-session 도메인의 port interface 도입 + sso-integrations/ 분리 결정. view/ 의 interface 는 deprecated alias 로 backward compat. sprint -a follow-up 에서 실제 구현 이전. 사용자 2026-06-10 결정 (외부 시스템 연동 = agentic RAG 와 함께 발전) + PR #537 §0.4 (Keycloak 분류 재정의) 의 code-level 적용. | `feat/work_260610-v1-1-sprint-a-sso-integrations` |
 | 2026-06-10 | §5 결정 timeline 갱신 — 1.1a (sprint -a, port interface) status = **accepted/done** (PR #538 머지) + 1.1b (sprint -a follow-up, real adapter + saovae_stub + main wiring + infra/idp archive) status = **accepted/done** (PR #539 + PR #540 머지). C-h (ADR timeline + traceability 정합 PR) row 신규 — `docs/work_260610-traceability-impl-sso-keycloak` PR 의 후속 정합. | `docs/work_260610-traceability-impl-sso-keycloak` |
+| 2026-06-10 | §2.3 결정 (옵션 2 runtime injection) row 에 [ADR-0031 §4 재평가](./0031-build-tag-policy-review.md) confirmed reference 추가. sprint -a follow-up PR #540 (real adapter) + PR #542 (e2e-internal job) 머지 후 정량 측정 결과 본 결정 유지. supersession X. | `docs/work_260610-c-j-build-tag-review` |
