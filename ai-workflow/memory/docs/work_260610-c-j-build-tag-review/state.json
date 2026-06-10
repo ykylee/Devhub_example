@@ -1,0 +1,36 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-10T13:50:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/docs/work_260610-c-j-build-tag-review/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/docs/work_260610-c-j-build-tag-review/work_backlog.md"
+  },
+  "project": {
+    "project_name": "DevHub Example"
+  },
+  "session": {
+    "current_focus": "sprint -a follow-up PR1 PR #540 의 carry-over C-j (build tag 정책 재검토, P3) — ADR-0031 신규 + ADR-0030 §2.3 confirmed. 정량 측정 결과 runtime injection (옵션 2) 유지. 코드 0줄 변경.",
+    "sprint_branch": "docs/work_260610-c-j-build-tag-review",
+    "in_progress_items": [
+      "T-c-j-build-tag-review-3 (사용자 confirm 후 commit + push + gh pr create + gh pr merge)"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "T-c-j-build-tag-review-2 (docs/traceability/report.md §4 ADR-0031 row + §6 변경 이력 row + ADR-0030 §2.3 row + §9 row + sprint memory 5종)",
+      "T-c-j-build-tag-review-1 (docs/adr/0031-build-tag-policy-review.md 신규 12KB, 9 section)"
+    ],
+    "deliverables": [
+      "docs/adr/0031-build-tag-policy-review.md (NEW, 9 section)",
+      "docs/adr/0030-... (§2.3 row confirmed reference + §9 row)",
+      "docs/traceability/report.md (§4 ADR-0031 row + §6 row)",
+      "ai-workflow/memory/docs/work_260610-c-j-build-tag-review/{state.json,session_handoff.md,work_backlog.md,backlog/2026-06-10.md,pr_body.md} (sprint memory 5종)"
+    ]
+  },
+  "next_documents": [
+    "AGENTS.md (참조만)",
+    "docs/adr/0030-sso-integrations-and-auth-session-port.md (참조만, §2.3 row confirmed reference)",
+    "docs/planning/release_v1_roadmap.md §3.5 N-13 (참조만, 후속 housekeeping)",
+    "ai-workflow/memory/feat/work_260610-v1-1-sprint-a-real-adapter/work_backlog.md (carry-over C-j source)"
+  ]
+}
