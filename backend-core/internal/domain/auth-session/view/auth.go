@@ -56,6 +56,12 @@ func isGenericKeycloakRole(role string) bool {
 	return strings.HasPrefix(role, "default-roles-")
 }
 
+// BearerTokenVerifier — DEPRECATED (v1.1 sprint -a, ADR-0030). canonical port 는
+// `domain/auth-session/integration` 의 동일 interface. 본 type 은 value alias
+// 로 유지되어 기존 호출 site (view/handler.go 등) 가 무수정 컴파일. 신규
+// 호출은 `integration.BearerTokenVerifier` 사용. saovae_stub 또는 real adapter
+// 모두 본 interface 를 충족하므로 runtime port 가 본 type 으로 wiring 되어도
+// 무방.
 type BearerTokenVerifier interface {
 	VerifyBearerToken(context.Context, string) (AuthenticatedActor, error)
 }
@@ -191,14 +197,14 @@ func (h *AuthHandler) AuthenticateActor(c *gin.Context) {
 				// 의 4 audit 정합. DB branch: api_key_id + key_prefix + allowed_cidrs 분기
 				// payload 에 명시 — multi-key 운영 시 key 단위 가시성.
 				h.recordAuditBestEffort(c, "auth.api_key_authenticated", "auth", "api-key:"+key.KeyPrefix, map[string]any{
-					"actor_role":    "system_admin",
-					"path":          c.FullPath(),
-					"method":        c.Request.Method,
-					"client_ip":     clientIP,
-					"request_id":    httphelp.RequestIDFrom(c),
-					"api_key_id":    key.ID,
-					"key_prefix":    key.KeyPrefix,
-					"auth_branch":   "db_multi_key",
+					"actor_role":  "system_admin",
+					"path":        c.FullPath(),
+					"method":      c.Request.Method,
+					"client_ip":   clientIP,
+					"request_id":  httphelp.RequestIDFrom(c),
+					"api_key_id":  key.ID,
+					"key_prefix":  key.KeyPrefix,
+					"auth_branch": "db_multi_key",
 				})
 				// SOP §6.1 metric 정합 — auth success counter. label value `db` 로
 				// env static branch 와 분리.
