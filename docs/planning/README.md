@@ -103,6 +103,7 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 | [`view_menu_screen_api_matrix.md`](./view_menu_screen_api_matrix.md) | ux+api matrix | 역할별(Developer/Manager/System Admin) 메뉴/화면 구성과 API 목록 매트릭스. M4/v2 범위 분리 포함. |
 | [`single_port_reverse_proxy.md`](./single_port_reverse_proxy.md) | design 검토 (draft 1차) | 외부 단일 포트로 frontend 가 `/devhub` 대표 path 로 모든 트래픽을 받고 backend/Hydra/Kratos 를 `/devhub/{backend}` sub-path 로 reverse proxy. nginx 권장 + 경로 매핑 + OIDC URL 정합 + cookie scope + Mermaid 토폴로지 + cutover 절차 + carve out. 결정 후 ADR-0018 후보 승격. sprint `claude/work_260518-u`. |
 | [`keycloak_sso_federation.md`](./keycloak_sso_federation.md) | design 검토 (draft 1차) | 외부 Keycloak 을 Kratos 의 upstream OIDC provider 로 federation. 옵션 3종 비교 (전체 대체 / **Kratos federation** / Hydra brokering) + Kratos config + claim mapping + HRDB user mapping 4 옵션 (**employee_id strict link** 권장) + cutover 절차 + 단일 포트 design 정합 + 보안 점검 + carve out. RM-M4-09 의 구체화. 결정 후 ADR-0019 후보 승격. sprint `claude/work_260518-v`. |
+| [`external-integrations-agentic-rag-roadmap.md`](./external-integrations-agentic-rag-roadmap.md) | planned (draft, 2026-06-10) | 외부 시스템 연동 (`infrastructure/` + `integrations/adapters/`) 의 **`agentic-integrations/` 통합** + **adapter pattern** + **agentic RAG + agentic plan + tool invocation** long-term 진화. Phase 1 (v1.1) = 디렉터리 통합 + port interface, Phase 2 (v1.2) = RAG retrieve + agentic planner + tool invoker. 사용자 2026-06-10 결정. PR #531 §6.7 명명 재검토 결정의 구체화. |
 
 ## 6. 변경 이력
 
