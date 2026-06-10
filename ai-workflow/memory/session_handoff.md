@@ -352,4 +352,38 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **v2.0** (P3, forward): LLM 호출 + BM25+vector+MCP. my_harness 의 v2.0 경험 보고 진입.
 - **N-13 release_v1_roadmap §3.5 정합** (P3, housekeeping): N-13 row status = done 마킹.
 - 또는 다른 sprint (backend-integration matrix / N-10 RBAC E2E 6 TC).
+
+## 10. wiki 통합 일임 결정 (2026-06-10, yklee directive)
+
+### 결정
+
+**yklee 2026-06-10 directive**: wiki 통합 작업은 my_harness 측 에이전트에 일임. 본 저장소 (DevHub) 의 sprint 는 **my_harness 의 결과 통보 대기**. **동시 진행 시 꼬일 가능성 회피** (mirror 실행 / lint config 활성화 / mass ingest / wiki page 작성 / cross-project 종합 등이 양 project 에서 동시 진행 시 race condition + 정책 drift 위험).
+
+### 본 저장소 측 follow-up
+
+- **본 PR #544 머지로 Phase 1 의 in-repo source-of-truth 정합 완료** (docs/llm-wiki/ 5 file + scripts/wiki-sync-devhub.sh). 변경 불요.
+- **본 저장소 측 mirror 실행 (T-d-72-5) 도 대기**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `~/wiki/raw/projects/devhub/` 에 ~82 file mirror + `_manifest.md` 자동 생성. **사용자 (yklee) 의 별도 confirm 후 진행**. my_harness 의 작업 결과 통보 후 일괄 mirror 가 정합.
+- **본 저장소 측의 follow-up task (carry-over, my_harness 통보 대기)**:
+  - my_harness 의 D-73 (wiki-lint `--project` + `--project-config` 옵션 추가) — 본 저장소 의 lint-config.toml 자동 활성
+  - my_harness 의 D-74 (`_lint/devhub/` 셋업) — 본 저장소 의 per-project lint report 정합
+  - my_harness 의 Phase 3 (mass ingest, ~100 file mirror + 30~50 wiki page) — 본 저장소 의 domain + architecture + infrastructure + validation 영역
+  - my_harness 의 wiki/cross/ (cross-project 종합) — my_harness 의 LLM Wiki 패턴 ↔ DevHub 의 ADR-0030 runtime injection
+  - my_harness 의 v2.0 (full compile, LLM 호출 + BM25+vector+MCP) — my_harness 의 v2.0 경험 보고 진입
+- **본 저장소 측 follow-up task (독립 진행 가능, yklee 별도 confirm 시)**:
+  - **N-13 release_v1_roadmap.md §3.5 정합** (P3, housekeeping): D-72 + D-73 + D-74 + D-75 의 carry-over N-13 row status = done 마킹. **본 저장소 측에서 독립 진행 가능** (my_harness 결과 통보와 무관).
+  - **backend-integration DEVHUB_BUILD_TIER matrix** (P3): sprint -a follow-up 본 PR #539 의 backend-integration 재활성화 + DEVHUB_BUILD_TIER=internal matrix. **본 저장소 측에서 독립 진행 가능**.
+  - **N-10 RBAC E2E 6 TC 보강** (P1, sprint `maintenance/work_260610-c-N10-rbac-e2e-tcs`): v1.0 출시 직전 잔여. **본 저장소 측에서 독립 진행 가능**.
+
+### Memory 갱신
+
+- 본 §10 append. 다음 세션 진입 시 본 §10 의 결정 참조.
+
+### 다음 세션 directive
+
+- **다른 sprint 진입 (본 저장소 측의 독립 진행 가능 task)**:
+  - N-13 release_v1_roadmap.md §3.5 정합 (housekeeping)
+  - backend-integration DEVHUB_BUILD_TIER matrix (P3)
+  - N-10 RBAC E2E 6 TC 보강 (P1)
+- **또는 사용자 confirm 후 본 저장소 측의 mirror 실행 (T-d-72-5)** — my_harness 결과 통보와 무관하게 단독 진행 가능 (mirror list 가 본 저장소 의 SSOT 이므로).
+- **또는 my_harness 의 결과 통보 대기** (D-73, D-74, Phase 3 등).
 - 또는 N-10 RBAC E2E 6 TC 보강 / release_v1_roadmap.md 갱신.
