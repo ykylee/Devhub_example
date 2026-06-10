@@ -2,9 +2,9 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-12 main. PR #514 + #515 + #516 + #517 머지 완료. PR #517 — swagger UI openapi.yaml embed fallback (PR #508 silent 404 supersede, 7 swagger TC PASS). main HEAD `97bc6bc`. v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정 영역).",
-  "updated_at": "2026-06-12T07:50:00Z",
-  "head_commit": "97bc6bc",
+  "status": "2026-06-12 main. PR #514 + #515 + #516 + #517 + #527 + #528 + #529 머지 완료. PR #528 — ADR-0029 §6 (f) P3 multi-key 관리 (Phase 1 backend). PR #529 — PR #528 follow-up (DB multi-key path admin gate 확장 + dead code 5 lines 삭제, 4 unit test + 1 regression guard). main HEAD `dc381fb3`. v1.0 출시 직전 잔여 = N-6 staging 1주 운영 (사용자 결정 영역).",
+  "updated_at": "2026-06-12T10:30:00Z",
+  "head_commit": "dc381fb3",
   "head_summary": "fix(httpapi): swagger UI openapi.yaml embed fallback (staging/test env, supersede PR #508 silent 404) (#517)",
   "milestones": {
     "M0": {
@@ -146,6 +146,9 @@
       "fixture 의 transactional cleanup 도입 (PR #109 I2 성능)",
       "API-41..58 의 e2e TC (Playwright) 작성"
     ],
-    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행."
+    "ops_verification": "사용자 환경에서 docs/setup/test-server-deployment.md 의 §6-§7 e2e 절차 1회 수행 권장. E2E baseline 자동화는 PR #58 이후 `cd frontend && npm run e2e` 한 줄. PR #76 hardening 으로 stale rotation 도 다음 실행에서 자동 복구. 본 세션에서 backend integration test 가 CI 에서 검증되므로 추가 ops 확인 권장사항: 사용자 환경 (`DEVHUB_TEST_DB_URL`) 에서 `scripts/setup-test-db.sh && cd backend-core && go test -v -run TestIntegration_ ./internal/store/...` 1회 실행.",
+    "pre_release_hygiene": [
+      "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트). PR #507 housekeeping 시 next_actions_closed.json 으로 잘못 archive 됨 — 본 항목은 **미해소** (v1.0 staging 검증 시 실제 seed 제거 필요). codex P2 (id 3369xxxx) 권고 후 active 복귀."
+    ]
   }
 }

@@ -28,7 +28,6 @@
   "m2_followups": [],
   "pr_d_followups": [],
   "tdd_followups": [
-    "PR-T5 (CI 도입, DEC-4) — PARTIAL-DONE: PR #86 (2026-05-13 머지) 으로 backend-unit + frontend-unit + e2e (Playwright 40 TC) 3잡 GHA 도입 완료. 본 sprint claude/work_260513-a 가 FU-CI-2/3/4 처리. 잔여 follow-up: FU-CI-1 (no-docker policy 정합).",
-    "hygiene-test-admin — PoC `test/test` 시드 제거 (운영 진입 직전, test-server-deployment §10 체크리스트)."
+    "PR-T5 (CI 도입, DEC-4) — PARTIAL-DONE: PR #86 (2026-05-13 머지) 으로 backend-unit + frontend-unit + e2e (Playwright 40 TC) 3잡 GHA 도입 완료. 본 sprint claude/work_260513-a 가 FU-CI-2/3/4 처리. 잔여 follow-up: FU-CI-1 (no-docker policy 정합)."
   ]
 }
