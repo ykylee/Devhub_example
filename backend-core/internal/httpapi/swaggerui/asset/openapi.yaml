@@ -1886,11 +1886,21 @@ paths:
             type: string
           description: "삭제할 repository ID"
       responses:
-        "204":
-          description: "Repository 삭제 성공"
+        "200":
+          description: "Repository 삭제 성공 (soft delete + envelope)"
           headers:
             X-Request-ID:
               $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  status: "ok"
+                request_id: "req_repo_delete_001"
+                trace_id: "trace_repo_delete_001"
         "401":
           $ref: "#/components/responses/UnauthorizedEnvelope"
         "403":
@@ -4061,18 +4071,45 @@ paths:
                 target_type:
                   type: string
                   enum:
-                    - "application"
+                    - "platform"
                     - "project"
-                target_name:
+                  description: "promote 대상 타입. `platform` 또는 `project`."
+                target_id:
                   type: string
-                  description: "신규 application/project 이름 (target_type=application 일 때 필수)"
-                target_unit_id:
-                  type: string
-                  description: "소속 org unit (target_type=project 일 때 선택)"
+                  description: "기존 platform/project ID (재할당 시). application_payload/project_payload 와 mutual-exclusion."
+                application_payload:
+                  type: object
+                  description: "신규 platform 생성 payload (target_type=platform 일 때 사용). target_id 와 mutual-exclusion."
+                  properties:
+                    key:
+                      type: string
+                      description: "platform key (URL 친화, 고유)"
+                    name:
+                      type: string
+                      description: "platform 표시 이름"
+                    description:
+                      type: string
+                    owner_user_id:
+                      type: string
+                project_payload:
+                  type: object
+                  description: "신규 project 생성 payload (target_type=project 일 때 사용). target_id 와 mutual-exclusion."
+                  properties:
+                    repository_id:
+                      type: integer
+                      format: int64
+                      description: "project 가 속할 repository 의 FK"
+                    key:
+                      type: string
+                    name:
+                      type: string
             example:
-              target_type: "application"
-              target_name: "API Service"
-              target_unit_id: "unit_platform"
+              target_type: "platform"
+              application_payload:
+                key: "api_service"
+                name: "API Service"
+                description: "Backend API service"
+                owner_user_id: "user_001"
       responses:
         "201":
           description: "Promote 성공 (application/project 생성)"
@@ -4680,52 +4717,11 @@ paths:
 # P1 — Organization (staticTokenAuth OR bearerAuth)
 # =============================================================================
 
-  # ---------------------------------------------------------------------------
-  # GET /api/v1/organization/hierarchy — 조직 계층 (P1)
-  # ---------------------------------------------------------------------------
-  /api/v1/organization/hierarchy:
-    get:
-      tags:
-        - Organization
-      summary: "조직 계층 구조 조회"
-      operationId: getOrganizationHierarchy
-      description: |
-        조직 트리 계층 (org → unit → team).
-        ADR-0029: staticTokenAuth 허용.
-      security:
-        - bearerAuth: []
-        - staticTokenAuth: []
-      parameters:
-        - $ref: "#/components/parameters/RequestIdHeader"
-      responses:
-        "200":
-          description: "조직 계층"
-          headers:
-            X-Request-ID:
-              $ref: "#/components/headers/XRequestID"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Envelope"
-              example:
-                schema_version: "1.0"
-                data:
-                  organization_id: "org_devhub"
-                  name: "DevHub"
-                  units:
-                    - unit_id: "unit_platform"
-                      name: "Platform Team"
-                      teams:
-                        - team_id: "team_api"
-                          name: "API Team"
-                request_id: "req_org_hier"
-                trace_id: "trace_org_hier"
-        "401":
-          $ref: "#/components/responses/UnauthorizedEnvelope"
-        "403":
-          $ref: "#/components/responses/ForbiddenEnvelope"
-        "503":
-          $ref: "#/components/responses/ServerErrorEnvelope"
+  # INVARIANT: /api/v1/organization/hierarchy 는 본 section (P1) 에서 별도 path
+  # item 으로 정의하지 않음 — OpenAPI spec 의 unique path key 요구 + P2 batch 2
+  # 의 PUT 추가 와의 정합을 위해 §"P2 batch 2 — Organization hierarchy PUT"
+  # section 의 path item 하나에 GET+PUT 동시 정의 (PR #520 §6 (c) P1 P2 batch 2).
+  # 본 marker 만 유지.
 
   # ---------------------------------------------------------------------------
   # POST /api/v1/infra/services/snapshot — infra services 일괄 스냅샷 (P3 batch 1, system internal)
@@ -4738,17 +4734,18 @@ paths:
       operationId: ingestInfraServicesSnapshot
       description: |
         infra services 의 일괄 스냅샷 (cron / probe agent push). Bypass —
-        X-Internal-Auth header (internal secret) 으로 인증, RBAC matrix 미사용.
-        system / webhook source. ADR-0029 staticTokenAuth 도 미허용 (internal only).
+        `Authorization: Bearer <InfraAgentToken>` 으로 인증 (handler `infra_integrations.go:78`
+        의 `Bearer ` prefix 분기, RBAC matrix 미사용). system / webhook source.
+        ADR-0029 staticTokenAuth 도 미허용 (internal only).
       security: []
       parameters:
         - $ref: "#/components/parameters/RequestIdHeader"
-        - name: X-Internal-Auth
+        - name: Authorization
           in: header
           required: true
           schema:
             type: string
-          description: "internal secret (DEVHUB_INFRA_SNAPSHOT_SECRET)"
+          description: "`Bearer <InfraAgentToken>` (DEVHUB_INFRA_AGENT_TOKEN)"
       requestBody:
         required: true
         content:
@@ -5785,9 +5782,13 @@ paths:
             schema:
               type: object
               required:
+                - service_id
                 - action_type
-                - target
+                - reason
               properties:
+                service_id:
+                  type: string
+                  description: "대상 service 의 DevHub ID (handler 가 400 if empty)"
                 action_type:
                   type: string
                   enum:
@@ -5795,16 +5796,21 @@ paths:
                     - "restart"
                     - "scale"
                     - "rollback"
-                target:
+                reason:
                   type: string
-                  description: "target service or infrastructure"
-                parameters:
+                  description: "action 사유 (audit, handler 가 400 if empty)"
+                force:
+                  type: boolean
+                dry_run:
+                  type: boolean
+                idempotency_key:
+                  type: string
+                metadata:
                   type: object
             example:
+              service_id: "service_payments"
               action_type: "restart"
-              target: "service_payments"
-              parameters:
-                grace_period_sec: 30
+              reason: "memory leak triage — pod restart"
       responses:
         "202":
           description: "Service action 접수 (async 실행)"
@@ -8590,18 +8596,23 @@ components:
       type: object
       required:
         - user_id
+        - email
+        - display_name
         - role
+        - status
       properties:
         user_id:
           type: string
-          description: "OIDC sub 와 매핑되는 내부 식별자"
+          description: "OIDC sub 와 매핑되는 내부 식별자 (handler 가 400 if empty)"
           example: "charlie"
         email:
           type: string
           format: email
+          description: "이메일 (handler 가 400 if empty)"
           example: "charlie@example.com"
         display_name:
           type: string
+          description: "표시 이름 (handler 가 400 if empty)"
           example: "Charlie Park"
         role:
           type: string
@@ -8610,7 +8621,14 @@ components:
             - "team_manager"
             - "org_head"
             - "system_admin"
-          description: "DevHub 내부 role (ADR-0026 + ADR-0011)"
+          description: "DevHub 내부 role (ADR-0026 + ADR-0011). handler 가 validAppRoles 검증."
+        status:
+          type: string
+          enum:
+            - "active"
+            - "pending"
+            - "deactivated"
+          description: "계정 상태 (handler 가 validUserStatuses 검증, 400 if empty)"
         primary_unit_id:
           type: string
           description: "소속 조직 unit (HR sync 시 자동 매핑 가능)"
@@ -8649,22 +8667,28 @@ components:
     RiskMitigationRequest:
       type: object
       required:
-        - action
-        - owner
+        - action_type
+        - reason
       properties:
-        action:
+        action_type:
           type: string
-          description: "완화 조치 (1 line 요약)"
-          example: "deploy secondary keycloak instance"
-        owner:
+          description: "완화 조치 action type (handler `commands.go:riskMitigationRequest` 의 `action_type` 필드, 400 if empty)"
+          example: "deploy_secondary_keycloak"
+        reason:
           type: string
-          description: "조치 owner login"
-          example: "alice"
+          description: "조치 사유 (handler 가 400 if empty)"
+          example: "단일 keycloak instance SPOF 회피"
         target_date:
           type: string
           format: date
           description: "완화 목표일"
           example: "2026-07-15"
+        dry_run:
+          type: boolean
+        idempotency_key:
+          type: string
+        metadata:
+          type: object
 
     # -----------------------------------------------------------------------
     # RiskMitigation — POST /api/v1/risks/{risk_id}/mitigations 응답 data
@@ -8712,10 +8736,12 @@ components:
     # -----------------------------------------------------------------------
     CommandDecisionRequest:
       type: object
+      required:
+        - reason
       properties:
-        note:
+        reason:
           type: string
-          description: "결정 사유 (audit note 로 보존)"
+          description: "결정 사유 (handler `commands.go:reviewCommand` 가 400 if empty, audit note 로 보존)"
           example: "approved after risk review"
 
     # -----------------------------------------------------------------------
@@ -8724,18 +8750,37 @@ components:
     OrgUnitCreateRequest:
       type: object
       required:
-        - name
-        - parent_organization_id
+        - unit_id
+        - label
+        - unit_type
+        - parent_unit_id
       properties:
-        name:
+        unit_id:
           type: string
+          description: "org unit 고유 ID (handler `createOrgUnitRequest` 가 400 if empty)"
+          example: "unit_api"
+        label:
+          type: string
+          description: "org unit 표시 이름 (handler 가 400 if empty)"
           example: "API Team"
-        parent_organization_id:
+        unit_type:
           type: string
-          example: "org_devhub"
-        description:
+          description: "org unit type (handler 가 validOrgUnitTypes 검증)"
+          example: "team"
+        parent_unit_id:
           type: string
-          example: "Backend API development team"
+          description: "상위 org unit ID (트리 구조)"
+          example: "unit_platform"
+        leader_user_id:
+          type: string
+          description: "unit leader user_id"
+          example: "alice"
+        position_x:
+          type: integer
+          description: "org chart 의 x 좌표"
+        position_y:
+          type: integer
+          description: "org chart 의 y 좌표"
 
     # -----------------------------------------------------------------------
     # OrgUnitUpdateRequest — PATCH /api/v1/organization/units/{id}
@@ -8755,25 +8800,17 @@ components:
     OrgUnitMemberReplaceRequest:
       type: object
       required:
-        - members
+        - user_ids
       properties:
-        members:
+        user_ids:
           type: array
+          description: "unit member 의 user_id flat array (handler `replaceUnitMembersRequest` 가 trim + dedup, 빈 입력 시 empty 로 교체)"
           items:
-            type: object
-            required:
-              - user_id
-              - role
-            properties:
-              user_id:
-                type: string
-                example: "alice"
-              role:
-                type: string
-                enum:
-                  - "developer"
-                  - "team_manager"
-                  - "org_head"
+            type: string
+            example: "alice"
+          example:
+            - "alice"
+            - "bob"
 
     # -----------------------------------------------------------------------
     # OrganizationHierarchyRequest — PUT /api/v1/organization/hierarchy
@@ -8817,34 +8854,46 @@ components:
     RBACPolicyCreateRequest:
       type: object
       required:
-        - role
+        - id
+        - name
         - permissions
       properties:
-        role:
+        id:
           type: string
-          enum:
-            - "developer"
-            - "team_manager"
-            - "org_head"
-            - "system_admin"
+          description: "role ID (handler `rbacCreateRoleRequest.id` 가 400 if empty)"
+          example: "custom_role_001"
+        name:
+          type: string
+          description: "role 표시 이름 (handler 가 400 if empty)"
+          example: "Custom Security Reviewer"
+        description:
+          type: string
+          description: "role 설명"
         permissions:
-          type: array
-          items:
+          type: object
+          description: "PermissionMatrix — resource key 별 {view, create, edit, delete} boolean 객체 (handler `rbacCreateRoleRequest.Permissions` 가 직접 unmarshal). array 아님."
+          additionalProperties:
             type: object
-            required:
-              - resource
-              - action
             properties:
-              resource:
-                type: string
-                example: "security"
-              action:
-                type: string
-                enum:
-                  - "view"
-                  - "create"
-                  - "edit"
-                  - "delete"
+              view:
+                type: boolean
+              create:
+                type: boolean
+              edit:
+                type: boolean
+              delete:
+                type: boolean
+          example:
+            security:
+              view: true
+              create: false
+              edit: false
+              delete: false
+            repositories:
+              view: true
+              create: true
+              edit: true
+              delete: false
 
     # -----------------------------------------------------------------------
     # RBACPolicyBulkUpdateRequest — PUT /api/v1/rbac/policies
@@ -8852,10 +8901,11 @@ components:
     RBACPolicyBulkUpdateRequest:
       type: object
       required:
-        - policies
+        - roles
       properties:
-        policies:
+        roles:
           type: array
+          description: "bulk update 할 role array (handler `rbacUpdatePoliciesRequest.Roles`, 400 if empty)"
           items:
             $ref: "#/components/schemas/RBACPolicyCreateRequest"
 
@@ -8865,32 +8915,22 @@ components:
     RepositoryDraftRequest:
       type: object
       required:
+        - key
+        - slug
         - provider_key
-        - name
-        - full_name
       properties:
+        key:
+          type: string
+          description: "Repository 단축 식별자 (URL 친화, 고유)"
+          example: "team_api"
+        slug:
+          type: string
+          description: "Repository slug (소문자 + 하이픈, SCM 등록용)"
+          example: "team-api"
         provider_key:
           type: string
-          description: "provider 식별자 (예: gitea:internal, github:devhub)"
+          description: "provider 식별자 (예: gitea:internal, github:devhub). 빈 값이면 provider 미지정 draft."
           example: "gitea:internal"
-        name:
-          type: string
-          description: "Repository 짧은 이름 (URL 친화)"
-          example: "team_api"
-        full_name:
-          type: string
-          description: "Repository 전체 이름 (org/team/name)"
-          example: "Platform Team/API Service"
-        visibility:
-          type: string
-          enum:
-            - "public"
-            - "private"
-            - "internal"
-          default: "private"
-        description:
-          type: string
-          example: "Backend API service for platform team"
 
     # -----------------------------------------------------------------------
     # RepositoryPublishRequest — POST /api/v1/repositories/{id}/publish
@@ -8909,12 +8949,17 @@ components:
     DevRequestIntakeTokenCreateRequest:
       type: object
       required:
-        - label
+        - client_label
+        - source_system
       properties:
-        label:
+        client_label:
           type: string
-          description: "intake token label (운영 식별용)"
+          description: "intake token label (운영 식별용, 클라이언트 표기)"
           example: "external-intake-2026Q3"
+        source_system:
+          type: string
+          description: "intake 발급 출처 시스템 (ex. jira, slack, console)"
+          example: "jira"
         allowed_ips:
           type: array
           items:
