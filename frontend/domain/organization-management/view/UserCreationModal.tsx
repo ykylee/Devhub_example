@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, UserPlus, Mail, Shield, Building2, Loader2, Search, Bot, User, Key, Info } from "lucide-react";
+import { useBranding } from "@/lib/branding-context";
 import { identityService, OrgMember } from "@/domain/organization-management/service/identity.service";
 import { Role } from "@/domain/rbac-permissions/schema/rbac.types";
 import { cn } from "@/shared/utils";
@@ -14,6 +15,7 @@ interface UserCreationModalProps {
 }
 
 export function UserCreationModal({ onClose, onCreated, roles }: UserCreationModalProps) {
+  const { appShortName } = useBranding();
   const [formData, setFormData] = useState({
     user_id: "",
     email: "",
@@ -231,7 +233,7 @@ export function UserCreationModal({ onClose, onCreated, roles }: UserCreationMod
               <Info className="w-3 h-3 text-primary" /> User Provisioning Notice
             </p>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              DevHub does not manage passwords directly. After creation, use the **Keycloak Admin Console** to set temporary passwords or send enrollment emails.
+              {appShortName} does not manage passwords directly. After creation, use the **Keycloak Admin Console** to set temporary passwords or send enrollment emails.
             </p>
           </div>
 
