@@ -2,10 +2,10 @@
   "schema_version": "1",
   "project": "DevHub Example",
   "branch": "main",
-  "status": "2026-06-10 main. PR #542 (sprint -a follow-up PR1 PR #540 의 carry-over C-i 정공법 PR, `feat/work_260610-c-i-e2e-internal-job`) 머지 완료. main HEAD `24674b8`. CI 4/4 PASS (workflow 변경만, backend/e2e/frontend skip). Tier: 본 PR 의 모든 변경 = **공용** (`.github/workflows/*` + `scripts/*` 모두 사내 한정 정보 미포함). 후속 carry-over: C-j (build tag 정책 재검토, P3) + backend-integration DEVHUB_BUILD_TIER matrix (P3) + release_v1_roadmap.md §3.5 N-13 정합 (P3) + N-10 RBAC E2E 6 TC 보강 별도 PR.",
-  "updated_at": "2026-06-10T13:40:00Z",
-  "head_commit": "24674b8",
-  "head_summary": "ci(workflow): E2E Internal (real Keycloak adapter) job — DEVHUB_BUILD_TIER=internal matrix 1쌍 (sprint -a follow-up PR1 PR #540 의 carry-over C-i) (#542)",
+  "status": "2026-06-10 main. PR #543 (sprint -a follow-up PR1 PR #540 의 carry-over C-j 정공법 PR, `docs/work_260610-c-j-build-tag-review`) 머지 완료. main HEAD `d3488ca`. CI 4/4 PASS (docs only PR, backend/e2e/frontend skip). Tier: 본 PR 의 모든 변경 = **공용** (docs/adr/ + docs/traceability/ + ai-workflow/memory/ 모두 사내 한정 정보 미포함). **ADR-0031 confirmed**: ADR-0030 §2.3 runtime injection 결정을 정량 측정 후 confirmed. 후속 carry-over: backend-integration DEVHUB_BUILD_TIER matrix (P3) + release_v1_roadmap.md §3.5 N-13 정합 (P3) + N-10 RBAC E2E 6 TC 보강 별도 PR.",
+  "updated_at": "2026-06-10T14:00:00Z",
+  "head_commit": "d3488ca",
+  "head_summary": "docs(adr,traceability,memory): ADR-0031 build tag 정책 재검토 — ADR-0030 §2.3 confirmed (sprint -a follow-up PR1 PR #540 의 carry-over C-j) (#543)",
   "milestones": {
     "M0": {
       "status": "done",

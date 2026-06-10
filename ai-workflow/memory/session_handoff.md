@@ -280,4 +280,41 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **C-j (P3)**: build tag 정책 재검토 (runtime injection ↔ build tag 전환 trade-off). 별도 ADR 후보.
 - **backend-integration DEVHUB_BUILD_TIER matrix** (sprint -a follow-up 본 PR #539 의 backend-integration 재활성화 + DEVHUB_BUILD_TIER=internal matrix).
 - **release_v1_roadmap.md §3.5 N-13** 정합 (C-i done 마킹).
+
+## 8. 본 세션 (2026-06-10, sprint -a follow-up PR1 PR #540 의 carry-over C-j 정공법 PR — docs/adr/ + docs/traceability/ + ai-workflow/memory/)
+
+### PR 결과
+
+| PR | 상태 | 의의 |
+| --- | --- | --- |
+| **#543** (C-j build tag 정책 재검토 PR) | ✅ MERGED (squash, branch delete) | `docs/work_260610-c-j-build-tag-review` 분기. **`docs/adr/0031-build-tag-policy-review.md` 신규 (12KB, 9 section)** — ADR-0030 §2.3 runtime injection 결정을 **정량 측정 후 confirmed** (supersede X). **결정**: 옵션 2 (런타임 injection 유지). 근거 = stub binary overhead < 5KB (전체 backend-core < 50MB 대비 0.01%) vs build tag 전환 시 CI matrix 2배 (+30~60min) + 5~10 file `//go:build` tag + 2개 binary 운영. **재검토 trigger 5건** (§5): stub code size > 250KB / stub production risk / CI axes 5+ / Phase 2 agentic RAG / stub safety — 현시점 trigger 0건. ADR-0030 §2.3 row confirmed reference 추가. `docs/traceability/report.md` §4 ADR-0031 row + §6 row 신규. main `d3488ca`. CI 4/4 PASS (docs only PR, backend/e2e/frontend skip). Tier: **공용**. |
+
+### scope 결정
+
+코드 0줄 변경. ADR + traceability + memory 4 file. C-j 의 정공법 = **ADR-0031 신규 + ADR-0030 §2.3 confirmed (supersede X) + 9 section 정공법** (배경 + 정량 측정 + 옵션 + 결정 + 재검토 trigger + cross-tier + risks + supersession + 변경 이력).
+
+### trade-off (현시점 정량 측정)
+
+| 측정 항목 | Runtime injection (현재) | Build tag (이론) | 차이 |
+| --- | --- | --- | --- |
+| Binary overhead | < 5KB | -6.3KB (절감) | -6.3KB (build tag 유리) |
+| CI runtime | +15~20min (PR #542) | +30~60min (이론) | build tag 가 +15~40min 더 |
+| CI matrix jobs | 4 (e2e 1/2/3 + e2e-internal) | 6 (e2e × 2 tags) | build tag 가 +2 jobs |
+| 코드 변경 | 0 (현재 상태 유지) | 5~10 file | build tag 가 +5~10 file |
+| 운영 복잡도 | 1 binary | 2 binary | build tag 가 +1 |
+
+**결론**: build tag 의 binary size 절감 (~6KB) 은 무시 가능 수준. runtime injection 의 cost 가 build tag 의 cost 보다 본질적으로 작음. 1:5+ cost ratio.
+
+### Memory 갱신
+
+- `ai-workflow/memory/docs/work_260610-c-j-build-tag-review/` 신규 (state.json + session_handoff.md + work_backlog.md + backlog/2026-06-10.md + pr_body.md).
+- main flat `state.json` head_commit = `d3488ca` (PR #543 머지 baseline).
+- 본 `session_handoff.md` §8 append.
+
+### 다음 세션 directive
+
+- **backend-integration DEVHUB_BUILD_TIER matrix** (P3): sprint -a follow-up 본 PR #539 의 backend-integration 재활성화 + DEVHUB_BUILD_TIER=internal matrix.
+- **release_v1_roadmap.md §3.5 N-13** 정합 (P3): C-i + C-j + C-g/C-h + C-j done 마킹. N-13 row close.
+- **N-10 RBAC E2E 6 TC 보강** (sprint `maintenance/work_260610-c-N10-rbac-e2e-tcs`): v1.0 출시 직전 잔여.
+- 또는 다른 sprint 진입.
 - 또는 N-10 RBAC E2E 6 TC 보강 / release_v1_roadmap.md 갱신.
