@@ -144,3 +144,31 @@ frontend 컨테이너에서 backend-core 컨테이너로 프록시하려면 `BAC
 - **DNS resolution failure for `backend-core`**: docker compose 외부에서 frontend 만 단독 실행 중일 때 발생. `BACKEND_API_URL` 을 unset 하거나 `http://localhost:8080` 으로 export.
 - **DB 연결 실패**: `MIGRATE_DB_URL` 과 `DB_URL` 이 같은 인스턴스/포트를 가리키는지, 사용자/비밀번호가 일치하는지 확인.
 - **사내 SSL inspection 환경**: docker mirror 가 아니라 release binary mirror 또는 소스 빌드 경로를 사용한다 (정책 메모 참조).
+
+## 6. Backend binary 재빌드 (stale binary 방지)
+
+`backend-core/bin/main` 은 git 추적 제외 (`.gitignore`). Dockerfile 의 `COPY bin/main ./main` 가 host 의 prebuilt binary 를 docker image 로 복사한다. Go source 변경 후 `bin/main` 을 재빌드하지 않으면 docker image 가 옛 binary 를 사용하게 된다.
+
+**정적 binary 빌드 (alpine container 정합)** — glibc 링크 시 Alpine (musl) container 에서 `exec ./main: no such file or directory` 로 실패한다. 정적 link 가 필수:
+
+```sh
+cd backend-core
+CGO_ENABLED=0 go build -ldflags='-s -w -extldflags "-static"' -o bin/main .
+```
+
+또는 `Makefile` / `scripts/rebuild-backend.sh` 사용:
+
+```sh
+make build-backend          # 정적 binary 만 재빌드
+make build                  # backend + frontend + docker image 전체 (Makefile 사용)
+make build-docker           # docker image 만 (prebuilt bin/main + frontend standalone 필요)
+./scripts/rebuild-backend.sh            # build + docker rebuild + container recreate + health check (1회)
+./scripts/rebuild-backend.sh --binary-only  # bin/main 만, docker 미반영
+```
+
+docker 이미지에서 stale binary 가 사용된 경우 증상:
+- `relation "applications" does not exist` (DB 는 `platforms` 인데 binary 는 옛 table name 사용) — Application→Platform 리네임 PR 머지 후 rebuild 미실행 시
+- `column "application_id" does not exist` (동일 원인)
+- frontend 가 빨강 `Failed to load` 메시지 (예: Platform Status / Admin Catalog 페이지)
+
+**해결**: `./scripts/rebuild-backend.sh` 로 binary + docker image 한 번에 재갱신.
