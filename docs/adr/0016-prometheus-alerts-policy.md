@@ -7,6 +7,7 @@
 - 작성일: 2026-05-18
 - 결정일: 2026-05-17 (실 초안), 2026-05-18 사후 명문화 (sprint `claude/work_260518-c`)
 - 결정 근거 sprint: `codex/next-step-20260516` (PR #139, sha `e2a76fb`).
+- **Tier**: 사내
 - 관련 문서: [ADR-0015 HomeLab pull strategy](./0015-homelab-adapter-pull-strategy.md), [`docs/domain/integration-registry/prometheus_homelab_alerts.md`](../domain/integration-registry/prometheus_homelab_alerts.md) (1차 초안 — 본 ADR 이 source-of-truth 로 승격), [추적성 매트릭스 §3 External Integration 행 + §4 ADR](../traceability/report.md).
 
 ## 1. 컨텍스트

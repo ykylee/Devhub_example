@@ -6,6 +6,7 @@
 - 상태: **superseded by [ADR-0019](./0019-keycloak-only-idp.md) (2026-05-19)** — 본 ADR 의 Hydra+Kratos 결정 (2026-05-07) 은 historical context 로 보존하되, 현재 운영 결정은 ADR-0019 (Keycloak 단일화) 참조.
 - 결정일: 2026-05-07
 - supersession 일자: 2026-05-19
+- **Tier**: 사내 (superseded) — 본 ADR 의 Hydra+Kratos 결정 (2026-05-07) 은 historical context. 현재 운영 결정 (Keycloak) 은 ADR-0019 가 supersede.
 - 관련 문서: [ADR-0019 Keycloak 단일화 (현재 결정)](./0019-keycloak-only-idp.md), [requirements.md 2.5](../requirements.md#25-사용자-계정-관리-user-account-management), [architecture.md 6.2](../architecture.md#62-사용자user--계정account-도메인-분리), [backend_api_contract.md §11](../backend_api_contract.md#11-계정-및-인증-account--auth), [backend/requirements.md §5](../backend/requirements.md#5-사용자-계정-및-인증-user-account--authentication), [backend_development_roadmap.md Phase 13](../../docs/backend_development_roadmap.md)
 
 > **⚠️ supersession 안내 (2026-05-19)**: 본 ADR 의 §3.5 + §4 + §5 + §6 + §7 + §8 + §9 결정은 모두 Hydra+Kratos 도입 시점 (2026-05-07) 의 historical context 다. 2026-05-18 PR #167 (Keycloak-only refactor) + 2026-05-19 [ADR-0019](./0019-keycloak-only-idp.md) 가 본 결정을 supersede 한다. 현재 운영 (Keycloak 단일화) 의 결정 근거는 ADR-0019 참조. 본 ADR 본문은 immutable 보존 (PR #167 의 partial heading 수정은 2026-05-19 sprint `claude/work_260519-a` 가 원래대로 복원했다).

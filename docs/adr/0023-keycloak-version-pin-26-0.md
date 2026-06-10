@@ -6,6 +6,7 @@
 - **수정일**: 2026-05-26
 - **결정 근거 sprint**: `claude/work_260526-adr-0023-keycloak-26-forward`
 - **Supersedes**: [ADR-0022 (Keycloak 25.0 pin)](./0022-keycloak-version-pin-25-0.md)
+- **Tier**: 사내
 - **관련 문서**: [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [`docker-compose.deploy.yml`](../../docker-compose.deploy.yml), [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md). ADR governance 패턴: `feedback_adr_supersession_pattern` (claude memory, immutable history 원칙).
 
 ## 2. 컨텍스트

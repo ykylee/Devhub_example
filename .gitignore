@@ -104,3 +104,79 @@ docs/LOCAL_MACHINE_ENV.md
 # Gemini temp files
 scratch/
 ui-screenshots-shard-2/
+
+# === TIER SEPARATION (2026-06-10) ===
+# 사내 한정 (tier=internal) 인프라 운영 산출물 / 설정 파일. 사외 build 시
+# 추적 안 함. 이미 history 에 들어간 사내 한정 파일은 §4.2 ADR immutable
+# history 정책에 따라 force-remove 하지 않음 (사내 SCM 으로 별도 migration).
+# 신규 사내 한정 파일이 본 패턴 매칭 시 GitHub push 자동 차단.
+# 정책: docs/governance/worker_division.md §6.3.3
+
+# 사내 deploy compose (172.16.0.0/12 + kc.internal.example.com)
+/docker-compose.deploy.yml
+
+# 사내 prod Keycloak realm (실제 redirect URI)
+/infra/idp/keycloak-realm.prod.json
+
+# 사내 운영 스크립트 (Keycloak admin / nginx sync / HRDB ETL / dogfood)
+/scripts/setup-keycloak.sh
+/scripts/verify-keycloak-groups.sh
+/scripts/deploy-from-env.sh
+/scripts/deploy-preflight.sh
+/scripts/deploy-up.sh
+/scripts/nginx-conf-sync.sh
+/scripts/hrdb_etl_sync.sh
+/scripts/hrdb_etl_seed.sql
+/scripts/dogfood.sh
+/scripts/dogfood-create-user.sh
+
+# 사내 deploy env template (devhub.example.com / kc.internal.example.com)
+/docs/setup/deploy.env.example
+/docs/setup/deploy.stage.env.example
+/docs/setup/deploy.prod.env.example
+
+# 사내 dogfood 가이드 (사내 staging / Keycloak 직접 참조)
+/docs/dogfood/
+
+# 사내 staging/operation reports
+/docs/reports/
+/docs/analysis/
+
+# 사내 Keycloak SPI plugin build 산출물 (Java jar)
+/infra/idp/keycloak-event-listener-spi/target/
+/infra/idp/keycloak-event-listener-spi/build/
+
+# 사내 nginx certs + rendered conf
+/infra/nginx/certs/
+/infra/nginx/devhub.deploy.conf
+# 사내 nginx private keys (절대 추적 금지)
+/infra/nginx/*.key
+/infra/nginx/*.pem
+
+# 사내 build 산출물 (deploy-from-env.sh / docker image build)
+/.build/
+/docker-bin/
+/dev-bin/
+/backend-core/bin/
+/backend-ai/.build/
+
+# 사내 compose (docker-compose.colima.yml + localports override 는 사외
+# generic 이므로 추적 유지, deploy/local/test 는 사내)
+/docker-compose.local.yml
+/docker-compose.test.yml
+/docker-compose.override.localports.yml
+
+# 사내 host build artifacts
+/devhub-backend
+/backend-core/devhub-backend
+/backend-core/devhub-backend-*
+
+# 사내 .env (prod / stage / deploy)
+/.env.deploy
+/.env.prod
+/.env.stage
+/.env.local
+/.env.test
+!/frontend/.env.example
+!/frontend/.env.template
+!/docs/setup/.env.example

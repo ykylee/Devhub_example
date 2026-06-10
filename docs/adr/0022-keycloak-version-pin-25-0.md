@@ -8,6 +8,7 @@
 - **수정일**: 2026-05-26 (supersession 메타 헤더 + §0 banner only — 본문 immutable)
 - **결정 근거 sprint**: `codex/work_260521-c-db-docker-option` (작성), `claude/work_260526-adr-0023-keycloak-26-forward` (supersession)
 - **Superseded by**: [ADR-0023 — Keycloak 26.0 forward pin](./0023-keycloak-version-pin-26-0.md)
+- **Tier**: 사내 (superseded)
 - **관련 문서**: [ADR-0019 Keycloak 단일화](./0019-keycloak-only-idp.md), [`docker-compose.deploy.yml`](../../docker-compose.deploy.yml), [`docs/setup/keycloak_operations.md`](../setup/keycloak_operations.md)
 
 > **historical Draft 사유** (2026-05-22 작성 시점): 본 ADR 은 26.0 → 25.0 retreat 의 결정 시점을 ADR 형식으로 명문화한다. **§3.1 retreat 사유** 항목이 placeholder 상태이며, 사용자가 사내 정합 사유 (호환성/안정성/사내 표준 등) 를 확정한 뒤 `Accepted` 로 승격한다.
