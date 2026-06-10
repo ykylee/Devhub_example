@@ -1,4 +1,51 @@
-# Session Handoff — main (2026-06-09, v1.0 출시 직전 finalizing — PR #514 + PR #515 머지 + codex P2 fix)
+# Session Handoff — main (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 — PR #545)
+
+- 문서 목적: PR #545 (v0.5.0-beta → v0.5.11-beta 동기화, theirs-only 1 squash, 97 file / 4562줄 / 178줄 삭제) 상태 인계.
+- 범위: `ai-workflow/VERSION` + README/WORKFLOW_INDEX + 메모리 전체 + archive/ + codex/phase6 + gemini/phase6/7/10 + release/v0.5.{1..10} + `.gitignore` 백업 라인.
+- 상태: main HEAD `165b8e8` (PR #545 squash) → branch `chore/v0.5.11-sync-2026-06-10` push 완료, PR #545 open (https://github.com/ykylee/Devhub_example/pull/545). 3 file (state.json / session_handoff.md / work_backlog.md) reapply 분기는 theirs-only 흡수 + 백업 보존 — 머지 후 추가 결정 불요.
+- 최종 수정일: 2026-06-11 07:30 KST (PR #545 push 기준)
+- 직전 handoff (PR #514 + #515 finalizing): §0a 참조, main HEAD `fee06d4` 까지.
+
+## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화)
+
+### PR #545 결과
+
+| 항목 | 값 |
+|---|---|
+| **PR #545** | 🟡 OPEN (squash push 완료) |
+| **Title** | `chore(ai-workflow): v0.5.0-beta → v0.5.11-beta 동기화 (theirs-only, 1 squash)` |
+| **URL** | https://github.com/ykylee/Devhub_example/pull/545 |
+| **Branch** | `chore/v0.5.11-sync-2026-06-10` (main `fee06d4` → `165b8e8` 1 squash) |
+| **Diff stat** | 97 file, +4562 / -178 |
+| **Tier** | 사외 (no internal-only paths) |
+| **Backing 결정** | scope=devhub-only / stride=1 squash / merge=theirs-only / risk=backup 1단계 (사용자 2026-06-10 directive 4건) |
+
+### 변경 요약
+
+| 영역 | 변경 |
+|---|---|
+| `ai-workflow/VERSION` | v0.5.0-beta → v0.5.11-beta |
+| 운영 가이드 | README.md / WORKFLOW_INDEX.md / PROJECT_PROFILE.md / repository_assessment.md (v0.5.11 standard_ai_workflow 양식) |
+| 메모리 3 file | state.json / session_handoff.md / work_backlog.md (구조 갱신, 3 file reapply 분기는 백업 보존 후 theirs-only 흡수) |
+| archive/ | 5 report 백업 (comprehensive / phase5 / phase8 / session_handoff / 2026-04-30) |
+| codex/phase6/ | codex phase 6 작업물 (backlog + tasks 8건) |
+| gemini/phase6/7/10/ | gemini phase 6/7/10 기록 (backlog + tasks 다수) |
+| release/v0.5.{1..10}/ | release 별 state / handoff / backlog 분리 (8 minor release) |
+| `.gitignore` | `_pre_v0.5.11_backup_2026-06-10/` 명시적 제외 |
+
+### Pre-flight / Safety
+
+- **origin/main 0 commit drift** (squash PR 사실상 첫 동기화)
+- **백업 1단계**: `ai-workflow/memory/_pre_v0.5.11_backup_2026-06-10/` 에 state.json (153줄) / session_handoff.md (389줄) / work_backlog.md (97줄) 보관 (2026-06-10 23:47 KST)
+- **Tier check**: 사외 / 2-tier 정책 self-review 통과 (`docs/governance/worker_division.md` §6)
+
+### 후속 (사용자 결정 영역)
+
+- 3 file (state.json / session_handoff.md / work_backlog.md) reapply 분기 — **theirs-only 흡수했으므로 별도 작업 불요할 가능성 ↑** (백업 보존, 회귀 시 `git checkout 165b8e8^ -- <file>` 로 즉시 복원 가능)
+- `_pre_v0.5.11_backup_2026-06-10/` rotate (다음 sync 시점에 `.gitignore` 라인 제거, `mavis-trash` 권장)
+- my_harness 측 동기화 — 사용자 confirm 후 별도 plan trigger (이번 scope=devhub-only)
+
+## 0a. 이전 세션 (2026-06-09, v1.0 출시 직전 finalizing — PR #514 + PR #515 + codex P2 fix)
 
 - 문서 목적: PR #514 (voc + notification, ADR-0028) + PR #515 (옵션 A N-12 housekeeping + B voc list + C N-10 IT 3 TC + codex P2 fix 3 layer) 머지 상태 인계.
 - 범위: 본 세션의 2 PR (PR #514 + PR #515 squash). 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (3 layer: production router mount + routePermissionTable + gin path conflict).
