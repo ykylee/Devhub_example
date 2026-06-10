@@ -32,6 +32,10 @@ const initialForm = {
   external_ref: "",
 };
 
+// client_label regex: `^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$` (dev_request_intake_tokens.label_format check).
+// Date.now() is a numeric string → safe; toISOString() would include 'T'/':'/'.' → rejected.
+const intakeTokenLabel = (): string => `reception-test-${Date.now()}`;
+
 export default function ReceptionTestPage() {
   const { toast } = useToast();
   const actor = useStore((s) => s.actor);
@@ -69,7 +73,7 @@ export default function ReceptionTestPage() {
     try {
       const issued = await devRequestTokenService.issue({
         allowed_ips: ["127.0.0.1/32"],
-        client_label: `[Reception Test] ${new Date().toISOString()}`,
+        client_label: intakeTokenLabel(),
         source_system: "reception_test_panel",
       });
       setCurrentToken(issued);
