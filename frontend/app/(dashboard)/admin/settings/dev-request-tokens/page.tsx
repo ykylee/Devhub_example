@@ -8,6 +8,7 @@ import type { DevRequestIntakeToken } from "@/domain/dev-request/schema/dev_requ
 import { IntakeTokenTable } from "@/domain/dev-request/view/IntakeTokenTable";
 import { IssueIntakeTokenModal } from "@/components/dev-request/IssueIntakeTokenModal";
 import { EditIntakeTokenModal } from "@/components/dev-request/EditIntakeTokenModal";
+import { useBranding } from "@/lib/branding-context";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { DestructiveConfirmModal } from "@/shared/ui-foundation/components/DestructiveConfirmModal";
 
@@ -18,6 +19,7 @@ export default function AdminSettingsDevRequestTokensPage() {
   const [editingToken, setEditingToken] = useState<DevRequestIntakeToken | null>(null);
   const [revokingTokenID, setRevokingTokenID] = useState<string | null>(null);
   const { toast } = useToast();
+  const { appShortName } = useBranding();
 
   const refresh = async () => {
     setIsLoading(true);
@@ -90,7 +92,7 @@ export default function AdminSettingsDevRequestTokensPage() {
               Intake <span className="text-accent">Tokens</span>
             </h2>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-              외부 시스템 → DevHub Dev Request 수신 인증 자격
+              외부 시스템 → {appShortName} Dev Request 수신 인증 자격
             </p>
           </div>
         </motion.div>

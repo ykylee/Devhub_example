@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { User, Mail, Shield, Key, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
+import { useBranding } from "@/lib/branding-context";
 import { authService } from "@/domain/auth-session/service/auth.service";
 import { ProfileSelfEdit } from "@/components/account/ProfileSelfEdit";
 
@@ -19,6 +20,7 @@ import { ProfileSelfEdit } from "@/components/account/ProfileSelfEdit";
 
 export default function AccountPage() {
   const { actor } = useStore();
+  const { appShortName } = useBranding();
   const [accountConsoleURL, setAccountConsoleURL] = useState("");
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function AccountPage() {
           Account <span className="text-primary">Settings</span>
         </h1>
         <p className="text-muted-foreground font-bold text-xs uppercase tracking-widest">
-          Manage your DevHub identity and security preferences
+          Manage your {appShortName} identity and security preferences
         </p>
       </div>
 
@@ -105,19 +107,19 @@ export default function AccountPage() {
 
             <div className="p-8 space-y-6 text-sm text-foreground/90 dark:text-primary-foreground/90 leading-relaxed">
               <p>
-                DevHub uses Keycloak as its single identity provider (ADR-0019). To change your password,
+                {appShortName} uses Keycloak as its single identity provider (ADR-0019). To change your password,
                 set up multi-factor authentication, or review your active sessions, open the Keycloak
                 Account Console.
               </p>
               <p className="text-xs text-muted-foreground">
                 You will sign in to Keycloak directly. After updating your credentials there, return
-                here and continue working — your DevHub session keeps its existing access token until
+                here and continue working — your {appShortName} session keeps its existing access token until
                 it expires.
               </p>
 
               <div className="pt-4 border-t border-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest max-w-[260px]">
-                  Identity actions are owned by Keycloak. DevHub no longer proxies password changes.
+                  Identity actions are owned by Keycloak. {appShortName} no longer proxies password changes.
                 </p>
                 {accountConsoleURL ? (
                   <a
@@ -149,7 +151,7 @@ export default function AccountPage() {
               <div className="space-y-1">
                 <h4 className="text-foreground dark:text-primary-foreground font-bold tracking-tight">Two-Factor Authentication</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Enable MFA from the Keycloak Account Console under Signing In. DevHub honors any
+                  Enable MFA from the Keycloak Account Console under Signing In. {appShortName} honors any
                   MFA decision Keycloak enforces during sign-in.
                 </p>
               </div>

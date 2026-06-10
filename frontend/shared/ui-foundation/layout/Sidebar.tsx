@@ -1,11 +1,12 @@
 "use client";
- 
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Server, Settings, Zap, ShieldCheck, X, ChevronLeft, ChevronRight, Boxes } from "lucide-react";
 import { cn } from "@/shared/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
+import { useBranding } from "@/lib/branding-context";
 import { isSystemAdmin } from "@/domain/auth-session/service/role-routing";
 import { useSyncExternalStore } from "react";
 
@@ -38,6 +39,9 @@ const systemBottomMenu: MenuItem = {
 export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const pathname = usePathname();
   const { actor, isSidebarOpen, setSidebarOpen, isSidebarCollapsed, setSidebarCollapsed } = useStore();
+  // 사외/사내 2-tier deploy 명칭 — `useBranding` hook 이 /api/runtime-config
+  // 의 branding 필드를 client context 로 주입 (서버 default + client refresh).
+  const { appShortName } = useBranding();
   // SSR hydration: useSyncExternalStore 로 server (false) → client (true) 전환을
   // setState in effect 패턴 없이 처리. React 19 / Next 16 set-state-in-effect 룰
   // 정공법.
@@ -86,7 +90,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
               <span className={cn(
                 "text-2xl font-bold tracking-tighter text-gradient transition-all duration-300 origin-left",
                 collapsed ? "lg:opacity-0 lg:w-0 lg:scale-0 lg:pointer-events-none" : "opacity-100 w-auto scale-100"
-              )}>DevHub</span>
+              )}>{appShortName}</span>
             </div>
             <button 
               onClick={() => setSidebarOpen(false)}

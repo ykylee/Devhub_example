@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { authService } from "@/domain/auth-session/service/auth.service";
+import { useBranding } from "@/lib/branding-context";
 
 // ADR-0020 §4.1.1 sub-carve F (decision B, option B 채택) — `/login` is the
 // single canonical entry page. The legacy `/auth/login` route was removed
@@ -38,6 +39,7 @@ function LoginInner() {
   const errorCode = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
   const errorMessage = resolveErrorMessage(errorCode, errorDescription);
+  const { appShortName } = useBranding();
 
   const [isRedirecting, setIsRedirecting] = useState(false);
   const redirectStartedRef = useRef(false);
@@ -86,7 +88,7 @@ function LoginInner() {
             <ShieldCheck className="w-12 h-12 text-foreground" />
           </motion.div>
           <h1 className="text-4xl font-black text-foreground tracking-tighter uppercase mb-2">
-            DevHub <span className="text-primary">Identity</span>
+            {appShortName} <span className="text-primary">Identity</span>
           </h1>
           <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest">
             Unified Authentication Gateway
@@ -109,7 +111,7 @@ function LoginInner() {
           )}
 
           <p className="text-sm text-muted-foreground text-center mb-8">
-            DevHub uses a unified Keycloak OIDC identity flow. Continue to the secure
+            {appShortName} uses a unified Keycloak OIDC identity flow. Continue to the secure
             sign-in screen to authenticate.
           </p>
 
