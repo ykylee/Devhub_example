@@ -1,43 +1,25 @@
-# Workflow Index
+# Workflow Guide & Index
 
-- 문서 목적: 현재 저장소에 배포된 AI workflow 문서의 진입 순서를 제공한다.
-- 범위: 세션 시작, 상태 복원, 온보딩, 코어 정책 문서
-- 대상 독자: Codex, 저장소 관리자, 신규 온보딩 참여자
-- 상태: draft
-- 최종 수정일: 2026-06-04
-- 관련 문서: [README](./README.md), [Memory Governance](./MEMORY_GOVERNANCE.md)
+- 문서 목적: AI 에이전트가 저장소의 상태를 추적하고 업데이트하기 위한 운영 전용 가이드를 제공한다.
+- 범위: 운영 문서 인덱스, 에이전트 운영 지침
+- 대상 독자: AI 에이전트, 저장소 관리자
+- 상태: done
+- 최종 수정일: 2026-04-30
+- 관련 문서: [../README.md](../README.md), [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 
-## 1. 세션 시작 순서
+> [!WARNING]
+> 이 폴더(`ai-workflow/`)의 내용은 프로젝트의 코드베이스 분석이나 온보딩 시 참조해서는 안 됩니다. 프로젝트 이해를 위해서는 반드시 `docs/` 폴더를 참조하십시오.
 
-1. 현재 git 브랜치를 확인한다: `git branch --show-current`
-2. 브랜치별 memory 디렉터리를 연다.
-   - `codex/service-action-command` → [memory/codex/service-action-command/](./memory/codex/service-action-command/)
-   - `claude/init` → [memory/claude/init/](./memory/claude/init/)
-   - `claude/phase13` → [memory/claude/phase13/](./memory/claude/phase13/)
-   - `opencode/work_260604-a-opencode-workflow-bootstrap` → [memory/opencode/work_260604-a-opencode-workflow-bootstrap/](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/)
-3. 브랜치별 `state.json`, `session_handoff.md`, `work_backlog.md`, 최신 `backlog/YYYY-MM-DD.md`를 읽는다.
-4. 공용 기준 문서를 읽는다.
-   - [memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
-   - [memory/repository_assessment.md](./memory/repository_assessment.md)
+## 1. 운영 문서 인덱스 (State Index)
 
-## 2. 온보딩 점검 문서
+- **[Project Profile](../docs/PROJECT_PROFILE.md)**: 프로젝트 특화 워크플로우 규칙 및 명령 가이드.
+- **[Work Backlog Index](./memory/gemini/phase10/work_backlog.md)**: 전체 백로그 이력.
+- **[Current Session State](./memory/gemini/phase7/state.json)**: 현재 세션 캐시 (Auto-generated).
+- **[Branch Handoff](./memory/gemini/phase7/session_handoff.md)**: 브랜치별 인계 사항.
 
-- [README.md](./README.md)
-- [memory/project_status_assessment.md](./memory/project_status_assessment.md)
-- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
-- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
-- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
+## 2. 에이전트 운영 지침 (Agent Ops)
 
-## 3. 운영 기준
-
-- `ai-workflow/memory/<agent>/<branch>/`는 브랜치별 workflow 상태 문서다.
-- `ai-workflow/memory/PROJECT_PROFILE.md`, `repository_assessment.md`, `environments/`는 공용 기준 문서다.
-- flat `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `backlog/`는 legacy fallback 및 공용 색인 전용이다.
-- `ai-workflow/core/`는 별도 도구 없이도 수동으로 따를 수 있는 공통 운영 기준만 남긴다.
-- 배포용 source bundle, scripts, skills, MCP, tests는 현재 저장소에 포함하지 않는다.
-
-## 4. 다음 보강 후보
-
-- `memory/PROJECT_PROFILE.md`와 루트 `AGENTS.md`의 실행 명령 TODO 정리.
-- `memory/project_status_assessment.md`의 프로젝트명, 목적, 검증 명령 최신화.
-- 필요 시 별도 workflow kit source bundle에서 자동화 도구를 재설치.
+- **브랜치 격리**: 모든 상태 문서는 `ai-workflow/memory/<branch>/` 하위에서 관리합니다.
+- **Event Sourcing**: 백로그는 `tasks/` 폴더에 개별 태스크 단위로 기록합니다.
+- **비참조 원칙**: 코드베이스 분석(Semantic Search 등) 시 `ai-workflow/` 경로는 검색 범위에서 제외(Exclude)해야 합니다.
+- **작성 표준**: 모든 운영 문서는 [MEMORY_GOVERNANCE.md](../workflow-source/MEMORY_GOVERNANCE.md)의 템플릿과 규칙을 따릅니다.

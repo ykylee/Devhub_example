@@ -1,46 +1,53 @@
 # Standard AI Workflow Kit
 
-- 문서 목적: `Devhub Example Codex` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입하고 현재 운영 문서 위치를 안내한다.
+- 문서 목적: `Standard AI Workflow` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-06-04
-- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`
+- 최종 수정일: 2026-05-02
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
 
-## 1. 현재 배포 형태
+## 1. 도입 모드
 
-- 선택한 도입 모드: `existing`
-- 요약: 기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했고, 런타임 운영 문서 세트는 `ai-workflow/memory/<agent>/<branch>/` 아래에서 브랜치별로 관리한다.
+- 선택한 도입 모드: `new`
+- 요약:
+- 신규 프로젝트용 기본 문서 세트를 생성했다.
 
-## 2. 현재 유지되는 파일
+## 2. 생성된 파일
 
-- 공용 프로파일: [PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
-- 공용 평가: [repository_assessment.md](./memory/repository_assessment.md)
-- 현재 Codex 브랜치 state: [codex/service-action-command/state.json](./memory/codex/service-action-command/state.json)
-- 현재 Codex 브랜치 handoff: [codex/service-action-command/session_handoff.md](./memory/codex/service-action-command/session_handoff.md)
-- 현재 Codex 브랜치 backlog: [codex/service-action-command/work_backlog.md](./memory/codex/service-action-command/work_backlog.md)
-- Claude 브랜치 memory: [claude/](./memory/claude/)
-- OpenCode 브랜치 memory: [opencode/](./memory/opencode/) (2026-06-04 신설)
-- **Mavis 브랜치 memory**: [mvs/](./memory/mvs/) (2026-06-04 신설 — [`minimax_code_workflow.md`](./minimax_code_workflow.md) §3 + [MEMORY_GOVERNANCE.md §0.5](./MEMORY_GOVERNANCE.md))
-- flat `memory/state.json`, `memory/session_handoff.md`, `memory/work_backlog.md`, `memory/backlog/`는 legacy fallback 및 공용 색인 전용
+- [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- [ai-workflow/memory/state.json](./memory/state.json)
+- [ai-workflow/memory/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
+- [ai-workflow/memory/work_backlog.md](./memory/gemini/phase10/work_backlog.md)
+- [ai-workflow/memory/backlog/2026-05-02.md](./memory/gemini/phase10/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md)
+
 
 ## 3. 코어 문서
 
-- core 문서는 `--copy-core-docs` 옵션을 사용하면 함께 복사할 수 있다.
+- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
+- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
+- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
+- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
+- [core/output_schema_guide.md](./core/output_schema_guide.md)
+- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
+- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 
 ## 4. 하네스 오버레이
 
-- `codex` 하네스용 오버레이 파일 생성
+- `antigravity` 하네스용 오버레이 파일 생성
 
 ## 5. 도입 직후 해야 할 일
 
-1. `memory/PROJECT_PROFILE.md`의 TODO 항목과 기본 명령을 실제 프로젝트 값으로 채운다.
-2. 현재 브랜치별 `state.json`, `session_handoff.md`, 최신 backlog가 현재 작업 기준과 맞는지 확인한다.
-3. `memory/repository_assessment.md`의 추정값을 실제 저장소 규칙과 대조해 수정한다.
-4. 루트 `AGENTS.md`의 프로젝트 실행 기본값을 `PROJECT_PROFILE.md`와 맞춘다.
-5. 이후 skill/MCP 도입 범위는 현재 저장소에 남아 있는 `core/` 문서와 별도 workflow kit 배포물을 기준으로 결정한다.
+1. `PROJECT_PROFILE.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
+2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
+3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
+4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
+5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
 
 ## 6. 언어와 컨텍스트 운영 원칙
+
+> v0.5.4 부터 메인 orchestrator 와 sub-agent 간 위임은 [`../workflow-source/core/orchestrator_subagent_contract_v1.md`](../workflow-source/core/orchestrator_subagent_contract_v1.md) 의 외부 contract v1 을 따른다.
+
 
 - 사용자에게 직접 보이는 작업 보고, 상태 요약, handoff/backlog 갱신 문안은 기본적으로 한국어로 작성한다.
 - 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
@@ -49,26 +56,15 @@
 
 ## 7. 프로젝트 실제 문서 경로 설정값
 
-- 문서 위키 홈: `README.md`, `docs/README.md`
-- 운영 문서 위치: `ai-workflow/memory/<agent>/<branch>/`
-- 백로그 위치: `ai-workflow/memory/<agent>/<branch>/backlog/`
-- 세션 인계 문서 위치: `ai-workflow/memory/<agent>/<branch>/session_handoff.md`
-- flat memory 위치: legacy fallback 및 공용 색인 전용
+- 문서 위키 홈: `docs/README.md`
+- 운영 문서 위치: `ai-workflow/memory/`
+- 백로그 위치: `ai-workflow/memory/backlog/`
+- 세션 인계 문서 위치: `ai-workflow/memory/session_handoff.md`
 - 환경 기록 위치: `ai-workflow/memory/environments/`
-
-## 8. Mavis / MiniMax Code 운영 패턴
-
-- 본 저장소에서 Mavis (MiniMax Code, `MiniMax-M3`) 가 움직이는 방식은 [`./minimax_code_workflow.md`](./minimax_code_workflow.md) 단일 진입점으로 정의한다.
-- 5-워커 워크플로우 ([`docs/governance/worker_division.md`](../docs/governance/worker_division.md)) 와 공존한다 — Mavis 는 mvs/ prefix 로 cross-cut 정합만 수행.
 
 ## 다음에 읽을 문서
 
-- Mavis 운영 패턴 (MiniMax Code): [./minimax_code_workflow.md](./minimax_code_workflow.md)
-- 브랜치별 memory 규칙: [./MEMORY_GOVERNANCE.md](./MEMORY_GOVERNANCE.md)
-- 프로젝트 프로파일: [./memory/PROJECT_PROFILE.md](./memory/PROJECT_PROFILE.md)
-- 현재 Codex 브랜치 상태: [./memory/codex/service-action-command/state.json](./memory/codex/service-action-command/state.json)
-- 현재 Codex 브랜치 인계: [./memory/codex/service-action-command/session_handoff.md](./memory/codex/service-action-command/session_handoff.md)
-- 현재 Codex 브랜치 백로그: [./memory/codex/service-action-command/work_backlog.md](./memory/codex/service-action-command/work_backlog.md)
-- OpenCode 부트스트랩 브랜치 상태: [./memory/opencode/work_260604-a-opencode-workflow-bootstrap/state.json](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/state.json)
-- OpenCode 부트스트랩 브랜치 인계: [./memory/opencode/work_260604-a-opencode-workflow-bootstrap/session_handoff.md](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/session_handoff.md)
-- OpenCode 부트스트랩 브랜치 백로그: [./memory/opencode/work_260604-a-opencode-workflow-bootstrap/work_backlog.md](./memory/opencode/work_260604-a-opencode-workflow-bootstrap/work_backlog.md)
+- 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- 빠른 상태 요약: [./memory/state.json](./memory/state.json)
+- 세션 인계 문서: [./memory/gemini/phase10/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
+- 작업 백로그 인덱스: [./memory/gemini/phase10/work_backlog.md](./memory/gemini/phase10/work_backlog.md)

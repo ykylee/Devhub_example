@@ -1,18 +1,18 @@
-# Session Handoff — main (2026-06-12, v1.0 출시 직전 finalizing — PR #514 + PR #515 4 commit + codex P2 fix)
+# Session Handoff — main (2026-06-09, v1.0 출시 직전 finalizing — PR #514 + PR #515 머지 + codex P2 fix)
 
-- 문서 목적: PR #514 (voc + notification, ADR-0028) 머지 + 본 sprint `maintenance/work_260612-b-v1-finalizing` PR #515 4 commit push 상태 인계.
-- 범위: 본 세션의 2 PR (PR #514 squash, PR #515 push). 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (3 layer: production router mount + routePermissionTable + gin path conflict).
-- 상태: branch `maintenance/work_260612-b-v1-finalizing` HEAD `22306db` (5 commit push), PR #515 CI 진행 중 (Backend Unit Tests ✅ + 3 IN_PROGRESS).
-- 최종 수정일: 2026-06-12
+- 문서 목적: PR #514 (voc + notification, ADR-0028) + PR #515 (옵션 A N-12 housekeeping + B voc list + C N-10 IT 3 TC + codex P2 fix 3 layer) 머지 상태 인계.
+- 범위: 본 세션의 2 PR (PR #514 + PR #515 squash). 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (3 layer: production router mount + routePermissionTable + gin path conflict).
+- 상태: main `f7d2705` (PR #515 squash) + PR #514 (squash) 모두 머지 완료. main HEAD `897953c` (PR #503 housekeeping 기준) + 이후 06-09~06-10 v1.1 sprint -a follow-up PR #538/539/540/541/542/543 + tier-governance / branding / agentic-rag 등 다수 PR 머지. main 최신 HEAD `fee06d4` (2026-06-10 housekeeping `chore(memory)`).
+- 최종 수정일: 2026-06-10 (handoff 본문 마지막 갱신, 다음 cross-check: 2026-06-10 23:45 KST)
 
-## 0. 본 세션 핵심 결과 (2026-06-12, v1.0 출시 직전 finalizing)
+## 0. 본 세션 핵심 결과 (2026-06-09, v1.0 출시 직전 finalizing)
 
 ### PR 머지 / Push 결과
 
 | PR | 상태 | 의의 |
 | --- | --- | --- |
 | **#514** (voc + notification, ADR-0028) | ✅ MERGED (squash) | 외부 시스템 의뢰 staging 도메인 + 9 field + in-app notification + 5 API. `(source_system, external_ref)` UNIQUE for idempotency. ADR-0028 §3 옵션 1 (별도 도메인 + 1:1 dev-request 매핑) 채택. 12 file +1043 line. main `ba7823f`. |
-| **#515** (v1.0 출시 직전 finalizing) | ⏳ PUSH (CI 진행 중) | 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (PR #514 latent 회귀 3 layer 동시 fix). 5 commit (74ff06f + de94bac + 0a90782 + 2b00fe0 + 22306db). branch HEAD `22306db`. |
+| **#515** (v1.0 출시 직전 finalizing) | ✅ MERGED (squash, `f7d2705`, 06-09 07:08 UTC) | 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (PR #514 latent 회귀 3 layer 동시 fix). 5 commit (74ff06f + de94bac + 0a90782 + 2b00fe0 + 22306db). branch HEAD `22306db`. |
 
 ### Commit 4 — codex P2 fix (3 layer 동시)
 
@@ -45,9 +45,9 @@
 - **N-6**: staging 1주 운영 + 외부 사용자 ≥5 로그인 검증 (사용자 결정 영역)
 - 옵션 D (`project.inbound_source` 자동 routing, ADR-0028 §6 carve a): post-MVP 후속 sprint 후보
 
-## 0a. 이전 세션 (2026-06-10, swagger UI 1차 bootstrap + housekeeping)
+## 0a. 이전 세션 (2026-06-09, swagger UI 1차 bootstrap + v1.0 직전 housekeeping)
 
-### PR 머지 결과 (squash, 본 housekeeping PR 추가 예정)
+### PR 머지 결과 (squash, 후속 housekeeping PR은 v1.0 finalizing sprint 본 §0 참조)
 
 | PR | 상태 | 의의 |
 | --- | --- | --- |
