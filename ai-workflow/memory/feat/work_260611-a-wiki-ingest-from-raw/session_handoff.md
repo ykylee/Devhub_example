@@ -19,7 +19,7 @@
 
 **핵심 정공법**: 본 저장소 = source-of-truth + wrapper. my_harness 측 = skill 의 SSOT (spec + impl). **vault = 공유 자원** (D-72 §11.1, user 2026-06-11 결정).
 
-### 변경 요약 (4 file + 10 file 정정 + 4 file memory)
+### 변경 요약 (4 file + 10 file 정정 + 4 file memory + 4 file 신규 skill wrapper + 1 handoff + 1 README 갱신)
 
 | 파일 | 변경 | line |
 |---|---|---|
@@ -35,9 +35,15 @@
 | `docs/backend/requirements_review.md` | broken link 정정 — commit f03f491f | 1 line |
 | `docs/learning-session/2026-05-21/01-project-overview.md` | broken link 정정 — commit f03f491f | 1 line |
 | `docs/learning-session/2026-05-21/02-roadmap-and-docs.md` | broken link 정정 — commit f03f491f | 1 line |
+| `scripts/wiki-query.sh` | 신규 — D-79 thin wrapper (옵션 9개, 192 lines) — commit 15ca106f | 6,409 bytes |
+| `scripts/wiki-pr-update.sh` | 신규 — D-80 thin wrapper (옵션 5개, 150 lines) — commit 15ca106f | 9,275 bytes |
+| `docs/llm-wiki/query-skill.md` | 신규 — D-79 본 저장소 측 사용법 가이드 (10 sections) — commit 15ca106f | 230+ lines |
+| `docs/llm-wiki/pr-update-skill.md` | 신규 — D-80 본 저장소 측 사용법 가이드 (10 sections) — commit 15ca106f | 230+ lines |
+| `docs/llm-wiki/README.md` | 5 → 8 file root index 갱신 (D-79 + D-80 추가) + §4 다음 행동 표 T-d-79-1~6 + T-d-80-1~9 row 추가 | 1 section 갱신 |
+| `ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/handoff-to-my-harness.md` | 신규 — D-79 + D-80 my_harness 측 SSOT 작성 가이드 (~10K, 18 sections, D-72 §1-§11 verbatim 구조 + background 5 데이터 활용) | 10K |
 | `ai-workflow/memory/state.json` (main flat) | M-v1.0 notes append — wiki-ingest skill wrapper | 1 line |
 | `ai-workflow/memory/work_backlog.md` (main flat) | 상태 line + 최종 수정일 갱신 | 2 line |
-| `ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/{state.json, session_handoff.md, work_backlog.md, backlog/2026-06-11.md}` | branch memory 4 file 신규 + T-d-72-4 done 갱신 | 4 file |
+| `ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/{state.json, session_handoff.md, work_backlog.md, backlog/2026-06-11.md}` | branch memory 4 file 신규 + T-d-72-4 + T-d-79-1 + T-d-80-1 done 갱신 | 4 file |
 
 ### my_harness 측 SSOT (본 sprint 의 out-of-repo 작성)
 
@@ -84,19 +90,23 @@
 
 ## 1. 다음 세션 directive
 
-1. **PR #552 머지** (사용자 confirm 후, 현재 OPEN + 3 commit 정정 push + T-d-72-4 done).
+1. **PR #552 머지** (사용자 confirm 후, 현재 OPEN + 6 commit push + T-d-72-4 + T-d-79-1 + T-d-80-1 done + housekeeping + handoff).
 2. **PR #551 (T-d-72-2 re-sync) 머지** (사용자 confirm 후, vault 갭 해소).
 3. **PR #548 (N-13 backend foundation) 머지 결정** (E2E Internal 1 fail 해결 기대, PR #550 spec timing 안정화).
-4. **wiki-lint 8 errors / 62 warns follow-up** (별도 sprint — page-level L-rule 위반 분석 + fix).
-5. **T-d-72-5 (wiki/cross/) + T-d-72-6 (wiki-lint CI) + D-73/D-74 (my_harness 측 작업)**.
-6. **PR A-2 (routing/auto_route.go + voc_handler 통합 + openapi.yaml)** 별도 sprint.
-7. **N-6 staging 1주 운영** (사용자 결정).
+4. **T-d-79-2 + T-d-80-2 (my_harness 측 SSOT spec + impl 작성)** — `ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/handoff-to-my-harness.md` 가이드 참고. my_harness 측 owner/agent 영역.
+5. **T-d-79-3, T-d-79-4 (본 저장소 dry-run + --file 검증)** — T-d-79-2 완료 후.
+6. **T-d-80-3, T-d-80-4, T-d-80-5, T-d-80-6 (본 저장소 dry-run + apply + idempotency + reingest 검증)** — T-d-80-2 완료 후.
+7. **wiki-lint 8 errors / 62 warns follow-up** (별도 sprint — page-level L-rule 위반 분석 + fix).
+8. **T-d-72-5 (wiki/cross/) + T-d-72-6 (wiki-lint CI) + D-73/D-74 (my_harness 측 작업)**.
+9. **PR A-2 (routing/auto_route.go + voc_handler 통합 + openapi.yaml)** 별도 sprint.
+10. **N-6 staging 1주 운영** (사용자 결정).
 
 ## 2. 후속 (사용자 결정 영역)
 
 - **PR #552 머지 시점**: 사용자 confirm 후.
 - **PR #551 머지 시점**: 사용자 confirm 후.
 - **PR #548 머지 시점**: 본 PR + PR #550 머지 후 E2E Internal 1 fail 해결 확인 후.
+- **T-d-79-2 + T-d-80-2 (my_harness 측 작성) 시점**: 사용자 confirm 후 (또는 사용자 직접 작성).
 - **main flat memory 3 file finalize**: PR #552 머지 시점 finalize (merge_pr next action).
 
 ## 3. 변경 이력
@@ -105,3 +115,5 @@
 |---|---|
 | 2026-06-11 | 본 sprint — wiki-ingest-from-raw skill (본 저장소 wrapper + my_harness SSOT) + dry-run PASS + branch memory + PR #552 발행 |
 | 2026-06-11 | 3 commit 모순점 정정 (fix(wiki) publication-matrix + README / chore(wiki) 3 columns accepted / fix(docs) 5 broken link) + T-d-72-4 --apply (82 wiki page 신규 ingest, vault commit b1599cc) + memory 4 file 갱신 |
+| 2026-06-11 | T-d-79-1 + T-d-80-1 done — wiki-query + wiki-pr-update thin wrapper 4 file (scripts/wiki-query.sh + wiki-pr-update.sh + docs/llm-wiki/query-skill.md + pr-update-skill.md, commit 15ca106f). PR #552 update. |
+| 2026-06-11 | 본 turn housekeeping — docs/llm-wiki/README.md 5 → 8 file root index 갱신 + handoff-to-my-harness.md 작성 (T-d-79-2/T-d-80-2 의뢰서, D-72 §1-§11 verbatim 구조 + background 5 데이터 활용) + branch memory 4 file 갱신 |
