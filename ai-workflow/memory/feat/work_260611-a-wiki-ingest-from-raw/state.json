@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/work_260611-a-wiki-ingest-from-raw",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "wiki_ingest_skill": [
+        "T-d-72-3 (wiki-ingest-from-raw) 본 저장소 측 wrapper 작성 (D-72 Phase 3 진입)",
+        "scripts/wiki-ingest-from-raw.sh (5,987 bytes, executable) — raw mirror + wiki ingest 2-step 통합",
+        "docs/llm-wiki/ingest-skill.md (6,978 bytes) — 본 저장소 측 사용법 가이드",
+        "my_harness 측 SSOT: wiki_ingest_skill_spec.md (10,236 bytes) + SKILL.md + run_wiki_ingest.py (19,996 bytes)",
+        "dry-run PASS: 83 source 식별, 0 errors, cross-ref 자동 매칭 (예: adr-0002 → [[rbac]] 1건)"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "wiki_ingest_wrapper": "scripts/wiki-ingest-from-raw.sh",
+    "wiki_ingest_guide": "docs/llm-wiki/ingest-skill.md",
+    "my_harness_skill_spec": "~/repos/my_harness/ai-workflow/core/wiki_ingest_skill_spec.md",
+    "my_harness_skill_impl": "~/repos/my_harness/ai-workflow/skills/wiki-ingest-from-raw/"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (wiki-ingest skill wrapper 정합)"
+    ],
+    "post_merge": [
+      "T-d-72-4 (Phase 3 mass ingest, ~100 file) — 사용자 confirm 시 bash scripts/wiki-ingest-from-raw.sh --project devhub --apply",
+      "PR #548 (N-13 backend foundation) 머지 결정 (E2E Internal 1 fail 해결 기대)"
+    ]
+  }
+}
