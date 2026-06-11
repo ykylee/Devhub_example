@@ -142,7 +142,7 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 ### v1.0 출시 직전 — 우선순위
 
 1. **N-6 (v1.0 staging 1주 운영)** — N-8 + N-11 + N-7 + 워커 분업 취소 + swagger UI + housekeeping 정합 완료. 사용자가 staging 환경 운영 + 외부 사용자 ≥5 로그인 검증. (사용자 결정, sprint 영역 외)
-2. **N-10 Manager RBAC E2E spec-vs-구현 갭 6 TC 보강** — v1.0 출시 전 가능. **sprint `maintenance/work_260610-c-N10-rbac-e2e-tcs` 진입 예정**. validation 보고서 [docs/validation/N-10-manager-rbac.md](docs/validation/N-10-manager-rbac.md) 의 TC-RBAC-ROW-READ-01/02 + TC-RBAC-LOGOUT-01/02 + TC-RBAC-ROLE-DRIFT-01 + TC-RBAC-CODE-01 + TC-RBAC-TRACE-01 (총 6건).
+2. **N-10 Manager RBAC partial verified (status ⏳)** — 검증 보고서 [docs/validation/N-10-manager-rbac.md](docs/validation/N-10-manager-rbac.md) 의 follow-up 6 TC 중 7 TC active 완료: **E2E 4 TC** (TC-RBAC-LOGOUT-02 + TC-RBAC-ROW-READ-01/02 + TC-RBAC-CODE-01) 는 `frontend/tests/e2e/rbac-data-scope.spec.ts` 에 PR #509 머지 (branch `maintenance/work_260610-c-N10-rbac-e2e-tcs`, mergeCommit `cb59b39`). **backend IT 3 TC** (TC-RBAC-LOGOUT-01 + TC-RBAC-ROLE-DRIFT-01 + TC-RBAC-LEGACY-01) 는 `backend-core/internal/domain/rbac-permissions/view/rbac_n10_integration_test.go` 에 PR #515 옵션 C 머지. TC-RBAC-TRACE-01 는 Process/review 단계로 spec header 주석에 입증. PR #512 (codex P2 follow-up `fix/work_260611-c-n10-status-partial-apply`) 로 `release_v1_roadmap.md §3.5 N-10 row` status = `⏳ verified (partial — E2E 4 TC done, IT/UT 3 TC + Process 1 TC scoped to follow-up sprints)`. 잔여 housekeeping (메모리 drift 정합, 검증 보고서 §3 close 마킹) 만 남음.
 
 ### 완료 정합 (2026-06-10)
 
@@ -178,7 +178,7 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 | 우선순위 | 항목 | 사유 |
 |---|---|---|
 | **N-6** | v1.0 staging 1주 운영 검증 | 외부 사용자 로그인 + Onboarding SOP DoD 8 만족 (사용자) |
-| **N-10** | Manager RBAC E2E spec-vs-구현 갭 6 TC 보강 | sprint `maintenance/work_260610-c-N10-rbac-e2e-tcs` 진입 예정 |
+| **N-10** | Manager RBAC partial verified (status ⏳) | E2E 4 TC (PR #509) + backend IT 3 TC (PR #515) active. TRACE-01 Process scoped-out. 잔여 housekeeping 만 |
 | **X-1** | System Admin 운영 대시보드 | Gitea sync job 큐/상태 + provider health (v1.1) |
 | **X-2** | inbound webhook 정규화 깊이 | multi-provider sync 일반화 (v1.1) |
 
@@ -186,7 +186,7 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 * **PR #515 ✅ MERGED** (squash `f7d2705`) + **PR #516 ✅ MERGED** (squash `2b3c766`) + **PR #517 ✅ MERGED** (squash `97bc6bc`).
 * **swagger UI 정상동작 fix 완료** — PR #508 의 silent 404 의도적 결정을 embed fallback 으로 supersede. 7 swagger TC 모두 PASS. staging env `DEVHUB_SWAGGER_ENABLED=true` 만 설정해도 openapi.yaml 정상 서빙.
 * **N-6**: staging 1주 운영 (사용자 결정 영역). swagger UI 정상동작 정합.
-* **N-10 IT 3 TC 완료 정합** (본 sprint): `TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01` ✅ verified.
+* **N-10 IT 3 TC 완료 정합** (이전 sprint, PR #515 옵션 C): `TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01` ✅ verified (`rbac_n10_integration_test.go`). E2E 4 TC 는 PR #509 로 별도 active. status partial verified.
 * **option D 검토 완료**: N-13 + ADR-0028 §6 정합. 구현 = v1.1 milestone 진입 시점.
 * **V1.1 진입 준비**: X-1/X-2 로드맵 백로그 분석.
 
@@ -296,7 +296,7 @@ sprint -a follow-up PR1 (PR #540) 의 carry-over C-g + C-h 의 정공법. 본 PR
 
 - 본 PR commit + push + PR 발행 (사용자 confirm 후).
 - 또는 C-i (E2E CI matrix) 진입.
-- 또는 다른 sprint (N-10 RBAC E2E 6 TC / release_v1_roadmap.md 갱신).
+- 또는 다른 sprint (N-10 housekeeping close / release_v1_roadmap.md §3.5 N-10 close 마킹 / 검증 보고서 §3 follow-up close).
 
 ## 7. 본 세션 (2026-06-10, sprint -a follow-up PR1 PR #540 의 carry-over C-i 정공법 PR — ci.yml + script 2 file)
 
@@ -362,7 +362,7 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 
 - **backend-integration DEVHUB_BUILD_TIER matrix** (P3): sprint -a follow-up 본 PR #539 의 backend-integration 재활성화 + DEVHUB_BUILD_TIER=internal matrix.
 - **release_v1_roadmap.md §3.5 N-13** 정합 (P3): C-i + C-j + C-g/C-h + C-j done 마킹. N-13 row close.
-- **N-10 RBAC E2E 6 TC 보강** (sprint `maintenance/work_260610-c-N10-rbac-e2e-tcs`): v1.0 출시 직전 잔여.
+- **N-10 housekeeping close** (P3): 메모리 drift 정합 (session_handoff.md / work_backlog.md / state.json) — E2E 4 + IT 3 active, status partial verified 정공법. 검증 보고서 §3 follow-up close 마킹.
 - 또는 다른 sprint 진입.
 
 ## 9. 본 세션 (2026-06-10, D-72 Phase 1 — `~/wiki/` LLM Wiki 통합 의 in-repo source-of-truth + sync script)
@@ -398,7 +398,7 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **wiki/cross/** (P3, Phase 3 후속): cross-project 종합 (my_harness 의 LLM Wiki 패턴 ↔ DevHub 의 ADR-0030 runtime injection).
 - **v2.0** (P3, forward): LLM 호출 + BM25+vector+MCP. my_harness 의 v2.0 경험 보고 진입.
 - **N-13 release_v1_roadmap §3.5 정합** (P3, housekeeping): N-13 row status = done 마킹.
-- 또는 다른 sprint (backend-integration matrix / N-10 RBAC E2E 6 TC).
+- 또는 다른 sprint (backend-integration matrix / N-10 housekeeping close).
 
 ## 10. wiki 통합 일임 결정 (2026-06-10, yklee directive)
 
@@ -419,7 +419,7 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **본 저장소 측 follow-up task (독립 진행 가능, yklee 별도 confirm 시)**:
   - **N-13 release_v1_roadmap.md §3.5 정합** (P3, housekeeping): D-72 + D-73 + D-74 + D-75 의 carry-over N-13 row status = done 마킹. **본 저장소 측에서 독립 진행 가능** (my_harness 결과 통보와 무관).
   - **backend-integration DEVHUB_BUILD_TIER matrix** (P3): sprint -a follow-up 본 PR #539 의 backend-integration 재활성화 + DEVHUB_BUILD_TIER=internal matrix. **본 저장소 측에서 독립 진행 가능**.
-  - **N-10 RBAC E2E 6 TC 보강** (P1, sprint `maintenance/work_260610-c-N10-rbac-e2e-tcs`): v1.0 출시 직전 잔여. **본 저장소 측에서 독립 진행 가능**.
+  - **N-10 housekeeping close** (P3): E2E 4 + IT 3 active, status partial verified 정공법. **본 저장소 측에서 독립 진행 가능**.
 
 ### Memory 갱신
 
@@ -430,7 +430,7 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **다른 sprint 진입 (본 저장소 측의 독립 진행 가능 task)**:
   - N-13 release_v1_roadmap.md §3.5 정합 (housekeeping)
   - backend-integration DEVHUB_BUILD_TIER matrix (P3)
-  - N-10 RBAC E2E 6 TC 보강 (P1)
+  - N-10 housekeeping close (P3)
 - **또는 사용자 confirm 후 본 저장소 측의 mirror 실행 (T-d-72-5)** — my_harness 결과 통보와 무관하게 단독 진행 가능 (mirror list 가 본 저장소 의 SSOT 이므로).
 - **또는 my_harness 의 결과 통보 대기** (D-73, D-74, Phase 3 등).
-- 또는 N-10 RBAC E2E 6 TC 보강 / release_v1_roadmap.md 갱신.
+- 또는 N-10 housekeeping close / release_v1_roadmap.md §3.5 N-13 정합.

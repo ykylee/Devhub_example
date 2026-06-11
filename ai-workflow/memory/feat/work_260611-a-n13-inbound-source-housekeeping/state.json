@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/work_260611-a-n13-inbound-source-housekeeping",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "n13_housekeeping": [
+        "N-13 ID slot 9 row 발급 (REQ-FR-113 / UC-DEV-REQ-15 / ARCH-23 / API-103 / RM-DEV-REQ-15 / IMPL-inbound-source-01 / IMPL-platform-patch-02 / UT-inbound-source-01 / TC-INBOUND-SRC-01)",
+        "conventions.md §1 RM 표기 정책 확장 (도메인 prefix 관행 RM-{domain}-{nn} 명문화)",
+        "ADR-0028 §6 (a) + §7 변경 이력 정합",
+        "release_v1_roadmap §3.5 N-13 row + §9 변경 이력 + 헤더 메타 정합"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/feat/work_260611-a-n13-inbound-source-housekeeping/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/feat/work_260611-a-n13-inbound-source-housekeeping/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/feat/work_260611-a-n13-inbound-source-housekeeping/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "traceability_report": "docs/traceability/report.md",
+    "conventions": "docs/traceability/conventions.md",
+    "adr_0028": "docs/adr/0028-dev-requests-voc-external-ref.md",
+    "release_v1_roadmap": "docs/planning/release_v1_roadmap.md",
+    "sprint_plan": "docs/planning/2026-06-12-inbound-source-routing-sprint-plan.md"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (state.json / session_handoff.md / work_backlog.md 의 N-13 housekeeping close 마킹)"
+    ],
+    "post_merge": [
+      "구현은 v1.1 milestone 진입 시점 별도 sprint `feat/work_260611-a-n13-inbound-source-impl` (migration 000007 + domain.Platform 2 field + repository.UpdatePlatformInboundSource + routing/auto_route.go + voc_handler 통합 + PATCH /platforms + UT/IT + E2E + ADR-0028 §6 amendment)"
+    ]
+  }
+}

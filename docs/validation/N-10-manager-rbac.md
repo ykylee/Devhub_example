@@ -3,10 +3,10 @@
 - 문서 목적: release_v1_roadmap §3.5 N-10 "Manager role RBAC 검증" sprint 의 결과 기록. PR #461 (RBAC hardening) + PR #462 (CI Run API + RBAC row filter + org subtree scope) 의 회귀 검증.
 - 범위: Manager role (정식 명칭: `team_manager`) 의 (1) DB/마이그레이션 정합, (2) backend row filter/subtree scope 구현, (3) E2E seed 매핑, (4) E2E/UT 커버리지, (5) `role-access-concept.md` 정합.
 - 대상 독자: 프로젝트 리드, Claude (backend RBAC owner), 사용자가 v1.0 출시 전 결함 triage.
-- 상태: verified-with-followup (1건 결함 발견)
-- 최종 수정일: 2026-06-04
-- 검증 sprint: `opencode/work_260604-c-N10-manager-rbac-validation` (opencode Lane 2 첫 carve)
-- 관련 PR: #461 (RBAC hardening), #462 (CI Run + RBAC row filter + subtree)
+- 상태: verified (partial — E2E 4 TC + backend IT 3 TC active, TRACE-01 Process scoped-out)
+- 최종 수정일: 2026-06-11 (N-10 follow-up 정합 — §3.1 partial resolved + §3.2 resolved)
+- 검증 sprint: `opencode/work_260604-c-N10-manager-rbac-validation` (opencode Lane 2 첫 carve) + `maintenance/work_260610-c-N10-rbac-e2e-tcs` (follow-up partial) + `chore/n10-memory-drift-2026-06-11` (memory drift 정합)
+- 관련 PR: #461 (RBAC hardening), #462 (CI Run + RBAC row filter + subtree), #509 (N-10 P1 follow-up E2E 4 TC), #512 (status partial 정정), #515 (N-10 backend IT 3 TC 옵션 C)
 - 관련 문서: [role-access-concept.md](../planning/role-access-concept.md), [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md), [ADR-0026 Keycloak role excluded decision](../adr/0026-keycloak-role-excluded-decision.md), [release_v1_roadmap §3.5 N-10](../planning/release_v1_roadmap.md)
 
 ## 0. 검증 환경
@@ -110,19 +110,19 @@
 
 ## 3. 발견 결함 + Follow-up
 
-### 3.1 [P1] E2E `TC-RBAC-ROW-READ-01/02` 등 spec vs 구현 갭
+### 3.1 [P1] E2E `TC-RBAC-ROW-READ-01/02` 등 spec vs 구현 갭 — **partial resolved (2026-06-10)**
 
-- **현상**: `docs/domain/rbac-permissions/test_cases.md` 에는 `TC-RBAC-ROW-READ-01/02`, `TC-RBAC-LOGOUT-01/02`, `TC-RBAC-ROLE-DRIFT-01`, `TC-RBAC-CODE-01`, `TC-RBAC-TRACE-01` 6건 spec 존재. `frontend/tests/e2e/` 에 동일 ID 의 `test()` 미존재. PR #461 의 body 가 추가 주장했으나 미반영.
-- **영향**:
-  - v1.0 출시 후 row filter 회귀 검출 수단 부재
-  - `rbac-routes.spec.ts` 의 `TC-RBAC-DEV-VIEW-01/02` 는 route-level 만 cover (실제 list 데이터 row filter 미검증)
-- **권장 fix**: 별도 sprint (Gemini 영역) 또는 opencode Lane 2 follow-up. 6건 모두 `frontend/tests/e2e/rbac-routes.spec.ts` 또는 신규 `rbac-data-scope.spec.ts` 에 추가.
-- **v1.0 차단 여부**: P1 (회귀 위험). codex review 또는 staging 1주 운영에서 발견 가능.
+- **현상** (2026-06-04 검증 시점): `docs/domain/rbac-permissions/test_cases.md` 에는 `TC-RBAC-ROW-READ-01/02`, `TC-RBAC-LOGOUT-01/02`, `TC-RBAC-ROLE-DRIFT-01`, `TC-RBAC-CODE-01`, `TC-RBAC-TRACE-01` 7 TC spec 존재. `frontend/tests/e2e/` 에 동일 ID 의 `test()` 미존재. PR #461 의 body 가 추가 주장했으나 미반영.
+- **2026-06-09/10 정공법**:
+  - **E2E 4 TC active** (PR #509, `cb59b39`, branch `maintenance/work_260610-c-N10-rbac-e2e-tcs`): `frontend/tests/e2e/rbac-data-scope.spec.ts` 신규 작성. `TC-RBAC-LOGOUT-02` (FE signout → logout API orchestration) + `TC-RBAC-ROW-READ-01` (List read scope 필터 — developer 가 member 아닌 project 미노출) + `TC-RBAC-ROW-READ-02` (Get read scope 차단) + `TC-RBAC-CODE-01` (거부 코드 표준화). 4 TC 모두 Vitest + Playwright ready.
+  - **backend IT 3 TC active** (PR #515 옵션 C `0a90782`): `backend-core/internal/domain/rbac-permissions/view/rbac_n10_integration_test.go` 신규. `TC-RBAC-LOGOUT-01` (TestN10_Logout01_RBACPathUnaffected, N-8 logout 4 status 가 rbac 경로 비영향) + `TC-RBAC-ROLE-DRIFT-01` (TestN10_RoleDrift01_CacheInvalidateReloads, PermissionCache.Invalidate 정합) + `TC-RBAC-LEGACY-01` (TestN10_Legacy01_RBACPolicyGoneReturns410, ADR-0002 410 Gone 정합).
+  - **TC-RBAC-TRACE-01** (Process/review 단계): spec header 주석에 본 sprint housekeeping 1 line + scope-out 명시. process 단계의 PR review 체크리스트 항목으로 정합.
+- **status 정정** (PR #512, codex P2 follow-up `fix/work_260611-c-n10-status-partial-apply`): `release_v1_roadmap.md §3.5 N-10 row` status = `⏳ verified (partial — E2E 4 TC done, IT/UT 3 TC + Process 1 TC scoped to follow-up sprints)`.
+- **잔여 housekeeping** (2026-06-11 본 sprint): session_handoff.md / work_backlog.md / state.json 의 N-10 "잔여 6 TC" drift 정합.
+### 3.2 [P3] roadmap 의 "mgr-user-b" 명칭 비공식 — **resolved (2026-06-10)**
 
-### 3.2 [P3] roadmap 의 "mgr-user-b" 명칭 비공식
-
-- **현상**: `release_v1_roadmap.md §3.5 N-10` 본문이 `mgr-user-b` 표기. 실제 E2E seed user_id = `bob`.
-- **권장 fix**: roadmap 본문 갱신 — 본 검증 보고서 §3.5 의 follow-up 으로 즉시 적용 (아래 §4 의 PR 에서 함께 처리).
+- **현상** (2026-06-04 검증 시점): `release_v1_roadmap.md §3.5 N-10` 본문이 `mgr-user-b` 표기. 실제 E2E seed user_id = `bob`.
+- **2026-06-10 정공법**: roadmap 본문 갱신 — E2E seed `bob` (team_manager) 으로 정정 (N-10 검증 보고서 §3.5 의 follow-up 동봉 PR).
 
 ### 3.3 [P3] `role-access-concept.md` §2.1 표의 "기존 대응" 컬럼 모순
 
@@ -151,6 +151,5 @@
 
 ## 6. 변경 이력
 
-| 일자 | 변경 | sprint |
-| --- | --- | --- |
 | 2026-06-04 | 1차 작성 — V-01..V-10 검증 결과 + 4건 follow-up 식별 | `opencode/work_260604-c-N10-manager-rbac-validation` |
+| 2026-06-10 | **follow-up 정합** — §3.1 P1 (E2E 4 TC + backend IT 3 TC + Process 1 TC) **partial resolved** + status `⏳ verified (partial)` 정정 (PR #509 / #515 / #512). §3.2 P3 (roadmap "mgr-user-b" → `bob` 명칭) **resolved**. §3.3 / §3.4 P3 housekeeping 후속 | `maintenance/work_260610-c-N10-rbac-e2e-tcs` + 본 housekeeping sprint `chore/n10-memory-drift-2026-06-11` |
