@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# wiki-prompt-log — 본 저장소 (= DevHub) 측 thin wrapper.
+# SSOT: ~/wiki/skills/wiki-prompt-log/scripts/wiki-prompt-log.py (vault, cross-project).
+# 밴치마킹 출처: ~/repos/my_harness/ai-workflow/skills/wiki-prompt-log/ (D-86).
+#
+# 사용:
+#   bash ai-workflow/skills/wiki-prompt-log/scripts/wiki-prompt-log \
+#     --project=devhub --slug=<kebab> --intent="..." [--dry-run]
+#
+# vault Gitea remote push 는 본 wrapper scope 외 (사용자 수동).
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VAULT_PY="$HOME/wiki/skills/wiki-prompt-log/scripts/wiki-prompt-log.py"
+
+if [[ ! -f "$VAULT_PY" ]]; then
+  echo "ERROR: vault SSOT 부재: $VAULT_PY" >&2
+  echo "  hint: vault 초기화 필요 (my_harness 측 wiki-init 또는 manual)." >&2
+  exit 1
+fi
+
+# vault 의 prompt/ 디렉터리 사전 확인
+PROJECT=""
+for arg in "$@"; do
+  case "$arg" in
+    --project=*) PROJECT="${arg#--project=}";;
+  esac
+done
+
+if [[ -n "$PROJECT" ]]; then
+  PROMPT_DIR="$HOME/wiki/raw/projects/$PROJECT/prompt"
+  if [[ ! -d "$PROMPT_DIR" ]]; then
+    echo "ERROR: prompt/ 디렉터리 없음: $PROMPT_DIR" >&2
+    echo "  hint: mkdir -p $PROMPT_DIR" >&2
+    exit 1
+  fi
+fi
+
+exec python3 "$VAULT_PY" "$@"
