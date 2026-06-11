@@ -42,13 +42,14 @@
 
 **mirror 정책**: 5 file 모두 mirror. 단 `worker_division.md` 의 사내 한정 정보 (DEVHUB_KEYCLOAK_*, internal-registry, 172.16.0.0/12) **포함되지만** D-72 응답 §3 + yklee 결정으로 `sa-internal/` 격리 불요 + GitHub Wiki 가 아닌 Gitea private 만 push 이므로 mirror 허용.
 
-### 1.3 Planning — 26 file
+### 1.3 Planning — 27 file
 
 **소스 경로**: `docs/planning/*.md`
 
-**mirror 정책**: 26 file 모두 mirror. 단 `infra/idp/_archive_*/` 의 immutable archive 미포함 (ADR-0001/0009 cross-ref 가능 archive 는 별도 위치).
+**mirror 정책**: 27 file 모두 mirror. 단 `infra/idp/_archive_*/` 의 immutable archive 미포함 (ADR-0001/0009 cross-ref 가능 archive 는 별도 위치).
 
 **file list (자동 script 로 동적)**:
+- 2026-06-11-p2-residual-sprint-plan.md
 - 2026-06-12-inbound-source-routing-sprint-plan.md
 - api-key-management-sprint-plan.md
 - application_management_hotfix_2026-05-27.md
@@ -64,7 +65,7 @@
 - sprint-plan-20260601.md
 - system_usecases.md
 - rbac-hardening-implementation-readiness-20260602.md
-- (11+ file; `find docs/planning -type f -name "*.md" | wc -l` = 26)
+- (12+ file; `find docs/planning -type f -name "*.md" | wc -l` = 27)
 
 ### 1.4 Setup — 15 file
 
@@ -163,7 +164,7 @@
 - Requirements: 1 file (≈ 50KB)
 - OpenAPI: 1 file (≈ 300KB)
 - AI-workflow memory: 3 file (≈ 50KB)
-- **합 ≈ 3.5MB, 82 file**
+- **합 ≈ 3.5MB, 83 file**
 
 ## 4. lint 영향
 
