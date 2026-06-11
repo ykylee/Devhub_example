@@ -56,7 +56,7 @@ test.describe("Sign Out terminates IdP session", () => {
     });
     // Redirect chain timing can differ by environment; the important
     // assertion is that the credential form is shown again (no silent auth).
-    await waitForSignInForm(page, { restartOIDCOnAppLogin: true });
+    await waitForSignInForm(page, { restartOIDCOnAppLogin: true, timeoutMs: 45_000 });
 
     // The password field must be empty — no auto-completion of identity
     await expect(page.locator("input#password, input[name='password']").first()).toHaveValue("");
@@ -77,7 +77,7 @@ test.describe("Sign Out terminates IdP session", () => {
     await page.goto(appPath("/developer")).catch(() => {
       // navigation interrupted by client-side window.location.assign — expected.
     });
-    await waitForSignInForm(page, { restartOIDCOnAppLogin: true });
+    await waitForSignInForm(page, { restartOIDCOnAppLogin: true, timeoutMs: 45_000 });
   });
 });
 
@@ -106,7 +106,7 @@ test.describe("user switch across Sign Out", () => {
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.includes("ERR_ABORTED")) throw err;
     });
-    await waitForSignInForm(page, { restartOIDCOnAppLogin: true });
+    await waitForSignInForm(page, { restartOIDCOnAppLogin: true, timeoutMs: 45_000 });
     await submitSignInForm(page, SEEDED.team_manager.email, SEEDED.team_manager.password);
     await completeKeycloakRequiredActionsIfPresent(page);
     await expectActorIs(page, SEEDED.team_manager);
