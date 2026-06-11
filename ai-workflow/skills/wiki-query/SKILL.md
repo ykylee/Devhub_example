@@ -10,7 +10,7 @@
   - `~/repos/my_harness/ai-workflow/skills/wiki-query/SKILL.md` (SSOT, 5838 lines)
   - `docs/llm-wiki/query-skill.md` (본 저장소 측 사용 가이드, PR #552, handoff §2 의 본 저장소 측 thin wrapper)
   - `~/wiki/AGENTS.md` v1.5 §2.2 (Query 6 step)
-  - `ai-workflow/skills/wiki-query-helper/SKILL.md` (D-86 흐름 3 — 본 skill 과 trigger 다름: wiki-query-helper = cross-project 가벼운 후보 추천 (인덱스 + frontmatter grep), wiki-query = devhub/my-harness project 정식 query (vault 의 query/<date>-<topic>.md filing + log/index 갱신))
+  - ~~`ai-workflow/skills/wiki-query-helper/SKILL.md` (D-86 흐름 3 — 본 skill 과 trigger 다름)~~ **(2026-06-11 폐기, D-86 thin wrapper 전면 제거)**: `~/wiki/skills/wiki-query-helper/SKILL.md` SSOT 직접 호출. vault 일괄 관리 정책 (wiki 관련 SSOT 는 `~/wiki/skills/` 단일 위치) 정합. 본 skill 과의 trigger 차이 (wiki-query-helper = cross-project 가벼운 후보 추천, wiki-query = devhub/my-harness project 정식 query filing) 동일.
 
 ## 1. 사용법
 
