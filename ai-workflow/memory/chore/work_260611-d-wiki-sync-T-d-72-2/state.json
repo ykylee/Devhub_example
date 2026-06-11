@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "chore/work_260611-d-wiki-sync-T-d-72-2",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "wiki_sync_t_d_72_2": [
+        "D-72 Phase 1 mirror 실행 (T-d-72-2) 완료 (2026-06-11 01:10:39Z, 83 file, 1.6M)",
+        "vault = 공유 자원 (my_harness 측 Gitea private)",
+        "main flat memory 3 file (state.json / session_handoff.md / work_backlog.md) 정합 — 06-11 04 line + status line + M-v1.0 notes append"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/chore/work_260611-d-wiki-sync-T-d-72-2/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/chore/work_260611-d-wiki-sync-T-d-72-2/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/chore/work_260611-d-wiki-sync-T-d-72-2/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "wiki_sync_script": "scripts/wiki-sync-devhub.sh",
+    "mirror_list": "docs/llm-wiki/mirror-list.md",
+    "vault_root": "/home/yklee/wiki",
+    "vault_target": "/home/yklee/wiki/raw/projects/devhub/"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (T-d-72-2 done 마킹 확정)"
+    ],
+    "post_merge": [
+      "T-d-72-3 (my_harness 측 wiki-lint --project 옵션 추가)",
+      "T-d-72-4 (Phase 3 mass ingest, 30~50 wiki page)",
+      "T-d-72-5 (wiki/cross/ cross-project 종합)",
+      "T-d-72-6 (wiki-lint CI integration, D-74+)"
+    ]
+  }
+}

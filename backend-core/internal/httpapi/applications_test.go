@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -11,13 +12,9 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
 	"github.com/devhub/backend-core/internal/store"
 )
-
-// memoryPlatformStore is an in-memory PlatformStore used by handler tests.
-// 본 store 는 SQL CHECK 제약 / FK 동작을 흉내내지 않으므로, handler 레벨 검증 (key
-// 정규식, immutable, 상태 전이 가드, RBAC denial) 만 검증 대상. PostgreSQL 통합
-// 테스트는 별도 (build-tagged) — 본 sprint 의 carve out.
 type memoryPlatformStore struct {
 	mu                   sync.Mutex
 	platforms                 map[string]domain.Platform
@@ -169,6 +166,45 @@ func (s *memoryPlatformStore) UpdatePlatform(_ context.Context, app domain.Platf
 	return app, nil
 }
 
+// UpdatePlatformInboundSource (N-13, ADR-0028 §6 a) — httpapi in-memory fake
+// (validation + storage) without the JSONB SQL binding.
+func (s *memoryPlatformStore) UpdatePlatformInboundSource(_ context.Context, platformID, inboundType, inboundConfig string) (domain.Platform, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, ok := s.platforms[platformID]
+	if !ok {
+		return domain.Platform{}, store.ErrNotFound
+	}
+	if !domain.IsValidPlatformInboundSourceType(inboundType) {
+		return domain.Platform{}, repository.ErrInvalidInboundSourceType
+	}
+	if inboundType == "" && inboundConfig != "" {
+		return domain.Platform{}, repository.ErrInvalidInboundSourceConfig
+	}
+	if inboundConfig != "" && !json.Valid([]byte(inboundConfig)) {
+		return domain.Platform{}, repository.ErrInvalidInboundSourceConfig
+	}
+	current.InboundSourceType = inboundType
+	current.InboundSourceConfig = inboundConfig
+	current.UpdatedAt = time.Now().UTC()
+	s.platforms[platformID] = current
+	return current, nil
+}
+
+// ListEnabledInboundSourcePlatforms (N-13, ADR-0028 §6 a) — returns only
+// platforms with a non-empty inbound_source_type. Mirrors the production
+// production *PlatformRepository.ListEnabledInboundSourcePlatforms query.
+func (s *memoryPlatformStore) ListEnabledInboundSourcePlatforms(_ context.Context) ([]domain.Platform, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Platform, 0, len(s.platforms))
+	for _, p := range s.platforms {
+		if p.InboundSourceType != "" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
 func (s *memoryPlatformStore) ArchivePlatform(_ context.Context, id, _ string) (domain.Platform, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

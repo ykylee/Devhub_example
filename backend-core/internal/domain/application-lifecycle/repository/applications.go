@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,6 +13,15 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// ErrInvalidInboundSourceType is returned by UpdatePlatformInboundSource when the
+// inbound_source_type is not in the migration 000007 CHECK whitelist
+// (empty/gitea/jira/other). Caller maps this to 400 + invalid_inbound_source_type.
+var ErrInvalidInboundSourceType = errors.New("invalid inbound source type")
+
+// ErrInvalidInboundSourceConfig is returned by UpdatePlatformInboundSource when the
+// inbound_source_config fails migration 000007 consistency CHECK (type='' with non-empty
+// config) or fails to parse as JSON. Caller maps this to 400 + invalid_inbound_source_config.
+var ErrInvalidInboundSourceConfig = errors.New("invalid inbound source config")
 func nullableUUIDArg(v string) any {
 	if strings.TrimSpace(v) == "" {
 		return nil
@@ -40,6 +50,8 @@ const platformsSelectColumns = `
 	start_date,
 	due_date,
 	archived_at,
+	COALESCE(inbound_source_type, ''),
+	COALESCE(inbound_source_config::text, ''),
 	created_at,
 	updated_at`
 
@@ -94,6 +106,8 @@ func ScanPlatform(row pgx.Row) (domain.Platform, error) {
 		&startDate,
 		&dueDate,
 		&archivedAt,
+		&plat.InboundSourceType,
+		&plat.InboundSourceConfig,
 		&plat.CreatedAt,
 		&plat.UpdatedAt,
 	); err != nil {
@@ -199,19 +213,18 @@ func (r *PlatformRepository) GetPlatformByKey(ctx context.Context, key string) (
 	return plat, nil
 }
 
-// PlatformsInsertQuery is the canonical INSERT used by CreatePlatform and by
-// the DREQ promote transaction (dev_requests_promote.go). Sharing the query keeps the
-// archived_at consistency CHECK invariant identical across entry points.
 const PlatformsInsertQuery = `
-INSERT INTO platforms (key, name, description, status, visibility, owner_user_id, leader_user_id, development_unit_id, start_date, due_date, archived_at)
+INSERT INTO platforms (key, name, description, status, visibility, owner_user_id, leader_user_id, development_unit_id, start_date, due_date, archived_at, inbound_source_type, inbound_source_config)
 VALUES ($1, $2, NULLIF($3, ''), $4, $5, NULLIF($6, ''), NULLIF($7, ''), NULLIF($8, ''), $9, $10,
-        CASE WHEN $4 = 'archived' THEN NOW() ELSE NULL END)
+        CASE WHEN $4 = 'archived' THEN NOW() ELSE NULL END,
+        COALESCE(NULLIF($11, ''), ''), NULLIF($12, '')::jsonb)
 RETURNING` + platformsSelectColumns
 
 func (r *PlatformRepository) CreatePlatform(ctx context.Context, plat domain.Platform) (domain.Platform, error) {
 	row := r.store.Pool().QueryRow(ctx, PlatformsInsertQuery,
 		plat.Key, plat.Name, plat.Description, plat.Status, plat.Visibility,
 		plat.OwnerUserID, plat.LeaderUserID, plat.DevelopmentUnitID, plat.StartDate, plat.DueDate,
+		plat.InboundSourceType, plat.InboundSourceConfig,
 	)
 	created, err := ScanPlatform(row)
 	if store.IsUniqueViolation(err) {
@@ -225,11 +238,9 @@ func (r *PlatformRepository) CreatePlatform(ctx context.Context, plat domain.Pla
 	}
 	return created, nil
 }
-
 // UpdatePlatform mutates allowed fields (name/description/owner/dates/visibility/status).
 // `key` 는 immutable 이라 호출자가 별도 검증 (PATCH handler) — store 는 단순 UPDATE.
 // archived consistency CHECK 위반 회피 위해 status=archived 전이 시 archived_at = NOW 자동 설정,
-// 기타 status 전이 시 archived_at = NULL 로 재설정.
 func (r *PlatformRepository) UpdatePlatform(ctx context.Context, plat domain.Platform) (domain.Platform, error) {
 	const updateQuery = `
 UPDATE platforms SET
@@ -243,6 +254,8 @@ UPDATE platforms SET
 	start_date = $9,
 	due_date = $10,
 	archived_at = CASE WHEN $4 = 'archived' THEN COALESCE(archived_at, NOW()) ELSE NULL END,
+	inbound_source_type = COALESCE(NULLIF($11, ''), ''),
+	inbound_source_config = NULLIF($12, '')::jsonb,
 	updated_at = NOW()
 WHERE id = $1::uuid
 RETURNING` + platformsSelectColumns
@@ -250,6 +263,7 @@ RETURNING` + platformsSelectColumns
 	row := r.store.Pool().QueryRow(ctx, updateQuery,
 		plat.ID, plat.Name, plat.Description, plat.Status, plat.Visibility,
 		plat.OwnerUserID, plat.LeaderUserID, plat.DevelopmentUnitID, plat.StartDate, plat.DueDate,
+		plat.InboundSourceType, plat.InboundSourceConfig,
 	)
 	updated, err := ScanPlatform(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -263,7 +277,77 @@ RETURNING` + platformsSelectColumns
 	}
 	return updated, nil
 }
+// UpdatePlatformInboundSource sets a platform's inbound_source_type + inbound_source_config
+// in isolation from the broader PATCH. Used by the voc auto-router (routing/auto_route.go)
+// and by the human-facing PATCH handler. Empty InboundSourceType disables the routing.
+//
+// ErrInvalidInboundSourceType is returned when the provided type is not in the
+// migration 000007 CHECK whitelist. ErrInvalidInboundSourceConfig is returned
+// when config is non-empty but does not parse as valid JSON or violates the
+// migration 000007 consistency CHECK.
+func (r *PlatformRepository) UpdatePlatformInboundSource(ctx context.Context, platformID, inboundType, inboundConfig string) (domain.Platform, error) {
+	if !domain.IsValidPlatformInboundSourceType(inboundType) {
+		return domain.Platform{}, ErrInvalidInboundSourceType
+	}
+	if inboundType == "" && inboundConfig != "" {
+		return domain.Platform{}, ErrInvalidInboundSourceConfig
+	}
+	if inboundConfig != "" {
+		if !json.Valid([]byte(inboundConfig)) {
+			return domain.Platform{}, ErrInvalidInboundSourceConfig
+		}
+	}
+	var configArg interface{}
+	if inboundConfig != "" {
+		configArg = inboundConfig
+	}
+	const query = `
+UPDATE platforms SET
+	inbound_source_type = COALESCE(NULLIF($2, ''), ''),
+	inbound_source_config = $3::jsonb,
+	updated_at = NOW()
+WHERE id = $1::uuid
+RETURNING` + platformsSelectColumns
+	row := r.store.Pool().QueryRow(ctx, query, platformID, inboundType, configArg)
+	updated, err := ScanPlatform(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Platform{}, store.ErrNotFound
+	}
+	if store.IsCheckViolation(err, "platforms_inbound_source_consistency") {
+		// migration 000007 consistency CHECK — type='' 일 때 config 가 '{}' 가 아님
+		return domain.Platform{}, ErrInvalidInboundSourceConfig
+	}
+	if err != nil {
+		return domain.Platform{}, fmt.Errorf("update platform inbound source: %w", err)
+	}
+	return updated, nil
+}
 
+// ListEnabledInboundSourcePlatforms returns the active platforms whose inbound_source_type
+// is non-empty, used by the auto_router at voc ingress. Excludes archived platforms.
+func (r *PlatformRepository) ListEnabledInboundSourcePlatforms(ctx context.Context) ([]domain.Platform, error) {
+	const query = `SELECT` + platformsSelectColumns + `
+FROM platforms
+WHERE status <> 'archived' AND inbound_source_type <> ''
+ORDER BY inbound_source_type ASC, key ASC`
+	rows, err := r.store.Pool().Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("list enabled inbound source platforms: %w", err)
+	}
+	defer rows.Close()
+	plats := make([]domain.Platform, 0, 16)
+	for rows.Next() {
+		plat, err := ScanPlatform(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan enabled inbound source platform: %w", err)
+		}
+		plats = append(plats, plat)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate enabled inbound source platforms: %w", err)
+	}
+	return plats, nil
+}
 // ArchivePlatform is the soft-delete entry point (api §13.2 DELETE = archive).
 // Sets status='archived' + archived_at=NOW. archived_reason 은 audit_logs payload 에 기록.
 func (r *PlatformRepository) ArchivePlatform(ctx context.Context, platformID, archivedReason string) (domain.Platform, error) {

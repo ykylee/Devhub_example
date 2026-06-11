@@ -375,7 +375,7 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 
 ### scope 결정
 
-**코드 0줄 변경** (스크립트 6.4KB + docs 5 file 신규). mirror list = **core subset ~82 file** (ADR 31 + Governance 5 + Planning 26 + Setup 15 + Requirements 1 + OpenAPI 1 + AI-workflow memory 3). domain (66) + architecture + infrastructure + validation (~100 file) 은 Phase 3 (mass ingest) 의 별도 PR. **mirror 실행은 본 PR scope 외** (`~/wiki/raw/projects/devhub/` 의 out-of-repo 변경) — 사용자 confirm 후 T-d-72-5.
+**코드 0줄 변경** (스크립트 6.4KB + docs 5 file 신규). mirror list = **core subset ~82 file** (ADR 31 + Governance 5 + Planning 26 + Setup 15 + Requirements 1 + OpenAPI 1 + AI-workflow memory 3). domain (66) + architecture + infrastructure + validation (~100 file) 은 Phase 3 (mass ingest) 의 별도 PR. **mirror 실행은 본 PR scope 외** (`~/wiki/raw/projects/devhub/` 의 out-of-repo 변경) — **T-d-72-2 의 1회 실행 (2026-06-11 01:10:39Z 완료, 83 file / 1.6M)**.
 
 ### trade-off
 
@@ -391,7 +391,7 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 
 ### 다음 세션 directive
 
-- **T-d-72-5** (P3, 사용자 trigger): `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `~/wiki/raw/projects/devhub/` 에 ~82 file mirror + `_manifest.md` 자동 생성. **본 PR 머지 후 사용자 confirm 시점**.
+- **T-d-72-2** (P3, 사용자 trigger): `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `~/wiki/raw/projects/devhub/` 에 ~82 file mirror + `_manifest.md` 자동 생성. **2026-06-11 01:10:39Z 완료** (83 file, 1.6M). vault = 공유 자원 (my_harness 측 Gitea private) 이므로 본 저장소 metadata 에 결과 정합.
 - **D-73** (P3, my_harness 측): wiki-lint skill 에 `--project` + `--project-config` 옵션 추가. 본 저장소 의 lint-config.toml 활성.
 - **D-74** (P3, my_harness 측): my_harness 의 `_lint/my-harness/` + 본 저장소 의 `_lint/devhub/` 디렉터리 셋업.
 - **Phase 3** (P3, mass ingest, 별도 PR): domain (66) + architecture + infrastructure + validation (~100 file) mirror + 30~50 wiki page.
@@ -409,7 +409,7 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 ### 본 저장소 측 follow-up
 
 - **본 PR #544 머지로 Phase 1 의 in-repo source-of-truth 정합 완료** (docs/llm-wiki/ 5 file + scripts/wiki-sync-devhub.sh). 변경 불요.
-- **본 저장소 측 mirror 실행 (T-d-72-5) 도 대기**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `~/wiki/raw/projects/devhub/` 에 ~82 file mirror + `_manifest.md` 자동 생성. **사용자 (yklee) 의 별도 confirm 후 진행**. my_harness 의 작업 결과 통보 후 일괄 mirror 가 정합.
+- **본 저장소 측 mirror 실행 (T-d-72-2) 완료** (2026-06-11 01:10:39Z): `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `~/wiki/raw/projects/devhub/` 에 82 file mirror + `_manifest.md` 자동 생성 (83 file total, 1.6M). **vault = 공유 자원 (my_harness 측 Gitea private, 본 저장소 측 관리 X)**, 본 저장소 metadata 에 결과 정합. **본 sprint 의 mirror list 정공법 (`docs/llm-wiki/mirror-list.md` §3 의 7 패턴) 매칭**. 후속 T-d-72-3~6 + Phase 3 carry-over.
 - **본 저장소 측의 follow-up task (carry-over, my_harness 통보 대기)**:
   - my_harness 의 D-73 (wiki-lint `--project` + `--project-config` 옵션 추가) — 본 저장소 의 lint-config.toml 자동 활성
   - my_harness 의 D-74 (`_lint/devhub/` 셋업) — 본 저장소 의 per-project lint report 정합

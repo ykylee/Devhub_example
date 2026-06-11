@@ -125,8 +125,26 @@ type Platform struct {
 	StartDate         *time.Time
 	DueDate           *time.Time
 	ArchivedAt        *time.Time
+	InboundSourceType string // N-13: voc 자동 routing source tag (gitea|jira|other|"") — empty = disabled
+	InboundSourceConfig string // N-13: provider-specific JSONB-serialized config (DB column = JSONB, in-memory = raw text); empty when InboundSourceType empty
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+}
+
+// PlatformInboundSourceTypeAllowed 는 platform.inbound_source_type 의 whitelist (migration 000007 CHECK 정합).
+// "disabled" sentinel = 빈 문자열과 동치 (DB column 은 NOT NULL DEFAULT '').
+var PlatformInboundSourceTypeAllowed = map[string]struct{}{
+	"":      {},
+	"gitea": {},
+	"jira":  {},
+	"other": {},
+}
+
+// IsValidPlatformInboundSourceType reports whether the given value satisfies
+// the migration 000007 CHECK constraint. Unknown values are rejected.
+func IsValidPlatformInboundSourceType(t string) bool {
+	_, ok := PlatformInboundSourceTypeAllowed[t]
+	return ok
 }
 
 // PlatformRepository is one link between a Platform and an external Repository

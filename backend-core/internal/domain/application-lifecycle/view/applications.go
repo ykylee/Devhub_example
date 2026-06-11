@@ -2,7 +2,6 @@ package view
 
 import (
 	"errors"
-	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"net/http"
 	"os"
 	"regexp"
@@ -11,6 +10,8 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
+	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"github.com/devhub/backend-core/internal/store"
 	"github.com/gin-gonic/gin"
 )
@@ -39,22 +40,25 @@ func (h *PlatformHandler) PlatformStoreOrUnavailable(c *gin.Context) (PlatformSt
 }
 
 // platformResponse converts a domain.Platform to the wire shape used by §13.2.
+// N-13 (ADR-0028 §6 a): inbound_source_type + inbound_source_config echo.
 func platformResponse(app domain.Platform) gin.H {
 	return gin.H{
-		"id":                  app.ID,
-		"key":                 app.Key,
-		"name":                app.Name,
-		"description":         app.Description,
-		"status":              string(app.Status),
-		"visibility":          string(app.Visibility),
-		"owner_user_id":       app.OwnerUserID,
-		"leader_user_id":      app.LeaderUserID,
-		"development_unit_id": app.DevelopmentUnitID,
-		"start_date":          formatDatePtr(app.StartDate),
-		"due_date":            formatDatePtr(app.DueDate),
-		"archived_at":         formatTimePtr(app.ArchivedAt),
-		"created_at":          app.CreatedAt.UTC().Format(time.RFC3339),
-		"updated_at":          app.UpdatedAt.UTC().Format(time.RFC3339),
+		"id":                    app.ID,
+		"key":                   app.Key,
+		"name":                  app.Name,
+		"description":           app.Description,
+		"status":                string(app.Status),
+		"visibility":            string(app.Visibility),
+		"owner_user_id":         app.OwnerUserID,
+		"leader_user_id":        app.LeaderUserID,
+		"development_unit_id":   app.DevelopmentUnitID,
+		"start_date":            formatDatePtr(app.StartDate),
+		"due_date":              formatDatePtr(app.DueDate),
+		"archived_at":           formatTimePtr(app.ArchivedAt),
+		"inbound_source_type":   app.InboundSourceType,
+		"inbound_source_config": app.InboundSourceConfig,
+		"created_at":            app.CreatedAt.UTC().Format(time.RFC3339),
+		"updated_at":            app.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -771,6 +775,8 @@ type updatePlatformRequest struct {
 	HoldReason        string  `json:"hold_reason"`
 	ResumeReason      string  `json:"resume_reason"`
 	ArchivedReason    string  `json:"archived_reason"`
+	InboundSourceType   *string `json:"inbound_source_type,omitempty"`   // N-13 (ADR-0028 §6 a): ''|'gitea'|'jira'|'other' — 변경 시 별도 UpdatePlatformInboundSource 호출
+	InboundSourceConfig *string `json:"inbound_source_config,omitempty"` // N-13: provider-specific JSONB config (예: gitea 의 owner/repo 패턴)
 }
 
 func (h *PlatformHandler) UpdatePlatform(c *gin.Context) {
@@ -888,18 +894,85 @@ func (h *PlatformHandler) UpdatePlatform(c *gin.Context) {
 		updated.Status = domain.PlatformStatus(newStatus)
 	}
 
-	result, err := storeI.UpdatePlatform(c.Request.Context(), updated)
-	if errors.Is(err, store.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
-		return
+	// N-13 inbound_source 별도 처리 (ADR-0028 §6 a) — UpdatePlatformInboundSource method
+	// 단독 호출. inbound_source 는 platform의 sub-resource 로서 본 PATCH 의 메인 row
+	// update 와 분리되어 CHECK 위반 / JSON parse 실패가 다른 필드 변경에 영향 없도록
+	// 격리. inboundTouched 면 UpdatePlatform 호출을 skip 하고 별도 sub-resource 만
+	// update (idempotency + 부분 실패 격리).
+	inboundTouched := req.InboundSourceType != nil || req.InboundSourceConfig != nil
+	var inboundType, inboundConfig string
+	if req.InboundSourceType != nil {
+		inboundType = *req.InboundSourceType
 	}
-	if errors.Is(err, store.ErrConflict) {
-		c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "owner_user_id not found"})
-		return
+	if req.InboundSourceConfig != nil {
+		inboundConfig = *req.InboundSourceConfig
 	}
-	if err != nil {
-		httphelp.WriteServerError(c, err, "platforms.update")
-		return
+	if inboundTouched {
+		if !domain.IsValidPlatformInboundSourceType(inboundType) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "rejected",
+				"error":  "inbound_source_type must be one of \"\"|gitea|jira|other",
+				"code":   "invalid_inbound_source_type",
+			})
+			return
+		}
+	}
+
+	var result domain.Platform
+	if !inboundTouched {
+		result, err = storeI.UpdatePlatform(c.Request.Context(), updated)
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
+			return
+		}
+		if errors.Is(err, store.ErrConflict) {
+			c.JSON(http.StatusConflict, gin.H{"status": "conflict", "error": "owner_user_id not found"})
+			return
+		}
+		if err != nil {
+			httphelp.WriteServerError(c, err, "platforms.update")
+			return
+		}
+	} else {
+		// inboundTouched: row 가 존재하는지 별도 확인 + inboundSource update 만
+		result, err = storeI.GetPlatform(c.Request.Context(), id)
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
+			return
+		}
+		if err != nil {
+			httphelp.WriteServerError(c, err, "platforms.update.lookup")
+			return
+		}
+	}
+
+	// N-13 inbound_source 별도 호출 (성공한 result 위에 merge)
+	if inboundTouched {
+		result, err = storeI.UpdatePlatformInboundSource(c.Request.Context(), id, inboundType, inboundConfig)
+		if errors.Is(err, repository.ErrInvalidInboundSourceType) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "rejected",
+				"error":  "inbound_source_type must be one of \"\"|gitea|jira|other",
+				"code":   "invalid_inbound_source_type",
+			})
+			return
+		}
+		if errors.Is(err, repository.ErrInvalidInboundSourceConfig) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status": "rejected",
+				"error":  "inbound_source_config must be valid JSON, or both empty when type is empty",
+				"code":   "invalid_inbound_source_config",
+			})
+			return
+		}
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"status": "not_found", "error": "platform not found"})
+			return
+		}
+		if err != nil {
+			httphelp.WriteServerError(c, err, "platforms.update.inbound_source")
+			return
+		}
 	}
 	auditPayload := map[string]any{
 		"from_status": string(current.Status),
