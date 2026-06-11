@@ -48,30 +48,66 @@
 
 **mirror 정책**: 27 file 모두 mirror. 단 `infra/idp/_archive_*/` 의 immutable archive 미포함 (ADR-0001/0009 cross-ref 가능 archive 는 별도 위치).
 
-**file list (자동 script 로 동적)**:
-- 2026-06-11-p2-residual-sprint-plan.md
-- 2026-06-12-inbound-source-routing-sprint-plan.md
-- api-key-management-sprint-plan.md
-- application_management_hotfix_2026-05-27.md
-- external-integrations-agentic-rag-roadmap.md
-- integrated_test_report_20260601.md
-- integrated_test_scenarios.md
-- keycloak_event_audit_integration.md
-- migration_baseline_reset_plan_2026-06-04.md
-- ops_ui_transition_plan.md
-- project_creation_dreq_notification_concept.md
-- release_v1_roadmap.md
-- role-access-concept.md
-- sprint-plan-20260601.md
-- system_usecases.md
-- rbac-hardening-implementation-readiness-20260602.md
-- (12+ file; `find docs/planning -type f -name "*.md" | wc -l` = 27)
+**file list (자동 script 로 동적, 2026-06-11 main HEAD `f879b89` 기준, `find docs/planning -type f -name "*.md" | wc -l` = 27)**:
+
+| file | 비고 |
+|---|---|
+| `2026-06-11-p2-residual-sprint-plan.md` | PR #560 의 main 정합 (P2 잔여 5건 일괄 처리 정공법) — 06-11 main 머지 완료 |
+| `2026-06-12-inbound-source-routing-sprint-plan.md` | PR #547 의 N-13 housekeeping 정합 |
+| `api-key-management-sprint-plan.md` | |
+| `application_management_hotfix_2026-05-27.md` | |
+| `external-integrations-agentic-rag-roadmap.md` | |
+| `integrated_test_report_20260601.md` | |
+| `integrated_test_scenarios.md` | |
+| `keycloak_event_audit_integration.md` | |
+| `migration_baseline_reset_plan_2026-06-04.md` | |
+| `ops_ui_transition_plan.md` | |
+| `project_creation_dreq_notification_concept.md` | |
+| `project_operating_model_example_2026.md` | |
+| `project_operating_model_template.md` | |
+| `project_repository_creation_linking_plan_2026-05-27.md` | |
+| `rbac-hardening-implementation-readiness-20260602.md` | |
+| `release_v1_roadmap.md` | |
+| `role-access-concept.md` | |
+| `sprint-plan-20260601.md` | |
+| `system_admin_catalog_plan_2026-05-27.md` | |
+| `system_erd.md` | |
+| `system_usecases.md` | |
+| `test-findings-and-rbac-hardening-20260602.md` | |
+| `ui_app_project_repo_upgrade_plan.md` | |
+| `ui_e2e_followup_after_merge.md` | |
+| `view_menu_screen_api_matrix.md` | |
+| `ws_subprotocol_vs_ticket_poc.md` | |
+
+**27 file 동적 mirror** (`scripts/wiki-sync-devhub.sh` 의 `find docs/planning -type f -name "*.md"` glob).
 
 ### 1.4 Setup — 15 file
 
 **소스 경로**: `docs/setup/*.md`
 
-**mirror 정책**: 15 file 모두 mirror. setup 의 운영 SOP (test-server-deployment, single-port-deployment, docker-packaging-deployment-guide 등) 가 LLM agent 의 RAG source 로 가치 높음.
+**mirror 정책**: 15 file 모두 mirror. setup 의 운영 SOP (test-server-deployment, single-port-deployment, docker-packaging-deployment-guide 등) 가 LLM agent 의 RAG source 로 가치 높음. **정합 (2026-06-11 본 sprint 검증)**: code `find docs/setup -maxdepth 1 -type f -name "*.md" | wc -l` = 15, vault raw `find ~/wiki/raw/projects/devhub/docs/setup -type f | wc -l` = 15 — **drift 0** (mirror script 자동 정공법).
+
+**file list (2026-06-11 main HEAD `f879b89` 기준, `find docs/setup -maxdepth 1 -type f -name "*.md" | wc -l` = 15)**:
+
+| file | 비고 |
+|---|---|
+| `api_key_rotation.md` | |
+| `deploy_preflight_checklist.md` | |
+| `docker-packaging-deployment-guide.md` | |
+| `e2e-test-guide.md` | |
+| `environment-setup.md` | |
+| `homelab_agent_token_rotation.md` | |
+| `hrdb_unit_pre_stage.md` | |
+| `internal_network_constraints.md` | |
+| `jwks_rotation_cache_flush.md` | |
+| `keycloak_operations.md` | |
+| `migration_000021_conflict_resolution.md` | |
+| `onboarding_operations.md` | |
+| `prometheus_alertmanager_setup.md` | |
+| `single_port_deployment.md` | |
+| `test-server-deployment.md` | |
+
+**15 file 동적 mirror** (정합 — code 와 raw 모두 15 file, drift 0).
 
 ### 1.5 Requirements + OpenAPI — 2 file
 
@@ -156,15 +192,15 @@
 - LLM Wiki (본 Phase 1): `docs/llm-wiki/` (본 Phase 1 의 source-of-truth, mirror 미필요)
 - Lint/scratch: `_lint/`, `scratch/`, `playwright-report/`
 
-**mirror size 추정**:
+**mirror size 추정** (2026-06-11 main HEAD `f879b89` 기준, code 1:1 mirror):
 - ADR: 31 file (≈ 700KB)
 - Governance: 5 file (≈ 100KB)
-- Planning: 26 file (≈ 1.5MB)
-- Setup: 15 file (≈ 800KB)
+- Planning: 27 file (≈ 1.5MB) — PR #560 의 `2026-06-11-p2-residual-sprint-plan.md` 포함
+- Setup: 15 file (≈ 800KB) — code 와 raw 모두 15 file 일치
 - Requirements: 1 file (≈ 50KB)
 - OpenAPI: 1 file (≈ 300KB)
 - AI-workflow memory: 3 file (≈ 50KB)
-- **합 ≈ 3.5MB, 83 file**
+- **합 ≈ 3.5MB, 83 file** (Planning 26 → 27 갱신, 총 83 file 유지)
 
 ## 4. lint 영향
 
