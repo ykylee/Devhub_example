@@ -5,7 +5,7 @@
 - 대상 독자: 외부 개발자, 잠재 사용자, 기술 블로그 독자
 - 상태: accepted
 - 최종 수정일: 2026-05-20
-- 관련 문서: [분류 기준](./meta/publication_matrix.md), [작성 가이드](./meta/style_guide.md), [내부 docs 인덱스](../docs/DOCUMENT_INDEX.md)
+- 관련 문서: [분류 기준](./meta/publication-matrix.md), [작성 가이드](./meta/style-guide.md), [내부 docs 인덱스](../docs/DOCUMENT_INDEX.md)
 
 ## 운영 원칙
 
