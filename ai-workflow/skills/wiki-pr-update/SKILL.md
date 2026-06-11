@@ -10,7 +10,7 @@
   - `~/repos/my_harness/ai-workflow/skills/wiki-pr-update/SKILL.md` (SSOT, 6012 lines)
   - `docs/llm-wiki/pr-update-skill.md` (본 저장소 측 사용 가이드, PR #552, handoff §3 의 본 저장소 측 thin wrapper)
   - `~/wiki/AGENTS.md` v1.5 §11.1 D-72 cross-project
-  - `ai-workflow/skills/wiki-event-sync/SKILL.md` (D-86 흐름 2 의 본 저장소 측 thin wrapper — 본 skill 과 trigger 다름: wiki-event-sync = commit/push 영향 page 식별 + last_touched 갱신, wiki-pr-update = PR-merge 후 vault 의 prs/<num>.md 신규)
+  - ~~`ai-workflow/skills/wiki-event-sync/SKILL.md` (D-86 흐름 2 의 본 저장소 측 thin wrapper — 본 skill 과 trigger 다름)~~ **(2026-06-11 폐기, D-86 thin wrapper 전면 제거)**: `~/wiki/skills/wiki-event-sync/SKILL.md` SSOT 직접 호출. vault 일괄 관리 정책 (wiki 관련 SSOT 는 `~/wiki/skills/` 단일 위치) 정합. 본 skill 과의 trigger 차이 (wiki-event-sync = commit/push 영향 page 식별 + last_touched 갱신, wiki-pr-update = PR-merge 후 vault 의 prs/<num>.md 신규) 동일.
 
 ## 1. 사용법
 
