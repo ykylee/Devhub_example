@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# wiki-ingest-from-raw — 본 저장소 (= DevHub) 측 thin wrapper.
+# SSOT: ~/repos/my_harness/ai-workflow/skills/wiki-ingest-from-raw/scripts/run_wiki_ingest.py
+# (D-79 의 6 file 중 1, my_harness 의 cross-project SSOT).
+#
+# 사용:
+#   bash ai-workflow/skills/wiki-ingest-from-raw/scripts/wiki-ingest-from-raw \
+#     --project=devhub [--all | --source <rel>] [--apply]
+#
+# 본 wrapper 는 단순히 my_harness 의 Python SSOT 호출. raw mirror 는 별도
+# (`scripts/wiki-sync-devhub.sh` 1차 step).
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MYHARNESS_ROOT="${MYHARNESS_ROOT:-$HOME/repos/my_harness}"
+SSOT_PY="$MYHARNESS_ROOT/ai-workflow/skills/wiki-ingest-from-raw/scripts/run_wiki_ingest.py"
+
+if [[ ! -f "$SSOT_PY" ]]; then
+  echo "ERROR: my_harness SSOT 부재: $SSOT_PY" >&2
+  echo "  hint: my_harness 측 wiki-ingest-from-raw skill 작성 필요 (D-79)." >&2
+  exit 1
+fi
+
+exec python3 "$SSOT_PY" "$@"
