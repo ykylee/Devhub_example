@@ -16,7 +16,7 @@
 
 ## 현재 기준
 
-- A: `docs/tech_stack.md`
+- A: `docs/shared/tech_stack.md`
 - B: `docs/requirements.md`, `docs/architecture.md`, `docs/development_roadmap.md`, `docs/adr/*`
 - C: `docs/planning/*`, `docs/CODE_INDEX.md`, `docs/PROJECT_PROFILE.md`, `docs/backend/*` (내부 추적 성격)
 

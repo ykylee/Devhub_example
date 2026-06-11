@@ -135,7 +135,7 @@
 | **CI** | GitHub Actions + actionlint workflow lint | no-docker baseline + paths-skip |
 | **Observability** | Prometheus + Grafana JSON dashboard | HomeLab puller metric + JWKS stale-while-error |
 
-상세 — [`docs/tech_stack.md`](../../tech_stack.md).
+상세 — [`docs/shared/tech_stack.md`](../../shared/tech_stack.md).
 
 ---
 

@@ -49,7 +49,7 @@
 - package script 목록:
 - `frontend/package.json` 기준 `dev`, `build`, `start`, `lint`
 - 분석 중 확인한 경로 샘플:
-- `README.md`, `Makefile`, `docker-compose.yml`, `backend-core/main.go`, `backend-ai/main.py`, `frontend/app/page.tsx`, `proto/analysis.proto`, `docs/architecture.md`, `docs/tech_stack.md`
+- `README.md`, `Makefile`, `docker-compose.yml`, `backend-core/main.go`, `backend-ai/main.py`, `frontend/app/page.tsx`, `proto/analysis.proto`, `docs/architecture.md`, `docs/shared/tech_stack.md`
 
 ## 5. 워크플로우 도입 초안
 
