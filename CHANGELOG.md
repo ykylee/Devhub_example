@@ -5,6 +5,51 @@ All notable changes to DevHub will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.1-alpha] - 2026-06-11
+
+**v0.1.1-alpha release. 잔여 5 (T-d-72-5/6 + D-73/74 + X-1~8) 의 v0.1.1-alpha 격하 정공법.**
+
+main HEAD: `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` (re-tag 후 main HEAD 부착, v0.1.0-alpha release 의 follow-up patch).
+
+### 8 item v0.1.1-alpha 격하 (v0.1.0-alpha → v0.1.1-alpha, patch release)
+
+| ID | 항목 | 의존 | v0.1.1-alpha status |
+|---|---|---|---|
+| **T-d-72-5** | wiki/cross/ cross-project 종합 페이지 (1~3 page) | T-d-72-4 ✅ | ⏳ planned (v0.1.1-alpha) |
+| **T-d-72-6** | wiki-lint CI integration (`ci.yml` 의 e2e shard 또는 별도 lint job) | T-d-72-3 | ⏳ planned (v0.1.1-alpha) |
+| **D-73** | my_harness 측 wiki-lint `--project` + `--project-config` 옵션 | (D-72-2 ✅) | ⏳ planned (v0.1.1-alpha) |
+| **D-74** | `_lint/devhub/` per-project lint report 디렉터리 셋업 | T-d-72-3 | ⏳ planned (v0.1.1-alpha) |
+| **T-d-79-5** | D-79 wiki-lint 통합 (L01~L10) | D-74 | ⏳ planned (v0.1.1-alpha) |
+| **T-d-80-7** | D-80 wiki-lint 통합 (L01~L10) | D-74 | ⏳ planned (v0.1.1-alpha) |
+| **X-1** | System Admin 운영 대시보드 (RM-M4-07) | — | ⏳ planned (v0.1.1-alpha) |
+| **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | T-d-79-2/T-d-80-2 | ⏳ planned (v0.1.1-alpha) |
+| **X-3** | 평문 secret envelope 암호화 (DEK + 키관리 ADR) | ADR | ⏳ planned (v0.1.1-alpha) |
+| **X-4** | Phase D — project 생성 flow ↔ SCM create 연계 | T-d-72-5/6 | ⏳ planned (v0.1.1-alpha) |
+| **X-5** | Gitea Hourly Pull 정밀화 (RM-M4-06 잔여, issue #231) | — | ⏳ planned (v0.1.1-alpha) |
+| **X-6** | Keycloak group staging-prod 적용 (P1-3, issue #214) | ADR-0019 | ⏳ planned (v0.1.1-alpha) |
+| **X-7** | ADR-0016 §6 alert 임계 확정 (P2-2) | — | ⏳ planned (v0.1.1-alpha) |
+| **X-8** | Keycloak SPI realm events push 전환 (P2-6/P3-5) | ADR-0019 | ⏳ planned (v0.1.1-alpha) |
+
+### v0.1.1-alpha release 정공법 (메모리 4 file + release_v1_roadmap.md + CHANGELOG.md)
+
+- `docs/planning/release_v1_roadmap.md` §3.5 NEXT block 의 title `v1.1` → `v0.1.1-alpha` 격하.
+- `ai-workflow/memory/state.json` M-v1.0 notes: v0.1.1-alpha release 정합 + 잔여 5 의 8 item 의 v0.1.1-alpha 격하 마킹.
+- `ai-workflow/memory/work_backlog.md` status line: v0.1.1-alpha release 정합 + §5 변경 이력 row.
+- `ai-workflow/memory/session_handoff.md` §0: v0.1.1-alpha release 정합 subsection.
+- `CHANGELOG.md`: 본 v0.1.1-alpha release note 추가.
+
+### v0.1.1-alpha 후속 (실제 구현, 사용자 결정 시점)
+
+- 잔여 5 의 8 item 의 실제 구현 = 사용자 결정 시점 별도 sprint.
+- v0.1.1-alpha release 후 v0.1.2-alpha 또는 v0.2.0-alpha 로 release (사용자 결정).
+- v1.0 정식 release = v0.1.x 의 follow-up patch + 사용자 결정 시점.
+
+### Unchanged (v0.1.0-alpha 의 8 DoD 모두 close 정합 유지)
+
+- 8 DoD: 7 ✅ + 1 ✅ skipped (N-6) = 8 DoD 모두 close (v0.1.0-alpha 정합).
+- v0.1.0-alpha release 의 CHANGELOG + 발표 자료 + release 태그 (`v0.1.0-alpha`) 정합 유지.
+- main HEAD `356d08b7` = v0.1.0-alpha release 정합 + v0.1.1-alpha release 정공법.
+
 ## [v0.1.0-alpha] - 2026-06-11
 
 **v0.1.0-alpha release. 8 DoD 모두 close (7 ✅ + 1 ✅ skipped, N-6 사용자 결정).**

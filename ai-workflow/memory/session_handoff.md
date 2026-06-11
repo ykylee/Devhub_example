@@ -16,6 +16,24 @@
 - **v1.0 release 가능 상태**. main HEAD `82935f8b`.
 - 잔여 follow-up: 잔여 3 (T-d-79-2 / T-d-80-2 my_harness 측 SSOT 작성, 사용자 전달 후 진행 중) + 잔여 5 (T-d-72-5/6 + D-73/74 + X-1~8, v1.1 forward path, v1.1 milestone 진입 시점 별도 sprint).
 
+### v0.1.0-alpha release (2026-06-11, 사용자 결정)
+
+- **v0.1.0-alpha release 발표** (commit `356d08b7`, main HEAD) + tag `v0.1.0-alpha` (re-tag 후 main HEAD 부착).
+- PR #554 (N-6 skip) 머지 → main HEAD `d860b7c9` → CHANGELOG + 발표 자료 commit `356d08b7`.
+- 신규 3 file: `CHANGELOG.md` (670+ lines) + `docs/presentations/2026-06-11-v0.1.0-alpha-announcement.md` (200+ lines) + `docs/presentations/2026-06-11-v0.1.0-alpha-announcement.html` (자체 HTML 14 슬라이드, 키보드 네비게이션, reveal.js 의존성 0).
+- 8 DoD 모두 close (7 ✅ + 1 ✅ skipped). v0.1.0-alpha release blocker 0건.
+- v1.0 release 가능 상태 (사용자 결정 시점 v1.0 release 태그 가능).
+
+### v0.1.1-alpha release 정공법 (2026-06-11, 사용자 결정)
+
+- **잔여 5 (T-d-72-5/6 + D-73/74 + X-1~8) 의 v0.1.1-alpha 격하** — 사용자 결정 (v1.1 forward path 가 아닌 v0.1.x patch release).
+- `docs/planning/release_v1_roadmap.md` §3.5 NEXT block title `v1.1` → `v0.1.1-alpha` + X-1~8 의 status `v1.1 NEXT` → `v0.1.1-alpha NEXT` 격하.
+- `ai-workflow/memory/state.json` M-v1.0 notes "v0.1.1-alpha release 정공법" + 잔여 5 의 8 item 의 v0.1.1-alpha 격하 마킹.
+- `ai-workflow/memory/work_backlog.md` status line + §5 변경 이력 row.
+- `CHANGELOG.md` v0.1.1-alpha release note 추가.
+- 8 item 모두 v0.1.1-alpha release 의 정공법 정합 (실제 구현은 사용자 결정 시점).
+- 잔여 3 (T-d-79-2 / T-d-80-2 my_harness 측 SSOT 작성) + vault Gitea remote push (사용자 수동) 별도 이월.
+
 ## 0a. 본 세션 직전 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화)
 
 ### PR #545 결과
