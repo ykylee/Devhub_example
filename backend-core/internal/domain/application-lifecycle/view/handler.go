@@ -34,6 +34,9 @@ type PlatformStore interface {
 	ArchivePlatform(context.Context, string, string) (domain.Platform, error)
 	DeletePlatform(context.Context, string) error
 	CountActivePlatformRepositories(context.Context, string) (int, error)
+	// N-13 (ADR-0028 §6 a) — platforms.inbound_source 자동 routing 의 sub-resource API
+	UpdatePlatformInboundSource(context.Context, string, string, string) (domain.Platform, error)
+	ListEnabledInboundSourcePlatforms(context.Context) ([]domain.Platform, error)
 
 	// Application-Repository link
 	ListPlatformRepositories(context.Context, string) ([]domain.PlatformRepository, error)

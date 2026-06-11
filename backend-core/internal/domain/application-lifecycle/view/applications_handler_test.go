@@ -653,6 +653,88 @@ func TestUpdatePlatform_EmptyDevUnit400(t *testing.T) {
 	}
 }
 
+// --- N-13 inbound_source (ADR-0028 §6 a) UpdatePlatform sub-resource cases ---
+
+// TestUpdatePlatform_N13InboundSource_GiteaOK : PATCH /api/v1/platforms/:id body 에
+// inbound_source_type="gitea" + inbound_source_config valid JSON 입력 시 200 +
+// response.data.inbound_source_type="gitea" 정합 검증.
+func TestUpdatePlatform_N13InboundSource_GiteaOK(t *testing.T) {
+	h, st, audit := newAppHandlerForTest(t)
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	body := map[string]any{
+		"inbound_source_type":   "gitea",
+		"inbound_source_config": `{"owner":"acme","repo_pattern":"^.*$"}`,
+	}
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	// response body 에 inbound_source_type="gitea" 가 echo 되어야.
+	if !strings.Contains(rec.Body.String(), `"inbound_source_type":"gitea"`) {
+		t.Fatalf("expected inbound_source_type=gitea in body, body=%s", rec.Body.String())
+	}
+	if len(audit.created) != 1 || audit.created[0].Action != "platform.updated" {
+		t.Fatalf("audit: %+v", audit.created)
+	}
+}
+
+// TestUpdatePlatform_N13InboundSource_InvalidType400 : inbound_source_type="github"
+// (CHECK whitelist 외) 입력 시 400 + invalid_inbound_source_type.
+func TestUpdatePlatform_N13InboundSource_InvalidType400(t *testing.T) {
+	h, st, _ := newAppHandlerForTest(t)
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	body := map[string]any{
+		"inbound_source_type": "github",
+	}
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "invalid_inbound_source_type") {
+		t.Fatalf("expected code, body=%s", rec.Body.String())
+	}
+}
+
+// TestUpdatePlatform_N13InboundSource_InvalidConfig400 : inbound_source_type="gitea" +
+// inbound_source_config="{not json" 입력 시 400 + invalid_inbound_source_config.
+// UpdatePlatform 의 row update 는 성공하지만 후속 UpdatePlatformInboundSource 가
+// JSON parse 실패로 거부 → 응답은 여전히 400.
+func TestUpdatePlatform_N13InboundSource_InvalidConfig400(t *testing.T) {
+	h, st, _ := newAppHandlerForTest(t)
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})
+	body := map[string]any{
+		"inbound_source_type":   "gitea",
+		"inbound_source_config": "{not json",
+	}
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "invalid_inbound_source_config") {
+		t.Fatalf("expected code, body=%s", rec.Body.String())
+	}
+}
+
+// TestUpdatePlatform_N13InboundSource_DisableEmpty : inbound_source_type="" (빈 문자열)
+// + inbound_source_config=null 입력 시 정상 disable. N-13 spec 상 type 만 비우면
+// routing 이 비활성화됨.
+func TestUpdatePlatform_N13InboundSource_DisableEmpty(t *testing.T) {
+	h, st, _ := newAppHandlerForTest(t)
+	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice", InboundSourceType: "gitea", InboundSourceConfig: `{"owner":"old"}`})
+	body := map[string]any{
+		"inbound_source_type":   "",
+		"inbound_source_config": "",
+	}
+	rec := invokeJSON("PATCH", "/platforms/app-1", "/platforms/:platform_id", h.UpdatePlatform, body, "alice", "developer")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	// response body 의 inbound_source_type 은 "" 로 echo.
+	if !strings.Contains(rec.Body.String(), `"inbound_source_type":""`) {
+		t.Fatalf("expected inbound_source_type=\"\", body=%s", rec.Body.String())
+	}
+}
+
 func TestUpdatePlatform_InvalidVisibility400(t *testing.T) {
 	h, st, _ := newAppHandlerForTest(t)
 	st.seedApp(domain.Platform{ID: "app-1", Key: "APP1", Status: domain.PlatformStatusActive, OwnerUserID: "alice"})

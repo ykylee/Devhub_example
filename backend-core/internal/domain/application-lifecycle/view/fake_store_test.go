@@ -2,15 +2,16 @@ package view
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
 	"github.com/devhub/backend-core/internal/store"
 )
-
 // fakeViewPlatformStore — view 패키지 endpoint handler test 용 in-memory store.
 // view.PlatformStore (27 메서드) 만족. httpapi 패키지의 memoryPlatformStore
 // 와 별도로 view 패키지 안에 둠 — httpapi 의 fake 는 IntegrationStore 메서드까지
@@ -214,6 +215,52 @@ func (s *fakeViewPlatformStore) UpdatePlatform(_ context.Context, app domain.Pla
 	return app, nil
 }
 
+// UpdatePlatformInboundSource (N-13, ADR-0028 §6 a) — fake implementation
+// for application-lifecycle/view handler test. Validates inbound_source_type
+// via domain.IsValidPlatformInboundSourceType and stores the field pair on
+// the existing platform row.
+func (s *fakeViewPlatformStore) UpdatePlatformInboundSource(_ context.Context, platformID, inboundType, inboundConfig string) (domain.Platform, error) {
+	if s.errUpdatePlatform != nil {
+		return domain.Platform{}, s.errUpdatePlatform
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, ok := s.platforms[platformID]
+	if !ok {
+		return domain.Platform{}, store.ErrNotFound
+	}
+	if !domain.IsValidPlatformInboundSourceType(inboundType) {
+		return domain.Platform{}, repository.ErrInvalidInboundSourceType
+	}
+	if inboundType == "" && inboundConfig != "" {
+		return domain.Platform{}, repository.ErrInvalidInboundSourceConfig
+	}
+	if inboundConfig != "" && !json.Valid([]byte(inboundConfig)) {
+		return domain.Platform{}, repository.ErrInvalidInboundSourceConfig
+	}
+	current.InboundSourceType = inboundType
+	current.InboundSourceConfig = inboundConfig
+	current.UpdatedAt = time.Now().UTC()
+	s.platforms[platformID] = current
+	return current, nil
+}
+
+// ListEnabledInboundSourcePlatforms (N-13, ADR-0028 §6 a) — fake implementation
+// returning only platforms whose inbound_source_type is non-empty.
+func (s *fakeViewPlatformStore) ListEnabledInboundSourcePlatforms(_ context.Context) ([]domain.Platform, error) {
+	if s.errListPlatforms != nil {
+		return nil, s.errListPlatforms
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.Platform, 0, len(s.platforms))
+	for _, p := range s.platforms {
+		if p.InboundSourceType != "" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
 func (s *fakeViewPlatformStore) ArchivePlatform(_ context.Context, id, _ string) (domain.Platform, error) {
 	if s.errArchivePlatform != nil {
 		return domain.Platform{}, s.errArchivePlatform
