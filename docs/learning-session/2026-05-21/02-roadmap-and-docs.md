@@ -152,7 +152,7 @@ M4 (planned)             M5 (2026-05-15 ~ 18)    M6 (2026-05-15 ~ 18)    M7 (202
 | **추적성 매트릭스** | [`docs/traceability/report.md`](../../traceability/report.md) | §3 종합 매트릭스 17 도메인 row + §4 ADR 인덱스 + §6 changelog |
 | **거버넌스 표준** | [`docs/governance/document-standards.md`](../../governance/document-standards.md) | 메타 헤더 / lifecycle / ID 노출 / branch 명명 규칙 |
 | **워커 분담** | [`docs/governance/worker_division.md`](../../governance/worker_division.md) | Claude (backend+design) / Gemini (frontend+UX) / Codex (infra+CI) / User (사내) |
-| **기술 스택** | [`docs/tech_stack.md`](../../tech_stack.md) | Go + Next.js + Postgres + Keycloak + Prometheus |
+| **기술 스택** | [`docs/shared/tech_stack.md`](../../shared/tech_stack.md) | Go + Next.js + Postgres + Keycloak + Prometheus |
 | **환경 구성** | [`docs/setup/environment-setup.md`](../../setup/environment-setup.md) | native default + docker optional |
 | **테스트 카탈로그** | [`docs/tests/`](../../tests/) | TC-AUTH-*/USR-*/DREQ-*/INT-* — domain별 mega lifecycle spec |
 

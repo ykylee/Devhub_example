@@ -7,7 +7,7 @@
 - 기준일: 2026-05-02
 - 상태: deprecated
 - 최종 수정일: 2026-05-13 (deprecated 마킹)
-- 관련 문서: `docs/architecture.md`, `docs/tech_stack.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend_api_contract.md`, `docs/requirements.md`, `docs/backend_development_roadmap.md`
+- 관련 문서: `docs/architecture.md`, `docs/shared/tech_stack.md`, `docs/backend/frontend_integration_requirements.md`, `docs/backend_api_contract.md`, `docs/requirements.md`, `docs/backend_development_roadmap.md`
 
 ## 1. 검토 결론
 
