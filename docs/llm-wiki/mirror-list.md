@@ -91,9 +91,9 @@
 **mirror 정책**: 3 file 모두 mirror (main flat 만 — sprint branch 의 memory 는 본 Phase 1 의 scope 외, my_harness 의 wiki-sync-ai-workflow.sh 와 동일 pattern).
 
 **본 저장소 의 main flat memory 의 위치**:
-- `state.json` 의 `head_commit` = `ea8b4bf` (2026-06-10, PR #543 + 2 housekeeping commits)
-- `session_handoff.md` 의 §6/§7/§8 (PR #541/#542/#543 row)
-- `work_backlog.md` 의 §5 변경 이력 (PR #543 row)
+- `state.json` 의 `head_commit` = `76bb00580` (2026-06-11, main HEAD = PR #560 squash, 최신 PR = #514~#560)
+- `session_handoff.md` 의 §0/§11 (PR #514~#560 row, main flat memory finalize)
+- `work_backlog.md` 의 §0 status line + §5 변경 이력 (PR #540~#560 row)
 
 ## 2. Phase 1 scope 외 (Phase 3 mass ingest, 별도 PR)
 

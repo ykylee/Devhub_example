@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wiki-query.sh — DevHub repo (~/repos/Devhub_example_omp/) 의 vault query wrapper.
+# wiki-query.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 vault query wrapper.
 # vault (`~/wiki/`) 의 LLM wiki 패턴 (D-71, AGENTS.md v1.5) 의 §2.2 Query 오퍼레이션
 # 6 step 자동화 (read + query/ 페이지 file + log.md append).
 #

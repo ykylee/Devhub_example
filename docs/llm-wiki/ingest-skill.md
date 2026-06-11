@@ -1,7 +1,7 @@
 # Wiki-Ingest Skill (본 저장소 측 사용법 가이드)
 
 - 문서 목적: `scripts/wiki-ingest-from-raw.sh` 의 본 저장소 (= DevHub) 측 사용법을 정리한다. raw mirror + wiki page 자동 ingest flow 의 1-step entry point.
-- 범위: 본 저장소 `~/repos/Devhub_example_omp/` 의 7 패턴 (mirror list §3) source → LLM Wiki vault (`~/wiki/projects/devhub/`) 의 wiki page 자동 작성.
+- 범위: 본 저장소 `~/repos/Devhub_example_minimax/` 의 7 패턴 (mirror list §3) source → LLM Wiki vault (`~/wiki/projects/devhub/`) 의 wiki page 자동 작성.
 - 대상 독자: DevHub repo 운영자, yklee (owner), my_harness 측 skill 개발자
 - 상태: **draft** (D-72, 2026-06-11)
 - 최종 수정일: 2026-06-11
@@ -18,7 +18,7 @@
 기존의 `scripts/wiki-sync-devhub.sh` 는 **raw mirror 만** 자동화 (mirror list 의 7 패턴 source 를 `~/wiki/raw/projects/devhub/` 로 복사). 본 sprint 의 `scripts/wiki-ingest-from-raw.sh` 는 **raw → wiki page 자동 ingest** 까지 통합:
 
 ```
-[본 저장소 ~/repos/Devhub_example_omp/]
+[본 저장소 ~/repos/Devhub_example_minimax/]
     ↓ wiki-sync-devhub.sh (raw mirror)
 [raw mirror ~/wiki/raw/projects/devhub/]
     ↓ wiki-ingest-from-raw skill (vault 의 wiki page 자동 작성)

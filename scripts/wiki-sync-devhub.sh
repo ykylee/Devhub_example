@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wiki-sync-devhub.sh — DevHub repo (~/repos/Devhub_example_omp/) 의 의미 있는 파일을
+# wiki-sync-devhub.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 의미 있는 파일을
 # ~/wiki/raw/projects/devhub/ 로 mirror. my_harness 의 wiki-sync-ai-workflow.sh 와 동일 패턴.
 #
 # 사용:

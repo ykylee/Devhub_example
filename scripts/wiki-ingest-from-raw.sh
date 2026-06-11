@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wiki-ingest-from-raw.sh — DevHub repo (~/repos/Devhub_example_omp/) 의 raw mirror 결과 +
+# wiki-ingest-from-raw.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 raw mirror 결과 +
 # my_harness 측 wiki-ingest-from-raw skill 호출 통합 wrapper.
 #
 # 사용:

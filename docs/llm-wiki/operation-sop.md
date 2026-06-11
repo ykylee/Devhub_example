@@ -31,13 +31,13 @@
 
 ```bash
 # Phase 1 의 lint 검증 — dry-run mode 로 source list 정합 확인
-cd ~/repos/Devhub_example_omp
+cd ~/repos/Devhub_example_minimax
 bash scripts/wiki-sync-devhub.sh --dry-run
 ```
 
 **기대 출력**:
 ```
-[wiki-sync-devhub] source root: /Users/yklee/repos/Devhub_example_omp
+[wiki-sync-devhub] source root: /Users/yklee/repos/Devhub_example_minimax
 [wiki-sync-devhub] dry-run: True (no actual mirror)
 [wiki-sync-devhub] target vault: /Users/yklee/wiki (Gitea private)
 [wiki-sync-devhub] collecting files...
@@ -81,17 +81,17 @@ bash scripts/wiki-sync-devhub.sh --dry-run
 
 ```bash
 # 사용자 confirm 후 실행
-cd ~/repos/Devhub_example_omp
+cd ~/repos/Devhub_example_minimax
 bash scripts/wiki-sync-devhub.sh
 ```
 
 **기대 출력**:
 ```
-[wiki-sync-devhub] source root: /Users/yklee/repos/Devhub_example_omp
+[wiki-sync-devhub] source root: /Users/yklee/repos/Devhub_example_minimax
 [wiki-sync-devhub] dry-run: False (real mirror)
 [wiki-sync-devhub] target vault: /Users/yklee/wiki
 [wiki-sync-devhub] cleaning /Users/yklee/wiki/raw/projects/devhub
-[wiki-sync-devhub] collecting files from /Users/yklee/repos/Devhub_example_omp
+[wiki-sync-devhub] collecting files from /Users/yklee/repos/Devhub_example_minimax
 [wiki-sync-devhub] copying 82 file...
 [wiki-sync-devhub] manifest: /Users/yklee/wiki/raw/projects/devhub/_manifest.md updated
 [wiki-sync-devhub] DONE
@@ -109,7 +109,7 @@ bash scripts/wiki-sync-devhub.sh
 
 **기대 출력**:
 ```
-[wiki-sync-devhub] source root: /Users/yklee/repos/Devhub_example_omp
+[wiki-sync-devhub] source root: /Users/yklee/repos/Devhub_example_minimax
 [wiki-sync-devhub] target vault: /Users/yklee/wiki
 [wiki-sync-devhub] ERROR: vault not found: /Users/yklee/wiki
 [wiki-sync-devhub] hint: 'wiki-init' 명령으로 vault 초기화 (my_harness 측 D-71 §2.2)
@@ -138,7 +138,7 @@ bash scripts/wiki-sync-devhub.sh
 python3 ~/repos/my_harness/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py \
   --vault-path ~/wiki \
   --project devhub \
-  --project-config ~/repos/Devhub_example_omp/docs/llm-wiki/lint-config.toml
+  --project-config ~/repos/Devhub_example_minimax/docs/llm-wiki/lint-config.toml
 ```
 
 **기대 출력**:
@@ -203,7 +203,7 @@ find ~/wiki/raw/projects/devhub -type f | wc -l  # 기대: 82
 python3 ~/repos/my_harness/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py \
   --vault-path ~/wiki \
   --project devhub \
-  --project-config ~/repos/Devhub_example_omp/docs/llm-wiki/lint-config.toml
+  --project-config ~/repos/Devhub_example_minimax/docs/llm-wiki/lint-config.toml
 ```
 
 ### 6.2 Phase 1 의 dry-run (CI 검증 가능, 본 PR scope)
