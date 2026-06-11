@@ -87,10 +87,12 @@ function isAppLoginURL(rawURL: string): boolean {
 
 type WaitForSignInFormOptions = {
   restartOIDCOnAppLogin?: boolean;
+  /** Deadline in milliseconds. Default = 30_000 (CI race 환경에서 intermittent 30s 도 fail 가능 → 45_000 권장). */
+  timeoutMs?: number;
 };
 
 export async function waitForSignInForm(page: Page, options: WaitForSignInFormOptions = {}): Promise<void> {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + (options.timeoutMs ?? 30_000);
   let restartedOIDC = false;
   while (Date.now() < deadline) {
     const userVisible = await page.locator('input#username, input[name="username"], input#identifier, input[name="identifier"]').first().isVisible().catch(() => false);

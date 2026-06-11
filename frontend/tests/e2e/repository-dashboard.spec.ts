@@ -112,7 +112,9 @@ test.describe("Repository Detailed Dashboard E2E", () => {
 
     // 2. 저장소 목록을 거쳐 e2e-repo-a 상세 화면 진입
     await page.goto(appPath("/repositories"));
-    await expect(page.getByText("e2e-repo-a", { exact: false })).toBeVisible({ timeout: 20_000 });
+    // 저장소 목록의 e2e-repo-a 항목 — CI race 환경에서 20s 도 intermittent fail 발생 가능.
+    // selector 를 regex 로 robust + timeout 20s 명시.
+    await expect(page.getByText(/e2e-repo-a/i).first()).toBeVisible({ timeout: 20_000 });
     await page.getByRole("link", { name: /e2e-repo-a/i }).first().click();
 
     // 3. 상세 대시보드 로딩 확인
