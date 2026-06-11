@@ -434,3 +434,30 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **또는 사용자 confirm 후 본 저장소 측의 mirror 실행 (T-d-72-5)** — my_harness 결과 통보와 무관하게 단독 진행 가능 (mirror list 가 본 저장소 의 SSOT 이므로).
 - **또는 my_harness 의 결과 통보 대기** (D-73, D-74, Phase 3 등).
 - 또는 N-10 housekeeping close / release_v1_roadmap.md §3.5 N-13 정합.
+
+## 11. 본 세션 (2026-06-11, main flat memory finalize + 잔여 follow-up sprint)
+
+### PR 머지 결과 (squash, 사용자 confirm)
+
+| PR | 머지 commit | 의의 |
+| --- | --- | --- |
+| **#551** (T-d-72-2 re-sync) | `f0b5ee519799` (2026-06-11 05:20:12Z) | `chore/work_260611-e-wiki-resync-2026-06-11` branch. 5 file 갭 해소 — main HEAD `837c26c8` 기준 vault 최신화. |
+| **#552** (wiki-ingest + D-79/D-80 + housekeeping + handoff) | `5870f1a24d1f` (2026-06-11 05:22:00Z) | `feat/work_260611-a-wiki-ingest-from-raw` branch. 28 file, +2319/-34. wiki-ingest-from-raw wrapper (D-72 Phase 3) + wiki-query + wiki-pr-update thin wrapper (D-79, D-80) + 3 commit 정정 (publication-matrix, 3 columns, 5 broken link) + handoff-to-my-harness.md. PR #552 rebase 후 conflict resolve (state.json M-v1.0 notes 의 N-10 partial + main 의 PR #546/#547/#550 정합). |
+| **#553** (N-10 close + lint 8/62 close + memory state 정합) | `af64f189` (2026-06-11, admin force merge) | `chore/work_260611-b-residual-housekeeping-close` branch. 4 file, +8/-4. N-10 status ⏳ → ✅ resolved (full — E2E 4 + IT/UT 3 + Process 1 TC 모두 verified) + lint 8 errors / 62 warns follow-up 사실상 close (D-74 L03 skip patch + skip config 적용, 3개 lint report 모두 0 error / 0 warn / 0 info 정합) + memory 4 file 갱신. PR #553 rebase 후 state.json conflict resolve (main 의 PR #552 머지 + PR #553 의 N-10 close 통합). |
+| **#548** (N-13 backend foundation) | ❌ **E2E Internal 1 fail 보류** | `feat/work_260611-a-n13-inbound-source-impl` branch. 13 file, +627/-38. CI 11/12 PASS, E2E Internal 1 fail = e2e seed 중복 (Test 1, strict mode violation: `getByText('e2e-repo-a')` 2 elements) + Sign-out timeout (Test 2, N-8 race 유사, `Test timeout of 30000ms exceeded`). main 의 PR #550 spec timing fix 적용 후 자동 재실행 안 됨 (run 시각 `27316392137` 2026-06-11T01:04Z < PR #550 머지 2026-06-11T01:51Z). codex review = COMMENTED (blocker 아님). 사용자 confirm 별도 (re-run + 자동 재실행 또는 spec/e2e seed 정합 fix). |
+
+### codex 리뷰 검색 (4 PR)
+- **PR #552 / #551 / #548** 모두 `chatgpt-codex-connector` 가 **COMMENTED** state (blocker 아님, approve/reject 미해당, 자동 review suggestion 만).
+- **PR #553** codex review 없음 (방금 OPEN).
+- 4 PR 모두 머지 가능 정합.
+
+### main flat memory finalize (3 file, 본 turn)
+- `state.json` M-v1.0 notes: main HEAD `af64f189` + PR #514~#553 (39 PR) 정합 + T-d-72-4 done + N-10 ✅ resolved + lint 8/62 follow-up 사실상 close + N-13 ID slot + N-13 #548 OPEN + 다음 sprint (N-6 staging 1주 운영 v1.0 출시 차단).
+- `work_backlog.md` status line: main HEAD `af64f189` + PR #551/#552/#553 row + N-6 staging 1주 운영 + main flat memory finalize carry-over.
+- 본 `session_handoff.md` §11: PR #551/#552/#553 + #548 보류 + codex 리뷰 결과 + main finalize 3 file 정합.
+
+### 다음 directive
+- **N-6 staging 1주 운영 시작** (사용자 결정, v1.0 출시 차단 해소) — 외부 사용자 ≥5 로그인 + Onboarding SOP DoD 8.
+- **PR #548 머지 결정** (사용자 confirm) — rebase main 의 `af64f189` + push → 자동 재실행 → E2E Internal 1 fail 결과 확인. Test 1 (e2e seed 중복, strict mode violation) 는 spec/e2e seed 정합 fix 별도 sprint 가능. Test 2 (Sign-out timeout) 는 PR #550 spec timing fix 가 해결 가능성 높음.
+- **vault Gitea remote push** (사용자 수동) — `~/wiki` 의 b1599cc + af64f189 의 변경분을 my_harness 측 Gitea private 으로 push.
+- **T-d-79-2 / T-d-80-2** (my_harness 측) — `handoff-to-my-harness.md` 가이드.
