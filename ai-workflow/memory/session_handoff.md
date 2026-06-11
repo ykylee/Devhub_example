@@ -34,6 +34,19 @@
 - 8 item 모두 v0.1.1-alpha release 의 정공법 정합 (실제 구현은 사용자 결정 시점).
 - 잔여 3 (T-d-79-2 / T-d-80-2 my_harness 측 SSOT 작성) + vault Gitea remote push (사용자 수동) 별도 이월.
 
+### N-9 (P1-7 Repository build-runs) 기본 구현 완료 정합 (2026-06-11, PR #555)
+
+- **PR #555 ✅ MERGED** (squash `1e9e4f80`, main HEAD 2026-06-11) — docs only 정합 (3 file / +8 -5).
+- **§3.5 N-9 row status `✅ resolved (기본 구현, 2026-06-11)`** + §3.2 P1-7 row 비고 `기본 구현 완료` + path 차이 명시 + §9 변경 이력 1 row.
+- 본 carve 의 endpoint `GET /api/v1/repositories/:repository_id/build-runs` (router.go:509) + `platformStoreOrUnavailable` 가드 + `ListRepositoryBuildRuns` (postgres.go `repository_ops.go`) + UT 3건 + IT 1건 + openapi.yaml §repositories/build-runs 정의 + frontend `repositoryService.getRepositoryBuildRuns` + `DeveloperView` 위젯 + e2e `repository-dashboard.spec.ts` 의 inline build-runs mock 검증 모두 main 반영 완료.
+- **issue #487 close** (정식 ID = §3.5 N-9, 기본 구현 완료) + 잔여 4건 sub-issue 분리 (v1.1 milestone 진입 시점):
+  - **#556** [N-9 sub-1] RBAC 403/404 가드 (backend)
+  - **#557** [N-9 sub-2] `devhub_repository_build_runs_query_duration_seconds{status_filter}` Histogram (backend)
+  - **#558** [N-9 sub-3] `useRepositoryBuildRuns` TanStack Query hook + status filter dropdown + skeleton + 무한 스크롤 (frontend)
+  - **#559** [N-9 sub-4] Dashboard widget "Recent repository activity" 통합 + 독립 e2e spec `tests/e2e/repository-build-runs.spec.ts` (frontend)
+- **Tier**: 공용 (docs only). **신규 ID 발급 0건**. CI 4/4 PASS.
+- branch `chore/work_260611-d-n9-status-align` PR 머지 후 GitHub 자동 삭제.
+
 ## 0a. 본 세션 직전 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화)
 
 ### PR #545 결과
@@ -204,14 +217,17 @@ codex P1 의 핵심 우려 "reachable Keycloak SSO session is not terminated" �
 ## 3. 후속 carve out / 잔여 백로그 우선순위 (current)
 
 | 우선순위 | 항목 | 사유 |
-|---|---|---|
+| --- | --- | --- |
+| **N-9** | **P1-7 Repository build-runs 기본 구현 완료** | endpoint + UT 3건 + IT 1건 + frontend 통합 모두 main 반영. 잔여 4건 sub-issue #556/#557/#558/#559 (v1.1). PR #555 (`1e9e4f80`). issue #487 closed. |
 | **N-6** | v1.0 staging 1주 운영 검증 | 외부 사용자 로그인 + Onboarding SOP DoD 8 만족 (사용자) |
+
 | **N-10** | Manager RBAC partial verified (status ⏳) | E2E 4 TC (PR #509) + backend IT 3 TC (PR #515) active. TRACE-01 Process scoped-out. 잔여 housekeeping 만 |
 | **X-1** | System Admin 운영 대시보드 | Gitea sync job 큐/상태 + provider health (v1.1) |
 | **X-2** | inbound webhook 정규화 깊이 | multi-provider sync 일반화 (v1.1) |
 
 ## 4. 다음 세션 directive
 * **PR #515 ✅ MERGED** (squash `f7d2705`) + **PR #516 ✅ MERGED** (squash `2b3c766`) + **PR #517 ✅ MERGED** (squash `97bc6bc`).
+* **PR #555 ✅ MERGED** (squash `1e9e4f80`, 2026-06-11) — N-9 (P1-7 Repository build-runs) 기본 구현 완료 정합. 3 file / +8 -5 (docs only, 공용 tier). issue #487 closed + 잔여 4건 sub-issue #556/#557/#558/#559 분리 (v1.1).
 * **swagger UI 정상동작 fix 완료** — PR #508 의 silent 404 의도적 결정을 embed fallback 으로 supersede. 7 swagger TC 모두 PASS. staging env `DEVHUB_SWAGGER_ENABLED=true` 만 설정해도 openapi.yaml 정상 서빙.
 * **N-6**: staging 1주 운영 (사용자 결정 영역). swagger UI 정상동작 정합.
 * **N-10 IT 3 TC 완료 정합** (이전 sprint, PR #515 옵션 C): `TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01` ✅ verified (`rbac_n10_integration_test.go`). E2E 4 TC 는 PR #509 로 별도 active. status partial verified.
