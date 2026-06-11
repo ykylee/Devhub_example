@@ -524,6 +524,14 @@ T-d-80-3..6:  dry-run + apply + idempotency + reingest 검증
 | 5 | **workflow_skill_catalog.md 갱신** (my_harness 측) | D-79/D-80 row 추가 |
 | 6 | **PR #552 머지** (본 저장소) | 사용자 confirm 별도 |
 
+### 17.1. 추가 follow-up (2026-06-11, 본 sprint 3-way 정합 진단 + apply 후 발견)
+
+| # | 작업 | 비고 |
+|---|---|---|
+| 7 | **wiki-ingest-from-raw skill 의 idempotency patch** | **증상**: dry-run 시 `sources_already_ingested: 1` (`_manifest.md` 만) 인데 86 file 중 **83 file 가 wiki 에 이미 존재**. skill 의 "already_ingested" 판정 로직 = raw 의 mtime vs wiki 의 `last_touched` 비교 인데 **wiki 의 last_touched 가 raw 의 mtime 보다 최신**(vault 가 main HEAD 의 memory 미반영 + 사용자 수동 wiki 갱신). 결과: `--apply` 시 매번 83 file 가 create → wiki 의 기존 page 가 overwrite. **증거**: 본 sprint 의 `wiki-ingest-from-raw --all --apply` 후 31 ADR naming 중복 page 가 **재발생** (skill 의 idempotency 미동작 부산물). **권장 fix**: my_harness 측 `run_wiki_ingest.py` 의 `already_ingested` 판정을 **wiki 의 `last_touched` 가 raw 의 mtime 이상** 일 때 (즉 wiki 가 raw 와 같거나 더 최신) skip 으로 변경. **대안 fix**: `--apply` 시 dry-run 으로 target_page 존재 + frontmatter `last_touched` 가 raw 의 mtime 와 매칭 시 skip. 본 저장소 측에서는 일시적으로 `mavis-trash` 31 file 로 우회 (PR #565 follow-up). 영구 fix 는 my_harness 측. |
+| 8 | **`wiki-lint --fix` 옵션 추가** (forward) | **증상**: L08 (index.md 미등록) fix 가 수동 (`mavis-trash` 후 `index.md` 1줄 추가). my_harness 측 wiki-lint skill 에 `--fix` 옵션 추가 시 `wiki-lint --fix --rules=L08` 으로 자동 갱신 가능. |
+| 9 | **L02 broken link 18 fix** (forward path) | **증상**: 9개 wikilink (`[[wiki-prompt-log]]` / `[[wiki-event-sync]]` / `[[wiki-query-helper]]` / `[[llm-wiki-pattern]]` / `[[agent-memory]]` / `[[workflow]]` / `[[AGENTS]]` / `[[context-budget]]` / `[[llm-wiki-pattern]]`) 가 target page 없음. **fix**: forward path (Phase 2 type 분류 + Phase 3 concept page 작성) 에서 해소. my_harness 측 patch 불요. |
+
 본 메시지 끝. 작성 시 의문점은 본 저장소 PR #552 코멘트 또는 `ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/session_handoff.md` 에 follow-up.
 
 ## 18. 변경 이력
