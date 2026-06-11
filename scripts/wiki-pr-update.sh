@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wiki-pr-update.sh — DevHub repo (~/repos/Devhub_example_omp/) 의 PR-vault update wrapper.
+# wiki-pr-update.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 PR-vault update wrapper.
 # PR (`gh pr view <num>`) 의 metadata + touched files → `~/wiki/` 의 prs/<num>.md 신규 + log.md append.
 # PR-auto-update skill 의 본 저장소 측 thin wrapper (D-72 pattern).
 #

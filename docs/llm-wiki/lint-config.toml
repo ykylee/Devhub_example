@@ -12,7 +12,7 @@ name = "devhub"
 
 # DevHub 의 SSOT 위치. wiki 의 mirror source 의 source-of-truth.
 # 본 config 의 source-of-truth = 본 저장소 의 docs/llm-wiki/ + scripts/.
-ssot_path = "~/repos/Devhub_example_omp"
+ssot_path = "~/repos/Devhub_example_minimax"
 
 # mirror source 위치 (Phase 1 + Phase 3 의 raw/ mirror 경로).
 # wiki-lint 의 sources: 경로 검증 시 사용.
@@ -87,12 +87,12 @@ config_version = "1"
 created = "2026-06-10"
 created_by = "yklee"
 rationale = "D-72 Phase 1. my_harness 의 wiki-lint skill 의 --project-config 옵션 추가 후 자동 활성. lint L11 (사내 패턴 검출) 미사용 (yklee 결정: wiki 는 Gitea private 만)."
-source_of_truth = "~/repos/Devhub_example_omp/docs/llm-wiki/lint-config.toml"
+source_of_truth = "~/repos/Devhub_example_minimax/docs/llm-wiki/lint-config.toml"
 related_docs = [
-  "~/repos/Devhub_example_omp/docs/llm-wiki/README.md",
-  "~/repos/Devhub_example_omp/docs/llm-wiki/scope-and-rationale.md",
-  "~/repos/Devhub_example_omp/docs/llm-wiki/mirror-list.md",
-  "~/repos/Devhub_example_omp/docs/llm-wiki/operation-sop.md",
-  "~/repos/Devhub_example_omp/scripts/wiki-sync-devhub.sh",
+  "~/repos/Devhub_example_minimax/docs/llm-wiki/README.md",
+  "~/repos/Devhub_example_minimax/docs/llm-wiki/scope-and-rationale.md",
+  "~/repos/Devhub_example_minimax/docs/llm-wiki/mirror-list.md",
+  "~/repos/Devhub_example_minimax/docs/llm-wiki/operation-sop.md",
+  "~/repos/Devhub_example_minimax/scripts/wiki-sync-devhub.sh",
   "https://github.com/ykylee/my_harness/blob/main/docs/architecture/DETAILED_DESIGN_LLM_WIKI.md"
 ]

@@ -48,7 +48,7 @@ D-72 응답 §2 의 6 질문 권장안을 본 저장소 측에 적용. 각 권�
 **권장 (D-72)**: A 단순화 — `~/wiki/` 가 yklee 개인 Gitea private repo 만 push. lint L11 + sa-internal/ 격리 불요.
 
 **본 저장소 측 정합**:
-- 본 저장소 의 3-tier 정책 (= GitHub vs 사내 SCM push 분리) 의 **적용 대상 = DevHub repo 자체** (`~/repos/Devhub_example_omp/`). `~/wiki/` 는 별도 Gitea private repo (my_harness 의 D-72 응답 §3) — 다른 정책.
+- 본 저장소 의 3-tier 정책 (= GitHub vs 사내 SCM push 분리) 의 **적용 대상 = DevHub repo 자체** (`~/repos/Devhub_example_minimax/`). `~/wiki/` 는 별도 Gitea private repo (my_harness 의 D-72 응답 §3) — 다른 정책.
 - 따라서 `docs/llm-wiki/` 의 4 file + `scripts/wiki-sync-devhub.sh` 의 **모든 변경 = 공용** (사내 한정 정보 미포함). Tier 검증 PASS 예상.
 - `mirror-list.md` 의 source list 는 **사외/공용 file 만** (ADR/governance/planning/setup/requirements/openapi/ai-workflow-memory main flat). 사내 한정 정보는 `infra/idp/_archive_*/`, `infra/idp/keycloak-realm.ci.json`, `docker-compose.{local,test,deploy,colima}.yml`, `scripts/setup-keycloak.sh` 등 — **mirror list 에 미포함**.
 
