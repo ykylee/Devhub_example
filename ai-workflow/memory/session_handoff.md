@@ -505,3 +505,44 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - **PR #548 머지 결정** (사용자 confirm) — rebase main 의 `af64f189` + push → 자동 재실행 → E2E Internal 1 fail 결과 확인. Test 1 (e2e seed 중복, strict mode violation) 는 spec/e2e seed 정합 fix 별도 sprint 가능. Test 2 (Sign-out timeout) 는 PR #550 spec timing fix 가 해결 가능성 높음.
 - **vault Gitea remote push** (사용자 수동) — `~/wiki` 의 b1599cc + af64f189 의 변경분을 my_harness 측 Gitea private 으로 push.
 - **T-d-79-2 / T-d-80-2** (my_harness 측) — `handoff-to-my-harness.md` 가이드.
+
+## 18. 본 세션 (2026-06-11, Phase 2 1차 chunk — concept 5 page 신규)
+
+### 작업 흐름 (out-of-repo, 사용자 confirm 후)
+
+| Step | 작업 | 결과 |
+|---|---|---|
+| 1 | **type 분류 사전 정의** (AGENTS.md v1.5 + schema/page_template.md) | type 6종 (concept/entity/topic/source/comparison/query) + frontmatter 8 key 정공법 명확 |
+| 2 | **5 page 작성** (Mavis 직접, chunked) | `concepts/rbac.md` / `entities/keycloak.md` / `concepts/agent-memory.md` / `concepts/llm-wiki-pattern.md` / `topics/workflow.md` |
+| 3 | **1차 lint 검증** (작성 직후) | errors 52 + warns 89 = **141 findings** (1차 page 의 `related:` 의 wikilink 25 가 target 없음 → L02 error 폭발) |
+| 4 | **`related:` 의 wikilink 정공법** (target 없으면 plain text) | wikilink 25 → 7 (target 있는 것만 유지), errors 52 → 20 |
+| 5 | **index.md 자동 갱신** (L08 fix) | Concepts — devhub 3 → 5 + Topics — devhub 2 → 3 + Entities — devhub keycloak dedup. errors 20 → 17 |
+| 6 | **`sources:` 의 path 정합** (L06 fix) | vault mirror 의 7 패턴 (ADR/governance/planning/setup/requirements/openapi/ai-workflow-memory) 의 path 만 유지. L06 9 → 0. **errors 17 → 11** |
+
+### Phase 2 1차 chunk 결과
+
+| 항목 | Before | After |
+|---|---|---|
+| lint total | 196 findings | **98 findings** (-98, -50%) |
+| errors | 18 | 11 (-7) |
+| warns | 178 | 87 (-91) |
+| L02 | 18 (broken wiki link) | **11** (forward path, cross/ 의 4 page 의 wikilink) |
+| L03 | 116 (고아) | 86 (forward path, sources/ 의 cross-ref) |
+| L04 | 31 (ADR naming 중복) | **0** (mavis-trash 후) |
+| L06 | 9 (sources path) | **0** (7 패턴 정합) |
+| L08 | 31 (index 미등록) | **1** (5 page 만 등록, 잔여 1 file) |
+| type 분포 | sources 113 / concept 3 / entity 4 / topic 2 / comparison 0 / query 0 | sources 83 / **concept 5** / **entity 4** / **topic 3** / comparison 0 / query 0 |
+
+### Phase 2 forward path 잔여
+
+- **L02 11**: cross/concepts/, cross/topics/ 의 4 page 의 wikilink 11개 (`[[ai-workflow]]` / `[[context-budget]]` / `[[AGENTS]]` / `[[keycloak-admin]]` / `[[envelope-encryption]]` / `[[wiki-prompt-log]]` / `[[wiki-event-sync]]` / `[[wiki-query-helper]]` / `[[wiki-lint]]` / `[[wiki-pr-update]]` / `[[wiki-query]]`)
+- **L03 86**: wiki 의 sources/ page 의 cross-reference 부족 (forward, 2차 chunk 에서 해소)
+- **2차 chunk plan**: 8 page 추가 (keycloak-admin / envelope-encryption / ai-workflow / wiki-prompt-log / wiki-event-sync / wiki-query-helper / wiki-lint / wiki-pr-update / wiki-query) + comparisons 1~3
+- **3차 chunk plan**: cross-project 종합 + L03 86 점진 감소
+
+### 다음 세션 directive
+
+- **2차 chunk 진행** (forward, 사용자 confirm 후): 8~9 page 추가 (L02 11 → 0 정공법)
+- 또는 `docs/llm-wiki/Mavis-workflow.md` 9번째 문서 작성
+- 또는 본 세션 작업의 prompt log (D-86 흐름 1) 작성
+- 또는 다른 sprint (N-13 release_v1_roadmap §3.5 정합 / v0.1.1-alpha release 8 item / PR #548 머지 결정)
