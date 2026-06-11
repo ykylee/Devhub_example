@@ -3,8 +3,8 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-06-11 update — main HEAD `f37305d7` (PR #545 squash `ac52d1ca`, 2026-06-10 22:38 UTC) + housekeeping `f37305d7` (PR #539 sync). 06-09~06-10 사이 PR #514~#545 (32 PR) 정합 — v1.0 finalizing (#514/#515/#516/#517) + 2-tier governance (#531~#537) + v1.1 sprint -a follow-up (#538~#543) + D-72 Phase 1 (#544) + ai-workflow v0.5.11 sync (#545). N-10 P1 follow-up partial verified (E2E 4 TC PR #509 + backend IT 3 TC PR #515 + status ⏳ per PR #512). v1.0 출시 직전, 자유 에이전트 정책. 다음 sprint: N-6 staging 1주 운영 (사용자 결정) 외 housekeeping.**
-- 최종 수정일: 2026-06-10
+- 상태: **2026-06-11 update — main HEAD `f37305d7` (PR #545 squash `ac52d1ca`, 2026-06-10 22:38 UTC) + housekeeping `f37305d7` (PR #539 sync) + PR #546 (N-10 housekeeping, mergeCommit `9ed8c25`) + PR #547 (N-13 housekeeping, mergeCommit `44df9883`) 머지. 06-09~06-11 사이 PR #514~#547 (34 PR) 정합 — v1.0 finalizing (#514/#515/#516/#517) + 2-tier governance (#531~#537) + v1.1 sprint -a follow-up (#538~#543) + D-72 Phase 1 (#544) + ai-workflow v0.5.11 sync (#545) + N-10 housekeeping (#546) + N-13 housekeeping (#547). N-10 P1 follow-up partial verified (E2E 4 TC PR #509 + backend IT 3 TC PR #515 + status ⏳ per PR #512). N-13 ID slot 9 row 발급 (PR #547, REQ-FR-113/UC-DEV-REQ-15/ARCH-23/API-103/RM-DEV-REQ-15/IMPL-inbound-source-01/IMPL-platform-patch-02/UT-inbound-source-01/TC-INBOUND-SRC-01, 모두 planned, v1.1 진입 시점 코드 변경). N-13 backend foundation (PR #548) OPEN — CI 9/12 PASS (E2E Internal 1 fail = main 의 spec drift 가능성, 본 PR scope 외). T-d-72-2 (D-72 Phase 1 mirror 실행) **완료** (2026-06-11 01:10:39Z, 83 file, 1.6M, vault = 공유 자원 = my_harness 측 Gitea private). v1.0 출시 직전, 자유 에이전트 정책. 다음 sprint: N-6 staging 1주 운영 (사용자 결정) 외 housekeeping.**
+- 최종 수정일: 2026-06-11 (N-13 PR #548 OPEN + T-d-72-2 mirror 실행 완료 + 메모리 drift 정합)
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
 ## 1. 마일스톤 진행 상황
