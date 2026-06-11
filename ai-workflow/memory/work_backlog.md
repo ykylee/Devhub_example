@@ -97,3 +97,25 @@
 | 2026-06-11 | **N-6 skip (사용자 결정, v1.0 release blocker 해제)** — v1.0 staging 1주 운영 검증 미실시. 5 file 변경 (`docs/planning/release_v1_roadmap.md` §1.3 DoD 7 + §3.5 N-6 row status `⏳ 사용자 결정` → `✅ skipped (사용자 결정, 2026-06-11, v1.0 release blocker 해제)` + `ai-workflow/memory/state.json` M-v1.0 notes "N-6 skipped" + 8 DoD 모두 close 명시 + `ai-workflow/memory/work_backlog.md` status line main HEAD `82935f8b` 갱신 + `ai-workflow/memory/session_handoff.md` §0 N-6 skip subsection + §0a → §0b 갱신 + 본 row). **v1.0 release blocker 0건** — 8 DoD 중 7 ✅ + 1 ✅ skipped = **8 DoD 모두 close**. **v1.0 release 가능 상태**. 신규 ID 없음 (housekeeping 정공법). main HEAD `82935f8b`. |
 | 2026-06-11 | **v0.1.0-alpha release (사용자 결정, 8 DoD close)** — `release` 디렉터리에 3 file 신규 (`CHANGELOG.md` 670+ lines + `docs/presentations/2026-06-11-v0.1.0-alpha-announcement.md` 200+ lines + `docs/presentations/2026-06-11-v0.1.0-alpha-announcement.html` 자체 HTML 14 슬라이드, 키보드 네비게이션, reveal.js 의존성 0). PR #554 (N-6 skip) 머지 → main HEAD `d860b7c9` → CHANGELOG + 발표 자료 commit `356d08b7`. Git tag `v0.1.0-alpha` 부착 + push (re-tag 후 main HEAD `356d08b7` 부착). v0.1.0-alpha release 발표 (2026-06-11, 14 슬라이드 발표 자료). 신규 ID 없음 (release 산출물). main HEAD `356d08b7`. |
 | 2026-06-11 | **v0.1.1-alpha release 정공법 (사용자 결정, 잔여 5 의 v0.1.1-alpha 격하)** — 잔여 5 (T-d-72-5/6 + D-73/74 + X-1~8) 의 v0.1.1-alpha 격하 (v1.1 forward path 가 아닌 v0.1.x patch release). 5 file 변경 (`docs/planning/release_v1_roadmap.md` §3.5 NEXT block title `v1.1` → `v0.1.1-alpha` + `ai-workflow/memory/state.json` M-v1.0 notes "v0.1.1-alpha release 정공법" + 잔여 5 의 8 item 의 v0.1.1-alpha 격하 마킹 + `ai-workflow/memory/work_backlog.md` status line main HEAD + v0.1.1-alpha release 정합 + §5 변경 이력 row + `ai-workflow/memory/session_handoff.md` §0 v0.1.1-alpha subsection + `CHANGELOG.md` v0.1.1-alpha release note 추가). 8 item 모두 v0.1.1-alpha release 의 정공법 정합 (실제 구현은 사용자 결정 시점). 신규 ID 없음 (정공법 정합). main HEAD `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` re-tag 후 main HEAD 부착. |
+
+---
+
+## 6. Phase 2 1차 chunk 결과 (2026-06-11, out-of-repo)
+
+본 세션 (2026-06-11, Phase 2 type 자동 분류) 의 1차 chunk 결과:
+
+| 항목 | Before | After |
+|---|---|---|
+| lint total | 196 findings | **98 findings** (-98, -50%) |
+| errors | 18 | 11 (-7) |
+| warns | 178 | 87 (-91) |
+| L04 (ADR naming 중복) | 31 | **0** (mavis-trash 후) |
+| L06 (sources path) | 9 | **0** (7 패턴 정합) |
+| L08 (index 미등록) | 31 | 1 (5 page 만 등록) |
+| type 분포 | sources 113 / concept 3 / entity 4 / topic 2 | **sources 83 / concept 5 / entity 4 / topic 3** |
+
+**신규 5 page**: `concepts/rbac.md` / `entities/keycloak.md` / `concepts/agent-memory.md` / `concepts/llm-wiki-pattern.md` / `topics/workflow.md`. frontmatter 8 key (title/type/tags/sources/last_touched/related/status/contradictions) + 4섹션 본문 (Summary/Observations/Relations/Open Questions).
+
+**forward path 잔여**: L02 11 (cross/concepts/, cross/topics/ 의 4 page 의 wikilink 11개) + L03 86 (sources/ 의 cross-ref 부족) — 2차 chunk + 3차 chunk 에서 해소.
+
+main HEAD `8dba2b3` (메모리 finalize, 2026-06-11 23:55 KST). in-repo PR 0 (vault 만 변경).
