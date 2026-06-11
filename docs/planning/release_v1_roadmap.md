@@ -51,7 +51,7 @@
 4. HomeLab integration provider 등록 + sync + binding 생성 + topology v2 시각화 동작
 5. DREQ 흐름 — intake token 발급 + 외부 시스템 → DevHub POST → assignee dashboard 노출 → Promote (신규 application/project 1tx) → close
 6. e2e Playwright 전 shard PASS + backend `go test ./...` PASS + frontend `npm run build` PASS
-7. 사내 staging 환경 1주 운영 + 외부 사용자 ≥ 5명 로그인 동작 ([Onboarding 운영 SOP](../setup/onboarding_operations.md) §7 DoD 8 항목 통과)
+7. 사내 staging 환경 1주 운영 + 외부 사용자 ≥ 5명 로그인 동작 ([Onboarding 운영 SOP](../setup/onboarding_operations.md) §7 DoD 8 항목 통과) — **(N-6 skipped, 사용자 결정, 2026-06-11, v1.0 release blocker 해제)**
 8. UI 디자인 polish 1차 완료 (semantic theme + responsive + a11y baseline)
 
 ## 2. 도메인 모듈 매트릭스
@@ -180,7 +180,7 @@
 | **N-3** | SCM import/create + draft/publish happy-path E2E | FE+BE | Gemini+Claude |
 | **N-4** | 프론트 service/component 단위테스트 보강 (vitest 10→확대) | FE | Gemini |
 | **N-5** | 마이그레이션 prefix uniqueness CI guard 강화 (000042 충돌 재발 방지, branch protection required check) | CI | Codex |
-| **N-6** | v1.0 staging 1주 운영 검증 (외부 사용자 ≥5 로그인 + Onboarding SOP DoD 8) | 사내 | 사용자 |
+| **N-6** | v1.0 staging 1주 운영 검증 (외부 사용자 ≥5 로그인 + Onboarding SOP DoD 8) | 사내 | 사용자 | **status**: ✅ skipped (사용자 결정, 2026-06-11, v1.0 release blocker 해제).
 | **N-7** | **CI Run 생성 API (P0-4) 구현** — 2026-06-01 통합 테스트 ISSUE-05 | BE | Claude |
 | **N-8** | **Sign-out endpoint (P1-6) 구현** — 2026-06-01 통합 테스트 BUG-03 | BE | Claude |
 | **N-8 race** | **N-8 sign-out e2e deterministic race hotfix 4차** — backend `POST /api/v1/auth/logout` 가 Keycloak 도달 실패 시 즉시 502 반환 → frontend logout() 502 분기 → AuthGuard pathname 변화 useEffect 가 stale actor 박음 → /developer 진입 → /login 도착 못함 (deterministic, 32회 retry). PR #497 의 hotfix #1/#2/#3 (catch-all, page.request.fetch, setActor no-op) 셋 모두 backend 502 자체를 막지 못함. **정공법** (PR #502 + #503, 3 commit, issue #501 closed): **(1)** 502 → 204 graceful degradation + audit `revoke_status=unreachable` + hotfix 식별자. **(2)** response header `X-Keycloak-Likely-Down: true` marker (codex P1 응답, IdP outage 시 dead IdP trap 회피). **(3)** typed error sentinel `authview.ErrOIDCConfigMissing` (config error, marker **미부착** + 정상 OIDC 분기) + `authview.ErrOIDCNetworkUnreachable` (네트워크/5xx, marker 부착) — `KeycloakAdminClient.OIDCLogout` 의 세 error source (config / network / 5xx) 를 sentinel 로 wrap (codex P1 follow-up 응답). **검증**: e2e shard 1/2/3 PASS, backend 35 packages PASS, frontend 80 files / 1033 tests PASS, 4 신규 TC (TC-AUTH-LOGOUT-04/-08, TC-AUTH-LOGOUT-FE-07/-08). 신규 ID 없음. **status**: ✅ resolved (issue #501 closed, PR #502 + #503 머지). | BE+FE | OpenCode Lane 2 (cross-cutting validation) — 자유 에이전트 정책 |
