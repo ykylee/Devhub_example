@@ -31,9 +31,9 @@
     "merge_pr": [
       "본 PR 머지 후 main flat memory 3 file finalize (wiki-ingest skill wrapper 정합)"
     ],
-    "post_merge": [
-      "T-d-72-4 (Phase 3 mass ingest, ~100 file) — 사용자 confirm 시 bash scripts/wiki-ingest-from-raw.sh --project devhub --apply",
-      "PR #548 (N-13 backend foundation) 머지 결정 (E2E Internal 1 fail 해결 기대)"
-    ]
+  "post_merge": [
+        "T-d-72-4 ✅ done (2026-06-11) — bash scripts/wiki-ingest-from-raw.sh --project devhub --apply 실행. vault 변경: 82 wiki page 신규 ingest (sources/) + raw 83 file mirror 갱신 + log.md 82 append + index.md devhub 103→107 + vault git commit b1599cc. lint 별도 errors=8 / warns=62 (follow-up).",
+        "PR #548 (N-13 backend foundation) 머지 결정 (E2E Internal 1 fail 해결 기대)"
+      ]
   }
 }
