@@ -20,7 +20,6 @@
 
 # Exclude duplicated engine/tool copies
 /ai-workflow/scripts/
-/ai-workflow/skills/
 /ai-workflow/workflow_kit/
 /ai-workflow/mcp_servers/
 /ai-workflow/schemas/
@@ -28,6 +27,12 @@
 /ai-workflow/examples/
 /ai-workflow/global-snippets/
 /ai-workflow/harnesses/
+
+# ai-workflow/skills/ 는 본 저장소 에서 추적 (밴치마킹: my_harness 와 동일 정책, 2026-06-11)
+# 이유: D-86 (흐름 1/2/3) 의 본 저장소 측 thin wrapper = SKILL.md + scripts/<skill> dispatch.
+# cross-project SSOT 는 ~/wiki/skills/ (vault, my_harness 와 동일).
+# 표준 .gitignore 는 /ai-workflow/skills/ 를 무시하지만, 본 저장소 는 추적 결정 (my_harness 정합).
+
 /ai-workflow/tests/
 
 # Keep the data (memory) and core guides

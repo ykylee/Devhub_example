@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# wiki-query-helper — 본 저장소 (= DevHub) 측 thin wrapper.
+# SSOT: ~/wiki/skills/wiki-query-helper/scripts/wiki-query-helper.py (vault, cross-project).
+# 밴치마킹 출처: ~/repos/my_harness/ai-workflow/skills/wiki-query-helper/ (D-86).
+#
+# 사용:
+#   bash ai-workflow/skills/wiki-query-helper/scripts/wiki-query-helper "<query>" \
+#     [--project=devhub] [--limit=10]
+#
+# 본 wrapper 는 단순히 vault 의 SSOT Python 호출. read-only, 부수효과 ❌.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VAULT_PY="$HOME/wiki/skills/wiki-query-helper/scripts/wiki-query-helper.py"
+
+if [[ ! -f "$VAULT_PY" ]]; then
+  echo "ERROR: vault SSOT 부재: $VAULT_PY" >&2
+  echo "  hint: vault 초기화 필요." >&2
+  exit 1
+fi
+
+exec python3 "$VAULT_PY" "$@"
