@@ -6,7 +6,17 @@
 - 최종 수정일: 2026-06-11 07:30 KST (PR #545 push 기준)
 - 직전 handoff (PR #514 + #515 finalizing): §0a 참조, main HEAD `fee06d4` 까지.
 
-## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화)
+## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 + N-6 skip)
+
+### N-6 skip 결정 (2026-06-11, 사용자 결정)
+
+- **N-6 (v1.0 staging 1주 운영 검증) skip** — 사용자 결정 (2026-06-11).
+- §1.3 DoD 7 + §3.5 N-6 row + `state.json` M-v1.0 notes + `work_backlog.md` status line 모두 ✅ skipped 마킹.
+- **v1.0 release blocker 0건** — 8 DoD 중 7 ✅ + 1 ✅ skipped = **8 DoD 모두 close**.
+- **v1.0 release 가능 상태**. main HEAD `82935f8b`.
+- 잔여 follow-up: 잔여 3 (T-d-79-2 / T-d-80-2 my_harness 측 SSOT 작성, 사용자 전달 후 진행 중) + 잔여 5 (T-d-72-5/6 + D-73/74 + X-1~8, v1.1 forward path, v1.1 milestone 진입 시점 별도 sprint).
+
+## 0a. 본 세션 직전 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화)
 
 ### PR #545 결과
 
@@ -45,7 +55,7 @@
 - `_pre_v0.5.11_backup_2026-06-10/` rotate (다음 sync 시점에 `.gitignore` 라인 제거, `mavis-trash` 권장)
 - my_harness 측 동기화 — 사용자 confirm 후 별도 plan trigger (이번 scope=devhub-only)
 
-## 0a. 이전 세션 (2026-06-09, v1.0 출시 직전 finalizing — PR #514 + PR #515 + codex P2 fix)
+## 0b. 이전 세션 (2026-06-09, v1.0 출시 직전 finalizing — PR #514 + PR #515 + codex P2 fix)
 
 - 문서 목적: PR #514 (voc + notification, ADR-0028) + PR #515 (옵션 A N-12 housekeeping + B voc list + C N-10 IT 3 TC + codex P2 fix 3 layer) 머지 상태 인계.
 - 범위: 본 세션의 2 PR (PR #514 + PR #515 squash). 옵션 A (N-12 housekeeping) + B (voc list API) + C (N-10 backend IT 3 TC) + codex P2 fix (3 layer: production router mount + routePermissionTable + gin path conflict).
