@@ -3,7 +3,7 @@
 - 문서 목적: main 브랜치 기준 상위 백로그 인덱스. 세부 sprint backlog 는 브랜치별 메모리 디렉터리 참조.
 - 범위: 마일스톤 상태, 최근 머지, 잔여/후속 작업
 - 대상 독자: 프로젝트 리드, 후속 에이전트, 트랙 담당자
-- 상태: **2026-06-10 update — main HEAD `fee06d4` (2026-06-10 housekeeping `chore(memory)`) = PR #544 (`a96f586`, D-72 Phase 1) + housekeeping 2 commit (`7a33257` PR #544 머지 후 main flat memory sync + `fee06d4` wiki 통합 일임 결정).** 06-09~06-10 사이 PR #514~#544 (30+ PR) 정합 — v1.0 finalizing (#514/#515/#516/#517) + 2-tier governance (#531~#537) + v1.1 sprint -a follow-up (#538~#543) + D-72 Phase 1 (#544). v1.0 출시 직전, 자유 에이전트 정책. 다음 sprint: N-10 Manager RBAC E2E 6 TC (`maintenance/work_260610-c-N10-rbac-e2e-tcs`).
+- 상태: **2026-06-11 update — main HEAD `f37305d7` (PR #545 squash `ac52d1ca`, 2026-06-10 22:38 UTC) + housekeeping `f37305d7` (PR #539 sync). 06-09~06-10 사이 PR #514~#545 (32 PR) 정합 — v1.0 finalizing (#514/#515/#516/#517) + 2-tier governance (#531~#537) + v1.1 sprint -a follow-up (#538~#543) + D-72 Phase 1 (#544) + ai-workflow v0.5.11 sync (#545). N-10 P1 follow-up partial verified (E2E 4 TC PR #509 + backend IT 3 TC PR #515 + status ⏳ per PR #512). v1.0 출시 직전, 자유 에이전트 정책. 다음 sprint: N-6 staging 1주 운영 (사용자 결정) 외 housekeeping.**
 - 최종 수정일: 2026-06-10
 - 관련 문서: [통합 로드맵](../../docs/development_roadmap.md), [세션 인계](./session_handoff.md), [상태 스냅샷](./state.json), [M1 PR 리뷰 actions](./M1-PR-review-actions.md), [ADR-0025](../../docs/adr/0025-envelope-encryption-key-management.md)
 
