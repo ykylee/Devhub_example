@@ -563,7 +563,7 @@ jobs:
     name: E2E Internal (real Keycloak adapter, DEVHUB_BUILD_TIER=internal, shard 1/1)
     runs-on: ubuntu-latest
     needs: [changed-paths, e2e-build]
-    if: false
+    if: ${{ false }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
