@@ -1,8 +1,8 @@
 # Work Backlog — codex/work_260612-579-ci-rearchitecture
 
 - 문서 목적: #579 CI 재구성 및 flaky 복구 스프린트의 현재 진행상황을 관리한다.
-- 상태: **in progress**
-- 최종 수정일: 2026-06-12
+- 상태: **complete**
+- 최종 수정일: 2026-06-13
 
 ## 완료
 
@@ -15,12 +15,11 @@
 - signout/login flaky 복구용 fixture/spec 조정
 - workflow sync / selector / focused type check 검증
 
-## 남은 작업
+## 완료 결과
 
-1. 변경 diff 최종 점검
-2. repo/branch memory 정리
-3. commit / push / draft PR 생성
-4. GitHub Actions 에서 실제 workflow 결과 확인
+1. PR #580 merged
+2. 새 workflow 구조의 GitHub Actions 동작 확인
+3. PR #579 최신 main 반영 후 재평가 통과 확인
 
 ## 메모
 
