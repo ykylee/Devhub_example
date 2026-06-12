@@ -118,6 +118,8 @@ ALTER TABLE public.applications
 | `intake token` 인증 (ADR-0012) | ✅ resolved | 외부 시스템 인증 |
 | Keycloak user lookup | ✅ stable | requester → user_id 매핑 |
 | organization hierarchy | ✅ stable | req_department → unit_id 매핑 |
+| **PR #548 (`feat/work_260611-a-n13-inbound-source-impl`)** | ❌ **CLOSED (2026-06-11 05:40 UTC)** | E2E Internal 1 fail — Test 1 (e2e seed 중복 strict mode violation) + Test 2 (Sign-out timeout). 자동 재실행 미적용 (PR #550 spec timing fix 미반영). follow-up: rebase main + PR #550 fix + e2e seed 정합 fix + 자동 재실행 = v1.1 milestone 진입 시점 별도 sprint (sprint `fix/work_260612-1-n13-housekeeping-followup` 결정). |
+| **PR #548 (`feat/work_260611-a-n13-inbound-source-impl`)** | ❌ **CLOSED (2026-06-11 05:40 UTC)** | E2E Internal 1 fail — Test 1 (e2e seed 중복 strict mode violation) + Test 2 (Sign-out timeout). 자동 재실행 미적용 (PR #550 spec timing fix 미반영). follow-up: rebase main + PR #550 fix + e2e seed 정합 fix + 자동 재실행 = v1.1 milestone 진입 시점 별도 sprint (sprint `fix/work_260612-1-n13-housekeeping-followup` 결정). |
 
 ### 3.4 정합 항목
 
@@ -147,8 +149,11 @@ ALTER TABLE public.applications
 
 **현 sprint (v1.0 출시 직전) 의 잔여 = N-6 staging 1주 운영** (사용자 결정 영역). 본 plan 의 구현은 v1.0 staging 운영 후 v1.1 진입 시점.
 
+**2026-06-12 보강** (sprint `fix/work_260612-1-n13-housekeeping-followup`): 본 plan 의 1차 구현 시도 (sprint `feat/work_260611-a-n13-inbound-source-impl`, PR #548) 가 E2E Internal 1 fail 2건으로 CLOSED 결정. follow-up 결정 3 branch: (1) Test 1 e2e seed 중복 → spec/e2e seed 정합 fix 별도 sprint; (2) Test 2 Sign-out timeout → main rebase + 자동 재실행 검증 별도 (PR #550 spec timing fix 가 해결 가능성 ↑); (3) 구현 follow-up = v1.1 milestone 진입 시점 별도 sprint (rebase main + PR #550 fix + e2e seed 정합 fix + 자동 재실행 종합). 본 plan 의 구현 = 1차 시도 보류 + follow-up 종합 검증 후 v1.1 진입 시점 재진입.
+
 ## 6. 변경 이력
 
 | 일자 | 변경 |
 | --- | --- |
 | 2026-06-12 | 1차 작성 (sprint `maintenance/work_260612-c-inbound-source-plan`) — ADR-0028 §6 carve (a) 의 정공법 + ID slot + 의존 정합. 옵션 A 권장 (applications.inbound_source 컬럼 + sync 자동 routing). 구현은 v1.1 milestone 진입 시점. |
+| 2026-06-12 | **N-13 PR #548 close follow-up 결정** (sprint `fix/work_260612-1-n13-housekeeping-followup`, docs only) — 본 plan 의 1차 구현 시도 (PR #548) 가 E2E Internal 1 fail 2건 (Test 1 e2e seed 중복 + Test 2 Sign-out timeout) 으로 CLOSED. §3.3 의존 표에 PR #548 CLOSED row 추가 + §5 결정 보류 사유 보강 (3 branch follow-up 결정) + 본 §6 row 추가. ADR-0028 §6 (a) + release_v1_roadmap.md §3.5 N-13 row + traceability/report.md §6 + 메모리 4 file 동기화. 신규 ID 발급 0건 (housekeeping follow-up). |
