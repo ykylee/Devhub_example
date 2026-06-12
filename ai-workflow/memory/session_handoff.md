@@ -626,3 +626,35 @@ const repoBLink = (page) => page.getByRole("link", { name: "e2e-repo-b", exact: 
 - **본 verification PR 머지 후 e2e CI 결과 확인**: e2e shard 1/2/3 PASS 시 본 sprint 종료 (Test 2 자동 해결 확인). FAIL 시 추가 fix PR 발행.
 - **follow-up 1 branch 결정** (구현 follow-up, v1.1 진입 시점): 별도 sprint.
 - 또는 다른 sprint (N-6 staging 1주 운영 / backend-integration DEVHUB_BUILD_TIER matrix / v0.1.1-alpha release 8 item)
+
+## 20. 본 세션 (2026-06-12, N-13 follow-up 3 branch 종합 + E2E Internal disable)
+
+### PR 머지 / Close 결과
+
+| PR | 상태 | 의의 |
+| --- | --- | --- |
+| **#573** (N-13 housekeeping follow-up) | ✅ MERGED (squash `5fb9ae75`) | PR #548 close 결과 + 3 branch follow-up 결정 (A: Test 1 fix, B: Test 2 verification, C: 구현 follow-up) |
+| **#574** (N-13 follow-up A — Test 1 e2e seed fix) | ✅ MERGED (squash `896d9018`) | `repositories-ui.spec.ts:5, 7` 의 `repoALink` / `repoBLink` matcher 에 `.first()` 추가 |
+| **#575** (N-13 follow-up B — Test 2 verification) | ✅ MERGED (squash `8d0e2e88`) | verification report + CI Run #1227 SUCCESS (Test 2 Sign-out timeout 자동 해결 확인) |
+| **#576** (N-13 follow-up C — PR A-2 routing + voc_handler) | ❌ **CLOSED** (사용자 결정) | E2E shard 3/3 fail — PATCH /api/v1/platforms 가 4xx 반환 (PATCH inbound_source 의 backend 처리 검증 필요) |
+| **#577** (E2E Internal disable) | ✅ MERGED (squash `802afe62`) | ci.yml `if: ${{ vars.SKIP_E2E_INTERNAL == 'true' }}` (actionlint 호환) — v1.1 sprint 에서 real Keycloak adapter 안정화 후 재활성화 |
+
+### N-13 follow-up 3 branch 종합
+
+| Branch | 결과 | PR |
+|---|---|---|
+| A: Test 1 e2e seed fix | ✅ 완료 | PR #574 MERGED (`896d9018`) |
+| B: Test 2 rebase + 자동 재실행 검증 | ✅ 완료 | PR #575 MERGED + CI Run #1227 SUCCESS |
+| C: 구현 follow-up (v1.1 진입 시점) | ⏳ 미해결 (사용자 결정) | PR #576 close (E2E shard 3/3 fail) — 후속 sprint 에서 PATCH inbound_source backend 처리 검증 + e2e spec 재작성 + 새 PR |
+
+### follow-up 잔여 (사용자 결정 영역)
+
+1. **PATCH inbound_source 의 backend 처리 검증 + e2e spec 재작성 + 새 PR 발행** (별도 sprint)
+2. **구현 follow-up = v1.1 milestone 진입 시점 별도 sprint** (rebase main + PR #550 fix + 본 fix 종합 + 자동 재실행)
+3. **E2E Internal 재활성화** (v1.1 sprint 에서 real Keycloak adapter 안정화 후, PR #577 의 `if: ${{ vars.SKIP_E2E_INTERNAL == 'true' }}` → 원래 조건 복원)
+4. **state.json line 45 의 broken JSON fix** (chunks separator 의 `**` markdown bold 가 raw character 로 포함, 다음 sprint 에서 fix)
+
+### 다음 directive (사용자 결정 영역)
+
+- 위 follow-up 4 가지 중 우선 진행 방향 결정
+- 또는 다른 sprint (N-6 staging 1주 운영 / backend-integration DEVHUB_BUILD_TIER matrix / v0.1.1-alpha release 8 item)
