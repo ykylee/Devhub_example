@@ -19,8 +19,9 @@
 | T-4 | voc_handler.go 통합 (createOrGetVoc 에 AutoRouter.Route() + RouteVoc() + auto_routed 응답) | pending | P0 | +114/-42 lines |
 | T-5 | voc_handler_integration_test.go (3 IT: GiteaOK / NoMatch / RouteErrorDegradation) | pending | P0 | 221 lines |
 | T-6 | openapi.yaml 정합 (PATCH /platforms inbound_source + POST /dev-requests/{id} auto_routed + DevRequestVoc schema) | pending | P0 | +216 lines |
-| T-7 | e2e voc-auto-routing.spec.ts (TC-INBOUND-SRC-01, seed platform 사용) | pending | P0 | 157 lines. PR #574 + #575 + #578 영향 없음 |
-| T-8 | ADR-0028 §6 (a) amendment (구현 정합) | pending | P1 | +20/-10 lines |
+| T-7 | e2e voc-auto-routing.spec.ts (TC-INBOUND-SRC-01, seed platform 사용) | done (1차) → done (2차, 옵션 B beforeAll fix) | P0 | 1차 73 lines (POST platform 단계 제거 정공법 — PR #576 commit 90256ec 정합) → 2차 110 lines (PATCH inbound_source 를 beforeAll hook 으로 이동 + retry 3 회 with backoff, shard 3/3 Keycloak race 회피) |
+| T-7b | **PR #579 2차 commit** — e2e beforeAll fix + 메모리 §6 append | done (2차) | P0 | 옵션 B 정공법 적용. N-13 follow-up 3 branch 결정 (PR #573) 의 종합 정공법 정합 |
+| T-8 | ADR-0028 §6 (a) amendment (구현 정합) | done | P1 | +20/-10 lines |
 | T-9 | release_v1_roadmap.md §3.5 N-13 row + §4.2 v1.1 milestone + §9 | pending | P1 | +15/-3 lines |
 | T-10 | traceability report.md 9 ID row status `planned` → `implemented` | pending | P1 | cell fill 만 |
 | T-11 | `go build ./...` + `go test ./...` (변경 package + 전체 회귀) | pending | P0 | sprint 정합 검증 |
@@ -28,6 +29,23 @@
 | T-13 | `bash scripts/check-openapi-yaml-lint.sh` PASS | pending | P1 | openapi lint |
 | T-14 | worktree commit + push + gh pr create --body-file | pending | P0 | 사용자 confirm 대기 |
 | T-15 | main flat memory 3 file sync (post-merge) | planned | P1 | 본 PR 머지 후 자동 sync |
+
+## 1차 commit (PR #579, 2026-06-12 21:25 KST)
+
+- sprint plan v2 정공법 그대로 — 5 file 신규 + 2 file 수정 = 10 file 변경 (코드 + ADR + openapi + e2e)
+- CI 8/8 PASS (backend / frontend / lint), e2e shard 1/2 PASS
+- **e2e shard 3/3 fail 2건** (TC-INBOUND-SRC-01 + NEG) — shard 3/3 의 Keycloak startup race (curl: (56) Recv failure × 9)
+- codex review = COMMENTED (blocker 없음, 자동 review 만)
+- 사용자 결정: **옵션 B (beforeAll hook fix) 진행** (재실행 ❌)
+
+## 2차 commit (PR #579, 2026-06-12 21:42 KST) — 옵션 B beforeAll fix
+
+- `frontend/tests/e2e/voc-auto-routing.spec.ts` (73 → 110 lines) — `test.beforeAll(async ({ browser }) => {...})` 신규 + retry 3 회 with backoff (5s + 10s + 15s, 최대 4 attempts)
+- 2 test case 의 PATCH 단계 제거 — 검증만 (beforeAll 에서 1 회 PATCH 로 통합)
+- beforeAll 의 context.close() 명시 — leak 방지. throw 시 last error 메시지 + 4 attempts 명시
+- 메모리 §6 append + backlog T-7b row 추가
+- 정공법 정합: N-13 follow-up 3 branch 결정 (PR #573) 의 종합 정공법 정합 (PR #574 + PR #575 + 본 sprint 1차 구현 + 본 sprint 2차 Keycloak race fix)
+- **근본 layer**: PR #548 (1차) → PR #574/575/576 (fix 1차 fail 2건) → PR #579 1차 (구현 + 1차 fail 2건 fix 의 종합) → PR #579 2차 (shard 3/3 Keycloak race fix). 4-step 종합 정공법.
 
 ## Follow-up (사용자 결정 영역, 본 sprint 후속)
 

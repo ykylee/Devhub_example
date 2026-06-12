@@ -104,6 +104,12 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 
 **frontend spec 의 strict mode violation bypass** 정합 (PR #574 의 Test 1 fix 의 영향 안 받음 — 별도 spec). **N-8 race-free** 정합 (signout timeout 영향 없음 — logout flow 무관).
 
+**PR #579 1차 commit (1차 CI) E2E shard 3/3 fail 정공법 (옵션 B)**:
+- **근본 layer**: shard 3/3 의 Keycloak container 가 initial start-up race 로 늦게 ready (GitHub Actions runner 의 transient network issue, `curl: (56) Recv failure: Connection reset by peer` 9 회). beforeEach 의 loginAs 가 systemAdmin token 받기 전에 backend 401 → patchResp 4xx.
+- **정공법**: PATCH inbound_source 를 `test.beforeAll` hook 으로 이동 (Keycloak startup race 회피) + retry 3 회 with backoff (5s + 10s + 15s, 최대 4 attempts). loginAs 도 beforeAll 에서 1 회 (Keycloak ready 보장). 2 test case 의 PATCH 단계 제거 — 검증만.
+- **beforeAll 의 context.close()** 명시 — leak 방지. throw 시 last error 메시지 + 4 attempts 명시.
+- **N-13 follow-up 3 branch 결정 (PR #573) 의 종합 정공법** 정합: PR #574 (Test 1) + PR #575 (Test 2) + 본 sprint (Test 1+2+구현 종합, N-13 follow-up C 의 정공법). 본 sprint 의 beforeAll 정공법 = **N-13 follow-up 3 branch 결정의 종합 + N-13 follow-up C 의 정식 구현 + Keycloak race 정공법** 정합.
+
 ## 3. 추적성 영향 (9 ID row planned → implemented 정합)
 
 | ID | status | 정공법 |
@@ -137,3 +143,23 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - [ ] workflow-lint + e2e shard 1/2/3 PASS (CI)
 - [ ] `git diff --stat` = 9 file 변경 (3 backend + 1 IT + 1 openapi + 1 e2e + 3 docs)
 - [ ] `git log -1 --format='%an %ae'` = 본 세션 author
+
+## 6. E2E shard 3/3 fail 정공법 (옵션 B, PR #579 2차 commit)
+
+**근본 layer**: PR #579 1차 commit 의 E2E shard 3/3 fail 2건 (TC-INBOUND-SRC-01 + NEG). shard 3/3 의 Keycloak container 가 initial start-up race 로 늦게 ready (GitHub Actions runner 의 transient network issue, `curl: (56) Recv failure: Connection reset by peer` 9 회). beforeEach 의 loginAs 가 systemAdmin token 받기 전에 backend 401 → patchResp 4xx.
+
+**정공법 (옵션 B)**: PATCH inbound_source 를 `test.beforeAll` hook 으로 이동 (Keycloak startup race 회피). retry 3 회 with backoff (5s + 10s + 15s, 최대 4 attempts). loginAs 도 beforeAll 에서 1 회 (Keycloak ready 보장). 2 test case 의 PATCH 단계 제거 — 검증만.
+
+**근본 layer 와의 정합성**:
+- PR #548 (1차) → PR #574 (Test 1) + PR #575 (Test 2) + PR #576 (POST platform 단계 제거, seed platform 사용) — 1차 fail 2건 fix
+- PR #579 (본 sprint) → 본 sprint 의 beforeAll 정공법 (Keycloak race 회피) — 1차 CI 의 shard 3/3 fail 2건 fix
+- **N-13 follow-up 3 branch 결정 (PR #573) 의 종합 정공법** 정합: PR #574 + PR #575 + 본 sprint (N-13 follow-up C 의 정식 구현 + Keycloak race 정공법)
+
+**상세 변경**:
+- `frontend/tests/e2e/voc-auto-routing.spec.ts` (73 lines → 110 lines) — `test.beforeAll(async ({ browser }) => {...})` 신규 + retry 3 회 with backoff. 2 test case 의 PATCH 단계 제거.
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 append.
+
+**검증 (PR #579 2차 commit, 머지 직전)**:
+- [ ] `git diff --stat` = 1 file 변경 (e2e spec)
+- [ ] `git log -1 --format='%an %ae'` = 본 세션 author
+- [ ] CI e2e shard 3/3 PASS (Keycloak race 회피)
