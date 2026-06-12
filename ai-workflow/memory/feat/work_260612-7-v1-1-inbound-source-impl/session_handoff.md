@@ -144,7 +144,7 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - [ ] `git diff --stat` = 9 file 변경 (3 backend + 1 IT + 1 openapi + 1 e2e + 3 docs)
 - [ ] `git log -1 --format='%an %ae'` = 본 세션 author
 
-## 6. E2E shard 3/3 fail 정공법 (옵션 B, PR #579 2차 commit + 옵션 A 재시도 + 3차 commit)
+## 6. E2E shard 3/3 fail 정공법 (옵션 B, PR #579 2차 commit + 옵션 A 재시도 + 3차 commit + 4차 commit syntax fix)
 
 **근본 layer**: PR #579 1차 commit 의 E2E shard 3/3 fail 2건 (TC-INBOUND-SRC-01 + NEG). shard 3/3 의 Keycloak container 가 initial start-up race 로 늦게 ready (GitHub Actions runner 의 transient network issue, `curl: (56) Recv failure: Connection reset by peer` 9 회). beforeEach 의 loginAs 가 systemAdmin token 받기 전에 backend 401 → patchResp 4xx.
 
@@ -158,26 +158,33 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - **`beforeAll` hook timeout default 30000ms** 가 부족 — loginAs 1회 (page.waitForURL timeout 30s) + retry 3회 (5s+10s+15s=30s) 합쳐서 60s 가 필요. **Playwright 의 beforeAll hook default 30s 안** 에 안 들어감.
 - **error message**: `"beforeAll" hook timeout of 30000ms exceeded.`
 
-**3차 commit 정공법 (근본 fix)**:
-- `test.beforeAll` 의 timeout 30000ms → **180000ms (3분) 명시** (Playwright `{ timeout: 180_000 }` option)
-- loginAs 의 page.waitForURL timeout 30000ms → 60000ms (within beforeAll) — fixtures.ts 변경 OR loginAs 호출자 옵션
-- retry 3 회 backoff (5s+10s+15s=30s) 유지
-- 2 test case 의 PATCH 단계 유지 (beforeAll 에서 1 회 PATCH 통합)
+**3차 commit 정공법 (시도, 효과 없음)**:
+- `test.beforeAll(async () => {...}, { timeout: 180_000 })` option 추가
+- **시그너처 오류**: Playwright 의 `test.beforeAll` 시그너처 = `(fn, timeout?: number)`. object `{ timeout: 180_000 }` 가 아닌 **number `180_000`** 가 정공법.
+- TypeScript 가 타입 체크 통과시킴 (any 추론, _fixtures.test.beforeAll.timeout 메시지가 stack trace 에 표시)
+- Playwright 가 object 를 number 로 변환 실패 → **default 30000ms 그대로 사용**
+- 결과: 4회 연속 shard 3/3 fail (3차 commit 도 효과 없음)
 
-**근본 layer 종합 (4-step)**:
+**4차 commit 정공법 (근본 fix)**:
+- 2번째 인자 `{ timeout: 180_000 }` (object) → `180_000` (number) 로 fix
+- Playwright 가 number timeout 180000ms 정상 인식 → beforeAll 3분 버퍼 확보
+- 1 line 변경 (line 66)
+
+**근본 layer 종합 (5-step)**:
 - PR #548 (1차) → PR #574/575/576 (fix 1차 fail 2건) →
 - PR #579 1차 (구현 + 1차 fail 2건 fix 의 종합) →
-- PR #579 2차 (beforeAll fix, **timeout 부족으로 2차 fail**) →
-- PR #579 3차 (beforeAll timeout 명시, **3분 버퍼**)
+- PR #579 2차 (beforeAll fix, timeout 부족으로 2차 fail) →
+- PR #579 3차 (beforeAll timeout 명시, **시그너처 오류로 3차 fail**) →
+- PR #579 4차 (beforeAll timeout **number syntax** fix, 5차 CI 시도)
 - **e2e spec 변경 0** (코드 변경 없이 spec 의 timeout option 만)
 
-**상세 변경**:
-- `frontend/tests/e2e/voc-auto-routing.spec.ts` (110 lines → 112 lines) — `test.beforeAll(async () => {...}, { timeout: 180_000 })` option 추가
+**상세 변경 (3차 + 4차 commit)**:
+- `frontend/tests/e2e/voc-auto-routing.spec.ts` (110 lines → 112 lines) — `test.beforeAll(async () => {...}, 180_000)` option 추가 (number)
 - e2e spec 의 PATCH retry 3 회 backoff 정공법은 유지
-- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 append (정공법 + 4-step 종합 정합)
-- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/work_backlog.md` — T-7c row 추가
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 append (정공법 + 5-step 종합 정합)
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/work_backlog.md` — T-7c + T-7d row 추가
 
-**검증 (PR #579 3차 commit, 머지 직전)**:
-- [ ] `git diff --stat` = 1 file 변경 (e2e spec)
+**검증 (PR #579 4차 commit, 머지 직전)**:
+- [ ] `git diff --stat` = 1 file 변경 (e2e spec, 1 line)
 - [ ] `git log -1 --format='%an %ae'` = 본 세션 author
-- [ ] CI e2e shard 3/3 PASS (beforeAll timeout 180s 명시로 Keycloak race 회피)
+- [ ] CI e2e shard 3/3 PASS (beforeAll timeout 180s 명시 + number syntax fix 로 Keycloak race 회피)

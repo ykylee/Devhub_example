@@ -19,9 +19,10 @@
 | T-4 | voc_handler.go 통합 (createOrGetVoc 에 AutoRouter.Route() + RouteVoc() + auto_routed 응답) | pending | P0 | +114/-42 lines |
 | T-5 | voc_handler_integration_test.go (3 IT: GiteaOK / NoMatch / RouteErrorDegradation) | pending | P0 | 221 lines |
 | T-6 | openapi.yaml 정합 (PATCH /platforms inbound_source + POST /dev-requests/{id} auto_routed + DevRequestVoc schema) | pending | P0 | +216 lines |
-| T-7 | e2e voc-auto-routing.spec.ts (TC-INBOUND-SRC-01, seed platform 사용) | done (1차) → done (2차, 옵션 B beforeAll fix) → done (3차, beforeAll timeout 180s 명시) | P0 | 1차 73 lines (POST platform 단계 제거 정공법) → 2차 110 lines (beforeAll hook + retry 3회) → 3차 112 lines (beforeAll timeout 180s 명시, **근본 fix**) |
+| T-7 | e2e voc-auto-routing.spec.ts (TC-INBOUND-SRC-01, seed platform 사용) | done (1차) → done (2차) → done (3차) → done (4차, syntax fix) | P0 | 1차 73 → 2차 110 → 3차 112 → **4차 112 (1 line syntax fix)** |
 | T-7b | **PR #579 2차 commit** — e2e beforeAll fix + 메모리 §6 append | done (2차) | P0 | 옵션 B 정공법 적용. **근본 layer 부족 분석: beforeAll hook timeout 30000ms default 가 loginAs + retry 합쳐서 60s+ 필요** |
-| T-7c | **PR #579 3차 commit** — beforeAll timeout 180s 명시 (근본 fix) | done (3차) | P0 | `test.beforeAll(async () => {...}, { timeout: 180_000 })` option 추가. **3회 연속 shard 3/3 fail 의 chronic flake 정공법**. e2e spec 의 PATCH retry 3회 backoff 정공법 유지 |
+| T-7c | **PR #579 3차 commit** — beforeAll timeout 180s 명시 (시도) | done (3차) | P0 | `test.beforeAll(async () => {...}, { timeout: 180_000 })` option 추가. **시그너처 오류** — Playwright 시그너처는 (fn, timeout?: number) |
+| T-7d | **PR #579 4차 commit** — beforeAll timeout **number syntax** fix (근본 fix) | done (4차) | P0 | 2번째 인자 `{ timeout: 180_000 }` (object) → `180_000` (number) 1 line fix. **4회 연속 shard 3/3 fail 의 chronic flake + 시그너처 오류 정공법**. e2e spec 의 PATCH retry 3회 backoff 정공법 유지 |
 | T-8 | ADR-0028 §6 (a) amendment (구현 정합) | done | P1 | +20/-10 lines |
 | T-9 | release_v1_roadmap.md §3.5 N-13 row + §4.2 v1.1 milestone + §9 | pending | P1 | +15/-3 lines |
 | T-10 | traceability report.md 9 ID row status `planned` → `implemented` | pending | P1 | cell fill 만 |
