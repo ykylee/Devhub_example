@@ -70,6 +70,28 @@ func TestRepositoryBuildRuns_NoCIRuns(t *testing.T) {
 	}
 }
 
+func TestRepositoryBuildRuns_UnknownRepoReturns404(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	storeI := &memoryPlatformStore{
+		repositories: map[string]domain.Repository{
+			"acme/api": {ID: 101, FullName: "acme/api"},
+		},
+		nextRepositoryID: 200,
+	}
+	router := testRouter(RouterConfig{PlatformStore: storeI})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/repositories/999/build-runs", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !containsAll(rec.Body.String(), "not_found", errRepositoryNotFound) {
+		t.Errorf("expected not_found response, got %s", rec.Body.String())
+	}
+}
+
 func TestRepositoryBuildRuns_StatusFilter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	startedAt := time.Date(2026, 6, 2, 10, 0, 0, 0, time.UTC)
