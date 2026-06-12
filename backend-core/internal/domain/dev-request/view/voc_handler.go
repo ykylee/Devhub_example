@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
+	"github.com/devhub/backend-core/internal/domain/application-lifecycle/routing"
 	"github.com/devhub/backend-core/internal/domain/dev-request/repository"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
 	"github.com/gin-gonic/gin"
@@ -35,6 +36,7 @@ type VocHandlerConfig struct {
 	VocStore          VocStore
 	NotificationStore NotificationStore
 	AuditStore        AuditStore
+	AutoRouter        routing.AutoRouter
 }
 
 type VocHandler struct {
@@ -73,9 +75,8 @@ type createVocRequest struct {
 	SourceSystem  string     `json:"source_system"`
 }
 
-// validateExternalRefAbsent은 createVocRequest 의 body 에 external_ref 가 없음을 검증.
-// external_ref 는 path param 으로 받음 (idempotency key) — body 에 동시 지정 시 reject.
-func (r createVocRequest) validateExternalRefAbsent() error {
+// validateFields은 createVocRequest 의 필수 필드 검증.
+func (r createVocRequest) validateFields() error {
 	if strings.TrimSpace(r.Title) == "" {
 		return errors.New("title is required")
 	}
@@ -86,8 +87,9 @@ func (r createVocRequest) validateExternalRefAbsent() error {
 //
 // idempotent: 동일 (source_system, external_ref) 면 기존 voc 200 반환.
 // source_system 의 default 는 "manual" (frontend 직접 등록).
+// auto-routing: voc 등록 후 AutoRouter.Route() 호출, 매칭 시 dev-request 자동 생성.
 func (h *VocHandler) createOrGetVoc(c *gin.Context) {
-	externalRef := strings.TrimSpace(c.Param("external_ref"))
+	externalRef := strings.TrimSpace(c.Param("dev_request_id"))
 	if !externalRefPattern.MatchString(externalRef) {
 		c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", "external_ref is required and must match ^[A-Za-z0-9._-]{1,128}$"))
 		return
@@ -98,12 +100,11 @@ func (h *VocHandler) createOrGetVoc(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", err.Error()))
 		return
 	}
-	// external_ref 는 path param (idempotency key) → body 에 없음. source_system 은 body 또는 query.
 	if req.SourceSystem == "" {
 		req.SourceSystem = "manual"
 	}
 
-	if err := req.validateExternalRefAbsent(); err != nil {
+	if err := req.validateFields(); err != nil {
 		c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", err.Error()))
 		return
 	}
@@ -145,7 +146,6 @@ func (h *VocHandler) createOrGetVoc(c *gin.Context) {
 	created, err := h.cfg.VocStore.CreateVoc(c.Request.Context(), v)
 	if err != nil {
 		if errors.Is(err, repository.ErrVocExternalRefConflict) {
-			// race: 다른 request 가 먼저 INSERT. 재조회.
 			existing, found, _ := h.cfg.VocStore.GetVocByExternalRef(c.Request.Context(), req.SourceSystem, externalRef)
 			if found {
 				c.JSON(http.StatusOK, vocResponse(existing))
@@ -156,15 +156,66 @@ func (h *VocHandler) createOrGetVoc(c *gin.Context) {
 		return
 	}
 
-	// 3) assignee 에게 in-app notification (ADR-0028 §3)
+	// 3) NEW: auto-routing (post-MVP carve N-13 follow-up C)
+	if h.cfg.AutoRouter != nil {
+		vocReg := routing.VocRegistration{
+			ExternalRef:   externalRef,
+			SourceSystem:  req.SourceSystem,
+			Requester:     req.Requester,
+			ReqDepartment: req.ReqDepartment,
+			Title:         req.Title,
+			Details:       req.Details,
+			Assignee:      req.Assignee,
+			DevDepartment: req.DevDepartment,
+		}
+		decision, routeErr := h.cfg.AutoRouter.Route(c.Request.Context(), vocReg)
+		if routeErr == nil && decision.Matched {
+			dr := domain.DevRequest{
+				Title:                created.Title,
+				Details:              created.Details,
+				Requester:            created.Requester,
+				ReqDepartment:        created.ReqDepartment,
+				AssigneeUserID:       created.AssigneeUserID,
+				DevDepartment:        created.DevDepartment,
+				RequestDate:          created.RequestDate,
+				DevSchedule:          created.DevSchedule,
+				SourceSystem:         created.SourceSystem,
+				ExternalRef:          created.ExternalRef,
+				Status:               domain.DevRequestStatusPending,
+				RegisteredTargetType: domain.DevRequestTargetPlatform,
+				RegisteredTargetID:   decision.PlatformID,
+				ReceivedAt:           time.Now().UTC(),
+			}
+			_, devReq, promoteErr := h.cfg.VocStore.RouteVoc(c.Request.Context(), created.ID, decision.PlatformID, dr)
+			if promoteErr == nil {
+				if devReq.AssigneeUserID != "" {
+					h.emitDevRequestNotification(c.Request.Context(), devReq)
+				}
+				h.recordAuditBestEffort(c, "dev_request_voc.auto_route", "dev_request_voc", created.ID, map[string]any{
+					"platform_id":    decision.PlatformID,
+					"dev_request_id": devReq.ID,
+					"reason":         decision.Reason,
+				})
+				created.Status = domain.DevRequestVocStatusRouted
+				created.DevRequestID = devReq.ID
+				created.ProjectID = decision.PlatformID
+				now := time.Now().UTC()
+				created.RoutedAt = &now
+				c.JSON(http.StatusCreated, vocAutoRoutedResponse(created, decision))
+				return
+			}
+		}
+	}
+
+	// 4) assignee 에게 in-app notification (ADR-0028 §3)
 	if created.AssigneeUserID != "" {
 		h.emitDevVocNotification(c.Request.Context(), created)
 	}
 
 	h.recordAuditBestEffort(c, "dev_request_voc.create", "dev_request_voc", created.ID, map[string]any{
-		"source_system":      created.SourceSystem,
-		"external_ref":       created.ExternalRef,
-		"assignee_user_id":   created.AssigneeUserID,
+		"source_system":    created.SourceSystem,
+		"external_ref":     created.ExternalRef,
+		"assignee_user_id": created.AssigneeUserID,
 	})
 
 	c.JSON(http.StatusCreated, vocResponse(created))
@@ -176,38 +227,36 @@ type routeVocRequest struct {
 }
 
 func (h *VocHandler) routeVoc(c *gin.Context) {
-	externalRef := strings.TrimSpace(c.Param("external_ref"))
+	externalRef := strings.TrimSpace(c.Param("dev_request_id"))
 	var req routeVocRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, 	httphelp.EnvelopeErrorResponse("validation_failed", err.Error()))
+		c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", err.Error()))
 		return
 	}
 	if strings.TrimSpace(req.ProjectID) == "" {
-		c.JSON(http.StatusBadRequest, 	httphelp.EnvelopeErrorResponse("validation_failed", "project_id is required"))
+		c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", "project_id is required"))
 		return
 	}
 
 	if h.cfg.VocStore == nil {
-		c.JSON(http.StatusServiceUnavailable, 	httphelp.EnvelopeErrorResponse("voc_store_unavailable", "voc store is not configured"))
+		c.JSON(http.StatusServiceUnavailable, httphelp.EnvelopeErrorResponse("voc_store_unavailable", "voc store is not configured"))
 		return
 	}
 
-	// source_system = "manual" 가정 (frontend routing). 향후 ADR-0028 §3 (b) 정합.
 	existing, found, err := h.cfg.VocStore.GetVocByExternalRef(c.Request.Context(), "manual", externalRef)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, 	httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
+		c.JSON(http.StatusInternalServerError, httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
 		return
 	}
 	if !found {
-		c.JSON(http.StatusNotFound, 	httphelp.EnvelopeErrorResponse("voc_not_found", "dev_request_voc not found for source_system=manual external_ref="+externalRef))
+		c.JSON(http.StatusNotFound, httphelp.EnvelopeErrorResponse("voc_not_found", "dev_request_voc not found for source_system=manual external_ref="+externalRef))
 		return
 	}
 	if existing.Status != domain.DevRequestVocStatusReceived {
-		c.JSON(http.StatusConflict, 	httphelp.EnvelopeErrorResponse("voc_already_routed", "voc is already routed or closed; status="+string(existing.Status)))
+		c.JSON(http.StatusConflict, httphelp.EnvelopeErrorResponse("voc_already_routed", "voc is already routed or closed; status="+string(existing.Status)))
 		return
 	}
 
-	// dev-request 필드 (voc 의 9 field 복사 + project_id 결정)
 	dr := domain.DevRequest{
 		Title:                existing.Title,
 		Details:              existing.Details,
@@ -220,17 +269,16 @@ func (h *VocHandler) routeVoc(c *gin.Context) {
 		SourceSystem:         existing.SourceSystem,
 		ExternalRef:          existing.ExternalRef,
 		Status:               domain.DevRequestStatusPending,
-		RegisteredTargetType: domain.DevRequestTargetPlatform, // routing 시 자동 결정: project_id 가 platform
+		RegisteredTargetType: domain.DevRequestTargetPlatform,
 		RegisteredTargetID:   req.ProjectID,
 		ReceivedAt:           time.Now().UTC(),
 	}
 	voc, devReq, err := h.cfg.VocStore.RouteVoc(c.Request.Context(), existing.ID, req.ProjectID, dr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, 	httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
+		c.JSON(http.StatusInternalServerError, httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
 		return
 	}
 
-	// assignee 에게 dev-request 등록 알림
 	if devReq.AssigneeUserID != "" {
 		h.emitDevRequestNotification(c.Request.Context(), devReq)
 	}
@@ -250,11 +298,11 @@ func (h *VocHandler) getVoc(c *gin.Context) {
 	externalRef := strings.TrimSpace(c.Param("external_ref"))
 	existing, found, err := h.cfg.VocStore.GetVocByExternalRef(c.Request.Context(), "manual", externalRef)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, 	httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
+		c.JSON(http.StatusInternalServerError, httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
 		return
 	}
 	if !found {
-		c.JSON(http.StatusNotFound, 	httphelp.EnvelopeErrorResponse("voc_not_found", "dev_request_voc not found"))
+		c.JSON(http.StatusNotFound, httphelp.EnvelopeErrorResponse("voc_not_found", "dev_request_voc not found"))
 		return
 	}
 	c.JSON(http.StatusOK, vocResponse(existing))
@@ -263,23 +311,23 @@ func (h *VocHandler) getVoc(c *gin.Context) {
 func (h *VocHandler) listMyNotifications(c *gin.Context) {
 	actor := httphelp.RequestActor(c)
 	if actor.Login == "" {
-		c.JSON(http.StatusUnauthorized, 	httphelp.EnvelopeErrorResponse("auth_failed", "user not authenticated"))
+		c.JSON(http.StatusUnauthorized, httphelp.EnvelopeErrorResponse("auth_failed", "user not authenticated"))
 		return
 	}
 	if h.cfg.NotificationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, 	httphelp.EnvelopeErrorResponse("notification_store_unavailable", "notification store is not configured"))
+		c.JSON(http.StatusServiceUnavailable, httphelp.EnvelopeErrorResponse("notification_store_unavailable", "notification store is not configured"))
 		return
 	}
 	limit := 50
 	if l := c.Query("limit"); l != "" {
 		if _, err := parseLimit(l, &limit); err != nil {
-			c.JSON(http.StatusBadRequest, 	httphelp.EnvelopeErrorResponse("validation_failed", err.Error()))
+			c.JSON(http.StatusBadRequest, httphelp.EnvelopeErrorResponse("validation_failed", err.Error()))
 			return
 		}
 	}
 	notes, err := h.cfg.NotificationStore.ListUnreadByUser(c.Request.Context(), actor.Login, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, 	httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
+		c.JSON(http.StatusInternalServerError, httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -350,29 +398,29 @@ func (h *VocHandler) listVocs(c *gin.Context) {
 func (h *VocHandler) markMyNotificationRead(c *gin.Context) {
 	actor := httphelp.RequestActor(c)
 	if actor.Login == "" {
-		c.JSON(http.StatusUnauthorized, 	httphelp.EnvelopeErrorResponse("auth_failed", "user not authenticated"))
+		c.JSON(http.StatusUnauthorized, httphelp.EnvelopeErrorResponse("auth_failed", "user not authenticated"))
 		return
 	}
 	if h.cfg.NotificationStore == nil {
-		c.JSON(http.StatusServiceUnavailable, 	httphelp.EnvelopeErrorResponse("notification_store_unavailable", "notification store is not configured"))
+		c.JSON(http.StatusServiceUnavailable, httphelp.EnvelopeErrorResponse("notification_store_unavailable", "notification store is not configured"))
 		return
 	}
 	id := c.Param("id")
 	if err := h.cfg.NotificationStore.MarkRead(c.Request.Context(), id, actor.Login); err != nil {
 		if errors.Is(err, ErrNotificationNotFoundSentinel) {
-			c.JSON(http.StatusNotFound, 	httphelp.EnvelopeErrorResponse("notification_not_found", "notification not found or not owned"))
+			c.JSON(http.StatusNotFound, httphelp.EnvelopeErrorResponse("notification_not_found", "notification not found or not owned"))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, 	httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
+		c.JSON(http.StatusInternalServerError, httphelp.EnvelopeErrorResponse("internal_error", err.Error()))
 		return
 	}
 	c.Status(http.StatusNoContent)
 }
 
-
 // ErrNotificationNotFound mirrors ErrNotificationNotFoundSentinel so voc_handler
 // does not need to import the user-notification repository package.
 var ErrNotificationNotFoundSentinel = errors.New("user_notification: not found or not owned")
+
 // emitDevVocNotification은 voc 등록 시 assignee 에게 in-app notification 발송.
 func (h *VocHandler) emitDevVocNotification(ctx context.Context, v domain.DevRequestVoc) {
 	if h.cfg.NotificationStore == nil {
@@ -413,13 +461,13 @@ func (h *VocHandler) recordAuditBestEffort(c *gin.Context, action, targetType, t
 		payload = map[string]any{}
 	}
 	log := domain.AuditLog{
-		ActorLogin:    actor.Login,
-		SourceIP:       c.ClientIP(),
-		Action:         action,
-		TargetType:     targetType,
-		TargetID:       targetID,
-		Payload:        payload,
-		SourceType:     "api",
+		ActorLogin:  actor.Login,
+		SourceIP:    c.ClientIP(),
+		Action:      action,
+		TargetType:  targetType,
+		TargetID:    targetID,
+		Payload:     payload,
+		SourceType:  "api",
 	}
 	_, _ = h.cfg.AuditStore.CreateAuditLog(c.Request.Context(), log)
 }
@@ -446,8 +494,32 @@ func vocResponse(v domain.DevRequestVoc) gin.H {
 	}
 }
 
+func vocAutoRoutedResponse(v domain.DevRequestVoc, decision routing.AutoRouteDecision) gin.H {
+	return gin.H{
+		"id":              v.ID,
+		"external_ref":    v.ExternalRef,
+		"source_system":   v.SourceSystem,
+		"title":           v.Title,
+		"details":         v.Details,
+		"requester":       v.Requester,
+		"req_department":  v.ReqDepartment,
+		"assignee":        v.AssigneeUserID,
+		"dev_department":  v.DevDepartment,
+		"request_date":    v.RequestDate,
+		"dev_schedule":    v.DevSchedule,
+		"status":          v.Status,
+		"project_id":      v.ProjectID,
+		"dev_request_id":  v.DevRequestID,
+		"routed_at":       v.RoutedAt,
+		"auto_routed":     true,
+		"platform_id":     decision.PlatformID,
+		"reason":          decision.Reason,
+		"created_at":      v.CreatedAt,
+		"updated_at":      v.UpdatedAt,
+	}
+}
+
 func parseLimit(raw string, dst *int) (int, error) {
-	// simple integer parse
 	var n int
 	for _, ch := range raw {
 		if ch < '0' || ch > '9' {
