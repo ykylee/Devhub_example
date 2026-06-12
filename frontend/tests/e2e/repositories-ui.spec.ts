@@ -1,10 +1,11 @@
 import { appPath, expect, loginAs, SEEDED, test } from "./fixtures";
 
 test.describe("/repositories — repository list/detail UI", () => {
+  // N-13 follow-up A: strict mode bypass via .first() (prior residue e.g. e2e-repo-a3xd7 may produce duplicate links)
   const repoALink = (page: import("@playwright/test").Page) =>
-    page.getByRole("link", { name: "e2e-repo-a", exact: true });
+    page.getByRole("link", { name: "e2e-repo-a", exact: true }).first();
   const repoBLink = (page: import("@playwright/test").Page) =>
-    page.getByRole("link", { name: "e2e-repo-b", exact: true });
+    page.getByRole("link", { name: "e2e-repo-b", exact: true }).first();
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
