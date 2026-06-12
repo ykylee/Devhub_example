@@ -153,7 +153,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
             </Link>
             
             {collapsed ? (
-              <div className="mt-4 flex justify-center py-2 glass rounded-xl border border-border/60 animate-fade-in" title="System Online (v0.1.0)">
+              <div className="mt-4 flex justify-center py-2 glass rounded-xl border border-border/60 animate-fade-in" title="System Online (v0.1.1-alpha)">
                 <div className="w-2.5 h-2.5 bg-success rounded-full animate-pulse" aria-hidden="true" />
               </div>
             ) : (
@@ -162,7 +162,7 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
                   <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" aria-hidden="true" />
                   System Online
                 </span>
-                <span className="opacity-50 italic">v0.1.0</span>
+                <span className="opacity-50 italic">v0.1.1-alpha</span>
               </div>
             )}
  
