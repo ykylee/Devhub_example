@@ -45,16 +45,20 @@ skip_paths = ["wiki/projects/devhub/sources/ADR-*.md"]
 skip_if_frontmatter = ["supersedes"]
 
 # ------------------------------------------------------------------------------------
-# Rule override — L10 (raw source 0) 의 DevHub 적용 정책
+# Rule override — L03 (orphan page) + L10 (raw source 0) 의 DevHub 적용 정책
 # ------------------------------------------------------------------------------------
-# L10 (raw/ source 0) — wiki page 에 raw/ source 가 1건도 없는 경우.
-# DevHub 의 ADR-*.md 는 raw/ source 가 `~/wiki/raw/projects/devhub/docs/adr/ADR-XXXX.md`
-# 의 1:1 mirror 이므로 L10 자동 충족. 면제 불요.
+# L03 (고아 페이지) — D-79 ingest 의 sources/* type page 는 1차 출처 mirror 이므로
+# 본질적으로 inbound link 부재. L03 면제.
+# L10 (raw/ source 0) — sources/* type page 는 raw/ 의 1:1 mirror 이므로 L10 면제.
+
+[rules.L03]
+skip_paths = ["wiki/projects/devhub/sources/*.md"]
 
 [rules.L10]
 # DevHub 의 ADR page 의 raw/ source = `~/wiki/raw/projects/devhub/docs/adr/<id>-<title>.md`
 # 자동 검증. 면제 불요 (모든 ADR page 가 raw/ source 1:1).
 devhub_adr_source_pattern = "~/wiki/raw/projects/devhub/docs/adr/*.md"
+skip_paths = ["wiki/projects/devhub/sources/*.md"]
 
 # ------------------------------------------------------------------------------------
 # DevHub 의 의도적 supersede 명시 (참고)
