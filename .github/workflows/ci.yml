@@ -453,10 +453,25 @@ jobs:
             "$image" start-dev --import-realm --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
 
       - name: Wait for imported Keycloak realm
+        # PR #579 (sprint `feat/work_260612-7-v1-1-inbound-source-impl`) 7-step 정공법:
+        # 7회 연속 shard 3/3 fail 의 chronic flake 정공법 — Keycloak startup race 가
+        # shard 시작 시 120s 를 초과할 수 있어 timeout 300s + retry 5회 (5*30s) 로 늘림.
+        # GitHub Actions runner 의 transient network issue (curl: (56) Recv failure)
+        # 가 shard 3/3 에서 일관되게 fail. Keycloak container 가 결국 5-10분 ready
+        # 가능성 있어 충분한 buffer 확보.
         run: |
           set -euo pipefail
           base="http://localhost:8180/devhub/auth/keycloak"
-          timeout 120s bash -c "until curl -fsS \"$base/realms/devhub/.well-known/openid-configuration\" >/dev/null; do sleep 2; done"
+          for attempt in 1 2 3 4 5; do
+            if timeout 60s bash -c "until curl -fsS \"$base/realms/devhub/.well-known/openid-configuration\" >/dev/null; do sleep 2; done"; then
+              echo "Keycloak realm ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "Keycloak realm not ready (attempt $attempt/5), retrying in 30s..."
+            sleep 30
+          done
+          echo "Keycloak realm never became ready after 5 attempts"
+          exit 1
       
       - name: Apply app migrations
         run: |

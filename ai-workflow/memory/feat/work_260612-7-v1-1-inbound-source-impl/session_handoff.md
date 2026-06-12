@@ -179,17 +179,36 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - **`page.waitForURL` 의 60s 는 login form 이 떴을 때만 의미** — login form 이 안 뜨면 도달 불가
 - 6회 fail (5m32s / 8m30s / 6m12s / 6m28s / 6m54s / 7m5s) — **6회 연속 shard 3/3 fail**
 
-**6차 commit 정공법 (진짜 근본 fix)**:
-- `frontend/tests/e2e/fixtures.ts::waitForSignInForm` 의 default timeout 30_000 → **60_000** (line 95, 1 line)
-- **이게 진짜 fix** — loginAs → waitForSignInForm(default 30s, login form 탐지) → submitSignInForm → page.waitForURL(default 30s, fix). login form 이 Keycloak startup race 로 30s 안에 안 뜨는 layer 회피.
-- loginAs 의 `page.waitForURL` 60s (5차 fix) + waitForSignInForm 의 default 60s (6차 fix) = **총 120s 의 Keycloak ready 대기**
+**6차 commit 정공법 (시도, 효과 없음)**:
+- `frontend/tests/e2e/fixtures.ts::waitForSignInForm` 의 default timeout 30_000 → 60_000 (line 95, 1 line)
+- loginAs 의 `page.waitForURL` 60s (5차 fix) + waitForSignInForm default 60s (6차 fix) = **총 120s 의 Keycloak ready 대기**
+- **6차 fail log 분석**: `at waitForSignInForm (fixtures.ts:134:16)` — 60s 동안 polling 후 throw. beforeAll timeout 180s 적용 (60s < 180s) — **beforeAll 의 timeout 180s 가 정상 적용되지만, waitForSignInForm 의 60s 가 부족**.
+- **7회 fail (7m13s)** — 6차 commit 도 효과 없음
 
-**근본 layer 종합 (7-step)**:
+**7차 commit 정공법 (옵션 M, e2e ci.yml 변경, 1차 layer fix)**:
+- `.github/workflows/ci.yml` 의 `Wait for imported Keycloak realm` step 의 timeout 120s → **300s + retry 5회** (1 attempt = 60s, retry 5회 = 5*30s = 2.5분 backoff, 총 5분+ Keycloak ready 대기)
+- **근본 layer fix**: shard 시작 시 Keycloak container 가 ready 될 때까지의 e2e ci.yml 의 readiness probe 가 **1차 layer**. 6-step e2e spec 변경 (loginAs / beforeAll / waitForSignInForm) 모두 **2차 layer fix** (Keycloak ready 후의 spec 동작 정합). 1차 layer (ci.yml) 가 fix 안 되면 2차 layer 도 무의미.
+- e2e ci.yml 변경은 **모든 PR 의 e2e shard 1/2/3 의 Keycloak readiness 에 영향** — 기존 PASS 하던 PR 들도 1-2분 추가 가능, 단 거의 영향 0 (Keycloak 가 30s ready)
+- e2e spec 변경 0 (fixtures.ts + voc-auto-routing.spec.ts 는 6차 commit 의 fix 유지)
+- ci-e2e-sync-check PASS + YAML parse PASS
+
+**근본 layer 종합 (8-step)**:
 - PR #548 (1차) → PR #574/575/576 (1차 fail 2건 fix) →
 - PR #579 1차 (구현 종합) → 2차 (beforeAll fix) →
 - 3차 (timeout object) → 4차 (timeout number) →
-- 5차 (loginAs internal timeout + retry) → 6차 (waitForSignInForm default timeout, **진짜 fix**)
-- **6회 연속 shard 3/3 fail 의 chronic flake 정공법** — fixtures.ts 의 default timeout 30s 가 진짜 원인
+- 5차 (loginAs internal + retry) → 6차 (waitForSignInForm default 60s) →
+- **7차 (e2e ci.yml Keycloak wait step 300s + retry 5회, 1차 layer fix)**
+- **7회 연속 shard 3/3 fail 의 chronic flake + e2e ci.yml 의 Keycloak readiness 가 1차 layer 원인**
+
+**상세 변경 (7차 commit, 1 file)**:
+- `.github/workflows/ci.yml` (line 468-472) — `Wait for imported Keycloak realm` step 의 timeout 120s → 300s + retry 5회 (1 line 변경)
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 8-step 정합
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/work_backlog.md` — T-7g row 추가
+
+**검증 (PR #579 7차 commit, 머지 직전)**:
+- [ ] `git diff --stat` = 1 file 변경 (ci.yml)
+- [ ] `git log -1 --format='%an %ae'` = 본 세션 author
+- [ ] CI e2e shard 3/3 PASS (Keycloak wait 300s + retry 5회의 1차 layer fix)
 
 **상세 변경 (6차 commit, 1 file)**:
 - `frontend/tests/e2e/fixtures.ts` (line 95) — `waitForSignInForm` default timeout 30_000 → 60_000 (1 line)
