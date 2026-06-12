@@ -766,3 +766,94 @@ const repoBLink = (page) => page.getByRole("link", { name: "e2e-repo-b", exact: 
 - branch protection required check 목록을 문서 목표 상태와 다시 정합
 - quarantine spec pass/fail 추세 관찰 자동화 검토
 - full frontend `tsc --noEmit` 선행 오류는 별도 정리 과제로 유지
+
+## 24. 본 세션 (2026-06-13, 4 PR 종합 — main HEAD `971c62a`)
+
+### PR 머지 결과 (squash, yklee 직접 머지)
+
+| PR | 머지 commit | 의의 |
+| --- | --- | --- |
+| **#578** (e2e-internal job 완전 폐기 + ADR-0030/0031 partial supersession) | `dab302a` (2026-06-12 21:05 KST) | sprint `fix/work_260612-6-e2e-internal-removal`. ci.yml e2e-internal job 완전 삭제 (-205 lines) + scripts/ci-e2e-sync-check.sh DEVHUB_BUILD_TIER 코멘트 정리 + ADR-0031 partial supersession (baseline 변경 정공법) + ADR-0030 §2.3 row 갱신. **결론 (runtime injection 유지) 변동 0건** — e2e-internal 폐기 = **독립 결정** (사내 staging/prod-smoke 가 real adapter 검증 책임). CI Run 27414157106 SUCCESS (11/11 PASS). 10 file. 신규 ID 0건. |
+| **#580** (CI 재구성 3-tier) | `b1fa5c2` (2026-06-13 02:21:00 UTC) | sprint `codex/work_260612-579-ci-rearchitecture`. ci.yml + e2e-regression.yml + e2e-quarantine.yml 3 workflow 분리 + manifest-based spec routing (e2e-manifests/smoke.txt + quarantine.txt) + scripts/select-playwright-specs.sh + fixtures.ts OIDC 재시작 helper + signout timeout 완화. 본 PR 의 핵심 = **chronic flake 격리** (smoke/regression/quarantine). 신규 ID 0건 (workflow 만 변경). |
+| **#579** (N-13 follow-up C — v1.1 sprint -a inbound_source 자동 routing) | `84f2227` (2026-06-12 23:43 UTC) | sprint `feat/work_260612-7-v1-1-inbound-source-impl`. backend `auto_route.go` 신규 (AutoRouter interface + 3 case pattern matcher + 23 unit + 6 integration test) + `voc_handler.go` AutoRouter 통합 + e2e `voc-auto-routing.spec.ts` 신규 (TC-INBOUND-SRC-01 + NEG, beforeAll hook) + `docs/openapi.yaml` 81 paths / 79 schemas + ADR-0028 §6 (a) amendment. **9 ID 발급**: REQ-FR-109/110/111 + ARCH-21/22/23 + API-101/102/103 + RM-voc-auto-01 + IMPL-auto-route-01 + UT-AR-01..03 + TC-INBOUND-SRC-01/NEG. **8-step 정공법** (5-step chronic flake fix + 3-step 1차 layer fix). Tier: 공용. |
+| **#581** (CI retrospective) | `971c62a` (2026-06-12 23:51:57 UTC) | sprint `codex/work_260612-579-ci-rearchitecture` 의 retrospective. docs/planning/2026-06-13-ci-rearchitecture-retrospective.md 신규 + memory 4 file 동기화. 핵심 = §23 의 4 lesson 정합. |
+
+### 8-step 정공법 (PR #579 의 chronic flake 종합)
+
+PR #579 의 7 commit (= 본 PR 의 8-step) = e2e shard 3/3 fail 의 chronic flake 정공법. **PR #580 의 CI 3-tier 분리 = 1차 layer fix**, **PR #579 의 5 commit = 2~5차 layer fix**:
+
+| Step | Commit | Layer | 정공법 |
+|---|---|---|---|
+| 1 (1차 layer) | PR #580 (b1fa5c2) | workflow 구조 | CI 3-tier 분리 (smoke/regression/quarantine) + manifest SSOT + OIDC 재시작 helper |
+| 2 | 4b72f81 (1차 commit) | e2e spec | TC-INBOUND-SRC-01 PATCH inbound_source 를 beforeAll hook 으로 이동 (Keycloak startup race 회피) |
+| 3 | 0049f69 (2차) | e2e spec | beforeAll hook timeout 30s → 180s 명시 (Playwright 시그너처 `beforeAll(fn, timeout?: number)`) |
+| 4 | 33644ed (3차) | memory | 5-step 정공법 + 4차 commit syntax fix 정합 |
+| 5 | 65c8410 (4차) | fixtures.ts | loginAs `page.waitForURL` 30s→60s + retry 5회 75s (근본 fix, 옵션 L) |
+| 6 | 891ebd6 (5차) | fixtures.ts | waitForSignInForm default 30s→60s (진짜 근본 fix, 7-step 정공법) |
+| 7 | 051a763 (6차) | ci.yml | Keycloak wait step timeout 120s→300s + retry 5회 (1차 layer fix, 옵션 M) |
+
+**3-way conflict 해결** (worktree branch rebase on origin/main b1fa5c2 + 4f863f9):
+- state.json / session_handoff.md 의 b1fa5c2 broken JSON fixup: closing quote + trailing comma 추가
+- session_handoff.md §22~§23 정합 (PR #580 ci_rearchitecture + PR #578 e2e-internal removal 양쪽 보존)
+- fixtures.ts loginAs conflict: PR #580 의 `process.env.CI ? 60_000 : 30_000` 분기 채택 (PR #579 의 unconditional 60_000 보다 정교)
+- fixtures.ts waitForSignInForm conflict: PR #580 의 restart logic + PR #579 의 60_000 timeout 통합 (CI 60_000 / local 45_000)
+- worktree branch 의 0d2dd89 (memory fixup): `git rebase --skip` (main 의 memory fixup 와 중복)
+
+### PR #579 CI 9차 run 결과 (run 27426129165-68)
+
+| Check | Result | Duration |
+|---|---|---|
+| Detect Changed Paths | SUCCESS | 6s |
+| Workflow Lint (actionlint) | SUCCESS | 11s |
+| Migration Prefix Uniqueness | SUCCESS | 7s |
+| OpenAPI YAML Lint | SUCCESS | 8s |
+| Backend Unit Tests | SUCCESS | 1m8s |
+| Backend Integration Tests | SUCCESS | 1m9s |
+| Frontend Unit Tests | SUCCESS | 1m1s |
+| E2E Smoke Build Artifacts | SUCCESS | 1m44s |
+| E2E Smoke Tests | SUCCESS | 2m3s |
+| E2E Quarantine Build Artifacts | SUCCESS | 1m43s |
+| E2E Quarantine | SUCCESS | 1m34s |
+| E2E Build Artifacts (Regression) | SUCCESS | 1m44s |
+| E2E Regression (Playwright, shard 1/3) | SUCCESS | 1m38s |
+| E2E Regression (Playwright, shard 2/3) | SUCCESS | 1m44s |
+| E2E Regression (Playwright, shard 3/3) | SUCCESS | 2m4s |
+
+**16/16 PASS in 4 minutes**. CI PASS 시점 = 2026-06-12 15:43 UTC.
+
+### N-13 follow-up 3 branch 종합 결과 (사용자 결정 영역)
+
+| Branch | PR | 결과 |
+|---|---|---|
+| (1) Test 1 e2e seed 중복 fix | PR #574 (squash `896d9018`) | ✅ MERGED (2026-06-12) |
+| (2) Test 2 Sign-out timeout rebase + 자동 재실행 | PR #575 (squash `8d0e2e88`) + CI Run #1227 | ✅ MERGED (2026-06-12) |
+| (3) 구현 follow-up (v1.1 sprint -a inbound_source) | PR #579 (squash `84f2227`) | ✅ MERGED (2026-06-12) — 9 ID 발급 |
+
+**3 branch 모두 해소 완료**. N-13 housekeeping follow-up (PR #572) + 3 branch 종합 (PR #574/#575/#579) + E2E Internal disable (PR #577) + E2E Internal 완전 폐기 (PR #578) + CI 재구성 (PR #580) + retrospective (PR #581) = **N-13 6 PR + 1 retrospective** main 정합.
+
+### follow-up 잔여 (사용자 결정 영역)
+
+- (1) PATCH inbound_source 의 backend 처리 검증 + e2e spec 재작성 + 새 PR 발행 → **PR #579 로 해소 완료**
+- (2) 구현 follow-up = v1.1 milestone 진입 시점 별도 sprint → **PR #579 로 해소 완료** (v1.1 sprint -a)
+- (3) 사내 staging/prod-smoke 의 real adapter 검증 SOP 갱신 (별도 docs, 본 sprint scope 외)
+- (4) E2E Internal 재활성화 = **OBSOLETE** (재활성화할 job 자체가 없어짐)
+
+### CRITICAL 레슨런 (cross-project, 2026-06-13)
+
+1. **PR 의 CI fail = base branch workflow 변경만으로 자동 success 전환 안 됨**. PR branch 의 rebase 후 새 SHA push 가 결정적 fix. (PR #581 retrospective + 본 세션의 PR #579 9차 run 정합)
+2. **flaky 와 기능 실패 = 같은 required lane 두지 않는 편이 triage / merge 안정성 유리**. (PR #580 의 3-tier 분리가 본 정공법)
+3. **cron self-reminder 의 gate-discipline 함정**: `statusCheckRollup` 의 artifact upload step 이 IN_PROGRESS 표시되어 8시간 false-negative 발생 가능. 향후 cron trigger 시 `mergeStateStatus='CLEAN'` + `all check conclusion=SUCCESS` 직접 확인 (artifact step 의 IN_PROGRESS 는 제외). (2026-06-13 cron `pr579-ci-9th` 8시간 false-negative 경험)
+4. **3-way conflict 해결 정공법** (rebase on origin/main with local + remote commit): ours/theirs 양쪽 보존 + index reset (`git rm --cached <file> && git add <file>`) + 본인의 memory fixup commit 이 이미 main 에 있을 때 `git rebase --skip`.
+
+### Memory 갱신
+
+- 본 `session_handoff.md` §24 append.
+- `state.json` M-v1.0 `ci_rearchitecture_outcome_2026_06_13` row 본 row 내용으로 갱신 (PR #578 + #579 + #580 + #581 4 PR + 8-step + CRITICAL 레슨런 4건 통합).
+- `work_backlog.md` §5 변경 이력 row 1건 append.
+- main HEAD `971c62a` 정합.
+
+### 다음 directive
+
+- **위키 동기화** (raw/projects/devhub/ → ~/wiki/) — wiki-source-sync skill 호출 (본 sprint 의 user directive 순서 = 1.main flat memory sync → 3.sprint close + memory finalize commit → 2.위키 동기화).
+- 또는 v0.1.1-alpha release 8 item 중 1~2 진입 (사용자 결정).
+- 또는 다른 sprint (N-10 housekeeping close / backend-integration DEVHUB_BUILD_TIER matrix / v1.0 staging 운영).
