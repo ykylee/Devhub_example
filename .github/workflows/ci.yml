@@ -225,8 +225,8 @@ jobs:
       - name: Test
         run: make test-frontend
 
-  e2e-build:
-    name: E2E Build Artifacts
+  e2e-smoke-build:
+    name: E2E Smoke Build Artifacts
     runs-on: ubuntu-latest
     needs: [changed-paths]
     if: needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true'
@@ -289,24 +289,11 @@ jobs:
           path: /tmp/e2e-artifacts/e2e-tools.tgz
           retention-days: 1
 
-  e2e:
-    name: E2E Tests (Playwright, shard ${{ matrix.shard }}/${{ matrix.shard_total }})
+  e2e-smoke:
+    name: E2E Smoke Tests
     runs-on: ubuntu-latest
-    needs: [changed-paths, e2e-build]
-    # sprint gemini/work_260528-code-cleanup — 대규모 import path/디렉터리 이관으로
-    # E2E 회귀 위험 큼. 리팩토링 정리가 끝날 때까지 e2e job 일시 비활성화.
-    # 복원 시 본 `&& false` 만 제거하면 됨.
+    needs: [changed-paths, e2e-smoke-build]
     if: (needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - shard: 1
-            shard_total: 3
-          - shard: 2
-            shard_total: 3
-          - shard: 3
-            shard_total: 3
     # ADR-0003: no-docker policy. Native postgresql-15 is installed below in
     # the "Setup PostgreSQL (native)" step so this job stays consistent with
     # the prod deployment shape (test-server-deployment.md §1.2). The earlier
@@ -514,19 +501,27 @@ jobs:
       - name: Run E2E Tests
         run: |
           cd frontend
-          npx playwright test --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
+          mapfile -t smoke_specs < <(../scripts/select-playwright-specs.sh smoke)
+          if [ "${#smoke_specs[@]}" -eq 0 ]; then
+            echo "No smoke specs selected."
+            exit 0
+          fi
+          npx playwright test \
+            --reporter=github,html \
+            "${smoke_specs[@]}"
         env:
           DSN: postgres://runner@localhost:5432/devhub?sslmode=disable
           DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
           DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
           DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: secret-change-me-backend
-      
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+
       - name: Upload Playwright Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-shard-${{ matrix.shard }}
+          name: playwright-report-smoke
           path: frontend/playwright-report/
           retention-days: 30
 
@@ -538,7 +533,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-screenshots-shard-${{ matrix.shard }}
+          name: ui-screenshots-smoke
           path: frontend/test-results/screenshots/
           retention-days: 30
           if-no-files-found: warn
@@ -547,5 +542,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: service-logs-shard-${{ matrix.shard }}
+          name: service-logs-smoke
           path: "*.log"
