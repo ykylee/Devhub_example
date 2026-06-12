@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "fix/work_260612-6-e2e-internal-removal",
+  "based_on": "main @ 379e894 (chore(memory): main flat memory finalize, 2026-06-12, 본 sprint 직전 N-13 follow-up 3 branch + E2E Internal disable + session end 정합)",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "phase": "e2e-internal job 폐기 + ADR-0030/0031 partial supersession (baseline 변경 정공법)",
+      "notes": "사용자 결정 (2026-06-12): 'e2e-internal 은 사내 환경용 셋팅, GitHub Action 으로 체크 불요'. e2e-internal job (PR #542, +202 lines, 23 step) 완전 삭제 + ADR-0030 §2.3 + ADR-0031 §2.x / §3.x / §4 / §5 / §6.1 / §7.1 / §8 partial supersession (baseline 변경 정공법) — runtime injection 결정 자체는 유지, e2e-internal 폐기 = 독립 결정. 사내 staging/prod-smoke 가 real adapter 검증 책임. status 본 sprint = docs + CI config + script (코드 0줄 변경), housekeeping follow-up 정공법."
+    }
+  },
+  "scope": {
+    "files_changed": 5,
+    "tier": "공용",
+    "new_ids_issued": 0,
+    "rationale": "사용자 결정 — e2e-internal job 자체 폐기 + ADR supersession 정공법 §4.2 정합 (ADR-0030 본체는 supersede X, ADR-0031 의 baseline 만 변경). housekeeping follow-up + ADR partial supersession, no code change.",
+    "ci_jobs_change": "9 jobs (e2e-internal 빠짐). file 756 → 551 lines (-205). YAML parse PASS."
+  },
+  "files": [
+    ".github/workflows/ci.yml",
+    "scripts/ci-e2e-sync-check.sh",
+    "docs/adr/0030-sso-integrations-and-auth-session-port.md",
+    "docs/adr/0031-build-tag-policy-review.md",
+    "docs/traceability/report.md"
+  ],
+  "key_decisions": {
+    "e2e-internal_폐기": "사용자 결정 (2026-06-12, '사내 환경용 셋팅, GitHub Action 으로 체크 불요'). PR #542 (C-i E2E Internal job) 의 의의 (CI matrix 1쌍 = saovae_stub default + e2e-internal real) 가 무효화. ci.yml 의 e2e-internal job + ADR-0030/0031 의 e2e-internal reference 정리.",
+    "runtime_injection_유지": "ADR-0030 §2.3 의 runtime injection (옵션 2) 결정 = confirmed 유지. e2e-internal 폐기는 runtime injection 결정과 **독립**. runtime injection 의 사내 staging/prod-smoke 적용은 그대로. ADR-0031 의 결론 (옵션 2 유지) 자체는 변동 0건.",
+    "adr_partial_supersession_정공법": "ADR-0031 의 의의 (정량 측정) 의 baseline 만 변경 (CI matrix 1쌍 → 단일 matrix). 결론 + 재검토 trigger 정합. ADR-0030 본체 supersede X."
+  },
+  "head_commit": "TBD (PR 발행 시점)",
+  "pr_number": "TBD"
+}
