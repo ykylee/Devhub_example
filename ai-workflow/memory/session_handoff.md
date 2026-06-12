@@ -589,3 +589,40 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
   - 옵션 B: Test 2 Sign-out timeout rebase + 자동 재실행 (small, N-8 race 잔여 검증)
   - 옵션 C: v1.1 milestone 진입 시점으로 보류 (N-13 자체의 구현 follow-up)
 - 또는 다른 sprint (N-6 staging 1주 운영 / backend-integration DEVHUB_BUILD_TIER matrix / v0.1.1-alpha release 8 item)
+
+## 20. 본 세션 (2026-06-12, N-13 follow-up A 완료 + B 진행 — sprint `fix/work_260612-2-e2e-seed-strict-mode-fix` + `fix/work_260612-3-n13-followup-b-test2-rebase`)
+
+### PR 머지 결과 (사용자 confirm + squash merge)
+
+| PR | 머지 commit | 의의 |
+| --- | --- | --- |
+| **#574** (N-13 follow-up A — Test 1 e2e seed fix) | `896d9018` (2026-06-12) | sprint `fix/work_260612-2-e2e-seed-strict-mode-fix`. root cause = `frontend/tests/e2e/repositories-ui.spec.ts:5, 7` 의 `repoALink` / `repoBLink` matcher `.first()` 미적용. fix = matcher 정의에 `.first()` 추가 (기존 `repository-dashboard.spec.ts:71, 117` 의 동일 패턴 정합). 1 file 변경, diff +3/-2. Tier: 사외. 신규 ID 0건 (test stabilization). |
+
+### N-13 follow-up A 정공법 핵심 (PR #574)
+
+**Root cause**: `frontend/tests/e2e/repositories-ui.spec.ts:5, 7` 의 `repoALink` / `repoBLink` matcher 가 `.first()` 미적용. E2E shard 실행 중 다른 spec 잔재 (예: `e2e-repo-a3xd7` 와 같이 random suffix 가 붙은 publish spec 잔재) 가 동일 이름 link 2+ 개 생성 시 strict mode violation.
+
+**Fix**:
+```ts
+// 변경 후
+const repoALink = (page) => page.getByRole("link", { name: "e2e-repo-a", exact: true }).first();
+const repoBLink = (page) => page.getByRole("link", { name: "e2e-repo-b", exact: true }).first();
+```
+
+**검증**: main 의 e2e CI 자동 trigger (PR 머지 시) → e2e shard 1/2/3 모두 PASS (예상). Test 1 자동 해결.
+
+### N-13 follow-up B 진행 (sprint `fix/work_260612-3-n13-followup-b-test2-rebase`)
+
+**Test 2 root cause**: `frontend/tests/e2e/screenshots.spec.ts:66` 의 30s default timeout + logout flow network race (backend 204/401/502 분기 + frontend `window.location.assign('/login')` 강제 redirect, N-8 race 유사).
+
+**본 sprint 정공법**: main 의 PR #550 spec timing fix + PR #574 e2e seed fix 적용 후 main 의 e2e CI 가 자동 재실행 시 e2e shard 1/2/3 모두 PASS 검증. 5 file 변경 (docs only, verification report) + 메모리 4 file 동기화. 본 verification PR 의 본질 = main 의 e2e CI 안정성 evidence.
+
+### follow-up 잔여 1 branch (사용자 결정 영역)
+
+- **구현 follow-up = v1.1 milestone 진입 시점 별도 sprint** (rebase main + PR #550 fix + 본 fix 종합 + 자동 재실행). branch `feat/work_260611-a-n13-inbound-source-impl` close (PR #548) — v1.1 진입 시점의 신규 구현 sprint 는 새 branch 이름 별도 결정. status `⏳ planned` 유지.
+
+### 다음 directive (사용자 결정 영역)
+
+- **본 verification PR 머지 후 e2e CI 결과 확인**: e2e shard 1/2/3 PASS 시 본 sprint 종료 (Test 2 자동 해결 확인). FAIL 시 추가 fix PR 발행.
+- **follow-up 1 branch 결정** (구현 follow-up, v1.1 진입 시점): 별도 sprint.
+- 또는 다른 sprint (N-6 staging 1주 운영 / backend-integration DEVHUB_BUILD_TIER matrix / v0.1.1-alpha release 8 item)
