@@ -214,6 +214,8 @@ E-1 Realtime event publish(RM-M4-01) · E-2 WS replay/필터(RM-M4-02) · E-3 AI
 
 **완료 정의**: §1.3 의 8개 DoD 항목 모두 PASS.
 
+**현재 status (2026-06-12)**: v0.1.0-alpha (2026-06-11) released — 8 DoD 모두 close (7 ✅ + 1 ✅ skipped=N-6). v0.1.1-alpha 개발 중 — 잔여 5 (T-d-72-5/6 + D-73/74 + X-1~8) 의 v0.1.1-alpha 격하 정공법 (commit `3e2701b3`). **M-v1.0 GA target = 2026-06-15**, 단 v0.1.1-alpha release 후 N-6 staging 1주 운영 사용자 결정 시점. lint phase 2 chunk 2 0/0/0 달성 (PR #569 merge 완료, 2026-06-12).
+
 **구성 sprint** (예상):
 - sprint -f: P0-1 sub-carve B (`/api/v1/accounts/*` 폐기 + lazy auto-create + frontend cleanup) — Claude+Gemini 분담
 - sprint -g: P0-3 Playwright screenshot mode + P0-2 UI polish 진입 — Codex+Gemini
