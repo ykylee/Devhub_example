@@ -741,3 +741,28 @@ const repoBLink = (page) => page.getByRole("link", { name: "e2e-repo-b", exact: 
 1. 현재 브랜치 기준 `voc-auto-routing.spec.ts` 는 존재하지 않아 quarantine manifest 에서 자동 skip 되도록 처리함.
 2. full regression 을 GitHub Actions 에서 실제로 돌려 보고 branch protection 조합을 확정해야 함.
 3. merge 전 PR 본문에는 required check 후보(`CI`, `E2E Regression`)와 quarantine 운영 원칙을 명시하는 것이 좋음.
+
+## 23. 후속 결과 (2026-06-13, CI 재구성 운영 검증 완료)
+
+### 완료 결과
+
+- PR #580 merged
+  - merge commit: `b1fa5c27698403620b63ef09d7e32e2235592d59`
+- 분리된 workflow 3종이 GitHub Actions 상에서 정상 동작 확인
+  - `CI`
+  - `E2E Regression`
+  - `E2E Quarantine`
+- old CI에서 shard 3/3 failure가 있던 PR #579가 최신 `main`을 반영한 새 SHA에서 재평가 통과
+
+### 핵심 레슨런
+
+1. base branch workflow가 바뀌어도 old failure run이 자동 success로 바뀌지는 않는다.
+2. old PR에 새 CI 구조의 효과를 적용하려면 최신 `main`을 반영해 새 SHA로 다시 평가해야 한다.
+3. flaky와 기능 실패를 같은 required lane에 두지 않는 편이 triage 속도와 merge 안정성에 유리하다.
+4. manifest + selector 조합은 smoke/regression/quarantine 경계를 유지하는 데 효과적이었다.
+
+### 다음 진입 포인트
+
+- branch protection required check 목록을 문서 목표 상태와 다시 정합
+- quarantine spec pass/fail 추세 관찰 자동화 검토
+- full frontend `tsc --noEmit` 선행 오류는 별도 정리 과제로 유지

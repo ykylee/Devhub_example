@@ -1,8 +1,8 @@
 # Session Handoff — codex/work_260612-579-ci-rearchitecture (2026-06-12, CI 재구성 + flaky 복구)
 
 - 문서 목적: #579 관련 CI 재구성 설계/구현과 flaky 복구의 현재 상태를 다음 세션이 바로 이어받을 수 있게 정리한다.
-- 상태: **in progress** — 구현과 로컬 정합 검증은 완료, draft PR 생성 단계.
-- 최종 수정일: 2026-06-12
+- 상태: **complete** — 구현, PR 머지, old PR 재평가 통과까지 확인 완료.
+- 최종 수정일: 2026-06-13
 
 ## 1. 이번 세션에서 완료한 것
 
@@ -40,9 +40,19 @@
 - 전체 E2E 를 단일 required workflow 로 운영하면 flaky 1건이 merge path 전체를 막는다.
 - 따라서 required path 는 빠르게 유지하고, regression/quarantine 은 별도 workflow 로 runner 병렬성을 활용하는 편이 낫다.
 
-## 4. 다음 세션 바로 할 일
+## 4. 최종 결과
 
-1. 변경 파일 review 후 draft PR 생성
-2. PR 본문에 required check 후보와 quarantine 운영 원칙 명시
-3. GitHub Actions 상에서 regression/quarantine 실제 동작 확인
-4. branch protection 에서 어떤 check 를 required 로 둘지 최종안 확정
+- PR #580 merged
+  - merge commit: `b1fa5c27698403620b63ef09d7e32e2235592d59`
+- 새 workflow 3종이 GitHub Actions 상에서 실제 동작 확인
+  - `CI`
+  - `E2E Regression`
+  - `E2E Quarantine`
+- old CI failure가 있던 PR #579는 최신 `main`을 반영한 새 SHA에서 재평가 통과
+
+## 5. 레슨런
+
+1. flaky와 기능 실패는 같은 required lane에 두지 않는 편이 triage 속도와 merge 안정성 모두에 유리하다.
+2. base branch workflow가 바뀌어도 old failure가 자동 success로 바뀌지는 않는다.
+3. 하지만 최신 `main`을 PR branch에 반영해 새 SHA로 재평가하면 새 CI 구조의 효과를 old PR에도 적용할 수 있다.
+4. manifest + selector 조합은 workflow drift를 줄이는 데 유효했다.
