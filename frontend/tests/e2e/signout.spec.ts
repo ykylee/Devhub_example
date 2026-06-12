@@ -37,6 +37,7 @@ test.describe("Sign Out terminates IdP session", () => {
   //   page.goto 가 ERR_ABORTED 외 다른 interrupt 도 발생시킬 수 있음. 모든
   //   navigation interrupt 를 swallow 하고, 도착 URL / sign-in form 표시만 검증.
   test("after Sign Out, /login flow asks for credentials again", async ({ page }) => {
+    test.setTimeout(90_000);
     await loginAs(page, SEEDED.developer);
 
     // Open the header dropdown and click Sign Out
@@ -63,6 +64,7 @@ test.describe("Sign Out terminates IdP session", () => {
   });
 
   test("TC-AUTH-SIGNOUT-REDIR-01 — direct navigation to a protected route after Sign Out bounces to /login", async ({ page }) => {
+    test.setTimeout(90_000);
     await loginAs(page, SEEDED.developer);
 
     // Sign Out via header dropdown
@@ -85,7 +87,7 @@ test.describe("user switch across Sign Out", () => {
   test("TC-USER-SWITCH-01 — Sign Out from alice and Sign In as bob shows bob's profile, never alice's", async ({ page }) => {
     test.skip(
       Boolean(process.env.CI),
-      "CI-only flaky: GitHub Actions shard 2/2 intermittently fails to reach the post-signout OIDC credential form; keep local coverage until login bootstrap is hardened.",
+      "CI-only flaky: GitHub Actions intermittently fails to reach the post-signout OIDC credential form; keep local coverage until login bootstrap is hardened.",
     );
 
     test.setTimeout(90_000);

@@ -1,0 +1,24 @@
+{
+  "branch": "codex/work_260612-579-ci-rearchitecture",
+  "status": "in_progress",
+  "phase": "CI 재구성 설계 + flaky 복구 구현 완료, PR 준비 중",
+  "scope": {
+    "design_doc": "docs/planning/2026-06-12-ci-rearchitecture-design.md",
+    "workflows": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/e2e-regression.yml",
+      ".github/workflows/e2e-quarantine.yml"
+    ],
+    "e2e_selection": [
+      "frontend/tests/e2e-manifests/smoke.txt",
+      "frontend/tests/e2e-manifests/quarantine.txt",
+      "scripts/select-playwright-specs.sh"
+    ],
+    "flaky_recovery": [
+      "frontend/tests/e2e/fixtures.ts",
+      "frontend/tests/e2e/signout.spec.ts"
+    ]
+  },
+  "last_update": "2026-06-12",
+  "notes": "Fast required / E2E regression / E2E quarantine 3계층 구조로 분리. manifest 기반 spec selection SSOT 추가. signout/login flaky 복구를 위해 OIDC restart helper, login loop 회복, CI timeout 완화를 반영. workflow sync checks 및 focused type check 완료, full frontend tsc 는 기존 선행 오류로 미통과."
+}

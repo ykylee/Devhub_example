@@ -703,3 +703,41 @@ const repoBLink = (page) => page.getByRole("link", { name: "e2e-repo-b", exact: 
 - 또는 다른 sprint (N-6 staging 1주 운영 / backend-integration DEVHUB_BUILD_TIER matrix / v0.1.1-alpha release 8 item)
 - session_handoff.md 본 §21 + state.json M-v1.0 notes + work_backlog.md status line + §5 row 본 row 가 다음 진입 시점의 메모리 정합 기준선
 - main HEAD `fc7e6c76` 정합 (메모리 finalize commit)
+
+## 22. In-flight 세션 (2026-06-12, CI 재구성 + flaky 복구 + PR 준비 — branch `codex/work_260612-579-ci-rearchitecture`)
+
+### 이번 세션 핵심 결과
+
+- **CI 재구성 설계 문서 작성**: `docs/planning/2026-06-12-ci-rearchitecture-design.md`
+- **워크플로우 분리 구현**
+  - `.github/workflows/ci.yml` = fast required + smoke
+  - `.github/workflows/e2e-regression.yml` = non-quarantine full regression
+  - `.github/workflows/e2e-quarantine.yml` = flaky/quarantine 전용
+- **spec selection SSOT 도입**
+  - `frontend/tests/e2e-manifests/smoke.txt`
+  - `frontend/tests/e2e-manifests/quarantine.txt`
+  - `scripts/select-playwright-specs.sh`
+- **flaky 복구 우선 적용**
+  - `frontend/tests/e2e/fixtures.ts`: `/login` loop 감지, OIDC 재시작 helper, CI timeout 완화, sign-in form 재시도 강화
+  - `frontend/tests/e2e/signout.spec.ts`: 장시간 sign-out/user-switch 케이스 timeout 상향
+
+### root cause / 의도
+
+- 최근 signout/login 계열 flaky 는 app login page 체류, OIDC redirect 재시작 지연, CI 환경에서의 느린 signout round-trip 이 겹치며 발생.
+- 전체 회귀를 단일 required workflow 에 계속 묶어두면 flaky 1건이 merge path 전체를 막고 runner 병렬성도 충분히 활용되지 않음.
+- 그래서 **required path 는 빠르게 유지**하고, **full regression 과 quarantine 은 별도 runner pool 에 분리**하는 구조로 재설계.
+
+### 검증 결과
+
+- workflow YAML parse: `ci.yml`, `e2e-regression.yml`, `e2e-quarantine.yml` 모두 OK
+- `scripts/ci-e2e-sync-check.sh` 로 3 workflow 정합 OK
+- `scripts/select-playwright-specs.sh smoke|quarantine|regression` 출력 OK
+- focused type check OK:
+  - `cd frontend && npx tsc --noEmit tests/e2e/fixtures.ts tests/e2e/signout.spec.ts --skipLibCheck`
+- full `frontend` `npx tsc --noEmit` 는 기존 repo 전반의 선행 타입 오류로 실패
+
+### 알려진 제약 / 다음 진입 포인트
+
+1. 현재 브랜치 기준 `voc-auto-routing.spec.ts` 는 존재하지 않아 quarantine manifest 에서 자동 skip 되도록 처리함.
+2. full regression 을 GitHub Actions 에서 실제로 돌려 보고 branch protection 조합을 확정해야 함.
+3. merge 전 PR 본문에는 required check 후보(`CI`, `E2E Regression`)와 quarantine 운영 원칙을 명시하는 것이 좋음.

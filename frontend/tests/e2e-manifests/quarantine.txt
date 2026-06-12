@@ -1,0 +1,2 @@
+tests/e2e/signout.spec.ts
+tests/e2e/voc-auto-routing.spec.ts

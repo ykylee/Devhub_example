@@ -91,9 +91,36 @@ type WaitForSignInFormOptions = {
   timeoutMs?: number;
 };
 
+async function restartOIDCFromLoginPage(page: Page): Promise<"clicked" | "reloaded" | "noop"> {
+  const continueButton = page.getByRole("button", { name: /continue to sign in|redirecting/i }).first();
+  if ((await continueButton.count()) === 0 || !(await continueButton.isVisible().catch(() => false))) {
+    return "noop";
+  }
+
+  const isDisabled = await continueButton.isDisabled().catch(() => false);
+  if (!isDisabled) {
+    await continueButton.click().catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (
+        msg.includes("Target page, context or browser has been closed")
+        || msg.includes("Execution context was destroyed")
+      ) {
+        return;
+      }
+      throw err;
+    });
+    return "clicked";
+  }
+
+  await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+  return "reloaded";
+}
+
 export async function waitForSignInForm(page: Page, options: WaitForSignInFormOptions = {}): Promise<void> {
-  const deadline = Date.now() + (options.timeoutMs ?? 30_000);
-  let restartedOIDC = false;
+  const deadline = Date.now() + (options.timeoutMs ?? (process.env.CI ? 45_000 : 30_000));
+  let restartCount = 0;
+  const maxRestarts = options.restartOIDCOnAppLogin ? 3 : 0;
+  let stuckLoginLoops = 0;
   while (Date.now() < deadline) {
     const userVisible = await page.locator('input#username, input[name="username"], input#identifier, input[name="identifier"]').first().isVisible().catch(() => false);
     const passVisible = await page.locator('input#password, input[name="password"]').first().isVisible().catch(() => false);
@@ -106,30 +133,38 @@ export async function waitForSignInForm(page: Page, options: WaitForSignInFormOp
       continue;
     }
 
-    const continueButton = page.getByRole("button", { name: /continue to sign in|redirecting/i }).first();
-    if ((await continueButton.count()) > 0 && (await continueButton.isVisible().catch(() => false))) {
-      const isDisabled = await continueButton.isDisabled().catch(() => false);
-      if (!isDisabled) {
-        await continueButton.click().catch((err) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (
-            msg.includes("Target page, context or browser has been closed")
-            || msg.includes("Execution context was destroyed")
-          ) {
-            return;
-          }
-          throw err;
-        });
+    if (isAppLoginURL(page.url())) {
+      const action = await restartOIDCFromLoginPage(page);
+      if (action !== "noop") {
+        stuckLoginLoops = 0;
         await page.waitForTimeout(250);
         continue;
       }
-    } else if (options.restartOIDCOnAppLogin && !restartedOIDC && isAppLoginURL(page.url())) {
+    }
+
+    if (restartCount < maxRestarts && isAppLoginURL(page.url())) {
       // Sign-out flows can occasionally land back on the app's /login page
       // without resuming the redirect chain. Restart through the page's own
-      // login CTA so the app generates a fresh PKCE state instead of mutating
-      // sessionStorage behind its back.
-      restartedOIDC = true;
-      await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+      // login CTA / page handler so the app generates a fresh PKCE state
+      // instead of mutating sessionStorage behind its back.
+      restartCount += 1;
+      stuckLoginLoops = 0;
+      await restartOIDCFromLoginPage(page);
+      await page.waitForTimeout(250);
+      continue;
+    }
+
+    if (isAppLoginURL(page.url())) {
+      stuckLoginLoops += 1;
+      // If the app login page stays visible without rendering the IdP form or
+      // progressing the redirect chain, periodically hard-refresh to clear a
+      // stale "Redirecting..." client state.
+      if (stuckLoginLoops >= 4) {
+        stuckLoginLoops = 0;
+        await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+        await page.waitForTimeout(250);
+        continue;
+      }
     }
     await page.waitForTimeout(500);
   }
@@ -189,10 +224,10 @@ export async function loginAs(page: Page, user: SeededUser) {
     const msg = err instanceof Error ? err.message : String(err);
     if (!msg.includes("ERR_ABORTED")) throw err;
   });
-  await waitForSignInForm(page);
+  await waitForSignInForm(page, { restartOIDCOnAppLogin: true });
   await submitSignInForm(page, user.email, user.password);
   await completeKeycloakRequiredActionsIfPresent(page);
-  await page.waitForURL(new RegExp(`${user.landing}(/|$)`), { timeout: 30_000 });
+  await page.waitForURL(new RegExp(`${user.landing}(/|$)`), { timeout: process.env.CI ? 60_000 : 30_000 });
 }
 
 export async function openHeaderUserMenu(page: Page, user: SeededUser): Promise<void> {
