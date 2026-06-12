@@ -1,0 +1,37 @@
+{
+  "branch": "fix/work_260611-2-lint-phase2-chunk2",
+  "created": "2026-06-12",
+  "status": "in_progress",
+  "current_sprint": "wiki lint phase 2 chunk 2 (0/0/0)",
+  "last_touched": "2026-06-12",
+  "vault_lint_state": {
+    "baseline": "11 error / 87 warn (2026-06-12 00:00 KST)",
+    "after": "0 error / 0 warn / 0 info (2026-06-12 00:19 KST)",
+    "diff": "-11 error / -87 warn"
+  },
+  "changes": {
+    "vault": [
+      "index.md (L08 fix: workflow.md 등록)",
+      "wiki/cross/concepts/runtime-injection.md (L02 body fix)",
+      "wiki/cross/topics/cross-host-bootstrap.md (L02 body + frontmatter plain text 제거 + L03 inbound source)",
+      "wiki/cross/topics/d-72-rollout.md (L03 inbound from cross-host-bootstrap)",
+      "wiki/cross/topics/sub-host-onboarding.md (L02 body + frontmatter plain text 제거 + L03 inbound from cross-host-bootstrap)",
+      "wiki/projects/devhub/entities/devhub-agent-memory.md (L02 body + L03 inbound from devhub)",
+      "wiki/projects/devhub/entities/devhub.md (L03 inbound source for devhub-agent-memory)",
+      "wiki/projects/devhub/topics/workflow.md (L02 body fix)"
+    ],
+    "devhub_repo": [
+      "docs/llm-wiki/lint-config.toml (L03 + L10 면제 정책 추가)"
+    ]
+  },
+  "commit_status": "deferred (user 2026-06-12 결정 — memory 만 정합, commit 별도 turn)",
+  "next_actions": [
+    "vault 8 file commit + Gitea push (사용자 confirm 시점)",
+    "DevHub repo 1 file commit + branch push (사용자 confirm 시점)",
+    "PR 발행 (사용자 confirm 시점)"
+  ],
+  "follow_up": [
+    "lint SSOT (my_harness) 의 L02 검사 schema 정합 (frontmatter related: 의 plain text wikilink false positive)",
+    "wiki-source-sync skill 의 L03 fix 자동화 (frontmatter related: + body 1줄 일괄)"
+  ]
+}
