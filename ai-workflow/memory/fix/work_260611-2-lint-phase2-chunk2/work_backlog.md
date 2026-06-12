@@ -1,7 +1,8 @@
 # Work Backlog — fix/work_260611-2-lint-phase2-chunk2
 
 - 문서 목적: wiki lint phase 2 chunk 2 sprint 의 backlog.
-- 최종 수정일: 2026-06-12
+- 상태: ✅ done (PR #569 squash `481a8faa` 머지 완료, 2026-06-12)
+- 최종 수정일: 2026-06-12 (post-merge finalize)
 
 ## 1. 완료 항목 (2026-06-12)
 
