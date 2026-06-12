@@ -1048,6 +1048,13 @@ paths:
                 description:
                   type: string
                   description: "새 platform 설명"
+                inbound_source_type:
+                  type: string
+                  enum: ["", "gitea", "jira", "other"]
+                  description: "N-13 voc 자동 routing source tag — 빈 문자열 = disabled"
+                inbound_source_config:
+                  type: string
+                  description: "provider-specific JSONB-serialized config (raw JSON string)"
               example:
                 description: "Updated platform description"
       responses:
@@ -4036,6 +4043,109 @@ paths:
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
 
+    post:
+      tags:
+        - DevRequest
+      summary: "DevRequest Voc 등록 (external_ref idempotency key)"
+      operationId: createOrGetVoc
+      description: |
+        외부 시스템 (예: Gitea webhook) 의 VOC (Voice of Customer) 등록.
+        external_ref 를 path param 으로 받아 idempotency 보장.
+        auto-routing: 등록 후 InboundSource 매칭 시 dev-request 자동 생성 + voc routed 전이.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: dev_request_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "VOC external_ref (idempotency key)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  description: "의뢰 제목"
+                details:
+                  type: string
+                  description: "의뢰 상세"
+                requester:
+                  type: string
+                  description: "의뢰자 식별자 (email)"
+                req_department:
+                  type: string
+                  description: "의뢰부서"
+                assignee:
+                  type: string
+                  description: "담당자 user_id"
+                dev_department:
+                  type: string
+                  description: "개발담당부서"
+                request_date:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: "의뢰접수일자"
+                dev_schedule:
+                  type: string
+                  description: "요청개발기간"
+                source_system:
+                  type: string
+                  description: "외부 시스템 식별자 (default: manual)"
+              example:
+                title: "Gitea PR review 요청"
+                details: "feat/add-export-endpoint 브랜치 리뷰 요청"
+                requester: "alice@example.com"
+                source_system: "gitea"
+      responses:
+        "201":
+          description: "Voc 등록 성공 (auto_routed 포함)"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  id: "voc_001"
+                  external_ref: "GITEA-123"
+                  source_system: "gitea"
+                  title: "Gitea PR review 요청"
+                  status: "routed"
+                  auto_routed: true
+                  platform_id: "plat_001"
+                  dev_request_id: "dreq_001"
+                  reason: "external_ref_pattern"
+                  created_at: "2026-06-12T00:00:00Z"
+                request_id: "req_voc_create"
+                trace_id: "trace_voc_create"
+        "200":
+          description: "Idempotent hit — 기존 voc 반환"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
   # ---------------------------------------------------------------------------
   # POST /api/v1/dev-requests/{dev_request_id}/register — Promote (P3 batch 2, bearerAuth only)
   # ---------------------------------------------------------------------------
@@ -6358,6 +6468,7 @@ components:
             - $ref: "#/components/schemas/RepositoryPublishRequest"
             - $ref: "#/components/schemas/DevRequestIntakeTokenCreateRequest"
             - $ref: "#/components/schemas/DevRequestIntakeTokenUpdateRequest"
+            - $ref: "#/components/schemas/DevRequestVoc"
         request_id:
           type: string
           description: "X-Request-ID header 와 동일한 correlation ID"
@@ -8348,6 +8459,111 @@ components:
           format: date-time
           description: "수정 일시"
           example: "2026-05-15T04:55:00Z"
+
+    # -----------------------------------------------------------------------
+    # DevRequestVoc — VOC (Voice of Customer) 응답 (N-13 ADR-0028)
+    # -----------------------------------------------------------------------
+    DevRequestVoc:
+      type: object
+      required:
+        - id
+        - external_ref
+        - source_system
+        - title
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "VOC UUID"
+          example: "voc_001"
+        external_ref:
+          type: string
+          description: "외부 참조 ID (idempotency key)"
+          example: "GITEA-123"
+        source_system:
+          type: string
+          description: "출처 시스템"
+          example: "gitea"
+        title:
+          type: string
+          description: "의뢰 제목"
+          example: "Gitea PR review 요청"
+        details:
+          type: string
+          description: "상세 내용"
+          example: "feat/add-export-endpoint 브랜치 리뷰"
+        requester:
+          type: string
+          description: "의뢰자"
+          example: "alice@example.com"
+        req_department:
+          type: string
+          description: "의뢰부서"
+          example: "Engineering"
+        assignee:
+          type: string
+          description: "담당자 user_id"
+          example: "bob"
+        dev_department:
+          type: string
+          description: "개발담당부서"
+          example: "Platform"
+        request_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: "의뢰접수일자"
+        dev_schedule:
+          type: string
+          description: "요청개발기간"
+          example: "2 weeks"
+        status:
+          type: string
+          enum: ["received", "routed", "closed"]
+          description: "VOC 상태"
+          example: "routed"
+        project_id:
+          type: string
+          nullable: true
+          description: "매칭된 platform ID"
+          example: "plat_001"
+        dev_request_id:
+          type: string
+          nullable: true
+          description: "자동 생성된 dev-request ID"
+          example: "dreq_001"
+        auto_routed:
+          type: boolean
+          description: "auto-routing 매칭 여부"
+          example: true
+        platform_id:
+          type: string
+          nullable: true
+          description: "매칭된 platform ID (auto_routed=true 시)"
+          example: "plat_001"
+        reason:
+          type: string
+          nullable: true
+          enum: ["external_ref_pattern", "requester_email", "req_department", "no_match"]
+          description: "매칭 사유"
+          example: "external_ref_pattern"
+        routed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: "routing 일시"
+          example: "2026-06-12T00:00:00Z"
+        created_at:
+          type: string
+          format: date-time
+          description: "생성 일시"
+          example: "2026-06-12T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: "수정 일시"
+          example: "2026-06-12T00:00:00Z"
 
     # -----------------------------------------------------------------------
     # DevRequestIntakeRequest

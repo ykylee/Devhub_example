@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/work_260612-4-v1-1-inbound-source-impl",
+  "based_on": "main @ 2208e33b (PR #575 + trivial commit + memory finalize)",
+  "milestones": {
+    "M-v1.1": {
+      "status": "in_progress",
+      "phase": "N-13 follow-up C — 구현 follow-up (v1.1 milestone 진입 시점)",
+      "notes": "본 sprint = PR #548 (CLOSED, 2026-06-11) 의 E2E Internal 1 fail 2건 중 follow-up 3 branch 중 마지막 branch C (구현 follow-up) 의 정공법. sprint plan v2 정공법 = PR A-1 (backend foundation) + PR A-2 (routing + voc_handler 통합 + openapi + e2e) 통합 1 PR. **현실적 scope 재조정**: PR A-1 의 9 file 은 이미 main 에 byte-identical 로 존재 (`43feccfb` via PR #549), no-op (skip). 본 sprint 의 실질적 scope = PR A-2 4 file 신규 작성 + openapi.yaml 정합 + e2e spec 신규 = 총 6 file."
+    }
+  },
+  "scope": {
+    "files_changed_actual": 6,
+    "tier": "사내 (backend + openapi + e2e spec 변경, main branch push-only)",
+    "new_ids_issued": 0,
+    "rationale": "9 ID slot 의 planned → implemented 정합. PR A-1 (no-op, 이미 main) + PR A-2 (routing + voc_handler + openapi + e2e) = 6 file."
+  },
+  "files": [
+    "backend-core/internal/domain/application-lifecycle/routing/auto_route.go (NEW)",
+    "backend-core/internal/domain/application-lifecycle/routing/auto_route_test.go (NEW)",
+    "backend-core/internal/domain/dev-request/view/voc_handler.go (MODIFIED)",
+    "backend-core/internal/domain/dev-request/view/voc_handler_integration_test.go (NEW)",
+    "docs/openapi.yaml (MODIFIED)",
+    "frontend/tests/e2e/voc-auto-routing.spec.ts (NEW)"
+  ],
+  "pr_a1_no_op_files": [
+    "backend-core/migrations/000007_platform_inbound_source.up.sql (이미 main 에 존재)",
+    "backend-core/migrations/000007_platform_inbound_source.down.sql (이미 main 에 존재)",
+    "backend-core/internal/domain/application.go (이미 main 에 존재)",
+    "backend-core/internal/domain/application-lifecycle/repository/applications.go (이미 main 에 존재)",
+    "backend-core/internal/domain/application-lifecycle/view/handler.go (이미 main 에 존재)",
+    "backend-core/internal/domain/application-lifecycle/view/applications.go (이미 main 에 존재)",
+    "backend-core/internal/domain/application-lifecycle/view/applications_handler_test.go (이미 main 에 존재)",
+    "backend-core/internal/domain/application-lifecycle/view/fake_store_test.go (이미 main 에 존재)",
+    "backend-core/internal/httpapi/applications_test.go (이미 main 에 존재)"
+  ],
+  "id_slot_status": {
+    "REQ-FR-113": "planned → implemented",
+    "UC-DEV-REQ-15": "planned → implemented",
+    "ARCH-23": "planned → implemented",
+    "API-103": "planned → implemented (openapi.yaml 정합)",
+    "RM-DEV-REQ-15": "planned → implemented",
+    "IMPL-inbound-source-01": "planned → implemented (routing/auto_route.go + voc_handler 통합)",
+    "IMPL-platform-patch-02": "planned → implemented (already in main via PR A-1)",
+    "UT-inbound-source-01": "planned → implemented (auto_route_test.go + voc_handler_integration_test.go)",
+    "TC-INBOUND-SRC-01": "planned → implemented (e2e voc-auto-routing.spec.ts)"
+  },
+  "head_commit": "TBD (PR 발행 시점)",
+  "pr_number": "TBD"
+}
