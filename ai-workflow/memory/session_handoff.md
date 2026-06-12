@@ -546,3 +546,46 @@ e2e shard 1/2/3 (saovae_stub default) + 별도 `e2e-internal` job 1개 (`DEVHUB_
 - 또는 `docs/llm-wiki/Mavis-workflow.md` 9번째 문서 작성
 - 또는 본 세션 작업의 prompt log (D-86 흐름 1) 작성
 - 또는 다른 sprint (N-13 release_v1_roadmap §3.5 정합 / v0.1.1-alpha release 8 item / PR #548 머지 결정)
+
+## 19. 본 세션 (2026-06-12, N-13 PR #548 close follow-up 결정 — sprint `fix/work_260612-1-n13-housekeeping-followup`)
+
+### PR 머지 결과 (정공법 본문)
+
+| 항목 | 결과 |
+| --- | --- |
+| **PR #572** (N-10 follow-up 보류 결정) | ✅ **MERGED** (squash `8616ac59`, 2026-06-12 02:49 UTC) — docs only, 4 file (+70). `fix/work_260611-5-n10-n9` branch delete (auto). 직전 세션 (2026-06-11 21:30 KST) PR #572 머지 정합 = main HEAD `8616ac59`. |
+| **다른 open PR** | **0건** (전 sprint 정합) |
+
+### PR #548 close 결과 (sprint `feat/work_260611-a-n13-inbound-source-impl`)
+
+- **CLOSED** (2026-06-11 05:40 UTC) — E2E Internal 1 fail
+  - **Test 1** e2e seed 중복 strict mode violation: `getByText('e2e-repo-a')` 2 elements
+  - **Test 2** Sign-out timeout: N-8 race 유사, `Test timeout of 30000ms exceeded`
+  - codex review = COMMENTED (blocker 아님)
+  - 자동 재실행 미적용 (run 시각 `27316392137` 2026-06-11T01:04Z < PR #550 spec timing fix 머지 2026-06-11T01:51Z)
+
+### 본 sprint 정공법 (N-13 housekeeping follow-up)
+
+- **sprint**: `fix/work_260612-1-n13-housekeeping-followup`
+- **scope**: 5 file (docs only, 코드 0줄)
+  1. `docs/planning/release_v1_roadmap.md` — §3.5 N-13 row status `⏳ planned` 유지 + 본문 보강 (PR #548 close 결과 + follow-up 3 branch 결정) + §9 변경 이력 1 row + 헤더 메타 (최종 수정일 2026-06-12, 직전 결정 근거 2026-06-11, 결정 근거 sprint 추가)
+  2. `docs/adr/0028-dev-requests-voc-external-ref.md` — §6 (a) 본문 보강 (PR #548 close + follow-up 3 branch + branch 정책) + §7 변경 이력 1 row + 헤더 메타 (최종 수정일 2026-06-12 N-13 follow-up 결정)
+  3. `docs/planning/2026-06-12-inbound-source-routing-sprint-plan.md` — §3.3 의존 표에 PR #548 CLOSED row 추가 + §5 결정 보류 사유에 3 branch follow-up 결정 + §6 변경 이력 1 row + 헤더 메타 (최종 수정일 2026-06-12 follow-up 결정, 결정 근거 sprint 추가)
+  4. `docs/traceability/report.md` — §6 변경 이력 1 row (PR #548 close follow-up 보고)
+  5. 메모리 4 file 동기화 (`state.json` M-v1.0 notes `phase2_5th_chunk_n13_housekeeping_followup` 추가 + `work_backlog.md` status line + §5 row + 본 `session_handoff.md` §19 append + 브랜치 memory 4 file 신규)
+- **신규 ID 발급 0건** (housekeeping follow-up)
+- **Tier**: **공용** (docs only, 사내 한정 정보 미포함)
+
+### follow-up 결정 3 branch (사용자 결정 영역)
+
+1. **Test 1 e2e seed 중복** → spec/e2e seed 정합 fix 별도 sprint (mock data 유일성 보장)
+2. **Test 2 Sign-out timeout** → main rebase + 자동 재실행 검증 별도 (PR #550 spec timing fix 가 해결 가능성 ↑)
+3. **구현 follow-up = v1.1 milestone 진입 시점 별도 sprint** (rebase main + PR #550 fix + e2e seed 정합 fix + 자동 재실행 종합)
+
+### 다음 directive (사용자 결정 영역)
+
+- **follow-up 3 branch 중 우선 진행 방향 결정**:
+  - 옵션 A: Test 1 e2e seed 중복 fix 먼저 (small, e2e 안정성 ↑)
+  - 옵션 B: Test 2 Sign-out timeout rebase + 자동 재실행 (small, N-8 race 잔여 검증)
+  - 옵션 C: v1.1 milestone 진입 시점으로 보류 (N-13 자체의 구현 follow-up)
+- 또는 다른 sprint (N-6 staging 1주 운영 / backend-integration DEVHUB_BUILD_TIER matrix / v0.1.1-alpha release 8 item)
