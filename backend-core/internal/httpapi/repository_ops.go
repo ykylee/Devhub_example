@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var errRepositoryNotFound = "repository_not_found"
+
 // Repository 운영 지표 read endpoint (API-51..54, sprint claude/work_260514-c).
 // pr_activities / build_runs / quality_snapshots 의 read-only 조회. write 는 ingest
 // pipeline 책임 (별도 sprint).
@@ -133,6 +135,15 @@ func (h *Handler) repositoryBuildRuns(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id must be an integer"})
 		return
 	}
+	// #556: RBAC guard — repository 존재 여부 확인 (부재 시 404)
+	if _, err := storeI.GetRepositoryByID(c.Request.Context(), repoID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status": "not_found",
+			"error":  "repository not found",
+			"code":   errRepositoryNotFound,
+		})
+		return
+	}
 	opts := store.BuildRunListOptions{
 		Status: c.Query("status"),
 		Branch: c.Query("branch"),
@@ -153,11 +164,15 @@ func (h *Handler) repositoryBuildRuns(c *gin.Context) {
 		}
 		opts.Offset = n
 	}
+	queryStart := time.Now()
 	runs, total, err := storeI.ListRepositoryBuildRuns(c.Request.Context(), repoID, opts)
+	queryDuration := time.Since(queryStart)
 	if err != nil {
 		writeServerError(c, err, "repository.build_runs")
 		return
 	}
+	// #557: Prometheus histogram metric 관측 (status_filter label)
+	observeBuildRunsQueryDuration(opts.Status, queryDuration)
 	resp := make([]gin.H, 0, len(runs))
 	for _, r := range runs {
 		resp = append(resp, gin.H{
