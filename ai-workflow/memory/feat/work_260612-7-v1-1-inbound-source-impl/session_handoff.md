@@ -144,22 +144,40 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - [ ] `git diff --stat` = 9 file 변경 (3 backend + 1 IT + 1 openapi + 1 e2e + 3 docs)
 - [ ] `git log -1 --format='%an %ae'` = 본 세션 author
 
-## 6. E2E shard 3/3 fail 정공법 (옵션 B, PR #579 2차 commit)
+## 6. E2E shard 3/3 fail 정공법 (옵션 B, PR #579 2차 commit + 옵션 A 재시도 + 3차 commit)
 
 **근본 layer**: PR #579 1차 commit 의 E2E shard 3/3 fail 2건 (TC-INBOUND-SRC-01 + NEG). shard 3/3 의 Keycloak container 가 initial start-up race 로 늦게 ready (GitHub Actions runner 의 transient network issue, `curl: (56) Recv failure: Connection reset by peer` 9 회). beforeEach 의 loginAs 가 systemAdmin token 받기 전에 backend 401 → patchResp 4xx.
 
-**정공법 (옵션 B)**: PATCH inbound_source 를 `test.beforeAll` hook 으로 이동 (Keycloak startup race 회피). retry 3 회 with backoff (5s + 10s + 15s, 최대 4 attempts). loginAs 도 beforeAll 에서 1 회 (Keycloak ready 보장). 2 test case 의 PATCH 단계 제거 — 검증만.
+**정공법 (옵션 B, 2차 commit)**: PATCH inbound_source 를 `test.beforeAll` hook 으로 이동 (Keycloak startup race 회피). retry 3 회 with backoff (0s + 5s + 10s + 15s, 최대 4 attempts). loginAs 도 beforeAll 에서 1 회 (Keycloak ready 보장). 2 test case 의 PATCH 단계 제거 — 검증만.
 
-**근본 layer 와의 정합성**:
-- PR #548 (1차) → PR #574 (Test 1) + PR #575 (Test 2) + PR #576 (POST platform 단계 제거, seed platform 사용) — 1차 fail 2건 fix
-- PR #579 (본 sprint) → 본 sprint 의 beforeAll 정공법 (Keycloak race 회피) — 1차 CI 의 shard 3/3 fail 2건 fix
-- **N-13 follow-up 3 branch 결정 (PR #573) 의 종합 정공법** 정합: PR #574 + PR #575 + 본 sprint (N-13 follow-up C 의 정식 구현 + Keycloak race 정공법)
+**옵션 A (재시도 1회, 3차 rerun)**: 동일 shard 3/3 fail (6m12s) — 1차 (5m32s) + 2차 (8m30s) + 3차 (6m12s) 모두 fail. **3회 연속 shard 3/3 fail 의 chronic flake** 확인. 옵션 A 한계 도달.
+
+**근본 layer 정밀 확정 (3회 fail log 분석)**:
+- `Wait for imported Keycloak realm` step: curl: (56) Recv failure × 8회 + curl: (52) Empty reply × 3회 = 11회. step 은 timeout 120s 안에 결국 PASS.
+- `Wait for App Readiness` step: timeout 60s + 120s 모두 PASS.
+- **`beforeAll` hook timeout default 30000ms** 가 부족 — loginAs 1회 (page.waitForURL timeout 30s) + retry 3회 (5s+10s+15s=30s) 합쳐서 60s 가 필요. **Playwright 의 beforeAll hook default 30s 안** 에 안 들어감.
+- **error message**: `"beforeAll" hook timeout of 30000ms exceeded.`
+
+**3차 commit 정공법 (근본 fix)**:
+- `test.beforeAll` 의 timeout 30000ms → **180000ms (3분) 명시** (Playwright `{ timeout: 180_000 }` option)
+- loginAs 의 page.waitForURL timeout 30000ms → 60000ms (within beforeAll) — fixtures.ts 변경 OR loginAs 호출자 옵션
+- retry 3 회 backoff (5s+10s+15s=30s) 유지
+- 2 test case 의 PATCH 단계 유지 (beforeAll 에서 1 회 PATCH 통합)
+
+**근본 layer 종합 (4-step)**:
+- PR #548 (1차) → PR #574/575/576 (fix 1차 fail 2건) →
+- PR #579 1차 (구현 + 1차 fail 2건 fix 의 종합) →
+- PR #579 2차 (beforeAll fix, **timeout 부족으로 2차 fail**) →
+- PR #579 3차 (beforeAll timeout 명시, **3분 버퍼**)
+- **e2e spec 변경 0** (코드 변경 없이 spec 의 timeout option 만)
 
 **상세 변경**:
-- `frontend/tests/e2e/voc-auto-routing.spec.ts` (73 lines → 110 lines) — `test.beforeAll(async ({ browser }) => {...})` 신규 + retry 3 회 with backoff. 2 test case 의 PATCH 단계 제거.
-- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 append.
+- `frontend/tests/e2e/voc-auto-routing.spec.ts` (110 lines → 112 lines) — `test.beforeAll(async () => {...}, { timeout: 180_000 })` option 추가
+- e2e spec 의 PATCH retry 3 회 backoff 정공법은 유지
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 append (정공법 + 4-step 종합 정합)
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/work_backlog.md` — T-7c row 추가
 
-**검증 (PR #579 2차 commit, 머지 직전)**:
+**검증 (PR #579 3차 commit, 머지 직전)**:
 - [ ] `git diff --stat` = 1 file 변경 (e2e spec)
 - [ ] `git log -1 --format='%an %ae'` = 본 세션 author
-- [ ] CI e2e shard 3/3 PASS (Keycloak race 회피)
+- [ ] CI e2e shard 3/3 PASS (beforeAll timeout 180s 명시로 Keycloak race 회피)

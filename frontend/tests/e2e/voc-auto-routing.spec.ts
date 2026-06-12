@@ -8,22 +8,29 @@ const SEED_PLATFORM_ID = "e8a9bc11-a89c-4cb1-8071-8890ab2345ef";
 test.describe("N-13 — Voc auto-routing (TC-INBOUND-SRC-01)", () => {
   // PATCH inbound_source 를 beforeAll hook 으로 이동 (Keycloak startup race 회피 정공법).
   //
-  // PR #579 (1차 commit) 의 E2E shard 3/3 fail 2건 정공법:
+  // PR #579 (1차/2차/3차 commit) 의 E2E shard 3/3 fail 정공법 + 근본 layer 분석:
   // - shard 3/3 의 Keycloak container 가 initial start-up race 로 늦게 ready
-  //   (GitHub Actions runner 의 transient network issue, curl: (56) Recv failure 9 회)
-  // - shard 1/2 에서는 beforeEach 의 loginAs 후 즉시 PATCH 가 PASS
-  // - shard 3/3 에서는 loginAs 가 systemAdmin token 받기 전에 backend 401 → patchResp 4xx
+  //   (GitHub Actions runner 의 transient network issue, curl: (56) Recv failure 8-12 회)
+  // - 1차 commit (9426154): beforeEach 의 loginAs 후 즉시 PATCH → 4xx
+  //   → fix: PATCH 를 beforeAll 로 이동 + retry 3 회
+  // - 2차 commit (5b031c3): beforeAll 의 default timeout 30000ms 가 부족
+  //   → fail: "beforeAll hook timeout of 30000ms exceeded"
+  // - 3차 rerun: 같은 fail (3회 연속 shard 3/3 fail 의 chronic flake)
+  // - **근본 layer**: Playwright 의 beforeAll hook default timeout 30000ms 가
+  //   loginAs 1회 (page.waitForURL timeout 30000ms) + retry 3회 backoff (5s+10s+15s=30s) 합쳐서
+  //   60s 가 필요. **beforeAll timeout 30s default → 180s 명시** 가 fix.
   //
-  // 정공법:
-  // - beforeAll 에서 1회만 PATCH (Keycloak ready 보장)
-  // - retry 3회 with backoff (5s + 10s + 15s)
+  // 정공법 (3차 commit):
+  // - beforeAll timeout 30000ms → 180000ms 명시
+  // - beforeAll 에서 1회만 PATCH (Keycloak ready 보장) + retry 3 회 with backoff (5s + 10s + 15s)
+  // - loginAs 의 page.waitForURL timeout 30000ms → 60000ms (within beforeAll)
   // - 2 test case 의 PATCH 단계 제거 (정합 검증만)
   test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();
     const apiBasePath = appPath("/").replace(/\/$/, "") || "";
 
-    // loginAs 로 systemAdmin token 획득 (cookie + actor set).
+    // loginAs 로 systemAdmin token 획득 (cookie + actor set). internal timeout 60s.
     await loginAs(page, SEEDED.systemAdmin);
 
     // PATCH inbound_source on seed platform (retry 3 회 with backoff).
@@ -56,7 +63,7 @@ test.describe("N-13 — Voc auto-routing (TC-INBOUND-SRC-01)", () => {
     throw new Error(
       `beforeAll PATCH inbound_source failed after ${delays.length} attempts (Keycloak startup race). last error: ${lastErr?.message ?? "unknown"}`
     );
-  });
+  }, { timeout: 180_000 }); // beforeAll hook timeout: 30s default → 180s 명시 (loginAs 30s + retry 30s + buffer 120s)
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
