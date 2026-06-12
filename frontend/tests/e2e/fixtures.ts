@@ -87,7 +87,7 @@ function isAppLoginURL(rawURL: string): boolean {
 
 type WaitForSignInFormOptions = {
   restartOIDCOnAppLogin?: boolean;
-  /** Deadline in milliseconds. Default = 30_000 (CI race 환경에서 intermittent 30s 도 fail 가능 → 45_000 권장). */
+  /** Deadline in milliseconds. Default = 60_000 (CI race 환경에서 intermittent 30s 도 fail 가능 — PR #579 6-step 정공법). */
   timeoutMs?: number;
 };
 
@@ -117,7 +117,7 @@ async function restartOIDCFromLoginPage(page: Page): Promise<"clicked" | "reload
 }
 
 export async function waitForSignInForm(page: Page, options: WaitForSignInFormOptions = {}): Promise<void> {
-  const deadline = Date.now() + (options.timeoutMs ?? (process.env.CI ? 45_000 : 30_000));
+  const deadline = Date.now() + (options.timeoutMs ?? (process.env.CI ? 60_000 : 45_000));
   let restartCount = 0;
   const maxRestarts = options.restartOIDCOnAppLogin ? 3 : 0;
   let stuckLoginLoops = 0;

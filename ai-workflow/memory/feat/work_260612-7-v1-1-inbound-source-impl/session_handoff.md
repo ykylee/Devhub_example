@@ -171,19 +171,35 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - **5차 fail log 분석**: loginAs 의 `page.waitForURL` 의 **internal timeout 30000ms** 가 먼저 fail. 30s 안에 Keycloak 도달 실패 → throw → beforeAll 자체도 30s 안에 종료. **beforeAll timeout 180s 명시 무의미** (loginAs 의 internal timeout 이 더 짧음).
 - 결과: 5회 연속 shard 3/3 fail (4차 commit 도 효과 없음)
 
-**5차 commit 정공법 (근본 fix, 옵션 L)**:
-- `frontend/tests/e2e/fixtures.ts::loginAs` 의 `page.waitForURL` timeout 30000ms → **60000ms** 명시 (1 line)
+**5차 commit 정공법 (시도, 효과 없음)**:
+- `frontend/tests/e2e/fixtures.ts::loginAs` 의 `page.waitForURL` timeout 30000ms → 60000ms (1 line)
 - `frontend/tests/e2e/voc-auto-routing.spec.ts::beforeAll` 의 retry 3 회 backoff (5s+10s+15s=30s) → retry 5 회 (5s+10s+15s+20s+25s=75s) 로 늘리기
-- beforeAll timeout 180_000ms (number, line 68) 유지 — loginAs 60s + retry 75s + buffer 45s = 180s 안
-- loginAs 의 internal timeout 60s 가 **beforeAll 의 30s default 보다 큼** → 30s 안에 종료 안 됨. **beforeAll timeout 180s 가 진짜 적용** 됨.
+- beforeAll timeout 180_000ms (number, line 68) 유지
+- **5차 fail log 분석**: `waitForSignInForm` (line 95) 의 `deadline = Date.now() + (options.timeoutMs ?? 30_000)` 의 **default 30_000** 가 Keycloak startup race 시 login form 자체를 못 잡음 → throw → beforeAll 30s 안에 종료
+- **`page.waitForURL` 의 60s 는 login form 이 떴을 때만 의미** — login form 이 안 뜨면 도달 불가
+- 6회 fail (5m32s / 8m30s / 6m12s / 6m28s / 6m54s / 7m5s) — **6회 연속 shard 3/3 fail**
 
-**근본 layer 종합 (6-step)**:
-- PR #548 (1차) → PR #574/575/576 (fix 1차 fail 2건) →
-- PR #579 1차 (구현 + 1차 fail 2건 fix 의 종합) →
-- PR #579 2차 (beforeAll fix, timeout 부족으로 2차 fail) →
-- PR #579 3차 (beforeAll timeout 명시, **시그너처 오류로 3차 fail**) →
-- PR #579 4차 (beforeAll timeout **number syntax** fix, **loginAs internal timeout 부족으로 5차 fail**) →
-- PR #579 5차 (loginAs timeout 60s + retry 5회 75s + beforeAll timeout 180s 정합, **6차 CI 시도**)
+**6차 commit 정공법 (진짜 근본 fix)**:
+- `frontend/tests/e2e/fixtures.ts::waitForSignInForm` 의 default timeout 30_000 → **60_000** (line 95, 1 line)
+- **이게 진짜 fix** — loginAs → waitForSignInForm(default 30s, login form 탐지) → submitSignInForm → page.waitForURL(default 30s, fix). login form 이 Keycloak startup race 로 30s 안에 안 뜨는 layer 회피.
+- loginAs 의 `page.waitForURL` 60s (5차 fix) + waitForSignInForm 의 default 60s (6차 fix) = **총 120s 의 Keycloak ready 대기**
+
+**근본 layer 종합 (7-step)**:
+- PR #548 (1차) → PR #574/575/576 (1차 fail 2건 fix) →
+- PR #579 1차 (구현 종합) → 2차 (beforeAll fix) →
+- 3차 (timeout object) → 4차 (timeout number) →
+- 5차 (loginAs internal timeout + retry) → 6차 (waitForSignInForm default timeout, **진짜 fix**)
+- **6회 연속 shard 3/3 fail 의 chronic flake 정공법** — fixtures.ts 의 default timeout 30s 가 진짜 원인
+
+**상세 변경 (6차 commit, 1 file)**:
+- `frontend/tests/e2e/fixtures.ts` (line 95) — `waitForSignInForm` default timeout 30_000 → 60_000 (1 line)
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 7-step 정합
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/work_backlog.md` — T-7f row 추가
+
+**검증 (PR #579 6차 commit, 머지 직전)**:
+- [ ] `git diff --stat` = 1 file 변경 (fixtures.ts, 1 line)
+- [ ] `git log -1 --format='%an %ae'` = 본 세션 author
+- [ ] CI e2e shard 3/3 PASS (waitForSignInForm default 60s + loginAs 60s + retry 5회 75s + beforeAll 180s 의 7-step 종합 정공법)
 
 **상세 변경 (5차 commit, 2 file)**:
 - `frontend/tests/e2e/fixtures.ts` (line 195) — `page.waitForURL` timeout 30_000 → 60_000 (1 line)
