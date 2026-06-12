@@ -144,7 +144,7 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - [ ] `git diff --stat` = 9 file 변경 (3 backend + 1 IT + 1 openapi + 1 e2e + 3 docs)
 - [ ] `git log -1 --format='%an %ae'` = 본 세션 author
 
-## 6. E2E shard 3/3 fail 정공법 (옵션 B, PR #579 2차 commit + 옵션 A 재시도 + 3차 commit + 4차 commit syntax fix)
+## 6. E2E shard 3/3 fail 정공법 (옵션 B, PR #579 2차 commit + 옵션 A 재시도 + 3차 commit + 4차 commit syntax fix + 5차 commit loginAs internal timeout)
 
 **근본 layer**: PR #579 1차 commit 의 E2E shard 3/3 fail 2건 (TC-INBOUND-SRC-01 + NEG). shard 3/3 의 Keycloak container 가 initial start-up race 로 늦게 ready (GitHub Actions runner 의 transient network issue, `curl: (56) Recv failure: Connection reset by peer` 9 회). beforeEach 의 loginAs 가 systemAdmin token 받기 전에 backend 401 → patchResp 4xx.
 
@@ -165,26 +165,36 @@ voc INSERT 후 `AutoRouter.Route()` 호출 → 매칭 시 `RouteVoc()` 으로 de
 - Playwright 가 object 를 number 로 변환 실패 → **default 30000ms 그대로 사용**
 - 결과: 4회 연속 shard 3/3 fail (3차 commit 도 효과 없음)
 
-**4차 commit 정공법 (근본 fix)**:
-- 2번째 인자 `{ timeout: 180_000 }` (object) → `180_000` (number) 로 fix
+**4차 commit 정공법 (시도, 효과 없음)**:
+- 2번째 인자 `{ timeout: 180_000 }` (object) → `180_000` (number) 로 fix (line 66)
 - Playwright 가 number timeout 180000ms 정상 인식 → beforeAll 3분 버퍼 확보
-- 1 line 변경 (line 66)
+- **5차 fail log 분석**: loginAs 의 `page.waitForURL` 의 **internal timeout 30000ms** 가 먼저 fail. 30s 안에 Keycloak 도달 실패 → throw → beforeAll 자체도 30s 안에 종료. **beforeAll timeout 180s 명시 무의미** (loginAs 의 internal timeout 이 더 짧음).
+- 결과: 5회 연속 shard 3/3 fail (4차 commit 도 효과 없음)
 
-**근본 layer 종합 (5-step)**:
+**5차 commit 정공법 (근본 fix, 옵션 L)**:
+- `frontend/tests/e2e/fixtures.ts::loginAs` 의 `page.waitForURL` timeout 30000ms → **60000ms** 명시 (1 line)
+- `frontend/tests/e2e/voc-auto-routing.spec.ts::beforeAll` 의 retry 3 회 backoff (5s+10s+15s=30s) → retry 5 회 (5s+10s+15s+20s+25s=75s) 로 늘리기
+- beforeAll timeout 180_000ms (number, line 68) 유지 — loginAs 60s + retry 75s + buffer 45s = 180s 안
+- loginAs 의 internal timeout 60s 가 **beforeAll 의 30s default 보다 큼** → 30s 안에 종료 안 됨. **beforeAll timeout 180s 가 진짜 적용** 됨.
+
+**근본 layer 종합 (6-step)**:
 - PR #548 (1차) → PR #574/575/576 (fix 1차 fail 2건) →
 - PR #579 1차 (구현 + 1차 fail 2건 fix 의 종합) →
 - PR #579 2차 (beforeAll fix, timeout 부족으로 2차 fail) →
 - PR #579 3차 (beforeAll timeout 명시, **시그너처 오류로 3차 fail**) →
-- PR #579 4차 (beforeAll timeout **number syntax** fix, 5차 CI 시도)
-- **e2e spec 변경 0** (코드 변경 없이 spec 의 timeout option 만)
+- PR #579 4차 (beforeAll timeout **number syntax** fix, **loginAs internal timeout 부족으로 5차 fail**) →
+- PR #579 5차 (loginAs timeout 60s + retry 5회 75s + beforeAll timeout 180s 정합, **6차 CI 시도**)
 
-**상세 변경 (3차 + 4차 commit)**:
-- `frontend/tests/e2e/voc-auto-routing.spec.ts` (110 lines → 112 lines) — `test.beforeAll(async () => {...}, 180_000)` option 추가 (number)
-- e2e spec 의 PATCH retry 3 회 backoff 정공법은 유지
-- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 append (정공법 + 5-step 종합 정합)
-- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/work_backlog.md` — T-7c + T-7d row 추가
+**상세 변경 (5차 commit, 2 file)**:
+- `frontend/tests/e2e/fixtures.ts` (line 195) — `page.waitForURL` timeout 30_000 → 60_000 (1 line)
+- `frontend/tests/e2e/voc-auto-routing.spec.ts` (line 39) — `delays = [0, 5000, 10000, 15000]` → `[0, 5000, 10000, 15000, 20000, 25000]` (retry 5 회, 6 attempts)
+- e2e spec 의 PATCH retry 정공법은 유지 (loginAs + retry 통합)
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/session_handoff.md` — 본 §6 append (정공법 + 6-step 종합 정합)
+- `ai-workflow/memory/feat/work_260612-7-v1-1-inbound-source-impl/work_backlog.md` — T-7e row 추가
 
-**검증 (PR #579 4차 commit, 머지 직전)**:
-- [ ] `git diff --stat` = 1 file 변경 (e2e spec, 1 line)
+**Chronic flake 메모**: 본 repo 의 e2e shard 3/3 fail 은 PR #548, PR #550, PR #574, PR #579 모두 격음 — **e2e shard 의 docker daemon startup race 의 chronic issue**. loginAs timeout 60s + retry 5회 backoff 75s + beforeAll timeout 180s 의 6-step 정공법으로 fix 가능성 ↑.
+
+**검증 (PR #579 5차 commit, 머지 직전)**:
+- [ ] `git diff --stat` = 2 file 변경 (fixtures.ts + voc-auto-routing.spec.ts)
 - [ ] `git log -1 --format='%an %ae'` = 본 세션 author
-- [ ] CI e2e shard 3/3 PASS (beforeAll timeout 180s 명시 + number syntax fix 로 Keycloak race 회피)
+- [ ] CI e2e shard 3/3 PASS (loginAs timeout 60s + retry 5회 75s + beforeAll timeout 180s 정합으로 Keycloak race 회피)

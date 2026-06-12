@@ -33,8 +33,10 @@ test.describe("N-13 — Voc auto-routing (TC-INBOUND-SRC-01)", () => {
     // loginAs 로 systemAdmin token 획득 (cookie + actor set). internal timeout 60s.
     await loginAs(page, SEEDED.systemAdmin);
 
-    // PATCH inbound_source on seed platform (retry 3 회 with backoff).
-    const delays = [0, 5000, 10000, 15000]; // 0, 5s, 10s, 15s (4 attempts max)
+    // PATCH inbound_source on seed platform (retry 5 회 with backoff).
+    // 6-step 정공법 (5회 fail 분석): retry 3 회 (30s backoff) 가 부족.
+    // retry 5 회 (75s backoff) = 5m+ Keycloak ready buffer.
+    const delays = [0, 5000, 10000, 15000, 20000, 25000]; // 0, 5s, 10s, 15s, 20s, 25s (6 attempts max)
     let lastErr: Error | undefined;
     for (const delay of delays) {
       if (delay > 0) {
@@ -63,7 +65,7 @@ test.describe("N-13 — Voc auto-routing (TC-INBOUND-SRC-01)", () => {
     throw new Error(
       `beforeAll PATCH inbound_source failed after ${delays.length} attempts (Keycloak startup race). last error: ${lastErr?.message ?? "unknown"}`
     );
-  }, { timeout: 180_000 }); // beforeAll hook timeout: 30s default → 180s 명시 (loginAs 30s + retry 30s + buffer 120s)
+  }, 180_000); // beforeAll hook timeout: 30s default → 180s 명시 (loginAs 30s + retry 30s + buffer 120s). Playwright 시그너처: (fn, timeout?: number) — object 아닌 number.
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, SEEDED.systemAdmin);
