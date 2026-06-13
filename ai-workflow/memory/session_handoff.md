@@ -999,3 +999,41 @@ PR #579 의 7 commit (= 본 PR 의 8-step) = e2e shard 3/3 fail 의 chronic flak
 1. **scope 분리 정공법 (cross-project lesson §1)**: X-1 sprint = 1차 PR #583 (backend + openapi) + 2차 PR #584 (frontend + e2e + docs) 의 2-step 분리. backend half 와 frontend half 가 다른 PR 인 이유: backend 검증 (go test + openapi lint) 와 frontend 검증 (Vitest + Playwright e2e) 가 다른 CI 잡에서 실행되므로 PR 단위로 분리하는 게 자연스러움. scope 폭주 방지 + PR review 부담 분산.
 2. **mirror list §1.7.2 frontend e2e+helper scope 갱신 정공법**: X-1 frontend widget 4 + admin-x1 service + admin-x1 e2e = 6 file 추가. mirror-list.md 의 source list 동적 = wiki-sync-devhub.sh 가 자동 반영. **위반 시점 drift**: mirror byte-identical 검증 script 의 Diff != 0 미충족 시 즉시 fix.
 3. **traceability partial 정합 정공법 (cross-project lesson)**: 본 2차 PR 은 §6 row + §4 ADR row + 헤더 메타 만 갱신. §2.4/§2.5/§3.1 의 IMPL/UT 컬럼 일괄 보강 = 별도 housekeeping sprint. **이유**: 한 PR 에서 모든 위치 동시 갱신 시 scope 폭주 → review 부담 + conflict 가능성 ↑. **원칙**: PR scope = 한 가지 정합 (e.g. X-1 1차 PR 의 IMPL 정합) + housekeeping 별도.
+
+## 29. 본 세션 후속 (2026-06-13, X-1 후속 housekeeping PR #585 MERGED)
+
+### housekeeping 정공법 (sprint `chore/work_260614-a-housekeeping`)
+
+**2 file, 197 line, docs only, 코드 변경 0**. main HEAD `32ffe0e` (squash).
+
+#### A-1: §3.1 integration-registry row cross-ref (docs/traceability/report.md)
+
+X-1 1차 PR #583 + 2차 PR #584 의 17 row 신규 ID 의 partial 정합 해소. §3.1 integration-registry row (line 414, 3228 chars) 의 IMPL/UT/TC 컬럼 끝에 X-1 cross-ref 1 line 추가 (+952 chars, 14 ID). §6 row 1건 + 헤더 메타 갱신.
+
+#### A-2: docs/openapi.yaml X-1 block sync
+
+CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`. docs (line 9456) ↔ swaggerui (line 9428) 의 drift 192 line (X-1 의 3 path + 2 schema 가 docs 에 미반영) 정합.
+
+- X-1 paths block 121 line (swaggerui line 5915-6035) → docs line 6024 직전 삽입
+- X-1 schemas block 69 line (swaggerui line 8018-8086) → docs line 8010 직전 삽입
+- 결과: docs/openapi.yaml 9456 → 9648 line (+192)
+- drift 0 (swaggerui 와 byte-identical 정합, paths 83/83, schemas 91/90 — DevRequestVoc 1 차이 = 별도 PR)
+
+### 검증
+
+- `bash scripts/check-openapi-yaml-lint.sh` PASS (yaml valid + semver + paths>=84 + cross-link ok)
+- `bash scripts/check-tier-separation.sh` PASS (사내 한정 패턴 매칭 0)
+- 위키 162 page matched, 0 stale
+- mirror manifest = HEAD
+
+### 잔여 (별도 follow-up, 본 sprint scope 외)
+
+- §2.4/§2.5 의 IMPL/UT list 일괄 보강 (X-1 frontend-2 + UT-1 + TC-3 + ADR-1 row 추가) = 별도 housekeeping PR
+- ADR-0025/0026 §4 row 누락 정공법 = 별도 housekeeping PR
+- DevRequestVoc schema 의 swaggerui sync = 별도 PR
+- Provider Health Endpoint (ADR-0032 §3, API-107) = 별도 follow-up sprint (post-MVP)
+
+### CRITICAL 레슨런
+
+1. **drift sync 정공법 (cross-project lesson)**: docs/openapi.yaml ↔ swaggerui/asset 의 X-1 block drift 192 line = 단순 paste byte-identical 정합. swaggerui/asset 가 CI lint canonical 이므로, docs 는 항상 swaggerui 의 subset 이어야 함. **위반 시점 drift**: paths/schemas count 차이 시 즉시 sync.
+2. **partial 정합 해소 정공법 (cross-project lesson)**: §6 row + §4 ADR row + 헤더 메타 의 정공법 만으로는 ID 가 1차/2차 PR 의 산출물과 cross-ref 되지 않음 — §3 도메인 row 의 IMPL/UT/TC 컬럼에 cross-ref 필수. **이유**: 매트릭스 row 가 ID 의 SSOT.
