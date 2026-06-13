@@ -670,3 +670,119 @@ WHERE job_id = $2::uuid`
 	}
 	return nil
 }
+
+// IntegrationSyncJobListOptions parameterizes ListIntegrationSyncJobs
+// (X-1 System Admin 운영 대시보드, RM-M4-07).
+// 빈 status 면 모든 status, 빈 status 외는 4개 status 중 하나.
+type IntegrationSyncJobListOptions struct {
+	Status domain.IntegrationSyncJobStatus // 빈 문자열이면 모든 status
+	Limit  int
+	Offset int
+}
+
+func scanIntegrationSyncJob(row pgx.Row) (domain.IntegrationSyncJob, error) {
+	var j domain.IntegrationSyncJob
+	var status string
+	if err := row.Scan(
+		&j.JobID,
+		&j.ProviderID,
+		&j.RequestedBy,
+		&status,
+		&j.CreatedAt,
+	); err != nil {
+		return domain.IntegrationSyncJob{}, err
+	}
+	j.Status = domain.IntegrationSyncJobStatus(status)
+	return j, nil
+}
+
+const integrationSyncJobSelectColumns = `
+job_id::text,
+provider_id::text,
+COALESCE(requested_by, ''),
+status,
+created_at`
+
+// ListIntegrationSyncJobs 는 X-1 System Admin 운영 대시보드의 sync job 큐/상태
+// 조회 endpoint (`GET /api/v0-1/admin/integrations/sync-jobs`) 의 repository
+// 백엔드. status filter + limit/offset + order by created_at desc.
+func (r *IntegrationRepository) ListIntegrationSyncJobs(ctx context.Context, opts IntegrationSyncJobListOptions) ([]domain.IntegrationSyncJob, int, error) {
+	limit := opts.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	offset := opts.Offset
+	if offset < 0 {
+		offset = 0
+	}
+	const countQuery = `
+SELECT COUNT(*)
+FROM integration_sync_jobs
+WHERE ($1 = '' OR status = $1)`
+	var total int
+	if err := r.store.Pool().QueryRow(ctx, countQuery, string(opts.Status)).
+		Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count integration sync jobs: %w", err)
+	}
+	const query = `
+SELECT` + integrationSyncJobSelectColumns + `
+FROM integration_sync_jobs
+WHERE ($3 = '' OR status = $3)
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2`
+	rows, err := r.store.Pool().Query(ctx, query,
+		limit, offset, string(opts.Status))
+	if err != nil {
+		return nil, 0, fmt.Errorf("list integration sync jobs: %w", err)
+	}
+	defer rows.Close()
+
+	out := make([]domain.IntegrationSyncJob, 0, limit)
+	for rows.Next() {
+		j, err := scanIntegrationSyncJob(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scan integration sync job: %w", err)
+		}
+		out = append(out, j)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate integration sync jobs: %w", err)
+	}
+	return out, total, nil
+}
+
+// GetIntegrationSyncJob 는 X-1 endpoint `GET /api/v0-1/admin/integrations/sync-jobs/:jobID`
+// 의 repository 백엔드. not found 시 store.ErrNotFound.
+func (r *IntegrationRepository) GetIntegrationSyncJob(ctx context.Context, jobID string) (domain.IntegrationSyncJob, error) {
+	const query = `
+SELECT` + integrationSyncJobSelectColumns + `
+FROM integration_sync_jobs
+WHERE job_id = $1::uuid`
+	job, err := scanIntegrationSyncJob(r.store.Pool().QueryRow(ctx, query, jobID))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.IntegrationSyncJob{}, store.ErrNotFound
+		}
+		return domain.IntegrationSyncJob{}, fmt.Errorf("get integration sync job: %w", err)
+	}
+	return job, nil
+}
+
+// GetIntegrationSyncJobStatusCounts 는 X-1 dashboard summary endpoint
+// `GET /api/v0-1/admin/integrations/summary` 의 sync job status count 의
+// repository 백엔드. 4 status 별 count.
+func (r *IntegrationRepository) GetIntegrationSyncJobStatusCounts(ctx context.Context) (domain.IntegrationSyncJobStatusCounts, error) {
+	const query = `
+SELECT
+	COALESCE(SUM(CASE WHEN status = 'queued' THEN 1 ELSE 0 END), 0)::int,
+	COALESCE(SUM(CASE WHEN status = 'running' THEN 1 ELSE 0 END), 0)::int,
+	COALESCE(SUM(CASE WHEN status = 'succeeded' THEN 1 ELSE 0 END), 0)::int,
+	COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0)::int
+FROM integration_sync_jobs`
+	var counts domain.IntegrationSyncJobStatusCounts
+	if err := r.store.Pool().QueryRow(ctx, query).
+		Scan(&counts.Queued, &counts.Running, &counts.Succeeded, &counts.Failed); err != nil {
+		return domain.IntegrationSyncJobStatusCounts{}, fmt.Errorf("get integration sync job status counts: %w", err)
+	}
+	return counts, nil
+}

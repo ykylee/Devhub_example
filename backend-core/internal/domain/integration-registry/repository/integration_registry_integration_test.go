@@ -231,3 +231,120 @@ func TestIntegration_ExternalTaskStore_CRUD(t *testing.T) {
 		t.Errorf("expected ErrNotFound for soft deleting ghost, got %v", err)
 	}
 }
+
+// TestIntegration_IntegrationSyncJob_CRUD — X-1 System Admin 운영 대시보드
+// (RM-M4-07, sprint `feat/work_260614-x1-system-admin-dashboard`) 의
+// IntegrationRepository 신규 method 3종 (List/Get/StatusCounts) 의
+// backend-integration test. DEVHUB_TEST_DB_URL 미설정 시 t.Skip.
+func TestIntegration_IntegrationSyncJob_CRUD(t *testing.T) {
+	pgStore, pool, ctx := newIntegrationTestStore(t)
+	repo := intrep.NewIntegrationRepository(pgStore)
+
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	providerKey := "gitea-syncjob-" + suffix
+
+	// Cleanup seed
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM integration_providers WHERE provider_key = $1`, providerKey)
+	}()
+
+	// 1. Seed integration_provider
+	var providerID string
+	err := pool.QueryRow(ctx, `
+		INSERT INTO integration_providers (provider_key, provider_type, display_name, enabled, auth_mode, capabilities, credentials_ref)
+		VALUES ($1, 'scm', 'SCM Gitea SyncJob', true, 'token', '["repo:sync"]', '{}')
+		RETURNING provider_id::text
+	`, providerKey).Scan(&providerID)
+	if err != nil {
+		t.Fatalf("seed integration provider: %v", err)
+	}
+
+	// 2. Seed sync jobs (3 status)
+	syncJobKeys := []string{}
+	for i, status := range []string{"queued", "running", "failed"} {
+		var jobID string
+		err := pool.QueryRow(ctx, `
+			INSERT INTO integration_sync_jobs (provider_id, status, requested_by)
+			VALUES ($1::uuid, $2, 'admin-x1-test')
+			RETURNING job_id::text
+		`, providerID, status).Scan(&jobID)
+		if err != nil {
+			t.Fatalf("seed sync job %d: %v", i, err)
+		}
+		syncJobKeys = append(syncJobKeys, jobID)
+	}
+
+	// 3. ListIntegrationSyncJobs (no filter)
+	jobs, total, err := repo.ListIntegrationSyncJobs(ctx, intrep.IntegrationSyncJobListOptions{
+		Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListIntegrationSyncJobs: %v", err)
+	}
+	if total < 3 {
+		t.Errorf("expected at least 3 sync jobs, got %d", total)
+	}
+	if len(jobs) == 0 {
+		t.Fatalf("expected non-empty jobs list")
+	}
+	// verify order by created_at desc (newest first)
+	if !jobs[0].CreatedAt.After(jobs[len(jobs)-1].CreatedAt) && !jobs[0].CreatedAt.Equal(jobs[len(jobs)-1].CreatedAt) {
+		t.Errorf("expected jobs ordered by created_at desc, got %v then %v", jobs[0].CreatedAt, jobs[len(jobs)-1].CreatedAt)
+	}
+
+	// 4. ListIntegrationSyncJobs (status=queued)
+	queuedJobs, queuedTotal, err := repo.ListIntegrationSyncJobs(ctx, intrep.IntegrationSyncJobListOptions{
+		Status: domain.IntegrationSyncJobStatusQueued,
+		Limit:  10,
+	})
+	if err != nil {
+		t.Fatalf("ListIntegrationSyncJobs (queued): %v", err)
+	}
+	if queuedTotal < 1 {
+		t.Errorf("expected at least 1 queued job, got %d", queuedTotal)
+	}
+	for _, j := range queuedJobs {
+		if j.Status != domain.IntegrationSyncJobStatusQueued {
+			t.Errorf("expected status=queued, got %s", j.Status)
+		}
+	}
+
+	// 5. GetIntegrationSyncJob (existing)
+	job, err := repo.GetIntegrationSyncJob(ctx, syncJobKeys[0])
+	if err != nil {
+		t.Fatalf("GetIntegrationSyncJob: %v", err)
+	}
+	if job.JobID != syncJobKeys[0] {
+		t.Errorf("expected jobID %s, got %s", syncJobKeys[0], job.JobID)
+	}
+	if job.RequestedBy != "admin-x1-test" {
+		t.Errorf("expected requested_by admin-x1-test, got %s", job.RequestedBy)
+	}
+
+	// 6. GetIntegrationSyncJob (not found)
+	ghostUUID := "00000000-0000-0000-0000-000000000000"
+	_, err = repo.GetIntegrationSyncJob(ctx, ghostUUID)
+	if !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for ghost jobID, got %v", err)
+	}
+
+	// 7. GetIntegrationSyncJobStatusCounts
+	counts, err := repo.GetIntegrationSyncJobStatusCounts(ctx)
+	if err != nil {
+		t.Fatalf("GetIntegrationSyncJobStatusCounts: %v", err)
+	}
+	if counts.Queued < 1 {
+		t.Errorf("expected at least 1 queued, got %d", counts.Queued)
+	}
+	if counts.Running < 1 {
+		t.Errorf("expected at least 1 running, got %d", counts.Running)
+	}
+	if counts.Failed < 1 {
+		t.Errorf("expected at least 1 failed, got %d", counts.Failed)
+	}
+
+	// 8. Cleanup sync jobs
+	for _, jobID := range syncJobKeys {
+		_, _ = pool.Exec(ctx, `DELETE FROM integration_sync_jobs WHERE job_id = $1::uuid`, jobID)
+	}
+}

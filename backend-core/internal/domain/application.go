@@ -346,6 +346,36 @@ type IntegrationBinding struct {
 	UpdatedAt   time.Time
 }
 
+// IntegrationSyncJobStatus is the lifecycle status of an IntegrationSyncJob.
+type IntegrationSyncJobStatus string
+
+const (
+	IntegrationSyncJobStatusQueued    IntegrationSyncJobStatus = "queued"
+	IntegrationSyncJobStatusRunning   IntegrationSyncJobStatus = "running"
+	IntegrationSyncJobStatusSucceeded IntegrationSyncJobStatus = "succeeded"
+	IntegrationSyncJobStatusFailed    IntegrationSyncJobStatus = "failed"
+)
+
+// IntegrationSyncJob is one row in integration_sync_jobs (X-1 System Admin
+// 운영 대시보드, RM-M4-07, sprint `feat/work_260614-x1-system-admin-dashboard`).
+// Status flow: queued → running → (succeeded | failed).
+type IntegrationSyncJob struct {
+	JobID       string
+	ProviderID  string
+	RequestedBy string
+	Status      IntegrationSyncJobStatus
+	CreatedAt   time.Time
+}
+
+// IntegrationSyncJobStatusCounts is the dashboard summary view of
+// integration_sync_jobs (X-1, RM-M4-07). One row per status.
+type IntegrationSyncJobStatusCounts struct {
+	Queued    int `json:"queued"`
+	Running   int `json:"running"`
+	Succeeded int `json:"succeeded"`
+	Failed    int `json:"failed"`
+}
+
 // SCMProvider is one entry of the SCM adapter catalog (concept §12.2 + api §13.1.1).
 type SCMProvider struct {
 	ProviderKey    string
