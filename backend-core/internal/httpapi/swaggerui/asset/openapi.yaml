@@ -8085,6 +8085,88 @@ components:
 
     # -----------------------------------------------------------------------
     # IntegrationTestResult
+
+    # -----------------------------------------------------------------------
+    # WebhookEvent (X-2 inbound webhook multi-provider, RM-M4-07 §3.5 X-2)
+    # -----------------------------------------------------------------------
+    # WebhookAdapter interface (Gitea/Jira/Generic) 의 normalized event schema.
+    # provider-agnostic 한 공통 struct — frontend / audit / event store 가 본 schema
+    # 만 의존하면 provider 무관하게 동작.
+    WebhookEvent:
+      type: object
+      required:
+        - provider_type
+        - provider_key
+        - event_type
+        - external_ref
+        - payload_hash
+        - raw_payload
+      properties:
+        provider_type:
+          type: string
+          enum: ["scm", "alm", "ci_cd", "doc", "infra", "task_tracker", "other"]
+          description: "Integration provider_type (e.g., 'scm' GiteaWebhookAdapter, 'alm' JiraWebhookAdapter, 'other' GenericWebhookAdapter)"
+          example: "scm"
+        provider_key:
+          type: string
+          description: "Integration provider_key (e.g., 'gitea-main', 'jira-prod', 'custom-ci')"
+          example: "gitea-main"
+        event_type:
+          type: string
+          description: "Provider-native event type (e.g., 'pull_request', 'jira:issue_created', 'deployment_completed')"
+          example: "pull_request"
+        delivery_id:
+          type: string
+          description: "Provider-native delivery ID (dedupe key 의 SSOT)"
+          example: "delivery-1"
+        external_ref:
+          type: string
+          description: "Provider-native external reference (AutoRoute 의 pattern matcher 와 1:1 매핑: 'GITEA-<number>' for scm, 'DEV-<number>' for alm, custom for other)"
+          example: "GITEA-123"
+        actor_login:
+          type: string
+          description: "Webhook 발신자 login (e.g., 'alice@example.com', 'bob')"
+          example: "alice"
+        payload_hash:
+          type: string
+          description: "sha256(payload) hex (64 hex char)"
+          example: "9b74c9897bac770ffc029ab1a1f8f0b1c1d5b8d2c8e3a4b5c6d7e8f9a0b1c2d3"
+        raw_payload:
+          type: array
+          items:
+            type: integer
+            format: int32
+          description: "원본 payload (audit / replay) — base64 또는 byte array"
+          example: [123, 34, 97, 99, 116, 105, 111, 110, 34, 58, 34, 111, 112, 101, 110, 101, 100, 34]
+
+    # -----------------------------------------------------------------------
+    # WebhookAdapterType (X-2 dispatcher registry)
+    # -----------------------------------------------------------------------
+    WebhookAdapterType:
+      type: string
+      enum: ["scm", "alm", "other"]
+      description: "WebhookAdapter 가 handling 하는 provider_type — IngestIntegrationProviderWebhook handler 의 dispatcher registry"
+      example: "scm"
+
+    # -----------------------------------------------------------------------
+    # InboundSourceRoutingConfig (X-2 1차 PR #586 의 JSONB schema 정공법)
+    # -----------------------------------------------------------------------
+    InboundSourceRoutingConfig:
+      type: object
+      description: "Platform.inbound_source_config (JSONB-serialized text) 의 typed schema. X-2 1차 PR #586 의 auto_route.go 의 InboundSourceRoutingConfig struct 와 1:1 매핑."
+      properties:
+        custom_external_ref_pattern:
+          type: string
+          description: "Custom external_ref pattern (Go regexp syntax). generic provider 의 'other' 의 경우 필수, Gitea/Jira/GitHub/GitLab provider-specific pattern 미설정 시 fallback."
+          example: "^CUSTOM-\\d+$"
+        custom_requester_pattern:
+          type: string
+          description: "Custom requester pattern (Go regexp syntax). InboundSourceRoutingConfig 의 custom field."
+          example: "^eng-team-\\d+$"
+        custom_department_pattern:
+          type: string
+          description: "Custom department pattern (Go regexp syntax). InboundSourceRoutingConfig 의 custom field."
+          example: "^dev-\\w+$"
     # -----------------------------------------------------------------------
     IntegrationTestResult:
       type: object
