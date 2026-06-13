@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldAlert, ArrowRight, Settings } from "lucide-react";
+import { ShieldAlert, ArrowRight, Settings, Webhook } from "lucide-react";
 import {
   SyncJobQueueWidget,
   SyncJobStatusWidget,
@@ -60,6 +60,12 @@ export default function AdminDashboard() {
             className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-lg flex items-center gap-2"
           >
             <Settings className="w-4 h-4 text-primary-foreground" /> Settings
+          </Link>
+          <Link
+            href="/admin/inbound-source"
+            className="glass border-border text-foreground dark:text-primary-foreground px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-muted/40 transition-all flex items-center gap-2"
+          >
+            <Webhook className="w-4 h-4 text-primary" /> Inbound Source
           </Link>
         </div>
       </div>

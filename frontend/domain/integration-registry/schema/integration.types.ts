@@ -173,3 +173,77 @@ export interface ListIntegrationSyncJobsResponse {
 export interface IntegrationSyncJobStatusSummaryResponse {
   sync_job_status_counts: IntegrationSyncJobStatusCounts;
 }
+
+// ============================================================================
+// X-2 inbound webhook multi-provider 정공법 (release_v0-1_roadmap.md §3.5 X-2,
+// sprint `feat/work_260614-x2-frontend-e2e`).
+// ============================================================================
+
+/** IntegrationProviderType — integration-registry 의 6종 provider type. */
+export type IntegrationProviderType =
+  | "alm"
+  | "scm"
+  | "ci_cd"
+  | "doc"
+  | "infra"
+  | "task_tracker"
+  | "other";
+
+/** InboundSourceType — N-13 backend foundation (migration 000007). */
+export type InboundSourceType = "gitea" | "jira" | "other" | "";
+
+/** WebhookProviderHint — X-2 multi-provider webhook 의 provider 식별 hint. */
+export type WebhookProviderHint =
+  | "gitea"
+  | "jira"
+  | "github"
+  | "gitlab"
+  | "other_custom"
+  | "custom"
+  | "";
+
+/** AutoRouteReason — X-2 1차 PR #586 의 auto_route.go 의 정공법. */
+export type AutoRouteReason =
+  | "external_ref_pattern"
+  | "requester_email"
+  | "req_department"
+  | "no_match";
+
+/** AutoRouteDecision — X-2 1차 PR 의 backend Go struct 와 1:1 매핑. */
+export interface AutoRouteDecision {
+  matched: boolean;
+  platform_id: string;
+  dev_request_id: string;
+  reason: AutoRouteReason;
+  provider_hint: WebhookProviderHint;
+}
+
+/** InboundSourceRoutingConfig — backend 1차 PR #586 의 Go struct 와 1:1 매핑.
+ *  모든 field optional — 미설정 시 backend 가 provider-default pattern 사용. */
+export interface InboundSourceRoutingConfig {
+  custom_external_ref_pattern?: string;
+  custom_requester_pattern?: string;
+  custom_department_pattern?: string;
+}
+
+/** WebhookEvent — X-2 2~3차 PR 의 WebhookAdapter 가 추출하는 normalized event. */
+export interface WebhookEvent {
+  provider_type: IntegrationProviderType;
+  provider_key: string;
+  event_type: string;
+  delivery_id?: string;
+  external_ref: string;
+  actor_login?: string;
+  payload_hash: string;
+  raw_payload: number[]; // byte array (base64 또는 raw)
+}
+
+/** Platform inbound_source 통합 view — frontend 운영 UI 의 SSOT. */
+export interface PlatformInboundSourceView {
+  platform_id: string;
+  platform_key: string;
+  platform_name: string;
+  inbound_source_type: InboundSourceType;
+  inbound_source_config: InboundSourceRoutingConfig;
+  updated_at: string;
+}
