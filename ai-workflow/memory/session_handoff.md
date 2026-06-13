@@ -903,3 +903,49 @@ PR #579 의 7 commit (= 본 PR 의 8-step) = e2e shard 3/3 fail 의 chronic flak
 - 또는 v1.0 staging 1주 운영 (사용자 결정)
 - 또는 P0~P3 forward path 의 다른 sprint
 - 또는 Phase 3 의 trigger 조건 충족 (forward path, my_harness 측 worker 일임 결정 해제 후 본 저장소 측 추가)
+
+## 26. 본 세션 (2026-06-13, v0.1.2-alpha 준비 1차 PR #582 MERGED)
+
+### version downgrade 정공법 (v1 → v0.1)
+
+**v0.1.2-alpha 의 1차 PR** = version downgrade 정공법. 본 저장소 의 DevHub system version = v0.1.1-alpha (/VERSION) + forward-facing 18 file + 1 file name 변경.
+
+**scope** (24 file, 354/354 line):
+- `docs/planning/release_v1_roadmap.md` → `docs/planning/release_v0-1_roadmap.md` (file name 변경, 100% rename)
+- 17 forward-facing file 의 v1.0/v1.1 + M-v1.0/M-v1.1 reference → v0.1 정공법
+- 4 llm-wiki file 갱신
+- AGENTS.md 정합
+
+**정공법 원칙**:
+- **forward-facing docs** = v0.1 정공법 적용
+- **historical memory** (state.json, session_handoff.md, work_backlog.md) = historical record = 그대로 유지
+- **historical archive** (analysis/*, learning-session/*, presentations/*) = 그대로 유지
+- **VERSION file** = 이미 v0.1.1-alpha (정합)
+- **위키 mirror 1:1 byte-identical** (md5 5ee61d55...)
+
+**위키 정공법**:
+- `topics/v1-0-release-roadmap.md` → `topics/v0-1-release-roadmap.md` (file name 변경)
+- 2 sources/ file 의 wikilink `[[v1-0-release-roadmap]]` → `[[v0-1-release-roadmap]]`
+- index.md 갱신
+
+### PR #582 머지 결과
+
+- **squash `f1c0995` (2026-06-13)**
+- main HEAD f1c0995 (clean)
+- 위키 mirror: 925 file / 7.6M / commit f1c0995
+- 위키 162 page matched, 0 stale
+- 2 ADR updated (adr-0025 + adr-0031)
+- wiki-event-sync log 1 row
+
+### 2차 PR (X-1 System Admin 운영 대시보드) — 별도 follow-up
+
+- 본 1차 PR (version downgrade) = v0.1.2-alpha 의 prep
+- **2차 PR (X-1, RM-M4-07)** = 본 sprint 의 본 release scope (5~8 commit, FE+BE)
+- 별도 worktree + 별도 commit
+- v0.1.2-alpha 의 핵심 scope
+
+### CRITICAL 레슨런
+
+1. **scope 분리 정공법** (cross-project lesson §1): version downgrade 정공법 = 1차 PR (30+ file, 1:1 mirror 정공법), X-1 = 2차 PR (5~8 commit, FE+BE). bundle 가능 조건 미충족 → 별도 PR.
+2. **historical record vs forward-facing docs 분리**: state.json/session_handoff.md/work_backlog.md 의 historical v1 reference = 그대로 유지 (각 PR 의 당시 v1.0/v1.1 표기는 변경 불가). forward-facing docs (release_roadmap/ADR/setup/planning/validation) 만 v0.1 정공법.
+3. **mirror 1:1 byte-identical 정공법** (cross-project lesson §1): `docs/planning/release_v0-1_roadmap.md` 의 raw/ ↔ 위키 mirror md5 동일 (5ee61d55...). file name 변경 시 mirror script 의 source list 자동 갱신 (find glob) + lint-config + operation-sop 의 reference 자동 갱신.

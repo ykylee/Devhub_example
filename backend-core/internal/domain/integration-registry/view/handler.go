@@ -33,6 +33,9 @@ type IntegrationStore interface {
 	UpdateIntegrationProvider(ctx context.Context, p domain.IntegrationProvider) (domain.IntegrationProvider, error)
 	DeleteIntegrationProvider(ctx context.Context, id string) error
 	CreateIntegrationSyncJob(ctx context.Context, providerID string, triggerBy string) (string, error)
+	ListIntegrationSyncJobs(ctx context.Context, opts store.IntegrationSyncJobListOptions) ([]domain.IntegrationSyncJob, int, error)
+	GetIntegrationSyncJob(ctx context.Context, jobID string) (domain.IntegrationSyncJob, error)
+	GetIntegrationSyncJobStatusCounts(ctx context.Context) (domain.IntegrationSyncJobStatusCounts, error)
 	ListIntegrationBindings(ctx context.Context, opts store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
 	GetIntegrationBindingByID(ctx context.Context, id string) (domain.IntegrationBinding, error)
 	CreateIntegrationBinding(ctx context.Context, p domain.IntegrationBinding) (domain.IntegrationBinding, error)
