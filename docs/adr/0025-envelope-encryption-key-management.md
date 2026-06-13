@@ -5,7 +5,7 @@
 - **작성일**: 2026-05-29
 - **수정일**: 2026-05-29
 - **결정 근거 sprint**: `gemini/work_260529-a-envelope-encryption`
-- **관련 문서**: [`backend-core/internal/domain/integration-registry/repository/integration_registry.go`](../../backend-core/internal/domain/integration-registry/repository/integration_registry.go), [v1.0 릴리즈 로드맵 §3.5 신규 도출 백로그](../planning/release_v1_roadmap.md), [Session Handoff EOD](../../ai-workflow/memory/session_handoff.md).
+- **관련 문서**: [`backend-core/internal/domain/integration-registry/repository/integration_registry.go`](../../backend-core/internal/domain/integration-registry/repository/integration_registry.go), [v0.1.0 릴리즈 로드맵 §3.5 신규 도출 백로그](../planning/release_v0-1_roadmap.md), [Session Handoff EOD](../../ai-workflow/memory/session_handoff.md).
 
 ---
 
@@ -31,9 +31,9 @@
 * **직렬화 규격 (Envelope Format)**: 
   데이터베이스 TEXT 컬럼에 기록되는 최종 암호문은 레거시 평문과 명확히 식별되고 자체 봉투 데이터를 포함하도록 아래의 직렬화 포맷을 강제합니다:
   ```
-  $env$v1$<wrapped_dek_b64>$<nonce_b64>$<ciphertext_b64>
+  $env$v0.1$<wrapped_dek_b64>$<nonce_b64>$<ciphertext_b64>
   ```
-  * `$env$v1$`: 봉투 암호문임을 나타내는 식별용 접두사.
+  * `$env$v0.1$`: 봉투 암호문임을 나타내는 식별용 접두사.
   * `<wrapped_dek_b64>`: 마스터 KEK로 AES-GCM 암호화 및 Nonce가 패키징된 데이터 암호화 키의 Base64 스트링.
   * `<nonce_b64>`: 암호화에 사용된 고유 12바이트 Nonce의 Base64 스트링.
   * `<ciphertext_b64>`: 데이터 본문의 AES-GCM 암호문 Base64 스트링.
@@ -46,7 +46,7 @@
 
 ### 3.3 레거시 호환 및 점진적 자동 격상 (Auto-Upgrade)
 기존 DB에 존재하던 평문 비밀들과의 매끄러운 징검다리를 확립하기 위해 다음 자동 대응 기어를 탑재합니다:
-* **Scan Fallback**: 데이터베이스 조회(`Scan`) 시, 가져온 컬럼의 값이 `$env$v1$` 접두사로 시작하지 않는 Plaintext인 경우, 복호화 절차를 투명하게 건너뛰고 평문 문자열 그대로 복원합니다.
+* **Scan Fallback**: 데이터베이스 조회(`Scan`) 시, 가져온 컬럼의 값이 `$env$v0.1$` 접두사로 시작하지 않는 Plaintext인 경우, 복호화 절차를 투명하게 건너뛰고 평문 문자열 그대로 복원합니다.
 * **Save Auto-Upgrade**: Plaintext 상태로 읽어들인 레코드라도, 이후 변경(`Create` 또는 `Update`)되어 저장되는 시점에는 마스터 키가 활성화되어 있을 경우 강제적으로 Envelope 암호문 포맷으로 격상하여 DB에 씁니다.
 
 ### 3.4 영속성 레이어 최소 침습 가드

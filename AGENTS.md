@@ -1,19 +1,19 @@
 # AGENTS.md
 
 - 문서 목적: 모든 AI 에이전트(어떤 워커든)가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
-- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v1.0 릴리즈 로드맵 (워커 분업 전면 취소 결정 2026-06-09 반영)**, **사외/사내 2-tier 형상관리 분리 (2026-06-10 결정)**
+- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v0.1.0 릴리즈 로드맵 (워커 분업 전면 취소 결정 2026-06-09 반영)**, **사외/사내 2-tier 형상관리 분리 (2026-06-10 결정)**
 - 대상 독자: 모든 AI 워커 (Claude/Codex/Gemini/Reasonix/OpenCode/Mavis/기타), 저장소 관리자, workflow 설계자
 - 상태: active
 - 최종 수정일: 2026-06-10 (워커 분업 전면 취소 + branch prefix 자유화 + 사외/사내 2-tier 분업 정책 추가)
-- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**§0 워커 분업 전면 취소 + §6 사외/사내 2-tier 분업**), `docs/planning/release_v1_roadmap.md` (**v1.0 릴리즈 로드맵**), `docs/traceability/README.md`
+- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**§0 워커 분업 전면 취소 + §6 사외/사내 2-tier 분업**), `docs/planning/release_v0-1_roadmap.md` (**v0.1.0 릴리즈 로드맵**), `docs/traceability/README.md`
 
-## v1.0 릴리즈 로드맵
+## v0.1.0 릴리즈 로드맵
 
-**2026-06-09 결정 — 워커 분업 전면 취소**. 본 AGENTS.md 의 v1.0 릴리즈 로드맵 진입 시 워커 분담 / 인계 SOP / 충돌 처리 SOP 의 강제력을 모두 무효로 한다. 모든 신규 sprint / PR / 작업은 **어느 에이전트로든 자유롭게** 진행 가능.
+**2026-06-09 결정 — 워커 분업 전면 취소**. 본 AGENTS.md 의 v0.1.0 릴리즈 로드맵 진입 시 워커 분담 / 인계 SOP / 충돌 처리 SOP 의 강제력을 모두 무효로 한다. 모든 신규 sprint / PR / 작업은 **어느 에이전트로든 자유롭게** 진행 가능.
 
 모든 신규 sprint 진입 전 다음 1 문서 확인:
 
-- [`docs/planning/release_v1_roadmap.md`](docs/planning/release_v1_roadmap.md) — v1.0 scope + 잔여 carve 우선순위 (P0~P3) + 마일스톤 (워커 분담 표 §5 는 2026-06-09 취소, 작업 우선순위/P0~P3 자체는 유효)
+- [`docs/planning/release_v0-1_roadmap.md`](docs/planning/release_v0-1_roadmap.md) — v0.1.0 scope + 잔여 carve 우선순위 (P0~P3) + 마일스톤 (워커 분담 표 §5 는 2026-06-09 취소, 작업 우선순위/P0~P3 자체는 유효)
 
 > 참고: [`docs/governance/worker_division.md`](docs/governance/worker_division.md) 는 2026-06-09 전면 취소 결정의 historical record + 유지되는 정책 (ADR supersession 정공법, Owner 권한) + **2026-06-10 §6 사외/사내 2-tier 분업** 만 보존. 강제력 없음.
 
@@ -148,6 +148,6 @@
 - Mavis 의 day-1 baseline, 작업 라우팅 (self / mavis-team / single-spawn verifier), 메모리 3-layer (project/agent/user), 사용 가능 skills/agents/MCP, hard limits, 인계 SOP 은 위 문서에서 단일 source-of-truth 로 관리한다.
 - 표준 sprint branch 명명 규칙은 `docs/governance/worker_division.md` §2.5 를 따른다: `mvs/work_<YYMMDD>-<sprint-seq>-<issue-num>-<short-key>`
 - 브랜치 prefix `mvs/` → `ai-workflow/memory/mvs/<branch-suffix>/`
-- Mavis 는 5-워커 워크플로우를 대체하지 않는다 — cross-cut 정합 (governance / traceability / release_v1_roadmap / worker_division) 이 필요할 때 후속 PR 로만 개입.
+- Mavis 는 5-워커 워크플로우를 대체하지 않는다 — cross-cut 정합 (governance / traceability / release_v0-1_roadmap / worker_division) 이 필요할 때 후속 PR 로만 개입.
 - 사용자에게 보이는 작업 보고, handoff, backlog, 사용자 안내 문구는 기본 한국어로 작성한다 (Reasonix/OpenCode 와 동일). 코드/명령어/경로/외부 시스템 명칭은 원문 유지.
 

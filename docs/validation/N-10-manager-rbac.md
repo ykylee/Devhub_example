@@ -1,13 +1,13 @@
 # N-10 Manager RBAC 검증 보고서
 
-- 문서 목적: release_v1_roadmap §3.5 N-10 "Manager role RBAC 검증" sprint 의 결과 기록. PR #461 (RBAC hardening) + PR #462 (CI Run API + RBAC row filter + org subtree scope) 의 회귀 검증.
+- 문서 목적: release_v0-1_roadmap §3.5 N-10 "Manager role RBAC 검증" sprint 의 결과 기록. PR #461 (RBAC hardening) + PR #462 (CI Run API + RBAC row filter + org subtree scope) 의 회귀 검증.
 - 범위: Manager role (정식 명칭: `team_manager`) 의 (1) DB/마이그레이션 정합, (2) backend row filter/subtree scope 구현, (3) E2E seed 매핑, (4) E2E/UT 커버리지, (5) `role-access-concept.md` 정합.
-- 대상 독자: 프로젝트 리드, Claude (backend RBAC owner), 사용자가 v1.0 출시 전 결함 triage.
+- 대상 독자: 프로젝트 리드, Claude (backend RBAC owner), 사용자가 v0.1.0 출시 전 결함 triage.
 - 상태: ✅ resolved (full — E2E 4 + IT/UT 3 + Process 1 TC 모두 verified, 2026-06-11, sprint `chore/work_260611-b-residual-housekeeping-close`)
 - 최종 수정일: 2026-06-11 (N-10 fully resolved — §3.1 E2E 4 + IT/UT 3 + Process 1 TC 모두 verified, status ✅ resolved)
 - 검증 sprint: `opencode/work_260604-c-N10-manager-rbac-validation` (opencode Lane 2 첫 carve) + `maintenance/work_260610-c-N10-rbac-e2e-tcs` (follow-up partial) + `chore/n10-memory-drift-2026-06-11` (memory drift 정합)
 - 관련 PR: #461 (RBAC hardening), #462 (CI Run + RBAC row filter + subtree), #509 (N-10 P1 follow-up E2E 4 TC), #512 (status partial 정정), #515 (N-10 backend IT 3 TC 옵션 C)
-- 관련 문서: [role-access-concept.md](../planning/role-access-concept.md), [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md), [ADR-0026 Keycloak role excluded decision](../adr/0026-keycloak-role-excluded-decision.md), [release_v1_roadmap §3.5 N-10](../planning/release_v1_roadmap.md)
+- 관련 문서: [role-access-concept.md](../planning/role-access-concept.md), [ADR-0011 RBAC row-scoping](../adr/0011-rbac-row-scoping.md), [ADR-0026 Keycloak role excluded decision](../adr/0026-keycloak-role-excluded-decision.md), [release_v0-1_roadmap §3.5 N-10](../planning/release_v0-1_roadmap.md)
 
 ## 0. 검증 환경
 
@@ -77,7 +77,7 @@
   - 실제 E2E: `frontend/tests/e2e/rbac-routes.spec.ts` 검색 결과 동일 ID 의 `test()` 미존재. `TC-RBAC-DEV-VIEW-01/02` 가 route-level 만 검증 (실제 list 의 row filter 미검증).
   - 유사하게 `TC-RBAC-ROLE-DRIFT-01`, `TC-RBAC-LOGOUT-01/02`, `TC-RBAC-CODE-01`, `TC-RBAC-TRACE-01` 6건 spec 존재하나 E2E 미구현.
 - **판정**: **FAIL — spec vs 구현 갭**. PR #461 의 body 가 추가를 주장했으나 실제 `frontend/tests/e2e/` 에는 미반영.
-- **위험**: **v1.0 출시 전 blocker 가능성** (row filter 회귀 검출 수단 부재). 다만 backend UT (`TestPostgresStoreListUsersAndHierarchy` 등) 가 부분 cover.
+- **위험**: **v0.1.0 출시 전 blocker 가능성** (row filter 회귀 검출 수단 부재). 다만 backend UT (`TestPostgresStoreListUsersAndHierarchy` 등) 가 부분 cover.
 - **조치 (V-08 참조)**
 
 ### V-07: `role-access-concept.md` 가 3-role 모델 정합 → **PASS (with note)**
@@ -118,12 +118,12 @@
   - **E2E 4 TC active** (PR #509, `cb59b39`, branch `maintenance/work_260610-c-N10-rbac-e2e-tcs`): `frontend/tests/e2e/rbac-data-scope.spec.ts` 신규 작성. `TC-RBAC-LOGOUT-02` (FE signout → logout API orchestration) + `TC-RBAC-ROW-READ-01` (List read scope 필터 — developer 가 member 아닌 project 미노출) + `TC-RBAC-ROW-READ-02` (Get read scope 차단) + `TC-RBAC-CODE-01` (거부 코드 표준화). 4 TC 모두 Vitest + Playwright ready.
   - **backend IT 3 TC active** (PR #515 옵션 C `0a90782`): `backend-core/internal/domain/rbac-permissions/view/rbac_n10_integration_test.go` 신규. `TC-RBAC-LOGOUT-01` (TestN10_Logout01_RBACPathUnaffected, N-8 logout 4 status 가 rbac 경로 비영향) + `TC-RBAC-ROLE-DRIFT-01` (TestN10_RoleDrift01_CacheInvalidateReloads, PermissionCache.Invalidate 정합) + `TC-RBAC-LEGACY-01` (TestN10_Legacy01_RBACPolicyGoneReturns410, ADR-0002 410 Gone 정합).
   - **TC-RBAC-TRACE-01** (Process/review 단계): spec header 주석에 본 sprint housekeeping 1 line + scope-out 명시. process 단계의 PR review 체크리스트 항목으로 정합.
-- **status 정정** (PR #512, codex P2 follow-up `fix/work_260611-c-n10-status-partial-apply`): `release_v1_roadmap.md §3.5 N-10 row` status = `⏳ verified (partial — E2E 4 TC done, IT/UT 3 TC + Process 1 TC scoped to follow-up sprints)`.
+- **status 정정** (PR #512, codex P2 follow-up `fix/work_260611-c-n10-status-partial-apply`): `release_v0-1_roadmap.md §3.5 N-10 row` status = `⏳ verified (partial — E2E 4 TC done, IT/UT 3 TC + Process 1 TC scoped to follow-up sprints)`.
 - **잔여 housekeeping** (2026-06-11 본 sprint): session_handoff.md / work_backlog.md / state.json 의 N-10 "잔여 6 TC" drift 정합.
-- **2026-06-11 fully resolved** (sprint `chore/work_260611-b-residual-housekeeping-close`): IT/UT 3 TC (`TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01`) 가 backend `rbac_n10_integration_test.go` (PR #515 옵션 C) 의 Keycloak drift 환경 CI 검증 (sprint 260611-a 정합) 으로 **active** 마킹. Process 1 TC (`TC-RBAC-TRACE-01`) 가 main flat memory + `docs/traceability/report.md` + N-10 검증 보고서 1:1 cross-ref 완료. **status** = `✅ resolved (full — E2E 4 + IT/UT 3 + Process 1 TC 모두 verified, 2026-06-11)`. `release_v1_roadmap.md §3.5 N-10 row` 정합.
+- **2026-06-11 fully resolved** (sprint `chore/work_260611-b-residual-housekeeping-close`): IT/UT 3 TC (`TC-RBAC-LOGOUT-01` + `TC-RBAC-ROLE-DRIFT-01` + `TC-RBAC-LEGACY-01`) 가 backend `rbac_n10_integration_test.go` (PR #515 옵션 C) 의 Keycloak drift 환경 CI 검증 (sprint 260611-a 정합) 으로 **active** 마킹. Process 1 TC (`TC-RBAC-TRACE-01`) 가 main flat memory + `docs/traceability/report.md` + N-10 검증 보고서 1:1 cross-ref 완료. **status** = `✅ resolved (full — E2E 4 + IT/UT 3 + Process 1 TC 모두 verified, 2026-06-11)`. `release_v0-1_roadmap.md §3.5 N-10 row` 정합.
 ### 3.2 [P3] roadmap 의 "mgr-user-b" 명칭 비공식 — **resolved (2026-06-10)**
 
-- **현상** (2026-06-04 검증 시점): `release_v1_roadmap.md §3.5 N-10` 본문이 `mgr-user-b` 표기. 실제 E2E seed user_id = `bob`.
+- **현상** (2026-06-04 검증 시점): `release_v0-1_roadmap.md §3.5 N-10` 본문이 `mgr-user-b` 표기. 실제 E2E seed user_id = `bob`.
 - **2026-06-10 정공법**: roadmap 본문 갱신 — E2E seed `bob` (team_manager) 으로 정정 (N-10 검증 보고서 §3.5 의 follow-up 동봉 PR).
 
 ### 3.3 [P3] `role-access-concept.md` §2.1 표의 "기존 대응" 컬럼 모순
@@ -136,11 +136,11 @@
 - **현상**: V-08 결과. functional code 아님, 주석/string 만.
 - **권장 fix**: 후속 housekeeping sprint 에서 token rename. 본 sprint scope out.
 
-## 4. v1.0 D-11 잔여 권장 행동
+## 4. v0.1.0 D-11 잔여 권장 행동
 
 | 우선순위 | 항목 | 워커 | sprint |
 | --- | --- | --- | --- |
-| **P1** | 3.1 E2E spec-vs-구현 갭 해소 (6 TC) | Gemini (frontend E2E) + Claude (backend handler 보강) | sprint -m/-n (v1.0 마지막) |
+| **P1** | 3.1 E2E spec-vs-구현 갭 해소 (6 TC) | Gemini (frontend E2E) + Claude (backend handler 보강) | sprint -m/-n (v0.1.0 마지막) |
 | **P2** | 3.2 roadmap "mgr-user-b" → "bob (team_manager seed)" 갱신 | opencode Lane 1 | 본 sprint 후속 (PR 동봉) |
 | P3 | 3.3 `role-access-concept.md` §2.1 표 정리 | opencode Lane 1 | 후속 |
 | P3 | 3.4 legacy `manager` token rename | opencode Lane 1 (housekeeping) | 후속 |
@@ -148,12 +148,12 @@
 ## 5. 검증 sprint 종료
 
 - 본 보고서 작성 + P2 갱신 (roadmap §3.5 N-10) 동봉 PR
-- PR 머지 후 release_v1_roadmap §3.5 N-10 row status `✅ verified (with P1 follow-up)`
-- v1.0 D-11 안 P1 (3.1) 만 blocker. 나머지 P3 housekeeping 은 v1.0 후 가능.
+- PR 머지 후 release_v0-1_roadmap §3.5 N-10 row status `✅ verified (with P1 follow-up)`
+- v0.1.0 D-11 안 P1 (3.1) 만 blocker. 나머지 P3 housekeeping 은 v0.1.0 후 가능.
 
 ## 6. 변경 이력
 
 | 2026-06-04 | 1차 작성 — V-01..V-10 검증 결과 + 4건 follow-up 식별 | `opencode/work_260604-c-N10-manager-rbac-validation` |
 | 2026-06-10 | **follow-up 정합** — §3.1 P1 (E2E 4 TC + backend IT 3 TC + Process 1 TC) **partial resolved** + status `⏳ verified (partial)` 정정 (PR #509 / #515 / #512). §3.2 P3 (roadmap "mgr-user-b" → `bob` 명칭) **resolved**. §3.3 / §3.4 P3 housekeeping 후속 | `maintenance/work_260610-c-N10-rbac-e2e-tcs` + 본 housekeeping sprint `chore/n10-memory-drift-2026-06-11` |
-| 2026-06-11 | **fully resolved** — IT/UT 3 TC 가 backend `rbac_n10_integration_test.go` (PR #515 옵션 C) 의 Keycloak drift 환경 CI 검증으로 active. Process 1 TC (`TC-RBAC-TRACE-01`) main flat memory + traceability report.md + 본 보고서 1:1 cross-ref 완료. status = `✅ resolved (full)`. `release_v1_roadmap.md §3.5 N-10 row` 정합. lint 8 errors / 62 warns follow-up 사실상 close (D-74 L03 skip patch + skip config 적용, 3개 lint report 모두 0 error / 0 warn / 0 info). | `chore/work_260611-b-residual-housekeeping-close` |
-| 2026-06-12 | **N-10 follow-up 재평가** (sprint `fix/work_260611-4-version-sync` follow-up). §3.1 P1 (6 TC E2E spec vs 구현 갭) 및 Process 1 TC (TRACE-01) 의 본질적 필요성 재평가. **결론**: N-10 의 follow-up 은 **v1.0 GA release (M-v1.0 milestone, target 2026-06-15) 시점의 acceptance test 로 보류**. v0.1.1-alpha release blocker 아님 (status ✅ resolved 유지). 본 보고서 §6 변경 이력 row 추가. | `fix/work_260611-4-version-sync` (version sync follow-up) |
+| 2026-06-11 | **fully resolved** — IT/UT 3 TC 가 backend `rbac_n10_integration_test.go` (PR #515 옵션 C) 의 Keycloak drift 환경 CI 검증으로 active. Process 1 TC (`TC-RBAC-TRACE-01`) main flat memory + traceability report.md + 본 보고서 1:1 cross-ref 완료. status = `✅ resolved (full)`. `release_v0-1_roadmap.md §3.5 N-10 row` 정합. lint 8 errors / 62 warns follow-up 사실상 close (D-74 L03 skip patch + skip config 적용, 3개 lint report 모두 0 error / 0 warn / 0 info). | `chore/work_260611-b-residual-housekeeping-close` |
+| 2026-06-12 | **N-10 follow-up 재평가** (sprint `fix/work_260611-4-version-sync` follow-up). §3.1 P1 (6 TC E2E spec vs 구현 갭) 및 Process 1 TC (TRACE-01) 의 본질적 필요성 재평가. **결론**: N-10 의 follow-up 은 **v0.1.0 GA release (M-v0.1.0 milestone, target 2026-06-15) 시점의 acceptance test 로 보류**. v0.1.1-alpha release blocker 아님 (status ✅ resolved 유지). 본 보고서 §6 변경 이력 row 추가. | `fix/work_260611-4-version-sync` (version sync follow-up) |

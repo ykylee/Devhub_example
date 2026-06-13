@@ -88,7 +88,7 @@
 
 **소스 경로**: `ai-workflow/memory/<agent>/<branch>/{state.json, session_handoff.md, work_backlog.md, backlog/YYYY-MM-DD.md, pr_body.md}`.
 
-**mirror 정책**: 본 sprint 의 **active + 30일 이내 CLOSED** branch 만. 본 sprint 범위 = `feat/work_260612-7-v1-1-inbound-source-impl/` + `feat/work_260612-6-e2e-internal-removal/` + `codex/work_260612-579-ci-rearchitecture/` + `codex/work_260613-ci-retro-and-memory/`. **forward**: archive 시 (PR 머지 + 30일 후) `mavis-trash` 권장. **lint 영향**: frontmatter 형식만 검증 (raw/ 의 1:1 mirror, 본문 직접 합성 X).
+**mirror 정책**: 본 sprint 의 **active + 30일 이내 CLOSED** branch 만. 본 sprint 범위 = `feat/work_260612-7-v0-1-1-inbound-source-impl/` + `feat/work_260612-6-e2e-internal-removal/` + `codex/work_260612-579-ci-rearchitecture/` + `codex/work_260613-ci-retro-and-memory/`. **forward**: archive 시 (PR 머지 + 30일 후) `mavis-trash` 권장. **lint 영향**: frontmatter 형식만 검증 (raw/ 의 1:1 mirror, 본문 직접 합성 X).
 
 ### 1.7.5 Traceability + ID slot doc (link SSOT, ~5 file)
 
@@ -311,7 +311,7 @@
 | `project_operating_model_template.md` | |
 | `project_repository_creation_linking_plan_2026-05-27.md` | |
 | `rbac-hardening-implementation-readiness-20260602.md` | |
-| `release_v1_roadmap.md` | |
+| `release_v0-1_roadmap.md` | |
 | `role-access-concept.md` | |
 | `sprint-plan-20260601.md` | |
 | `system_admin_catalog_plan_2026-05-27.md` | |

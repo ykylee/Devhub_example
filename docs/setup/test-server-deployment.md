@@ -11,7 +11,7 @@
 
 - Docker 미사용. 모든 프로세스는 host OS 에서 native 로 실행한다.
 - 인증 source-of-truth 는 Keycloak OIDC 이다.
-- `/api/v1/auth/*`, `logout_challenge` 전제 절차는 사용하지 않는다.
+- `/api/v0-1/auth/*`, `logout_challenge` 전제 절차는 사용하지 않는다.
 
 ## 1. 사전 준비
 
@@ -134,7 +134,7 @@ curl http://localhost:8081/realms/devhub/.well-known/openid-configuration
 
 | 증상 | 점검 |
 | --- | --- |
-| `/api/v1/me` 401 | `DEVHUB_OIDC_ISSUER_URL`, audience/claim mapping, 서버 시간 오차 확인 |
+| `/api/v0-1/me` 401 | `DEVHUB_OIDC_ISSUER_URL`, audience/claim mapping, 서버 시간 오차 확인 |
 | 로그인 후 잘못된 랜딩 | DevHub `users.role` 값과 subject 매핑 확인 |
 | Sign Out 후 자동 재로그인 | end-session endpoint, `id_token` 저장/전달 여부 확인 |
 | callback 오류 | client redirect URI / post logout URI 불일치 확인 |

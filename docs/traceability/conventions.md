@@ -23,8 +23,8 @@
 
 - `{nn}` 은 2자리 이상 0-padded 십진수. 단계 내에서 단조 증가.
 - **RM 표기 정책 (2026-06-11 정공법, sprint `feat/work_260611-a-n13-inbound-source-housekeeping`)**:
-  - **레거시 마일스톤 표기**: `RM-M{n}-{nn}` (n = 0..3). M0~M4 의 마일스톤별 RM. v1.0+ 신규 항목에는 사용하지 않음 (후속 마일스톤 = M-v1.1 / M-v1.2 / M-v2 의 도메인 prefix 표기 우선).
-  - **도메인 prefix 표기**: `RM-{domain}-{nn}`. `domain` 은 kebab-case (소문자 + `-` 구분). M-v1.1+ 신규 항목 + 도메인 특화 RM. 예: `RM-ONBOARD-01..04` (onboarding 도메인, 2026-05-21) / `RM-APPDASH-01` (application 대시보드, 2026-05-27) / `RM-DEV-REQ-15` (dev-request 도메인, N-13, 2026-06-11).
+  - **레거시 마일스톤 표기**: `RM-M{n}-{nn}` (n = 0..3). M0~M4 의 마일스톤별 RM. v0.1.0+ 신규 항목에는 사용하지 않음 (후속 마일스톤 = M-v0.1.1 / M-v1.2 / M-v2 의 도메인 prefix 표기 우선).
+  - **도메인 prefix 표기**: `RM-{domain}-{nn}`. `domain` 은 kebab-case (소문자 + `-` 구분). M-v0.1.1+ 신규 항목 + 도메인 특화 RM. 예: `RM-ONBOARD-01..04` (onboarding 도메인, 2026-05-21) / `RM-APPDASH-01` (application 대시보드, 2026-05-27) / `RM-DEV-REQ-15` (dev-request 도메인, N-13, 2026-06-11).
   - 두 표기는 혼용 가능. 단 같은 항목 (같은 cross-cut) 의 RM 은 하나의 표기로 통일.
 - `{module}` (구현) 은 backend-core 의 `internal/<pkg>` 하위 경로 또는 frontend 의 기능 영역명 (`auth`, `rbac`, `audit`, `account`, `org`, `command`, `realtime` 등) 을 kebab-case 로.
 - `{pkg}` (단위테스트) 는 Go 의 경우 패키지 디렉터리명, frontend 의 경우 영역명.

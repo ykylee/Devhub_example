@@ -164,7 +164,7 @@ D-72 응답 §2 의 6 질문 권장안을 본 저장소 측에 적용. 각 권�
 | **wiki/cross/** | cross-project 종합 페이지 (my_harness 의 LLM Wiki 패턴 ↔ DevHub 의 ADR-0030 runtime injection, 1~3 page) | Phase 3 |
 | **wiki-lint CI integration** | `ci.yml` 의 별도 lint job 또는 e2e shard 의 lint step 추가 | D-73 |
 | **v2.0 (full compile)** | LLM 호출 + BM25+vector+MCP — my_harness 의 v2.0 경험 보고 진입 (D-72 Q5) | my_harness v2.0 |
-| **N-13 release_v1_roadmap §3.5 정합** | N-13 row status = done (D-72 D-73 D-74 D-75) 마킹, 별도 housekeeping PR | 본 PR 머지 + Phase 1 mirror |
+| **N-13 release_v0-1_roadmap §3.5 정합** | N-13 row status = done (D-72 D-73 D-74 D-75) 마킹, 별도 housekeeping PR | 본 PR 머지 + Phase 1 mirror |
 
 ## 3. 알려둘 trade-off (의도적 결정)
 

@@ -13,8 +13,8 @@
 
 M0 sprint 가 인증/권한 게이트를 정상화하면서 `requireMinRole` 미들웨어 + 5 라우트 가드가 도입됐다(M0 PR-B). 동시에 다음 두 가지가 존재한다.
 
-1. **Backend** `httpapi/rbac.go` — `GET /api/v1/rbac/policy` 가 `defaultRBACPolicy()` 의 read-only static 응답을 반환. 응답 meta 에 `editable: false`, `source: "static_default_policy"` 명시.
-2. **Frontend** `components/organization/PermissionEditor.tsx` + `lib/services/rbac.types.ts` — UI 컴포넌트는 존재하나 *로컬 state* (`defaultRoles` const) 를 직접 편집하는 형태. 백엔드 통신 service (`rbac.service.ts`) 는 작성돼 있지만 호출 path 가 backend 미구현 (`/api/v1/rbac/policies` 복수형, 404).
+1. **Backend** `httpapi/rbac.go` — `GET /api/v0-1/rbac/policy` 가 `defaultRBACPolicy()` 의 read-only static 응답을 반환. 응답 meta 에 `editable: false`, `source: "static_default_policy"` 명시.
+2. **Frontend** `components/organization/PermissionEditor.tsx` + `lib/services/rbac.types.ts` — UI 컴포넌트는 존재하나 *로컬 state* (`defaultRoles` const) 를 직접 편집하는 형태. 백엔드 통신 service (`rbac.service.ts`) 는 작성돼 있지만 호출 path 가 backend 미구현 (`/api/v0-1/rbac/policies` 복수형, 404).
 
 통합 로드맵 §3.2 M1 DoD #6 은 이 둘 사이의 결정을 요구한다 — *write API 를 도입할 것인지, static 으로 유지할 것인지*.
 
@@ -73,7 +73,7 @@ DB-backed RBAC matrix + `requireMinRole` 가 매트릭스를 runtime 에 참조 
 #### 변경 범위
 
 - `backend-core/internal/store/postgres_rbac.go` — `rbac_policies` 테이블 + 마이그레이션.
-- `backend-core/internal/httpapi/rbac.go` — `PUT /api/v1/rbac/policies` 추가, audit (`rbac.policy.updated`).
+- `backend-core/internal/httpapi/rbac.go` — `PUT /api/v0-1/rbac/policies` 추가, audit (`rbac.policy.updated`).
 - `backend-core/internal/httpapi/authz.go` — `requireMinRole` → `requirePermission(resource, action)` 로 *재설계*. 라우트별 (resource, action) 매핑 테이블 추가.
 - 모델 통일 — backend 의 `none|read|write|admin` 1차원과 frontend 의 `{view, create, edit, delete}` 4축 중 하나로 결정 + 변환.
 - 캐시 — DB 적중 비용을 피하기 위해 in-memory matrix cache + invalidation.
@@ -99,7 +99,7 @@ DB-backed RBAC matrix + `requireMinRole` 가 매트릭스를 runtime 에 참조 
 #### 변경 범위
 
 - `backend-core/internal/httpapi/rbac.go` — 변경 없음. `editable: false` 그대로.
-- `backend_api_contract.md §12` — *현재 spec 을 invariant 박스로 라벨링* 하고, "현 단계에서는 GET /api/v1/rbac/policy 만 제공. PUT/subjects 는 후속 phase 의 결정에 따라 도입" 으로 수정. 12.2~12.4 제거 또는 *후보 backlog* 로 강등.
+- `backend_api_contract.md §12` — *현재 spec 을 invariant 박스로 라벨링* 하고, "현 단계에서는 GET /api/v0-1/rbac/policy 만 제공. PUT/subjects 는 후속 phase 의 결정에 따라 도입" 으로 수정. 12.2~12.4 제거 또는 *후보 backlog* 로 강등.
 - `frontend/lib/services/rbac.types.ts` — `defaultRoles` 를 backend `defaultRBACPolicy()` 와 동형으로 재구성. 4-boolean → 1차원 (`none|read|write|admin`) 으로 합치거나, view-only 라면 backend 응답을 직접 표시.
 - `frontend/lib/services/rbac.service.ts` — `getPolicy()` 만 유지, `getPolicies/updatePolicies/getSubjectRoles/updateSubjectRoles` 제거 (현 단계에서 backend 미구현이므로 미사용 코드 정리).
 - `frontend/components/organization/PermissionEditor.tsx` — Create/Delete/Edit 버튼 비활성화 또는 제거. read-only 표시 모드. UI 라벨에 "Defined in code — see ADR-0002" 노트.
@@ -189,7 +189,7 @@ Option A 의 구현은 모델 통일 결정 없이 진행 불가능하므로 본
 | **M1-PR-G1** | B·X | `backend_api_contract.md §12` 갱신 — 4축 모델 + 라우트-(resource, action) 매핑 표 + deny-by-default 명시 | ADR-0002 | M1 |
 | **M1-PR-G2** | B | `domain/rbac.go` (신규) — Permission/Resource/Action 도메인 + 4-boolean PermissionState + Role aggregate. 마이그레이션 `rbac_policies` 테이블 (system + custom roles, 정책 row JSON 또는 정규화). | G1 | M1 |
 | **M1-PR-G3** | B | `store/postgres_rbac.go` — RBAC store CRUD + 시스템 role seed. | G2 | M1 |
-| **M1-PR-G4** | B | `httpapi/rbac.go` 확장 — `GET/PUT /api/v1/rbac/policies`, `GET/PUT /api/v1/rbac/subjects/:id/roles`. write audit (`rbac.policy.updated`, `rbac.role.assigned`). | G3 | M1 |
+| **M1-PR-G4** | B | `httpapi/rbac.go` 확장 — `GET/PUT /api/v0-1/rbac/policies`, `GET/PUT /api/v0-1/rbac/subjects/:id/roles`. write audit (`rbac.policy.updated`, `rbac.role.assigned`). | G3 | M1 |
 | **M1-PR-G5** | B | `httpapi/authz.go` 재설계 — `requireMinRole` → `requirePermission(resource, action)`. 라우트-매핑 테이블. router 갱신. in-memory cache + invalidation hook. | G4 | M1 |
 | **M1-PR-G6** | F | `rbac.types.ts` 정리 + `rbac.service.ts` 의 미연결 path 들이 실제 동작하도록 검증 (이미 작성됨). `PermissionEditor` 가 backend 데이터를 받도록 `organization/page.tsx` 수정. | G4 | M1 또는 M2 Phase 6.1 흡수 |
 | Docs | X | 통합 로드맵 §4.2 "Phase 6.1 — 정책 CRUD 연동, RBAC Guard 실체화" 의 *완료 정의* 를 본 ADR 의 G1-G6 PR 들의 머지로 정의. | G1 | M1 (PR-G1 흡수) |

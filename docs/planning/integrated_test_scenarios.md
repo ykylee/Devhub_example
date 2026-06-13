@@ -5,7 +5,7 @@
 - 대상 독자: QA, Backend/Frontend 개발자, AI 에이전트, 시스템 운영자.
 - 상태: draft
 - 최종 수정일: 2026-06-01
-- 관련 문서: [`system_usecases.md`](./system_usecases.md), [`e2e_testing_strategy.md`](../tests/e2e_testing_strategy.md), [`release_v1_roadmap.md`](./release_v1_roadmap.md), [`docs/domain/auth-session/`](../domain/auth-session/), [`docs/domain/onboarding/`](../domain/onboarding/), [`docs/domain/platform-lifecycle/`](../domain/platform-lifecycle/), [`docs/domain/repository-integration/`](../domain/repository-integration/), [`docs/domain/integration-registry/`](../domain/integration-registry/), [`docs/domain/realtime/`](../domain/realtime/), [`docs/traceability/report.md`](../traceability/report.md).
+- 관련 문서: [`system_usecases.md`](./system_usecases.md), [`e2e_testing_strategy.md`](../tests/e2e_testing_strategy.md), [`release_v0-1_roadmap.md`](./release_v0-1_roadmap.md), [`docs/domain/auth-session/`](../domain/auth-session/), [`docs/domain/onboarding/`](../domain/onboarding/), [`docs/domain/platform-lifecycle/`](../domain/platform-lifecycle/), [`docs/domain/repository-integration/`](../domain/repository-integration/), [`docs/domain/integration-registry/`](../domain/integration-registry/), [`docs/domain/realtime/`](../domain/realtime/), [`docs/traceability/report.md`](../traceability/report.md).
 
 ## 1. 테스트 환경
 
@@ -73,7 +73,7 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | | 6. **브라우저 시크릿 창**에서 `http://localhost:3000/` 접속 → Keycloak login 화면으로 redirect 확인 |
 | | 7. `dev-user-a` / 설정한 비밀번호로 로그인 |
 | | 8. OIDC code flow 완료 → PKCE 토큰 교환 → DevHub callback `/devhub/auth/callback` 정상 처리 |
-| | 9. `GET /api/v1/me` 응답 확인 (토큰 claims 기반 `login`, `subject`, `role: developer`, `email`, `display_name` 초기값 null) |
+| | 9. `GET /api/v0-1/me` 응답 확인 (토큰 claims 기반 `login`, `subject`, `role: developer`, `email`, `display_name` 초기값 null) |
 | **기대 결과** | - Keycloak 사용자 등록 후 OIDC 로그인 플로우 정상 동작 |
 | | - 로그인 성공 시 DevHub 세션/JWT 발급 |
 | | - `GET /me` 가 OIDC claims 기반 사용자 정보 반환 |
@@ -96,7 +96,7 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | | — |
 | | 5. 온보딩 페이지에서 display_name 입력 ("Dev User A") |
 | | 6. 조직 검색 (typeahead, `q >= 2`): "Dev" 입력 → 조직 목록 드롭다운 |
-| | 7. 조직 선택 후 "제출" 버튼 클릭 → `POST /api/v1/me/onboarding` |
+| | 7. 조직 선택 후 "제출" 버튼 클릭 → `POST /api/v0-1/me/onboarding` |
 | | 8. 응답 확인: 201 + `onboarding_completed_at=NOW()` + `review_status=pending_review` |
 | | 9. 온보딩 이후 dashboard 정상 진입 확인 (`onboarding_required: false`) |
 | **기대 결과** | - 온보딩 게이트가 403/redirect로 미완료 사용자 제어 |
@@ -116,7 +116,7 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | **시나리오** | 1. system_admin 계정으로 로그인 |
 | | 2. `/devhub/admin/settings/users` → "검토 대기" 패널에 dev-user-a 노출 확인 |
 | | 3. "확정" 버튼 클릭 → ConfirmReviewModal → 확정 |
-| | 4. `POST /api/v1/admin/users/:user_id/review` → 200 + `review_status=reviewed` + `reviewed_at=NOW()` |
+| | 4. `POST /api/v0-1/admin/users/:user_id/review` → 200 + `review_status=reviewed` + `reviewed_at=NOW()` |
 | | 5. audit log `account.review_confirmed` 발행 확인 |
 | | 6. 검토 완료 후 dev-user-a 계정으로 재로그인 → 모든 메뉴 정상 접근 |
 | **기대 결과** | - 관리자 온보딩 검토 workflow 정상 동작 |
@@ -133,19 +133,19 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | **계층** | API / UI |
 | **전제조건** | 3개 계정 준비: Developer A(`developer`), Manager B(`manager`), System Admin(`system_admin`) |
 | **시나리오** | **Developer 조회 범위** |
-| | 1. `developer` 계정으로 `GET /api/v1/platforms` → 자신이 속한 org/project의 application만 조회 |
-| | 2. `GET /api/v1/projects` → 동일 scope 제한 확인 |
-| | 3. `GET /api/v1/admin/...` → 403 확인 (system_admin 전용) |
+| | 1. `developer` 계정으로 `GET /api/v0-1/platforms` → 자신이 속한 org/project의 application만 조회 |
+| | 2. `GET /api/v0-1/projects` → 동일 scope 제한 확인 |
+| | 3. `GET /api/v0-1/admin/...` → 403 확인 (system_admin 전용) |
 | | — |
 | | **Manager 조회 범위** |
-| | 4. `manager` 계정으로 `GET /api/v1/platforms` → 자신의 부서/프로젝트 전체 조회 가능 |
-| | 5. `GET /api/v1/projects/:id/members` → 멤버 조회 가능 |
-| | 6. `POST /api/v1/dev-requests` → dev-request 생성 가능 |
+| | 4. `manager` 계정으로 `GET /api/v0-1/platforms` → 자신의 부서/프로젝트 전체 조회 가능 |
+| | 5. `GET /api/v0-1/projects/:id/members` → 멤버 조회 가능 |
+| | 6. `POST /api/v0-1/dev-requests` → dev-request 생성 가능 |
 | | — |
 | | **System Admin 조회 범위** |
-| | 7. `system_admin` 계정으로 `GET /api/v1/admin/settings/users` → 전체 사용자 조회 가능 |
-| | 8. `GET /api/v1/rbac/policies` → RBAC 정책 조회/편집 가능 |
-| | 9. `GET /api/v1/integration/providers` → 전체 provider 조회 가능 |
+| | 7. `system_admin` 계정으로 `GET /api/v0-1/admin/settings/users` → 전체 사용자 조회 가능 |
+| | 8. `GET /api/v0-1/rbac/policies` → RBAC 정책 조회/편집 가능 |
+| | 9. `GET /api/v0-1/integration/providers` → 전체 provider 조회 가능 |
 | | 10. 시스템 대시보드 (`/system`) 접근 가능 |
 | **기대 결과** | - Row-scoping (ADR-0011) 에 따라 각 role의 데이터 조회 범위가 정확히 구분됨 |
 | | - developer → 자신 관련 데이터만 |
@@ -191,11 +191,11 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | |    - Base URL: `http://homelab.ddn777.synology.me/gitea` |
 | |    - Auth Mode: `basic` 또는 `token` |
 | |    - Credentials: `yklee` / `yklee12!` |
-| | 4. "Test Connection" 버튼 클릭 → `POST /api/v1/integration/test-connection` → 200 OK 확인 |
-| | 5. 저장 → `POST /api/v1/integration/providers` → 201 + provider_id 반환 |
+| | 4. "Test Connection" 버튼 클릭 → `POST /api/v0-1/integration/test-connection` → 200 OK 확인 |
+| | 5. 저장 → `POST /api/v0-1/integration/providers` → 201 + provider_id 반환 |
 | | — |
 | | **Provider 목록 확인** |
-| | 6. `GET /api/v1/integration/providers` → 등록된 Gitea provider 조회 |
+| | 6. `GET /api/v0-1/integration/providers` → 등록된 Gitea provider 조회 |
 | | 7. provider 상세: base_url, auth_mode, capabilities(scm), status=active 확인 |
 | **기대 결과** | - Gitea SCM Provider 등록/연결 테스트 정상 동작 |
 | | - Test Connection이 base_url reachability + credential 유효성 검증 |
@@ -217,8 +217,8 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | |    - Leader: 조직 사용자 선택 |
 | |    - Dev Unit: 조직 단위 선택 |
 | |    - Visibility: `public` (기본) |
-| | 3. 제출 → `POST /api/v1/platforms` → 201 + platform_id 반환 |
-| | 4. `GET /api/v1/platforms` 목록에서 "Test Application Alpha" 노출 확인 |
+| | 3. 제출 → `POST /api/v0-1/platforms` → 201 + platform_id 반환 |
+| | 4. `GET /api/v0-1/platforms` 목록에서 "Test Application Alpha" 노출 확인 |
 | | 5. 상세 진입 시 입력한 정보 일치 확인 |
 | **기대 결과** | - Application 생성 API 정상 동작 (API-41~43) |
 | | - Key 중복 시 409 에러 |
@@ -238,8 +238,8 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | |    - Name: "Alpha Integration Sprint" |
 | |    - Status: `active` |
 | |    - 기간: 2026-06-01 ~ 2026-07-31 |
-| | 3. 제출 → `POST /api/v1/projects` → 201 + project_id 반환 |
-| | 4. `GET /api/v1/platforms/:id/projects` 목록에서 project 노출 확인 |
+| | 3. 제출 → `POST /api/v0-1/projects` → 201 + project_id 반환 |
+| | 4. `GET /api/v0-1/platforms/:id/projects` 목록에서 project 노출 확인 |
 | | 5. Project 상세 진입: 기간, 상태, 담당자 정보 일치 확인 |
 | **기대 결과** | - Project 생성 API 정상 동작 (API-55~56) |
 | | - Application-Project 관계 정합성 유지 |
@@ -259,7 +259,7 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | |    - Repository Name: `alpha-integration-repo` |
 | |    - Provider: "HomeLab Gitea" (SC-TEST-2.1에서 등록) |
 | |    - Visibility: `private` |
-| | 3. 제출 → `POST /api/v1/integration/providers/:id/create-repository` → 201 |
+| | 3. 제출 → `POST /api/v0-1/integration/providers/:id/create-repository` → 201 |
 | | 4. 응답에 Gitea repository URL 포함 확인 |
 | | — |
 | | **Gitea 저장소 생성 확인** |
@@ -268,8 +268,8 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | | — |
 | | **DevHub Binding 연결** |
 | | 7. Project → "Link Repository" → 생성된 repository 선택 |
-| | 8. `POST /api/v1/integration/bindings` 로 Project-Repository 바인딩 |
-| | 9. `GET /api/v1/platforms/:id/dashboard` (API-93) 에 repository 연동 상태 노출 확인 |
+| | 8. `POST /api/v0-1/integration/bindings` 로 Project-Repository 바인딩 |
+| | 9. `GET /api/v0-1/platforms/:id/dashboard` (API-93) 에 repository 연동 상태 노출 확인 |
 | **기대 결과** | - DevHub에서 Gitea 저장소 Outbound 생성 정상 동작 |
 | | - Gitea에 실제 저장소가 생성됨 |
 | | - Project-Repository 바인딩 정상 연결 |
@@ -284,9 +284,9 @@ Keycloak IdP를 통한 신규 사용자 등록 → 첫 로그인 → 온보딩 �
 | **우선순위** | P1 |
 | **계층** | API / UI |
 | **전제조건** | SC-TEST-2.4 완료 |
-| **시나리오** | 1. `POST /api/v1/repositories` (API-91) 로 draft 상태 repository 생성 |
+| **시나리오** | 1. `POST /api/v0-1/repositories` (API-91) 로 draft 상태 repository 생성 |
 | | 2. draft 상태에서 목록 조회 시 `status=draft` 표시 |
-| | 3. `POST /api/v1/repositories/:id/publish` (API-92) 로 publish |
+| | 3. `POST /api/v0-1/repositories/:id/publish` (API-92) 로 publish |
 | | 4. publish 후 목록에 `status=active`로 노출 |
 | | 5. Gitea에 실제 저장소 생성 확인 |
 | **기대 결과** | - Repository draft → publish lifecycle 정상 동작 |
@@ -349,7 +349,7 @@ Gitea에 샘플 작업물을 등록하고, PR/Issue가 DevHub에 연동되어 �
 | **전제조건** | SC-TEST-3.1 완료 (open 상태 Issue 존재) |
 | **시나리오** | **Issue Close** |
 | | 1. Gitea → Issue → Close Issue |
-| | 2. DevHub Webhook 수신 확인 (`POST /api/v1/integrations/gitea/webhooks`) |
+| | 2. DevHub Webhook 수신 확인 (`POST /api/v0-1/integrations/gitea/webhooks`) |
 | | 3. DevHub Repository 페이지 Issue 상태가 `closed`로 변경 확인 |
 | | — |
 | | **Issue Reopen** |
@@ -412,7 +412,7 @@ Gitea에 샘플 작업물을 등록하고, PR/Issue가 DevHub에 연동되어 �
 | | 5. 알림 클릭 → 해당 Issue 상세로 이동 |
 | | — |
 | | **Realtime WebSocket 이벤트** |
-| | 6. WebSocket 연결 (`GET /api/v1/realtime/ws`) 후 `notification.created` 이벤트 수신 대기 |
+| | 6. WebSocket 연결 (`GET /api/v0-1/realtime/ws`) 후 `notification.created` 이벤트 수신 대기 |
 | | 7. Gitea에서 Issue comment 추가 → `notification.created` 이벤트 발생 확인 |
 | | 8. 이벤트 payload 내 `type`, `event_id`, `occurred_at`, `data` 필드 검증 |
 | | — |
@@ -433,8 +433,8 @@ Gitea에 샘플 작업물을 등록하고, PR/Issue가 DevHub에 연동되어 �
 | **우선순위** | P1 |
 | **계층** | API |
 | **전제조건** | SC-TEST-3.1~3.3 완료 (다수의 Webhook 이벤트 발생) |
-| **시나리오** | 1. `POST /api/v1/integrations/gitea/webhooks` 의 signature 검증 로그 확인 |
-| | 2. `GET /api/v1/webhook-events` 로 수신된 webhook 이벤트 목록 조회 |
+| **시나리오** | 1. `POST /api/v0-1/integrations/gitea/webhooks` 의 signature 검증 로그 확인 |
+| | 2. `GET /api/v0-1/webhook-events` 로 수신된 webhook 이벤트 목록 조회 |
 | | 3. 이벤트 상태별 집계: `validated`, `processed`, `failed`, `ignored` 구분 확인 |
 | | 4. 중복 이벤트(`X-Gitea-Delivery` 기준)가 `duplicate` 처리되는지 확인 |
 | | 5. Webhook 수신 실패 시 (signature mismatch 등) 적절한 에러 응답 확인 |
@@ -479,7 +479,7 @@ CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Platform/Project
 | |    - Status: `success` |
 | |    - Duration: 120초 |
 | |    - Commit SHA: (실제 커밋) |
-| | 2. `GET /api/v1/ci-runs` → 정상 빌드 목록 조회 |
+| | 2. `GET /api/v0-1/ci-runs` → 정상 빌드 목록 조회 |
 | | 3. CI Run 상세: id, duration_seconds, status, html_url 필드 확인 |
 | | — |
 | | **빌드 실패 케이스 주입** |
@@ -490,7 +490,7 @@ CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Platform/Project
 | |    - 에러 메시지: "go build failed: cannot find package" |
 | | 5. 목록에 success/failure 모두 노출 확인 |
 | | 6. 실패 빌드에 실패 원인/메시지 표시 확인 |
-| **기대 결과** | - CI Run 데이터 정상 조회 (GET /api/v1/ci-runs) |
+| **기대 결과** | - CI Run 데이터 정상 조회 (GET /api/v0-1/ci-runs) |
 | | - success/failure 상태 모두 정확히 표시 |
 | | - 실패 시 원인 메시지 확인 가능 |
 | **spec ts 위치** | `backend-core/internal/httpapi/domain_test.go` (참조) |
@@ -533,8 +533,8 @@ CI/CD 빌드 실패 상황을 시뮬레이션하고, DevHub 내 Platform/Project
 | **계층** | E2E |
 | **전제조건** | WebSocket ticket 발급 가능 + Frontend RealtimeService 연결 |
 | **시나리오** | **WebSocket 연결** |
-| | 1. `POST /api/v1/realtime/ticket` → single-use ticket 발급 (60s TTL) |
-| | 2. `GET /api/v1/realtime/ws?ticket={ticket}&types=ci.run.updated` 연결 |
+| | 1. `POST /api/v0-1/realtime/ticket` → single-use ticket 발급 (60s TTL) |
+| | 2. `GET /api/v0-1/realtime/ws?ticket={ticket}&types=ci.run.updated` 연결 |
 | | 3. WebSocket handshake 성공 (101) |
 | | — |
 | | **CI Run 이벤트 수신** |

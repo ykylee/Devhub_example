@@ -5,7 +5,7 @@
 - **대상 독자**: backend / frontend / AI agent / QA / 운영자.
 - **상태**: planned (draft, 2026-06-09)
 - **결정 근거 sprint**: 1차 PR `feat/work_260609-a-swagger-apikey-expand` 의 사용자 follow-up 결정 (multi-key + frontend admin UI + DB hashed storage).
-- **관련 문서**: [ADR-0029 §6 (f) multi-key 관리](../adr/0029-api-key-auth-and-swagger-scope.md), [ADR-0029 §5.2 rotation 정책](../adr/0029-api-key-auth-and-swagger-scope.md), [docs/domain/auth-session/api.md](../domain/auth-session/api.md), [docs/domain/auth-session/requirements.md](../domain/auth-session/requirements.md), [release_v1_roadmap §3 N-12](../planning/release_v1_roadmap.md).
+- **관련 문서**: [ADR-0029 §6 (f) multi-key 관리](../adr/0029-api-key-auth-and-swagger-scope.md), [ADR-0029 §5.2 rotation 정책](../adr/0029-api-key-auth-and-swagger-scope.md), [docs/domain/auth-session/api.md](../domain/auth-session/api.md), [docs/domain/auth-session/requirements.md](../domain/auth-session/requirements.md), [release_v0-1_roadmap §3 N-12](../planning/release_v0-1_roadmap.md).
 
 ## 0. 배경
 
@@ -68,10 +68,10 @@ CREATE INDEX api_keys_created_by_idx ON public.api_keys (created_by);
 
 | endpoint | method | auth | 권한 |
 | --- | --- | --- | --- |
-| `/api/v1/admin/api-keys` | POST | bearerAuth | system_admin (resource: `api_keys:create`) |
-| `/api/v1/admin/api-keys` | GET | bearerAuth | system_admin (resource: `api_keys:view`) |
-| `/api/v1/admin/api-keys/:id` | DELETE | bearerAuth | system_admin (resource: `api_keys:delete`) |
-| `/api/v1/admin/api-keys/:id` | PATCH | bearerAuth | system_admin (resource: `api_keys:edit`) |
+| `/api/v0-1/admin/api-keys` | POST | bearerAuth | system_admin (resource: `api_keys:create`) |
+| `/api/v0-1/admin/api-keys` | GET | bearerAuth | system_admin (resource: `api_keys:view`) |
+| `/api/v0-1/admin/api-keys/:id` | DELETE | bearerAuth | system_admin (resource: `api_keys:delete`) |
+| `/api/v0-1/admin/api-keys/:id` | PATCH | bearerAuth | system_admin (resource: `api_keys:edit`) |
 
 응답: 생성 시 평문 key **1회만** 응답 (`key` field). 이후 GET 에서는 `key_prefix` 만 노출 (보안).
 
@@ -89,10 +89,10 @@ CREATE INDEX api_keys_created_by_idx ON public.api_keys (created_by);
 ### 3.5 RBAC (`internal/domain/rbac-permissions/view/permissions.go`)
 
 `routePermissionTable` 에 4 row 추가:
-- `{POST, /api/v1/admin/api-keys}` → `Resource: api_keys, Action: create`
-- `{GET, /api/v1/admin/api-keys}` → `Resource: api_keys, Action: view`
-- `{DELETE, /api/v1/admin/api-keys/:id}` → `Resource: api_keys, Action: delete`
-- `{PATCH, /api/v1/admin/api-keys/:id}` → `Resource: api_keys, Action: edit`
+- `{POST, /api/v0-1/admin/api-keys}` → `Resource: api_keys, Action: create`
+- `{GET, /api/v0-1/admin/api-keys}` → `Resource: api_keys, Action: view`
+- `{DELETE, /api/v0-1/admin/api-keys/:id}` → `Resource: api_keys, Action: delete`
+- `{PATCH, /api/v0-1/admin/api-keys/:id}` → `Resource: api_keys, Action: edit`
 
 `DefaultPermissionMatrix` 에 `system_admin` 만 4 axis 모두 true.
 
@@ -130,9 +130,9 @@ CREATE INDEX api_keys_created_by_idx ON public.api_keys (created_by);
 
 ### 4.3 service (`frontend/domain/auth-session/service/api_key.service.ts`)
 
-- `listApiKeys()`: GET /api/v1/admin/api-keys
-- `createApiKey({ name, expires_at?, allowed_cidrs? })`: POST /api/v1/admin/api-keys → `ApiKeyCreateResponse` (key 포함)
-- `revokeApiKey(id)`: DELETE /api/v1/admin/api-keys/:id
+- `listApiKeys()`: GET /api/v0-1/admin/api-keys
+- `createApiKey({ name, expires_at?, allowed_cidrs? })`: POST /api/v0-1/admin/api-keys → `ApiKeyCreateResponse` (key 포함)
+- `revokeApiKey(id)`: DELETE /api/v0-1/admin/api-keys/:id
 - `updateApiKey(id, { expires_at?, allowed_cidrs? })`: PATCH
 
 ### 4.4 schema (`frontend/domain/auth-session/schema/api_key.schema.ts`)

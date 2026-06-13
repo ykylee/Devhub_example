@@ -7,7 +7,7 @@
 - **최종 수정일**: 2026-06-12 (N-13 follow-up B 결정, sprint `fix/work_260612-3-n13-followup-b-test2-rebase`)
 - **결정 근거 sprint**: `fix/work_260612-3-n13-followup-b-test2-rebase` (본 sprint, verification), `fix/work_260612-1-n13-housekeeping-followup` (직전, PR #573 MERGED), `fix/work_260612-2-e2e-seed-strict-mode-fix` (직전 직전, PR #574 MERGED)
 - **관련 문서**:
-  - [release_v1_roadmap.md §3.5 N-13 row](../../planning/release_v1_roadmap.md) (N-13 정의 + follow-up 결정)
+  - [release_v0-1_roadmap.md §3.5 N-13 row](../../planning/release_v0-1_roadmap.md) (N-13 정의 + follow-up 결정)
   - [ADR-0028 §6 (a)](../../adr/0028-dev-requests-voc-external-ref.md) (N-13 source ADR)
   - [sprint plan §3.3/§5/§6](../../planning/2026-06-12-inbound-source-routing-sprint-plan.md) (PR #548 CLOSED 정공법)
   - [PR #548](https://github.com/ykylee/Devhub_example/pull/548) (CLOSED, E2E Internal 1 fail 2건)
@@ -49,7 +49,7 @@
   1. 본 verification report 신규 (5 file 중 1)
   2. `docs/validation/2026-06-12-n13-test2-rebase-verification.md` — 본 파일
   3. `docs/validation/N-10-manager-rbac.md` — §0/§6 follow-up 1 row (cross-ref, optional)
-  4. `ai-workflow/memory/state.json` — M-v1.0 notes `phase2_7th_chunk_n13_followup_b_test2_rebase` 추가
+  4. `ai-workflow/memory/state.json` — M-v0.1.0 notes `phase2_7th_chunk_n13_followup_b_test2_rebase` 추가
   5. 브랜치 메모리 4 file 신규 (`ai-workflow/memory/fix/work_260612-3-n13-followup-b-test2-rebase/`)
 - **CI 자동 trigger**: PR push 시 GitHub Actions 자동 실행.
 - **expected CI 결과**: path-detect → docs 만 변경 감지 → Backend Unit / Backend Integration / Frontend Unit / E2E Build Artifacts / E2E shard 1/2/3 모두 skip 또는 PASS (docs-only PR 의 경우 backend/frontend skip, e2e 는 main 의 e2e CI 가 자동 재실행 = PR #550 spec timing fix + PR #574 e2e seed fix 적용 후 안정성 검증).
@@ -80,12 +80,12 @@ main 의 e2e CI 가 PR #550 spec timing fix + PR #574 e2e seed fix 적용 후 �
 
 N-13 follow-up 3 branch 중 A (Test 1 fix) ✅ MERGED (PR #574), B (Test 2 rebase + 자동 재실행) ⏳ **본 sprint 검증** (verification PR). 잔여:
 
-- **구현 follow-up = v1.1 milestone 진입 시점 별도 sprint** (rebase main + PR #550 fix + 본 fix + 본 verification 종합 + 자동 재실행). branch `feat/work_260611-a-n13-inbound-source-impl` close (PR #548) — v1.1 진입 시점의 신규 구현 sprint 는 새 branch 이름 별도 결정. status `⏳ planned` 유지.
+- **구현 follow-up = v0.1.1 milestone 진입 시점 별도 sprint** (rebase main + PR #550 fix + 본 fix + 본 verification 종합 + 자동 재실행). branch `feat/work_260611-a-n13-inbound-source-impl` close (PR #548) — v0.1.1 진입 시점의 신규 구현 sprint 는 새 branch 이름 별도 결정. status `⏳ planned` 유지.
 
 ### 3.3 branch 정책
 
 - `feat/work_260611-a-n13-inbound-source-impl` close (PR #548) — 본 sprint 의 verification PR 은 main 기반의 별도 검증.
-- v1.1 진입 시점의 신규 구현 sprint branch 이름 (예: `feat/work_YYMMDD-v1-1-inbound-source-impl`) 별도 결정.
+- v0.1.1 진입 시점의 신규 구현 sprint branch 이름 (예: `feat/work_YYMMDD-v0-1-1-inbound-source-impl`) 별도 결정.
 
 ## 4. 변경 이력
 
