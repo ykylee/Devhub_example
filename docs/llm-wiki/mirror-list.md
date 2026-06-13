@@ -63,8 +63,14 @@
 | `frontend/tests/e2e-manifests/quarantine.txt` | PR #580 신규 — spec selection SSOT (quarantine) | |
 | `frontend/lib/store.ts` | Zustand store (NOW-4 frontend unit test 962 PASS) | auth actor + isSystemAdmin + state shape |
 | `frontend/domain/auth-session/service/role-routing.ts` | RBAC routing (defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin) | system route gate |
+| `frontend/components/admin/x1-widgets/SyncJobQueueWidget.tsx` | **X-1 2차 PR (2026-06-13) 신규** — RM-M4-07 widget 4종 1 (queued+running 큐, 10 row) | adminX1Service.listSyncJobs({status:queued\|running, limit:10}) 병렬 fetch |
+| `frontend/components/admin/x1-widgets/SyncJobStatusWidget.tsx` | **X-1 2차 PR 신규** — widget 4종 2 (4 status 별 count grid) | adminX1Service.getStatusSummary() |
+| `frontend/components/admin/x1-widgets/ProviderHealthWidget.tsx` | **X-1 2차 PR 신규** — widget 4종 3 (placeholder, API-107 별도 carve) | ADR-0032 §3 carve — v0.1.1 후속 sprint |
+| `frontend/components/admin/x1-widgets/DashboardSummaryWidget.tsx` | **X-1 2차 PR 신규** — widget 4종 4 (totalJobs/queueDepth/failed/successRate) | successRate = succeeded/(succeeded+failed)*100, 소수점 1자리 |
+| `frontend/domain/integration-registry/service/admin-x1.service.ts` | **X-1 2차 PR 신규** — adminX1Service class + listSyncJobs/GetSyncJob/getStatusSummary | apiClient<T> 정공법 (자동 token refresh + session death) |
+| `frontend/tests/e2e/admin-x1.spec.ts` | **X-1 2차 PR 신규** — TC-ADMIN-X1-01/02/03 (system_admin widget 4 + sync job status API mock + non-admin redirect) | page.route() mock + waitForResponse API-106 fetch 검증 |
 
-**mirror 정책**: 7 file (6 e2e/manifest + 1 Zustand store + 1 RBAC routing = 8 항목 중 6 core). **forward**: 새 frontend helper/page/component 추가 시 PR 본문에 mirror scope 추가 요청.
+**mirror 정책**: 12 file (6 e2e/manifest + 1 Zustand store + 1 RBAC routing + 4 X-1 widget + 1 admin-x1 service + 1 X-1 e2e = 14 항목 중 12 core). **forward**: 새 frontend helper/page/component 추가 시 PR 본문에 mirror scope 추가 요청.
 
 **본 sprint 의 verification 으로 발각** (2026-06-13): 원본 8 file 화이트리스트 중 `lib/auth/{tokenStore,apiClient,role-routing}.ts` 의 경로 outdated (해당 경로에 file 부재). **fix**: `frontend/lib/store.ts` (Zustand) + `frontend/domain/auth-session/service/role-routing.ts` (RBAC) 의 실제 경로 정합. **apiClient + tokenStore 는 frontend bulk source 의 mirror scope 외 (Phase 3 forward, 본 sprint 정공법의 follow-up)**.
 

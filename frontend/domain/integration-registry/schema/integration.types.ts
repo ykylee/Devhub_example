@@ -134,3 +134,42 @@ export interface ListIntegrationBindingsOptions {
   limit?: number;
   offset?: number;
 }
+
+// ============================================================================
+// X-1 System Admin 운영 대시보드 (release_v0-1_roadmap.md line 198, RM-M4-07).
+// Backend API-104/105/106 — sync job 큐/상태 + dashboard summary.
+// ============================================================================
+
+export type IntegrationSyncJobStatus = "queued" | "running" | "succeeded" | "failed";
+
+export interface IntegrationSyncJob {
+  job_id: string;
+  provider_id: string;
+  requested_by: string | null;
+  status: IntegrationSyncJobStatus;
+  created_at: string;
+}
+
+export interface IntegrationSyncJobStatusCounts {
+  queued: number;
+  running: number;
+  succeeded: number;
+  failed: number;
+}
+
+export interface ListIntegrationSyncJobsOptions {
+  status?: IntegrationSyncJobStatus;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ListIntegrationSyncJobsResponse {
+  items: IntegrationSyncJob[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface IntegrationSyncJobStatusSummaryResponse {
+  sync_job_status_counts: IntegrationSyncJobStatusCounts;
+}
