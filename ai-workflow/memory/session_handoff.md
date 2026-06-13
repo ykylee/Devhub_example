@@ -1037,3 +1037,45 @@ CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`
 
 1. **drift sync 정공법 (cross-project lesson)**: docs/openapi.yaml ↔ swaggerui/asset 의 X-1 block drift 192 line = 단순 paste byte-identical 정합. swaggerui/asset 가 CI lint canonical 이므로, docs 는 항상 swaggerui 의 subset 이어야 함. **위반 시점 drift**: paths/schemas count 차이 시 즉시 sync.
 2. **partial 정합 해소 정공법 (cross-project lesson)**: §6 row + §4 ADR row + 헤더 메타 의 정공법 만으로는 ID 가 1차/2차 PR 의 산출물과 cross-ref 되지 않음 — §3 도메인 row 의 IMPL/UT/TC 컬럼에 cross-ref 필수. **이유**: 매트릭스 row 가 ID 의 SSOT.
+
+## 30. 본 세션 후속 (2026-06-13, X-2 inbound webhook multi-provider 1차 PR #586 MERGED)
+
+### X-2 sprint scope (1차 출처 = `2026-06-12-inbound-source-routing-sprint-plan.md`)
+
+**X-2 = v0.1.1 milestone X-2 = inbound webhook 정규화 깊이 (multi-provider sync 일반화)**.
+
+- N-13 backend foundation (migration 000007 + InboundSourceType enum + UpdatePlatformInboundSource + 4 UT) = main byte-identical
+- N-13 PR A-2 (auto_route.go + voc_handler 통합 + IT 3 case + e2e) = main byte-identical
+- **X-2 의 본 1차 commit** = N-13 의 multi-provider depth 정밀화
+
+### 1차 commit (e2eae79, PR #586 MERGED squash 7075dbd, main HEAD 7075dbd)
+
+**2 file, 245 line**:
+- `auto_route.go` (92 → 165 line, +73) — InboundSourceRoutingConfig struct + ParseInboundSourceRoutingConfig + 3 provider pattern (jira/github/gitlab) + matchExternalRefPattern helper + AutoRouteDecision.ProviderHint field
+- `auto_route_test.go` (+139 line) — 6 unit test (JiraOK / GithubOK / OtherCustom / InvalidPattern / ParseConfig / CrossProvider)
+
+### 검증
+
+- `go build ./...` PASS
+- `go vet` clean
+- `go test -v -run "TestAutoRoute|TestParseInboundSourceRoutingConfig"` **12/12 PASS** (6 N-13 기존 + 6 X-2 신규)
+
+### 정합
+
+- v0.1.1 milestone X-2 의 1차 PR (backend depth)
+- P3-9 RM-M4-07 (X-1) 의 multi-provider 일반화
+- 1차 출처 = ADR-0028 §6 (a) + N-13 follow-up 종합 검증
+- N-13 의 foundation + PR A-2 와 byte-identical 정합
+
+### 잔여 (X-2 2~5차, 별도 follow-up)
+
+- 2차: WebhookAdapter interface + Gitea/Jira/Generic adapter (multi-provider webhook endpoint 일반화)
+- 3차: openapi.yaml 정합
+- 4차: frontend multi-provider 운영 UI (system_admin /admin/settings/integrations 의 InboundSourceConfig JSONB editor)
+- 5차: e2e + ADR-0033 + traceability/CHANGELOG/mirror-list
+
+### CRITICAL 레슨런 (3건)
+
+1. **기존 infrastructure 최대 활용 정공법 (cross-project lesson)**: N-13 의 backend foundation (PR A-1) + PR A-2 (auto_route.go + voc_handler) 가 main 에 byte-identical 포함 — X-2 의 1차 commit 은 **새 method 추가가 아닌** 기존 pattern matcher 의 **multi-provider depth 정밀화** 만.
+2. **JSONB schema 의 typed parse 정공법**: `InboundSourceRoutingConfig` struct + `ParseInboundSourceRoutingConfig(raw string)` 함수로 platform.InboundSourceConfig (raw text) 의 typed parse. 빈 문자열 / invalid JSON 의 silent skip (zero value + nil error) = 운영자 audit 으로 silent invalid 알림.
+3. **ProviderHint field 추가 정공법 (X-2 의 reason 정밀화)**: AutoRouteDecision.Reason (`external_ref_pattern` / `requester_email` / `req_department` / `no_match`) 에 ProviderHint (`gitea` | `jira` | `github` | `gitlab` | `other_custom` | `custom` | empty) 필드 추가 — reason + provider 의 정밀 식별. 운영자 dashboard 에서 "왜 gitea enum 으로 match 됐는가" 즉시 식별.
