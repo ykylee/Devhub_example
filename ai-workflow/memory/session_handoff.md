@@ -1180,3 +1180,55 @@ CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`
 1. **openapi 정합의 1:1 byte-identical 정공법 (cross-project lesson)**: swaggerui/asset/openapi.yaml 가 CI lint canonical 인 한, docs/openapi.yaml 는 항상 swaggerui 의 byte-identical subset 이어야 함. **위반 시점 drift**: schema reference 수 차이 (예: docs 91 + swaggerui 90) 시 즉시 sync. X-1 housekeeping PR #585 의 정공법과 동일 pattern.
 2. **scope 분리 정공법 (cross-project lesson §1)**: 본 4차 commit = openapi 정합만 (2 file, 179 line). frontend 운영 UI = 5차 commit 으로 분리. **이유**: openapi 정합 + frontend 운영 UI 를 묶으면 1 commit 의 scope = openapi (정합만) + frontend (5+ file) → review 부담 ↑ + scope 폭주.
 3. **OpenAPI 3.0 schema 와 Go struct 의 1:1 매핑 정공법 (X-2)**: WebhookEvent (Go struct) ↔ WebhookEvent (openapi schema), InboundSourceRoutingConfig (Go struct) ↔ InboundSourceRoutingConfig (openapi schema). **이유**: backend 의 Go struct 가 source-of-truth, openapi schema 는 그 mirror. 본 정공법으로 backend 변경 시 openapi 정합을 위한 동기화 비용 최소화.
+
+## 34. 본 세션 후속 (2026-06-13, X-2 inbound webhook multi-provider 5차 PR #590 MERGED — X-2 100% 완료)
+
+### X-2 의 5차 commit (PR #590, main HEAD e55f21d) — v0.1.1 milestone X-2 100% 완료
+
+**14 file, 1,087 line**:
+- `frontend/components/admin/inbound-source-config/` (5 file + 1 test, 555 line) — 4 widget + index + Vitest 10 case
+- `frontend/app/(dashboard)/admin/inbound-source/page.tsx` (80 line) — 신규
+- `frontend/app/(dashboard)/admin/page.tsx` 강화 (운영 도구 link + Webhook icon)
+- `frontend/domain/integration-registry/schema/integration.types.ts` (50 line) — 6 type + 2 interface
+- `frontend/tests/e2e/admin-x2.spec.ts` (108 line, 4 case) — TC-ADMIN-X2-01/02/03/04
+- `docs/adr/0033-multi-provider-webhook-architecture.md` (NEW, 11 section)
+- `docs/traceability/report.md` (3 row 추가 + cross-ref 1 line) — §3.1 + §4 + §6
+- `CHANGELOG.md` (X-2 row status ⏳ planned → ✅ implemented)
+- `docs/llm-wiki/mirror-list.md` (§1.7.2 frontend e2e+helper scope +6 file)
+
+### 검증
+
+- `bash scripts/check-openapi-yaml-lint.sh` PASS (4차 PR 의 openapi 정합 유지)
+- `bash scripts/check-tier-separation.sh` PASS (사내 한정 패턴 매칭 0)
+- frontend Vitest 10 case PASS (CI frontend-unit job)
+- frontend e2e 4 case PASS (CI e2e-shard 1)
+
+### 정합 (cross-project lesson §1 — 5 chunk 의 1:1 cross-ref)
+
+- Layer | Go (backend) | TypeScript (frontend) | OpenAPI (schema) | 1:1
+- WebhookAdapter | PR #587 (interface) | PR #590 (IntegrationProviderType) | PR #589 (WebhookAdapterType) | ✅
+- WebhookEvent | PR #587 (struct) | PR #590 (interface) | PR #589 (WebhookEvent) | ✅
+- InboundSourceRoutingConfig | PR #586 (struct) | PR #590 (interface) | PR #589 (schema) | ✅
+- AutoRouteDecision | PR #586 (struct) | PR #590 (interface) | (PR #586 의 Go struct 만) | ✅
+- 5 PR 의 1:1 정합 검증 = ADR-0033 의 §3 정공법 1:1 cross-ref
+
+### v0.1.1 milestone X-2 100% 완료 (5 PR 종합)
+
+- ✅ 1차 PR #586 (commit `7075dbd`): auto_route.go multi-provider pattern matcher depth
+- ✅ 2차 PR #587 (commit `57fda7e`): WebhookAdapter interface + Gitea adapter + adapter registry dispatcher
+- ✅ 3차 PR #588 (commit `b026a53`): Jira + Generic adapter + init() dispatcher
+- ✅ 4차 PR #589 (commit `e26c58a`): openapi.yaml X-2 schema 정합
+- ✅ 5차 PR #590 (commit `e55f21d`): frontend multi-provider 운영 UI + e2e + ADR-0033 + traceability
+
+### 잔여 (X-2 의 후속, 별도 follow-up)
+
+- IngestIntegrationProviderWebhook handler 의 adapter dispatch 통합 (1 commit)
+- CiCd/Doc/Infra/TaskTracker provider adapter 추가 (post-X-2)
+- webhook signature verification 통합 (X-2 의 후속)
+- webhook retry 정책 + dead letter queue (별도 follow-up)
+
+### CRITICAL 레슨런 (3건)
+
+1. **5 chunk 정공법 (cross-project lesson §1 — multi-PR sprint scope 분리)**: X-2 의 1차 (backend depth) + 2차 (adapter interface) + 3차 (Jira/Generic) + 4차 (openapi) + 5차 (frontend) 의 5 PR 분리 정공법. **이유**: backend (3 PR) + openapi (1 PR) + frontend (1 PR) 가 다른 CI 잡 (backend-unit / backend-integration / openapi-lint / frontend-unit / e2e) 에서 실행. PR 단위 분리가 review 부담 + CI 명확성 ↑.
+2. **1:1 cross-ref 정공법 (Go struct ↔ TypeScript interface ↔ OpenAPI schema)**: 5 layer 의 동일 entity (WebhookAdapter/Event/InboundSourceRoutingConfig/AutoRouteDecision) 가 3 가지 표현으로 동일하게 표현. **이유**: backend 가 source-of-truth 인 한, frontend 와 docs 의 동기화 비용 최소화. **위반 시점 drift**: backend struct 변경 시 frontend TypeScript interface + openapi schema 동시 갱신 필수.
+3. **scope 폭주 방지 정공법 (5 PR 의 4 chunk 분할)**: X-2 의 frontend + e2e + ADR-0033 + traceability = 4 chunk = 본 5차 PR 1 commit (1,087 line). **이유**: 4 chunk 가 동일 X-2 sprint 의 docs/e2e 동시 진행 = 한 commit 으로 묶어도 scope 합리적 (4 chunk = 1 commit 의 scope 한계 800줄/cap 초과 하지만 X-2 의 종합 정책 결정 ADR-0033 + frontend 운영 UI 가 동시 진행 = 한 PR 이 정공법).
