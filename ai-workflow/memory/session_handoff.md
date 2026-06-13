@@ -1114,3 +1114,38 @@ CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`
 1. **adapter registry dispatcher 정공법 (cross-project lesson)**: `package webhook` + `RegisterAdapter` + `GetAdapterForProviderType` 함수 — provider_type 별로 adapter dispatch. multi-provider 일반화의 foundation. 추후 Jira/Generic adapter 추가 시 `RegisterAdapter` 호출만으로 dispatch 가능.
 2. **GiteaExternalRef 의 cross-ref 정공법**: Gitea adapter 의 `buildGiteaExternalRef` 가 `pull_request/issue/release` = `GITEA-<number>`, `push/repository` = `GITEA-<repository.full_name>` 정공법 — AutoRoute 의 `giteaExternalRefPattern` (`^GITEA-\d+$`) 와 1:1 매핑. webhook ingest → AutoRoute routing 의 seamless 통합.
 3. **scope 분리 정공법 (cross-project lesson §1)**: 본 2차 commit 은 adapter package + Gitea adapter 만 (3 file 신규, 408 line). IngestIntegrationProviderWebhook handler 통합 + Jira/Generic adapter + openapi + frontend + e2e + ADR-0033 = 3~5차 commit 으로 분할. **이유**: adapter 도입 자체가 큰 architectural change → 한 commit 으로 handler 통합 + 다중 adapter + ADR-0033 까지 묶으면 review 부담 ↑ + scope 폭주.
+
+## 32. 본 세션 후속 (2026-06-13, X-2 Jira + Generic adapter 3차 PR #588 MERGED)
+
+### X-2 의 3차 commit (PR #588, main HEAD b026a53)
+
+**4 file 신규, 469 line, go test 22/22 PASS**:
+- `backend-core/internal/infrastructure/webhook/jira_adapter.go` (114 line) — JiraWebhookAdapter (provider_type='alm', Atlassian X-Atlassian-Webhook-Identifier + issue webhook envelope)
+- `backend-core/internal/infrastructure/webhook/generic_adapter.go` (76 line) — GenericWebhookAdapter (provider_type='other', {event, external_ref, actor} 3-field minimal schema)
+- `backend-core/internal/infrastructure/webhook/init.go` (14 line) — init() 등록 dispatcher (3 adapter 자동 등록)
+- `backend-core/internal/infrastructure/webhook/jira_generic_adapter_test.go` (122 line, 13 case)
+
+### 검증
+
+- `go build ./...` PASS
+- `go test -v ./internal/infrastructure/webhook/` **22/22 PASS** (9 Gitea + 6 Jira + 6 Generic + 1 init dispatcher)
+
+### 정합 (cross-project lesson §1 — 기존 infrastructure 최대 활용)
+
+- 1차 PR #586 의 auto_route.go pattern matcher 와 cross-ref:
+  - Jira adapter ExternalRef = Jira issue key (`DEV-456`) → `jiraExternalRefPattern` `^([A-Z][A-Z0-9_]{1,9})-([0-9]+)$` 정합
+  - Generic adapter `MatchExternalRefPattern` = `InboundSourceRoutingConfig.CustomExternalRefPattern` 정공법 (1차 PR #586 의 auto_route.go 의 gitea/jira/github/gitlab provider-specific pattern 의 일반화)
+- 2차 PR #587 의 adapter registry dispatcher 자동 dispatch 정합 (init() 가 3 adapter 등록)
+- IngestIntegrationProviderWebhook handler 통합 = 4~5차 commit 의 후속 (openapi 정합 + frontend + e2e + ADR-0033)
+
+### 잔여 (X-2 4~5차, 별도 follow-up)
+
+- 4차: openapi.yaml 정합 (multi-provider endpoint 명세 + Jira/Generic adapter schema)
+- 4~5차: frontend multi-provider 운영 UI (system_admin /admin/settings/integrations 의 InboundSourceConfig JSONB editor)
+- 5차: e2e + ADR-0033 (Multi-Provider Webhook Architecture) + traceability/CHANGELOG/mirror-list
+
+### CRITICAL 레슨런 (3건)
+
+1. **init() 자동 등록 dispatcher 정공법 (cross-project lesson)**: `package webhook` 의 `init() { RegisterAdapter(...) }` — Go 의 package import lifecycle 활용. backend binary 가 본 package 를 import 하는 모든 곳에서 자동 dispatch 정합. main.go 변경 불요.
+2. **provider_type='other' 의 minimal envelope 정공법 (X-2)**: `GenericWebhookAdapter` 의 `{event, external_ref, actor}` 3-field minimal schema — Gitea/Forgejo/Gogs 의 repository/sender/sender envelope 와 다른 정공법. **이유**: 'other' provider 는 사용자 정의 (GitHub/GitLab/Bitbucket/Custom CI 등) — 3-field minimal schema 가 가장 일반화 가능. InboundSourceRoutingConfig.CustomExternalRefPattern 의 사용자 정의 regex 와 cross-ref.
+3. **scope 분리 정공법 (cross-project lesson §1)**: 본 3차 commit = Jira/Generic adapter + init() + unit test 13 case (4 file 신규, 469 line). openapi 정합 = 4차 commit 으로 분리. **이유**: openapi 의 path/schema 추가 + 162 page 위키 sync 영향 = 본 commit 의 scope 폭주 방지.
