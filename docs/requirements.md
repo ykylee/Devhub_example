@@ -136,9 +136,9 @@
 
 본 절은 2026-06-01 통합 테스트 결과 + 2026-06-06 housekeeping 의 sprint -h 신규 carve 3건의 REQ ID 본문이다. 본 PR (Mavis housekeeping) 의 ID 발급 후 sprint -h 의 Claude 가 각 sub-document 의 detailed body 작성 + IMPL/UT/TC 동시 발급.
 
-- **REQ-FR-106** (integration-registry, CI Run 생성 API) — `POST /api/v1/ci-runs` 의 본문 요구사항 (request body 필드, status enum 가드, idempotency unique key, audit emit, metric emit). `docs/domain/integration-registry/requirements.md` §5.11 stub.
-- **REQ-FR-107** (auth-session, Sign-out endpoint) — `POST /api/v1/auth/logout` 의 본문 요구사항 (Authorization Bearer 추출, Keycloak `/protocol/openid-connect/logout` 호출, idempotency, 401/502 응답 코드, audit emit). `docs/domain/auth-session/requirements.md` §5.11 stub.
-- **REQ-FR-108** (repository-integration, Repository build-runs) — `GET /api/v1/repos/:id/build-runs` 의 본문 요구사항 (cursor pagination, status filter, RBAC + same-org-unit subtree scope). `docs/domain/repository-integration/requirements.md` §5.12 stub.
+- **REQ-FR-106** (integration-registry, CI Run 생성 API) — `POST /api/v0-1/ci-runs` 의 본문 요구사항 (request body 필드, status enum 가드, idempotency unique key, audit emit, metric emit). `docs/domain/integration-registry/requirements.md` §5.11 stub.
+- **REQ-FR-107** (auth-session, Sign-out endpoint) — `POST /api/v0-1/auth/logout` 의 본문 요구사항 (Authorization Bearer 추출, Keycloak `/protocol/openid-connect/logout` 호출, idempotency, 401/502 응답 코드, audit emit). `docs/domain/auth-session/requirements.md` §5.11 stub.
+- **REQ-FR-108** (repository-integration, Repository build-runs) — `GET /api/v0-1/repos/:id/build-runs` 의 본문 요구사항 (cursor pagination, status filter, RBAC + same-org-unit subtree scope). `docs/domain/repository-integration/requirements.md` §5.12 stub.
 
 각 sub-document 의 detailed body + acceptance criteria 는 sprint -h 진입 시 sprint -h 의 Claude 가 동시 작성 (sprint `mvs/work_260606-b-traceability-ci-auth-repo` 의 housekeeping PR 머지 후).
 

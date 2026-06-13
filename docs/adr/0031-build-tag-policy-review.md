@@ -1,4 +1,4 @@
-# ADR-0031: build tag 정책 재검토 (v1.1 sprint -a follow-up PR1 PR #540 carry-over C-j)
+# ADR-0031: build tag 정책 재검토 (v0.1.1 sprint -a follow-up PR1 PR #540 carry-over C-j)
 
 - **문서 목적**: [ADR-0030 §2.3](./0030-sso-integrations-and-auth-session-port.md) 의 **runtime injection (옵션 2) 채택 결정** 을 현시점 (2026-06-12, e2e-internal job 폐기 결정, sprint `fix/work_260612-6-e2e-internal-removal`) 에서 재평가하고, build tag (옵션 1) 로의 전환 trade-off 를 정량적으로 측정하여 본 결정의 지속 / 갱신 / supersession 을 명문화한다.
 - **범위**: ADR-0030 §2.3 의 두 옵션 (옵션 1 build tag / 옵션 2 runtime injection) 의 cost 측정 + 현시점 결정 + 재검토 trigger 정의. **코드 변경 0**. 본 ADR 은 결정의 re-evaluation 만, 신규 구현 변경 없음.
@@ -7,7 +7,7 @@
 - **최종 수정일**: 2026-06-12 (e2e-internal job 폐기에 따른 baseline 갱신, sprint `fix/work_260612-6-e2e-internal-removal`)
 - **결정 근거 sprint**: `docs/work_260610-c-j-build-tag-review` (PR 의 sprint) + `fix/work_260612-6-e2e-internal-removal` (본 baseline 갱신 sprint)
 - **Tier**: **공용** (ADR 만, 사내 한정 정보 미포함)
-- **관련 문서**: [ADR-0030 §2.3 runtime injection 결정](./0030-sso-integrations-and-auth-session-port.md) (본 ADR 의 re-evaluation source), [release_v1_roadmap.md §3.5 N-13](../planning/release_v1_roadmap.md) (PR #540 의 carry-over C-j 의 source), [PR #539 `feat/work_260610-v1-1-sprint-a-followup`](https://github.com/ykylee/Devhub_example/pull/539) (saovae_stub + main wiring), [PR #540 `feat/work_260610-v1-1-sprint-a-real-adapter`](https://github.com/ykylee/Devhub_example/pull/540) (real adapter), [PR #542 `feat/work_260610-c-i-e2e-internal-job`](https://github.com/ykylee/Devhub_example/pull/542) (C-i E2E Internal job — **2026-06-12 폐기 결정, sprint `fix/work_260612-6-e2e-internal-removal`**).
+- **관련 문서**: [ADR-0030 §2.3 runtime injection 결정](./0030-sso-integrations-and-auth-session-port.md) (본 ADR 의 re-evaluation source), [release_v0-1_roadmap.md §3.5 N-13](../planning/release_v0-1_roadmap.md) (PR #540 의 carry-over C-j 의 source), [PR #539 `feat/work_260610-v0-1-1-sprint-a-followup`](https://github.com/ykylee/Devhub_example/pull/539) (saovae_stub + main wiring), [PR #540 `feat/work_260610-v0-1-1-sprint-a-real-adapter`](https://github.com/ykylee/Devhub_example/pull/540) (real adapter), [PR #542 `feat/work_260610-c-i-e2e-internal-job`](https://github.com/ykylee/Devhub_example/pull/542) (C-i E2E Internal job — **2026-06-12 폐기 결정, sprint `fix/work_260612-6-e2e-internal-removal`**).
 
 ## 1. 배경
 
@@ -26,8 +26,8 @@ ADR-0030 의 근거 (2026-06-10): "옵션 2 의 단점 (binary size) 은 미미�
 
 | PR | 변경 | 영향 |
 | --- | --- | --- |
-| **#539** (`feat/work_260610-v1-1-sprint-a-followup`) | `backend-core/internal/sso-integrations/keycloak/saovae_stub.go` (NEW, 105 lines) + main.go `DEVHUB_BUILD_TIER` env var 분기 | saovae_stub 가 단일 binary 에 포함, default = stub. |
-| **#540** (`feat/work_260610-v1-1-sprint-a-real-adapter`) | `verifier.go` (506 lines) + `admin_client.go` (456 lines) + `metrics.go` (70 lines) + 4 test file (~1,200 lines) — `sso-integrations/keycloak/` 단일 트리 | real adapter 가 stub 와 동거 (단일 트리). |
+| **#539** (`feat/work_260610-v0-1-1-sprint-a-followup`) | `backend-core/internal/sso-integrations/keycloak/saovae_stub.go` (NEW, 105 lines) + main.go `DEVHUB_BUILD_TIER` env var 분기 | saovae_stub 가 단일 binary 에 포함, default = stub. |
+| **#540** (`feat/work_260610-v0-1-1-sprint-a-real-adapter`) | `verifier.go` (506 lines) + `admin_client.go` (456 lines) + `metrics.go` (70 lines) + 4 test file (~1,200 lines) — `sso-integrations/keycloak/` 단일 트리 | real adapter 가 stub 와 동거 (단일 트리). |
 | **#542** (`feat/work_260610-c-i-e2e-internal-job`) | `.github/workflows/ci.yml` 에 `e2e-internal` job (23 step, port 8181, `DEVHUB_BUILD_TIER=internal`) 신규 → **2026-06-12 폐기** (sprint `fix/work_260612-6-e2e-internal-removal`). 사용자 결정: e2e-internal 은 사내 환경용 셋팅 (real Keycloak adapter 검증) 이므로 GitHub Actions 로 체크 불요. CI 의 1쌍 matrix 폐기. runtime injection 결정 자체는 유지 (사내 staging/prod-smoke 가 real adapter 검증). |
 
 **즉, 현시점 (2026-06-12, e2e-internal job 폐기 후) 에서 "runtime injection 의 cost" 와 "build tag 의 cost" 를 e2e-internal 분 제외 후 정당 정량 비교 가능**. 본 ADR 의 baseline = 1쌍 (e2e shard 1/2/3 saovae_stub default 만). runtime injection 결정 = 유지.

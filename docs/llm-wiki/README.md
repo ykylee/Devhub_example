@@ -145,4 +145,4 @@ scripts/wiki-pr-update.sh                 ← wrapper (D-80, 5 option: --pr/--pr
 3. main flat memory 3 file finalize (post-merge sync).
 4. 또는 T-d-72-2 (`bash scripts/wiki-sync-devhub.sh` 1회 실행, 사용자 confirm 후).
 5. 또는 T-d-79-2 / T-d-80-2 (my_harness 측 SSOT spec/impl 작성 의뢰, [`./handoff-to-my-harness.md`](../../ai-workflow/memory/feat/work_260611-a-wiki-ingest-from-raw/handoff-to-my-harness.md) 참고).
-6. 또는 다른 sprint (backend-integration matrix / N-10 RBAC E2E 6 TC / release_v1_roadmap §3.5 N-13 정합).
+6. 또는 다른 sprint (backend-integration matrix / N-10 RBAC E2E 6 TC / release_v0-1_roadmap §3.5 N-13 정합).

@@ -101,10 +101,10 @@
 
 MVP는 기존 API 재사용을 우선한다.
 
-1. Applications: `GET /api/v1/platforms`
-2. Repositories: `GET /api/v1/repositories`
+1. Applications: `GET /api/v0-1/platforms`
+2. Repositories: `GET /api/v0-1/repositories`
 3. Projects:
-- Application 맥락 목록: `GET /api/v1/platforms/:platform_id/projects`
+- Application 맥락 목록: `GET /api/v0-1/platforms/:platform_id/projects`
 - 필요 시 후속으로 Admin 전용 집계 API 검토
 
 주의:

@@ -6,7 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-06-12
 - Tier: 공용
-- 관련 문서: [문서 작성·관리 표준](../governance/document-standards.md), [v1.0 릴리즈 로드맵](./release_v1_roadmap.md), [추적성 체크리스트](../traceability/sync-checklist.md)
+- 관련 문서: [문서 작성·관리 표준](../governance/document-standards.md), [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md), [추적성 체크리스트](../traceability/sync-checklist.md)
 
 ## 1. 배경
 

@@ -53,8 +53,8 @@
 
 | 단계 | 결과 | 비고 |
 |------|------|------|
-| developer → `/api/v1/platforms` | ✅ 403 | `role "developer" lacks applications:view permission` |
-| developer → `/api/v1/me` | ✅ 200 | role=developer 정상 반환 |
+| developer → `/api/v0-1/platforms` | ✅ 403 | `role "developer" lacks applications:view permission` |
+| developer → `/api/v0-1/me` | ✅ 200 | role=developer 정상 반환 |
 | system_admin → `/admin/settings/users` | ✅ | 전체 사용자 목록 정상 표시 |
 | system_admin → sidebar "System (Admin only)" | ✅ | 정상 노출 |
 | system_admin → `/admin/catalog` → "New Application" | ✅ | Dialog 정상 동작 |
@@ -73,8 +73,8 @@
 | Register Provider dialog (Gitea preset) | ✅ | Gitea preset 선택 시 type/auth/sig auto-fill |
 | Provider Key / Display Name / Base URL / API Token 입력 | ✅ | Form fields 정상 |
 | **Gitea 외부 서버 연결성** | 🔴 **차단** | `homelab.ddn777.synology.me` |
-| - API root (`/gitea/api/v1`) | ❌ | HTML redirect page 반환 (HTTPS:5001 안내) |
-| - Token 생성 (`/gitea/api/v1/users/yklee/tokens`) | ❌ 405 | nginx 405 Not Allowed |
+| - API root (`/gitea/api/v0.1`) | ❌ | HTML redirect page 반환 (HTTPS:5001 안내) |
+| - Token 생성 (`/gitea/api/v0-1/users/yklee/tokens`) | ❌ 405 | nginx 405 Not Allowed |
 | - Playwright browser 접근 | ❌ Timeout | MCP 브라우저에서 타임아웃 |
 | - HTTPS direct (`:5001`) | ❌ | Connection refused |
 | - HTTP direct (`:5000`) | ❌ | Connection refused |
@@ -88,8 +88,8 @@
 | 단계 | 결과 | 비고 |
 |------|------|------|
 | API Key validation | ✅ | `^[A-Za-z0-9]{1,10}$` regex 적용 확인 |
-| API POST `/api/v1/platforms` (system_admin) | ✅ 422→ 설계된 validation | key `test-app-alpha` → hyphens reject |
-| API POST `/api/v1/platforms` (developer) | ✅ 403 | RBAC 정상 동작 확인 |
+| API POST `/api/v0-1/platforms` (system_admin) | ✅ 422→ 설계된 validation | key `test-app-alpha` → hyphens reject |
+| API POST `/api/v0-1/platforms` (developer) | ✅ 403 | RBAC 정상 동작 확인 |
 | DB direct INSERT (`TESTAPP01`) | ✅ | UUID 자동 생성, key unique constraint 확인 |
 | Web UI "New Application" dialog | ✅ | Leader 선택, Department 선택, Visibility / Status 설정 가능 |
 
@@ -115,14 +115,14 @@
 - 초기 named volume permission 문제 → bind mount로 전환하여 해결
 - `GITEA__database__PATH`를 `/data/gitea/gitea.db`로 설정하여 `git` user 쓰기 권한 문제 해결
 - `provider_sdk:` prefix가 있는 `credentials_ref`는 `isGiteaCompatibleProvider` 검증 실패 → `gitea-token`으로 변경
-- `owner` 필드가 설정되면 Gitea client가 `/api/v1/orgs/{owner}/repos` 호출 → user는 org가 아니라서 403 → `owner` 생략하고 `/api/v1/user/repos` 사용
+- `owner` 필드가 설정되면 Gitea client가 `/api/v0-1/orgs/{owner}/repos` 호출 → user는 org가 아니라서 403 → `owner` 생략하고 `/api/v0-1/user/repos` 사용
 
 ### SC-TEST-2.3: Project 생성 ✅ 통과
 
 | 단계 | 결과 | 비고 |
 |------|------|------|
 | Application 조회 (TESTAPP01 UUID 확인) | ✅ | `f0a18b05-92e6-45d6-ba00-4d2228550208` |
-| `POST /api/v1/platforms/{app_id}/projects` | ✅ | Key: `ALPHA-SPRINT-1`, Name: "Alpha Integration Sprint 1" |
+| `POST /api/v0-1/platforms/{app_id}/projects` | ✅ | Key: `ALPHA-SPRINT-1`, Name: "Alpha Integration Sprint 1" |
 | Project 응답 확인 | ✅ | `platform_id` 정상 연결, `repository_id: null` (초기) |
 | Project 상태 | ✅ | `planning`, visibility: `internal` |
 
@@ -168,8 +168,8 @@ Gitea API를 통해 testapp-alpha-repo에 샘플 작업물 등록:
 |------|------|------|
 | `POST /providers/{id}/sync` | ✅ Sync job accepted | `job_id` 반환 |
 | SCM Repository 목록 조회 | ✅ 3개 repo 표시 | `direct-test-repo`, `testapp-alpha-repo`, `token-test-repo` |
-| Issue 목록 조회 (`GET /api/v1/issues`) | ✅ 2건 | Issue #1, #2 모두 표시 |
-| PR 목록 조회 (`GET /api/v1/pull-requests`) | ✅ 1건 | PR #3 표시 |
+| Issue 목록 조회 (`GET /api/v0-1/issues`) | ✅ 2건 | Issue #1, #2 모두 표시 |
+| PR 목록 조회 (`GET /api/v0-1/pull-requests`) | ✅ 1건 | PR #3 표시 |
 | Issue Assignee 표시 | ✅ | `assignee_login: "yklee"` |
 | Issue HTML URL 연결 | ✅ | Gitea URL로 정확히 연결 |
 
@@ -213,7 +213,7 @@ VALUES
 
 | 단계 | 결과 | 비고 |
 |------|------|------|
-| `GET /api/v1/ci-runs` (전체) | ✅ 2건 | source: "db" |
+| `GET /api/v0-1/ci-runs` (전체) | ✅ 2건 | source: "db" |
 | `GET /repositories/1/build-runs` | ❌ 빈 배열 | repo-scoped endpoint 별도 |
 | `GET /ci-runs/{id}/logs` | ❌ not found | log 저장소 미구현 |
 
@@ -248,7 +248,7 @@ VALUES
 
 #### 5.1a: Intake Token 생성 (System Admin)
 
-POST `/api/v1/dev-request-tokens`:
+POST `/api/v0-1/dev-request-tokens`:
 
 ```json
 {
@@ -267,7 +267,7 @@ POST `/api/v1/dev-request-tokens`:
 
 #### 5.1b: 외부 Dev Request 수신 (Intake API)
 
-POST `/api/v1/dev-requests` (Authorization: Bearer `<plain_token>`):
+POST `/api/v0-1/dev-requests` (Authorization: Bearer `<plain_token>`):
 
 ```json
 {
@@ -306,19 +306,19 @@ POST `/api/v1/dev-requests` (Authorization: Bearer `<plain_token>`):
 
 ### SC-TEST-5.3: Dev Request → Application 승격 (Promote) ✅ 통과
 
-POST `/api/v1/dev-requests/80226589-.../register`:
+POST `/api/v0-1/dev-requests/80226589-.../register`:
 
 | 단계 | 결과 | 비고 |
 |------|------|------|
 | Target type = application | ✅ | `application_payload`로 신규 Application 생성 |
 | Application key `ALPHASVC` | ✅ | key format `^[A-Za-z0-9]{1,10}$` 준수 |
 | Dev Request 상태 전이 | ✅ `pending` → `registered` | `registered_target_type: "application"` |
-| 생성된 Application 조회 가능 | ✅ | `GET /api/v1/platforms?key=ALPHASVC` |
+| 생성된 Application 조회 가능 | ✅ | `GET /api/v0-1/platforms?key=ALPHASVC` |
 | 중복 Promote 시도 | ✅ **409 Conflict** | `"dev_request is already registered/rejected/closed"` |
 
 ### SC-TEST-5.4: Dev Request → Project 승격 (Promote) ✅ 통과
 
-POST `/api/v1/dev-requests/09045149-.../register`:
+POST `/api/v0-1/dev-requests/09045149-.../register`:
 
 | 단계 | 결과 | 비고 |
 |------|------|------|
@@ -326,7 +326,7 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 | Project key `ALPHA-SPRINT-2` | ✅ | `repository_id: 1` (testapp-alpha-repo) 연결 |
 | Repository FK 검증 | ✅ | 존재하는 repository ID로 정상 생성 |
 | Dev Request 상태 전이 | ✅ `pending` → `registered` | `registered_target_type: "project"` |
-| 생성된 Project 조회 가능 | ✅ | `GET /api/v1/projects/4f1f6dd5-...` |
+| 생성된 Project 조회 가능 | ✅ | `GET /api/v0-1/projects/4f1f6dd5-...` |
 | Atomic transaction | ✅ | Project 생성 + DREQ 상태 변경이 단일 트랜잭션 |
 
 ---
@@ -395,7 +395,7 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 - **재현**: 
   1. Gitea Issue #1 close (PATCH `/issues/1` → `state:closed`)
   2. `POST /providers/{id}/sync` 실행
-  3. `GET /api/v1/issues` → state=open (unchanged)
+  3. `GET /api/v0-1/issues` → state=open (unchanged)
 - **추정 원인**: Pull sync worker가 초기 import만 수행하고 증분 update 로직이 없음
 - **해결 방안**: 
   1. **단기**: Provider sync worker가 `updated_at` 기준 incremental fetch 구현
@@ -428,7 +428,7 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 - **영향**: Low (사용법 숙지 필요)
 - **대상**: `POST /integration/providers/{id}/create-repository`
 - **증상**: `owner` 필드 설정 시 Gitea API 403 반환
-- **원인**: client가 `/api/v1/orgs/{owner}/repos` 호출, user는 org가 아님
+- **원인**: client가 `/api/v0-1/orgs/{owner}/repos` 호출, user는 org가 아님
 - **해결**: user 계정으로 생성 시 `owner` 필드 생략
 
 ### ISSUE-04: Repository Build-Runs Endpoint Empty
@@ -443,36 +443,36 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 - **대상**: CI/CD 통합
 - **증상**: CI Run을 생성할 수 있는 POST endpoint 없음. 현재 DB 직접 INSERT만 가능
 - **권장**: 
-  1. **P0**: `POST /api/v1/ci-runs` endpoint 구현 (status validation: queued/running/success/failed/cancelled/skipped/unknown)
+  1. **P0**: `POST /api/v0-1/ci-runs` endpoint 구현 (status validation: queued/running/success/failed/cancelled/skipped/unknown)
   2. **P1**: Gitea Actions Webhook 수신 endpoint 구현
   3. **P2**: Provider 기반 CI Run import worker
 
 ---
 
-## 8. v1.0 로드맵 정합성 분석
+## 8. v0.1.0 로드맵 정합성 분석
 
-[release_v1_roadmap.md](./release_v1_roadmap.md) 기준 v1.0 M-v1.0 (2026-06-15)과의 정합성:
+[release_v0-1_roadmap.md](./release_v0-1_roadmap.md) 기준 v0.1.0 M-v0.1.0 (2026-06-15)과의 정합성:
 
 | 로드맵 carve | 상태 | 테스트 결과 매핑 |
 |------------|------|----------------|
-| **P0-1** ADR-0020 sub-carve B — `/api/v1/accounts/*` 폐기 | ✅ 예정 | 영향 없음 |
+| **P0-1** ADR-0020 sub-carve B — `/api/v0-1/accounts/*` 폐기 | ✅ 예정 | 영향 없음 |
 | **P0-2** UI polish | ✅ 예정 | — |
 | **P0-3** Playwright screenshot | ✅ 예정 | — |
 | **P1-1** Keycloak event listener 확장 | ⚠️ **BUG-02 해결 필요** | role sync 누락이 P1-1의 USER:UPDATE 이벤트로 해결되어야 함 |
 | **P1-2** JWKS expiry | ✅ 예정 | — |
 | **P2-8~P2-12** Onboarding IMPL | ✅ 완료 (PR #278/#288/#289/#290/#291) | E2E 검증 완료 |
-| **N-1~N-6** v1.0 마감 품질 | ⚠️ **BUG-03, ISSUE-04 포함 필요** | N-3 SCM E2E 테스트 범위 확장 |
+| **N-1~N-6** v0.1.0 마감 품질 | ⚠️ **BUG-03, ISSUE-04 포함 필요** | N-3 SCM E2E 테스트 범위 확장 |
 | **X-4** Project ↔ SCM create 연계 | ⚠️ **초기 확인** | 2.4~2.5 SCM create→Project link 확인. FE 연계는 미확인 |
-| **P3-6** WebSocket | ❌ **v1.1+** | 실시간 Issue/CI 알림 필요시 v1.0 조정 |
+| **P3-6** WebSocket | ❌ **v0.1.1+** | 실시간 Issue/CI 알림 필요시 v0.1.0 조정 |
 | **P3-8** Gitea Hourly Pull (v2) | ❌ **v2** | BUG-06 증분 sync를 v1.0에서 부분 처리 가능 |
 
 ### 로드맵 GAP: 신규 발견 사항
 
 | ID | 발견 항목 | 우선순위 | 현 로드맵 상태 | 권장 조치 |
 |----|---------|---------|-------------|----------|
-| **NEW-P0** | CI Run 생성 API 부재 (ISSUE-05) | **P0** | 미포함 | v1.0 로드맵에 신규 P0 carve 추가 |
-| **NEW-P1A** | Sign-out endpoint 미구현 (BUG-03) | **P1** | 미포함 | v1.0 로드맵에 신규 P1 carve 추가 |
-| **NEW-P1B** | Repository build-runs endpoint (ISSUE-04) | **P1** | 미포함 | v1.0 로드맵에 신규 P1 carve 추가 (N-3/X-4 연계) |
+| **NEW-P0** | CI Run 생성 API 부재 (ISSUE-05) | **P0** | 미포함 | v0.1.0 로드맵에 신규 P0 carve 추가 |
+| **NEW-P1A** | Sign-out endpoint 미구현 (BUG-03) | **P1** | 미포함 | v0.1.0 로드맵에 신규 P1 carve 추가 |
+| **NEW-P1B** | Repository build-runs endpoint (ISSUE-04) | **P1** | 미포함 | v0.1.0 로드맵에 신규 P1 carve 추가 (N-3/X-4 연계) |
 | **NEW-P1C** | Manager role RBAC 검증 누락 (BUG-07) | **P1** | 미포함 | P1-1 role sync와 함께 해결 |
 | **NEW-P1D** | RBAC: developer role `applications:view` 부재 | **P1** | 미포함 | developer가 Platform 목록 조회 불가. 의도된 설계인지 확인 필요 |
 
@@ -486,7 +486,7 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 |--------|---------|------|------|
 | **온보딩 Flow** | 1.1~1.4 | ✅ **Stable** | OIDC PKCE → 온보딩 게이트 → Admin review → RBAC. 19개 TC 중 13개 통과 |
 | **App/Project/Repo** | 2.1~2.5 | ✅ **Operational** | Platform CRUD, Project CRUD, Gitea outbound repo create, Project↔Repo link |
-| **Gitea 연동** | 3.1~3.5 | ⚠️ **Initial Import OK** | Issue/PR/Assignee import 정상. 증분 sync는 Webhook 필요 (v1.1) |
+| **Gitea 연동** | 3.1~3.5 | ⚠️ **Initial Import OK** | Issue/PR/Assignee import 정상. 증분 sync는 Webhook 필요 (v0.1.1) |
 | **CI/CD** | 4.1~4.5 | ⚠️ **DB Only** | 조회 API 정상. 생성 API 부재가 유일한 P0 blocker |
 
 ### 9.2 BUG 심각도 재평가
@@ -505,37 +505,37 @@ POST `/api/v1/dev-requests/09045149-.../register`:
 
 | ID | 제목 | 우선순위 | 근거 |
 |----|------|---------|------|
-| **ISSUE-05** | CI Run 생성 API 부재 | **P0 — v1.0 차단** | CI 기능의 실질적 사용 불가. DB 직접 INSERT 불가피 |
-| **ISSUE-04** | Repository build-runs endpoint 미구현 | **P1 — v1.0 권장** | repo별 CI 이력 조회 불가 |
+| **ISSUE-05** | CI Run 생성 API 부재 | **P0 — v0.1.0 차단** | CI 기능의 실질적 사용 불가. DB 직접 INSERT 불가피 |
+| **ISSUE-04** | Repository build-runs endpoint 미구현 | **P1 — v0.1.0 권장** | repo별 CI 이력 조회 불가 |
 | 기타 | Provider detail/edit UI (ISSUE-02) | **P2** | Admin 기본 UX |
 | 기타 | SCM owner field (ISSUE-03) | **P3** | user 계정 생성 시 owner 생략으로 해결 |
 | 기타 | Application key regex (ISSUE-02) | **P3** | 설계된 동작 |
 
-### 9.4 v1.0 출시 조건 평가
+### 9.4 v0.1.0 출시 조건 평가
 
 | 조건 | 상태 | 비고 |
 |------|------|------|
-| **ISSUE-05 (CI Run API) 해결** | ❌ 미해결 | 유일한 P0 blocker. v1.0 출시 전 필수 |
+| **ISSUE-05 (CI Run API) 해결** | ❌ 미해결 | 유일한 P0 blocker. v0.1.0 출시 전 필수 |
 | **BUG-03 (Sign-out) 해결** | ⚠️ 미해결 | P1 권장. 세션 관리의 기본 |
 | **BUG-02 (Role sync) 해결** | ⚠️ P1-1 carve에 포함 | 로드맵에 이미 존재. sprint -i에서 처리 예정 |
-| **BUG-06 (증분 sync)** | ⚠️ v1.1+ | v1.0에 blocking 아님. 단순 초기 연동만 필요한 사용자는 OK |
-| **ISSUE-04 (build-runs)** | ⚠️ 미해결 | repo별 CI 이력 조회 필요시 v1.0 포함 권장 |
+| **BUG-06 (증분 sync)** | ⚠️ v0.1.1+ | v1.0에 blocking 아님. 단순 초기 연동만 필요한 사용자는 OK |
+| **ISSUE-04 (build-runs)** | ⚠️ 미해결 | repo별 CI 이력 조회 필요시 v0.1.0 포함 권장 |
 
 ---
 
 ## 10. 권장 액션 아이템 (Sprint Plan 연계)
 
-v1.0 로드맵([release_v1_roadmap.md](./release_v1_roadmap.md)) + 테스트 결과 기반 우선순위:
+v0.1.0 로드맵([release_v0-1_roadmap.md](./release_v0-1_roadmap.md)) + 테스트 결과 기반 우선순위:
 
 ```
-v1.0 필수 (M-v1.0 = 2026-06-15)
-├── [NEW-P0] POST /api/v1/ci-runs endpoint 구현        ← ISSUE-05 (CI Run 생성)
+v0.1.0 필수 (M-v0.1.0 = 2026-06-15)
+├── [NEW-P0] POST /api/v0-1/ci-runs endpoint 구현        ← ISSUE-05 (CI Run 생성)
 ├── [P1-1]  Keycloak event listener — role sync         ← BUG-02 (로드맵 기존)
-├── [NEW-P1A] POST /api/v1/auth/logout endpoint 구현    ← BUG-03 (Sign-out)
-├── [NEW-P1B] GET /api/v1/repos/{id}/build-runs 구현    ← ISSUE-04 (Repo build-runs)
+├── [NEW-P1A] POST /api/v0-1/auth/logout endpoint 구현    ← BUG-03 (Sign-out)
+├── [NEW-P1B] GET /api/v0-1/repos/{id}/build-runs 구현    ← ISSUE-04 (Repo build-runs)
 └── [NEW-P1D] developer role applications:view 확인      ← RBAC 검증
 
-v1.1 강화 (M-v1.1 = 2026-07-31)
+v0.1.1 강화 (M-v0.1.1 = 2026-07-31)
 ├── [P3-8]  Gitea Webhook 수신 — 증분 Issue/PR sync    ← BUG-06
 ├── [P3-6]  WebSocket 실시간 publish (issue/ci-run)     ← ISSUE-03 (실시간)
 ├── [X-4]   Project 생성 flow ↔ SCM create 연계 (FE)

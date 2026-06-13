@@ -5,7 +5,7 @@
 - 대상 독자: 구현 담당자, 리뷰어, QA, 후속 에이전트.
 - 상태: draft
 - 최종 수정일: 2026-06-04
-- 관련 문서: [v1.0 릴리즈 로드맵](/Users/yklee/repos/Devhub_example_codex/docs/planning/release_v1_roadmap.md), [문서 작성·관리 표준](/Users/yklee/repos/Devhub_example_codex/docs/governance/document-standards.md), [추적성 매트릭스](/Users/yklee/repos/Devhub_example_codex/docs/traceability/report.md), [마이그레이션 README](/Users/yklee/repos/Devhub_example_codex/backend-core/migrations/README.md)
+- 관련 문서: [v0.1.0 릴리즈 로드맵](/Users/yklee/repos/Devhub_example_codex/docs/planning/release_v0-1_roadmap.md), [문서 작성·관리 표준](/Users/yklee/repos/Devhub_example_codex/docs/governance/document-standards.md), [추적성 매트릭스](/Users/yklee/repos/Devhub_example_codex/docs/traceability/report.md), [마이그레이션 README](/Users/yklee/repos/Devhub_example_codex/backend-core/migrations/README.md)
 
 ## 1. 배경
 
