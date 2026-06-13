@@ -1149,3 +1149,34 @@ CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`
 1. **init() 자동 등록 dispatcher 정공법 (cross-project lesson)**: `package webhook` 의 `init() { RegisterAdapter(...) }` — Go 의 package import lifecycle 활용. backend binary 가 본 package 를 import 하는 모든 곳에서 자동 dispatch 정합. main.go 변경 불요.
 2. **provider_type='other' 의 minimal envelope 정공법 (X-2)**: `GenericWebhookAdapter` 의 `{event, external_ref, actor}` 3-field minimal schema — Gitea/Forgejo/Gogs 의 repository/sender/sender envelope 와 다른 정공법. **이유**: 'other' provider 는 사용자 정의 (GitHub/GitLab/Bitbucket/Custom CI 등) — 3-field minimal schema 가 가장 일반화 가능. InboundSourceRoutingConfig.CustomExternalRefPattern 의 사용자 정의 regex 와 cross-ref.
 3. **scope 분리 정공법 (cross-project lesson §1)**: 본 3차 commit = Jira/Generic adapter + init() + unit test 13 case (4 file 신규, 469 line). openapi 정합 = 4차 commit 으로 분리. **이유**: openapi 의 path/schema 추가 + 162 page 위키 sync 영향 = 본 commit 의 scope 폭주 방지.
+
+## 33. 본 세션 후속 (2026-06-13, X-2 openapi 정합 4차 PR #589 MERGED)
+
+### X-2 의 4차 commit (PR #589, main HEAD e26c58a)
+
+**2 file, 179 line, openapi lint PASS**:
+- `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml` (9429 → 9511 line, +82) — X-2 schema block 3종 (WebhookEvent + WebhookAdapterType + InboundSourceRoutingConfig)
+- `docs/openapi.yaml` (9648 → 9745 line, +97) — swaggerui X-2 block byte-identical sync (1차 PR #582 의 docs↔swaggerui sync 정공법과 동일 pattern)
+
+### 검증
+
+- `bash scripts/check-openapi-yaml-lint.sh` PASS (yaml valid + semver + paths>=84 + cross-link ok)
+- schema reference 정합: docs 12 + swaggerui 12 (WebhookEvent + WebhookAdapterType + InboundSourceRoutingConfig)
+- `diff <(grep X-2 schema docs) <(grep X-2 schema swaggerui)` → 차이 0 (byte-identical 정합)
+
+### 정합 (cross-project lesson §1 — 기존 infrastructure 최대 활용)
+
+- 1차 PR #586 의 auto_route.go InboundSourceRoutingConfig (Go struct) ↔ openapi InboundSourceRoutingConfig (OpenAPI 3.0 schema) 1:1 매핑
+- 2차 PR #587 의 WebhookAdapter interface (Go) ↔ openapi WebhookEvent/WebhookAdapterType (schema) 1:1 매핑
+- 3차 PR #588 의 Jira/Generic adapter (Go) ↔ WebhookEvent.schema.enum[scm,alm,other] 1:1 매핑
+- 모든 후속 adapter (CiCd/Doc/Infra/TaskTracker) 의 동일 pattern = 본 schema 의 enum 확장
+
+### 잔여 (X-2 5차, 별도 follow-up)
+
+- 5차: frontend multi-provider 운영 UI (system_admin /admin/settings/integrations 의 InboundSourceConfig JSONB editor + provider_type display) + e2e + ADR-0033 (Multi-Provider Webhook Architecture) + traceability/CHANGELOG/mirror-list
+
+### CRITICAL 레슨런 (3건)
+
+1. **openapi 정합의 1:1 byte-identical 정공법 (cross-project lesson)**: swaggerui/asset/openapi.yaml 가 CI lint canonical 인 한, docs/openapi.yaml 는 항상 swaggerui 의 byte-identical subset 이어야 함. **위반 시점 drift**: schema reference 수 차이 (예: docs 91 + swaggerui 90) 시 즉시 sync. X-1 housekeeping PR #585 의 정공법과 동일 pattern.
+2. **scope 분리 정공법 (cross-project lesson §1)**: 본 4차 commit = openapi 정합만 (2 file, 179 line). frontend 운영 UI = 5차 commit 으로 분리. **이유**: openapi 정합 + frontend 운영 UI 를 묶으면 1 commit 의 scope = openapi (정합만) + frontend (5+ file) → review 부담 ↑ + scope 폭주.
+3. **OpenAPI 3.0 schema 와 Go struct 의 1:1 매핑 정공법 (X-2)**: WebhookEvent (Go struct) ↔ WebhookEvent (openapi schema), InboundSourceRoutingConfig (Go struct) ↔ InboundSourceRoutingConfig (openapi schema). **이유**: backend 의 Go struct 가 source-of-truth, openapi schema 는 그 mirror. 본 정공법으로 backend 변경 시 openapi 정합을 위한 동기화 비용 최소화.
