@@ -1,16 +1,16 @@
-# DevHub ↔ my_harness `~/wiki/` LLM Wiki 통합 — Phase 1 (D-72)
+# DevHub ↔ my_harness `~/wiki/` LLM Wiki 통합 — Phase 1 + Phase 1.5 (D-72)
 
 - **문서 목적**: DevHub 저장소 (본 repo) 의 LLM Wiki 통합의 **본 저장소 측 SSOT**. my_harness 의 `~/wiki/` Obsidian vault (D-71, D-72 응답) 의 DevHub mirror 의 source-of-truth + lint config + sync script 의 source 위치.
-- **범위**: 본 Phase 1 의 scope = (1) `docs/llm-wiki/` 의 4 file (scope-and-rationale / mirror-list / lint-config / operation-sop) + (2) `scripts/wiki-sync-devhub.sh` (sync script) — 본 저장소 in-repo 변경. (3) **mirror 실행은 본 PR scope 외** — 사용자가 `bash scripts/wiki-sync-devhub.sh` 실행 시 `~/wiki/raw/projects/devhub/` 에 실제 mirror.
-- **대상 독자**: DevHub owner (yklee), LLM agent (wiki 의 RAG source), my_harness 작업 에이전트 (D-72 통합 협업).
-- **상태**: in_progress (D-72 Phase 1 + D-79 query + D-80 pr-update thin wrapper 작성 완료, my_harness 측 SSOT 작성 의뢰 중, 2026-06-11)
-- **최종 수정일**: 2026-06-11 (D-79 + D-80 thin wrapper 정합 — script 신규 2 + 가이드 신규 2 + root index 5 → 8 file)
+- **범위**: Phase 1 + **Phase 1.5 (2026-06-13 추가)** = (1) `docs/llm-wiki/` 의 4 file (scope-and-rationale / mirror-list / lint-config / operation-sop) + (2) `scripts/wiki-sync-devhub.sh` (sync script, **Phase 1.5 갱신**) — 본 저장소 in-repo 변경. **Phase 1.5 의 추가**: source code + workflow + scripts + branch memory + traceability 의 mirror scope 확장. (3) **mirror 실행은 본 PR scope 외** — 사용자가 `bash scripts/wiki-sync-devhub.sh` 실행 시 `~/wiki/raw/projects/devhub/` 에 실제 mirror (~840 file, ~6.6M, branch memory 포함).
+- **대상 독자**: DevHub owner (yklee), LLM agent (**wiki 의 RAG source + 코드 maintenance 작업 시 source**), my_harness 작업 에이전트 (D-72 통합 협업).
+- **상태**: active (D-72 Phase 1 + Phase 1.5 + D-79 query + D-80 pr-update thin wrapper 작성 완료, **본 저장소 한정 + 위키만으로 코드 maintenance 가능 정공법**)
+- **최종 수정일**: 2026-06-13 (Phase 1.5 추가: mirror scope 6 패턴 ~55 file 확장, lint-config.toml 갱신, operation-sop.md 갱신, mirror 실행 결과 ~840 file / ~6.6M)
 - **관련 문서**:
-  - `docs/llm-wiki/scope-and-rationale.md` (Phase 1 의 scope + D-72 응답 §2 Q1~Q6 의 본 저장소 측 적용)
-  - `docs/llm-wiki/mirror-list.md` (Phase 1 mirror list)
-  - `docs/llm-wiki/lint-config.toml` (per-project lint config — DevHub ADR-*.md L07 면제)
-  - `docs/llm-wiki/operation-sop.md` (sync + lint SOP)
-  - `scripts/wiki-sync-devhub.sh` (sync script 의 source)
+  - `docs/llm-wiki/scope-and-rationale.md` (**2026-06-13 갱신 예정**: Phase 1.5 scope + D-72 Q1~Q6 적용)
+  - `docs/llm-wiki/mirror-list.md` (**2026-06-13 갱신 완료**: Phase 1+1.5 mirror list, 13 패턴 ~140 file)
+  - `docs/llm-wiki/lint-config.toml` (**2026-06-13 갱신 완료**: per-project lint config — DevHub ADR-*.md L07 면제 + L02/L10 Phase 1.5 갱신, config_version 2)
+  - `docs/llm-wiki/operation-sop.md` (**2026-06-13 갱신 완료**: sync + lint SOP, §0 위키 1:1 mirror 4 layer + §9 향후 작업 지침)
+  - `scripts/wiki-sync-devhub.sh` (**2026-06-13 갱신 완료**: sync script, 13 패턴 + --no-clean 옵션)
   - my_harness 의 [`scratch/devhub_wiki_integration_response/RESPONSE.md`](../../scratch/devhub_wiki_integration_response/RESPONSE.md) (D-72 권장안, 15KB)
   - my_harness 의 [`docs/architecture/DETAILED_DESIGN_LLM_WIKI.md`](https://github.com/ykylee/my_harness/blob/main/docs/architecture/DETAILED_DESIGN_LLM_WIKI.md) (D-71 디자인, 24KB)
 

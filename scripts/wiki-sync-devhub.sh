@@ -126,40 +126,37 @@ list_sources() {
   done
 
   # Phase 1.5: 10. Backend critical Go (화이트리스트)
-  # 본 sprint 의 8 file + future maintenance critical subset
-  local backend_files=(
-    # PR #579 + #578 변경분 (N-13 follow-up C)
-    "backend-core/internal/domain/application-lifecycle/routing/auto_route.go"
-    "backend-core/internal/domain/dev-request/view/voc_handler.go"
-    # ADR-0030 / ADR-0031 정공법 — port + main + keycloak verifier
-    "backend-core/main.go"
-    "backend-core/internal/auth/keycloak_verifier.go"
-    "backend-core/internal/httpapi/keycloak_admin_client.go"
-    "backend-core/internal/sso-integrations/keycloak/saovae_stub.go"
-    "backend-core/internal/domain/auth-session/integration/ports.go"
-    "backend-core/internal/domain/auth-session/view/auth.go"
-    "backend-core/internal/domain/auth-session/view/handler.go"
-    # audit + rbac + store (PR 핵심 흐름)
-    "backend-core/internal/audit/middleware.go"
-    "backend-core/internal/rbac/policy_store.go"
-    "backend-core/internal/store/postgres/repository_ops.go"
-  )
-  for f in "${backend_files[@]}"; do
+  # 본 sprint 의 verification 으로 정확한 경로 정합 (2026-06-13)
+  # mirror-list.md §1.7.1 정합
+  for f in \
+    "backend-core/main.go" \
+    "backend-core/internal/sso-integrations/keycloak/saovae_stub.go" \
+    "backend-core/internal/domain/auth-session/integration/ports.go" \
+    "backend-core/internal/domain/auth-session/view/auth.go" \
+    "backend-core/internal/domain/auth-session/view/handler.go" \
+    "backend-core/internal/domain/application-lifecycle/routing/auto_route.go" \
+    "backend-core/internal/domain/dev-request/view/voc_handler.go" \
+    "backend-core/internal/domain/audit-ops/view/keycloak_events_webhook.go" \
+    "backend-core/internal/domain/audit-ops/service/keycloak_event_puller.go" \
+    "backend-core/internal/domain/audit-ops/view/audit.go" \
+    "backend-core/internal/domain/audit-ops/repository/audit_logs.go" \
+    "backend-core/internal/domain/rbac.go" \
+    "backend-core/internal/domain/rbac-permissions/view/rbac.go" \
+    "backend-core/internal/httpapi/repository_ops.go" \
+    "backend-core/internal/store/repository_ops.go"; do
     [[ -f "$SRC/$f" ]] && echo "$SRC/$f"
   done
 
   # Phase 1.5: 11. Frontend e2e critical (화이트리스트)
-  local frontend_files=(
-    "frontend/tests/e2e/fixtures.ts"
-    "frontend/tests/e2e/signout.spec.ts"
-    "frontend/tests/e2e/voc-auto-routing.spec.ts"
-    "frontend/tests/e2e-manifests/smoke.txt"
-    "frontend/tests/e2e-manifests/quarantine.txt"
-    "frontend/lib/auth/tokenStore.ts"
-    "frontend/lib/auth/apiClient.ts"
-    "frontend/lib/auth/role-routing.ts"
-  )
-  for f in "${frontend_files[@]}"; do
+  # mirror-list.md §1.7.2 정합
+  for f in \
+    "frontend/tests/e2e/fixtures.ts" \
+    "frontend/tests/e2e/signout.spec.ts" \
+    "frontend/tests/e2e/voc-auto-routing.spec.ts" \
+    "frontend/tests/e2e-manifests/smoke.txt" \
+    "frontend/tests/e2e-manifests/quarantine.txt" \
+    "frontend/lib/store.ts" \
+    "frontend/domain/auth-session/service/role-routing.ts"; do
     [[ -f "$SRC/$f" ]] && echo "$SRC/$f"
   done
 
@@ -246,34 +243,36 @@ if [[ $DRY_RUN -eq 1 ]]; then
   done
 
   echo ""
-  echo "  Backend critical Go (화이트리스트, ~12 file):"
+  echo "  Backend critical Go (화이트리스트, 15 file):"
   for f in \
-    "backend-core/internal/domain/application-lifecycle/routing/auto_route.go" \
-    "backend-core/internal/domain/dev-request/view/voc_handler.go" \
     "backend-core/main.go" \
-    "backend-core/internal/auth/keycloak_verifier.go" \
-    "backend-core/internal/httpapi/keycloak_admin_client.go" \
     "backend-core/internal/sso-integrations/keycloak/saovae_stub.go" \
     "backend-core/internal/domain/auth-session/integration/ports.go" \
     "backend-core/internal/domain/auth-session/view/auth.go" \
     "backend-core/internal/domain/auth-session/view/handler.go" \
-    "backend-core/internal/audit/middleware.go" \
-    "backend-core/internal/rbac/policy_store.go" \
-    "backend-core/internal/store/postgres/repository_ops.go"; do
+    "backend-core/internal/domain/application-lifecycle/routing/auto_route.go" \
+    "backend-core/internal/domain/dev-request/view/voc_handler.go" \
+    "backend-core/internal/domain/audit-ops/view/keycloak_events_webhook.go" \
+    "backend-core/internal/domain/audit-ops/service/keycloak_event_puller.go" \
+    "backend-core/internal/domain/audit-ops/view/audit.go" \
+    "backend-core/internal/domain/audit-ops/repository/audit_logs.go" \
+    "backend-core/internal/domain/rbac.go" \
+    "backend-core/internal/domain/rbac-permissions/view/rbac.go" \
+    "backend-core/internal/httpapi/repository_ops.go" \
+    "backend-core/internal/store/repository_ops.go"; do
     [[ -f "$SRC/$f" ]] && echo "    $f"
   done
 
   echo ""
-  echo "  Frontend e2e critical (화이트리스트, 8 file):"
+  echo "  Frontend e2e critical (화이트리스트, 7 file):"
   for f in \
     "frontend/tests/e2e/fixtures.ts" \
     "frontend/tests/e2e/signout.spec.ts" \
     "frontend/tests/e2e/voc-auto-routing.spec.ts" \
     "frontend/tests/e2e-manifests/smoke.txt" \
     "frontend/tests/e2e-manifests/quarantine.txt" \
-    "frontend/lib/auth/tokenStore.ts" \
-    "frontend/lib/auth/apiClient.ts" \
-    "frontend/lib/auth/role-routing.ts"; do
+    "frontend/lib/store.ts" \
+    "frontend/domain/auth-session/service/role-routing.ts"; do
     [[ -f "$SRC/$f" ]] && echo "    $f"
   done
 

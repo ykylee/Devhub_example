@@ -26,29 +26,33 @@
 
 ### 1.7.1 Backend Go source (maintenance critical subset, ~25 file)
 
-**소스 경로**: `backend-core/internal/{auth,domain,routing,sso-integrations,view,httpapi}/` 의 key file.
+**소스 경로**: `backend-core/internal/` 의 key file (본 sprint 의 verification 으로 정확한 경로 정합).
 
 | source path | 의의 | maintenance 디테일 |
 |---|---|---|
-| `backend-core/internal/auth/keycloak_verifier.go` | JWKS 검증 (PR #167 + sprint -l ADR-0020 sub-carve D) | stale-while-error fallback, MaxStaleDuration, JWKS TTL |
-| `backend-core/internal/httpapi/keycloak_admin_client.go` | Keycloak Admin REST (KC-PR-C) | BearerTokenVerifier + IdentityAdmin 충족 |
+| `backend-core/main.go` | runtime injection (`DEVHUB_BUILD_TIER`) | saovae_stub default + `=internal` real |
 | `backend-core/internal/sso-integrations/keycloak/saovae_stub.go` | 사외 build 의 default wiring (sprint -a follow-up PR #539) | 4 port stub + webhook handler |
 | `backend-core/internal/domain/auth-session/integration/ports.go` | Port interface (ADR-0030) | 4 port + 4 type alias + 3 sentinel error |
 | `backend-core/internal/domain/auth-session/view/auth.go` | BearerTokenVerifier interface (deprecation) | canonical = integration/ports.go |
 | `backend-core/internal/domain/auth-session/view/handler.go` | IdentityAdmin + OIDCLogoutClient interface | canonical = integration/ports.go |
 | `backend-core/internal/domain/application-lifecycle/routing/auto_route.go` | **PR #579 신규** — AutoRouter interface + 3 case pattern matcher | external_ref `^GITEA-([0-9]+)$` + req_department + graceful degradation |
 | `backend-core/internal/domain/dev-request/view/voc_handler.go` | voc handler (PR #514 + PR #579 AutoRouter 통합) | createOrGetVoc + AutoRouter.Route() + RouteVoc() + auto_routed envelope |
-| `backend-core/main.go` | runtime injection (`DEVHUB_BUILD_TIER`) | saovae_stub default + `=internal` real |
-| `backend-core/internal/audit/middleware.go` | X-Request-ID + audit enrichment | request_id propagation |
-| `backend-core/internal/rbac/policy_store.go` | rbac_policies seeded | system_admin / developer / manager / team_manager |
-| `backend-core/internal/store/postgres/repository_ops.go` | ListRepositoryBuildRuns (P1-7 N-9) | devhub_repository_build_runs |
-| ... (additional 13 file) | | |
+| `backend-core/internal/domain/audit-ops/view/keycloak_events_webhook.go` | Keycloak event webhook handler (ADR-0030/0031 + PR #578 e2e-internal 폐기 정공법) | event listener type assertion + webhook routing |
+| `backend-core/internal/domain/audit-ops/service/keycloak_event_puller.go` | Keycloak event puller (PR #189~#193 + #241) | 1분 polling + audit_logs 통합 |
+| `backend-core/internal/domain/audit-ops/view/audit.go` | audit actor enrichment (PR-D) | source_ip + request_id + source_type + X-Request-ID |
+| `backend-core/internal/domain/audit-ops/repository/audit_logs.go` | audit_logs repository | X-Request-ID + audit actor propagation |
+| `backend-core/internal/domain/rbac.go` | RBAC domain (rbac_policies seeded) | system_admin / developer / manager / team_manager |
+| `backend-core/internal/domain/rbac-permissions/view/rbac.go` | RBAC PermissionCache + permission cache (PR #29~#31) | LISTEN/NOTIFY (future ADR-0007) |
+| `backend-core/internal/httpapi/repository_ops.go` | ListRepositoryBuildRuns (P1-7 N-9 PR #555) | devhub_repository_build_runs + platformStoreOrUnavailable guard |
+| `backend-core/internal/store/repository_ops.go` | postgres store 의 repository_ops | BuildRun table CRUD + path 차이 (httpapi vs store 의 layer 분리) |
 
-**mirror 정책**: ~25 file. **lint 영향**: L02 broken link 의 source code link 가 raw/ 에 존재 (mirror scope 내) → L02 PASS. L10 면제 불요 (raw/ 의 1:1 mirror).
+**mirror 정책**: 15 file. **lint 영향**: L02 broken link 의 source code link 가 raw/ 에 존재 (mirror scope 내) → L02 PASS. L10 면제 불요 (raw/ 의 1:1 mirror).
 
-### 1.7.2 Frontend e2e + helper (maintenance critical subset, ~8 file)
+**본 sprint 의 verification 으로 발각** (2026-06-13): 원본 Phase 1.5 의 12 file 화이트리스트 중 `keycloak_verifier.go` + `keycloak_admin_client.go` + `audit/middleware.go` + `rbac/policy_store.go` + `store/postgres/repository_ops.go` 의 경로 outdated (해당 경로에 file 부재). **fix**: §1.7.1 의 file list 의 정확한 경로 정합 (audit-ops/ + rbac-permissions/ + httpapi/ + store/ 의 실제 경로). **forward**: 새 backend file 추가 시 PR 본문에 mirror scope 추가 요청 (mirror-list.md §1.7.1 + script 의 화이트리스트 갱신).
 
-**소스 경로**: `frontend/tests/e2e/`, `frontend/lib/`.
+### 1.7.2 Frontend e2e + helper (maintenance critical subset, 6 file)
+
+**소스 경로**: `frontend/tests/e2e/`, `frontend/lib/`, `frontend/domain/`. **본 sprint 의 verification 으로 정확한 경로 정합** (2026-06-13).
 
 | source path | 의의 | maintenance 디테일 |
 |---|---|---|
@@ -57,11 +61,12 @@
 | `frontend/tests/e2e/signout.spec.ts` | PR #580 의 signout CI timeout 완화 | 타임아웃 상향 |
 | `frontend/tests/e2e-manifests/smoke.txt` | PR #580 신규 — spec selection SSOT (smoke) | |
 | `frontend/tests/e2e-manifests/quarantine.txt` | PR #580 신규 — spec selection SSOT (quarantine) | |
-| `frontend/lib/auth/tokenStore.ts` | tokenStore (ADR-0019) | access/refresh/id persist |
-| `frontend/lib/auth/apiClient.ts` | apiClient auto Authorization | BearerTokenVerifier integration |
-| `frontend/lib/auth/role-routing.ts` | RBAC routing (defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin) | system route gate |
+| `frontend/lib/store.ts` | Zustand store (NOW-4 frontend unit test 962 PASS) | auth actor + isSystemAdmin + state shape |
+| `frontend/domain/auth-session/service/role-routing.ts` | RBAC routing (defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin) | system route gate |
 
-**mirror 정책**: 8 file.
+**mirror 정책**: 7 file (6 e2e/manifest + 1 Zustand store + 1 RBAC routing = 8 항목 중 6 core). **forward**: 새 frontend helper/page/component 추가 시 PR 본문에 mirror scope 추가 요청.
+
+**본 sprint 의 verification 으로 발각** (2026-06-13): 원본 8 file 화이트리스트 중 `lib/auth/{tokenStore,apiClient,role-routing}.ts` 의 경로 outdated (해당 경로에 file 부재). **fix**: `frontend/lib/store.ts` (Zustand) + `frontend/domain/auth-session/service/role-routing.ts` (RBAC) 의 실제 경로 정합. **apiClient + tokenStore 는 frontend bulk source 의 mirror scope 외 (Phase 3 forward, 본 sprint 정공법의 follow-up)**.
 
 ### 1.7.3 Workflows + scripts (운영 critical, ~7 file)
 
