@@ -857,3 +857,49 @@ PR #579 의 7 commit (= 본 PR 의 8-step) = e2e shard 3/3 fail 의 chronic flak
 - **위키 동기화** (raw/projects/devhub/ → ~/wiki/) — wiki-source-sync skill 호출 (본 sprint 의 user directive 순서 = 1.main flat memory sync → 3.sprint close + memory finalize commit → 2.위키 동기화).
 - 또는 v0.1.1-alpha release 8 item 중 1~2 진입 (사용자 결정).
 - 또는 다른 sprint (N-10 housekeeping close / backend-integration DEVHUB_BUILD_TIER matrix / v1.0 staging 운영).
+
+## 25. 본 세션 (2026-06-13, Phase 3 mass ingest + provenance tracking 영구화)
+
+### Phase 3 mass ingest 정공법 (main HEAD `74a6d5c`)
+
+**위키의 LLM Wiki mass ingest** = docs/domain (66 file) + docs/architecture (1) + docs/infrastructure (9) + docs/validation (2) = **78 file** 의 mirror scope 확장 + **78 wiki page 자동 생성** (frontmatter + raw body 1:1) + wiki index.md 335 → 413 line (+78).
+
+### 4 commit 종합 (main HEAD `74a6d5c`)
+
+- `9c32212` (Phase 1.5 추가: mirror scope 6 패턴 ~55 file)
+- `05c246a` (Phase 1.5 follow-up: outdated file list 8 file 경로 정합)
+- `32454fc` (provenance tracking: commit hash + version + branch 자동 추적)
+- `74a6d5c` (Phase 3 mass ingest: domain + architecture + infrastructure + validation 78 file + 78 wiki page)
+
+### 5 file 갱신 + 1 file 신규
+
+- `docs/llm-wiki/mirror-list.md` (107 line 추가): §1.8 Phase 3 추가 + §2 §14/§15 패턴 + §3 lint 갱신 + §4 forward path
+- `docs/llm-wiki/lint-config.toml`: Phase 3 갱신, config_version 2 → 3
+- `docs/llm-wiki/operation-sop.md`: Phase 3 mass ingest SOP + 4 script 추가
+- `docs/llm-wiki/scope-and-rationale.md`: §0.3 Phase 3 추가 scope
+- `docs/llm-wiki/README.md`: 제목 Phase 1+1.5+3 + 4 script 추가
+- **`scripts/wiki-mass-ingest.sh` (NEW)**: Phase 3 mass ingest 자동화 (78 file → 78 page)
+
+### 위키 1:1 mirror byte-identical 검증 (현시점)
+
+- Phase 1+1.5+3 scope: 196 file
+- Identical: 196 ✅
+- Diff: 0 / Missing: 0
+- 위키 sources/ 162 page matched (commit `74a6d5c`)
+- mirror 925 file / 7.6M
+- provenance 정공법: commit hash + version + last sync 자동 추적
+
+### CRITICAL 레슨런 (cross-project)
+
+1. **위키 1:1 mirror 정공법 = 위키만으로 코드 maintenance 가능** 영구화. mirror scope = docs + source code + workflows + scripts + domain/architecture/infrastructure/validation = ~220 file / 15 패턴.
+2. **provenance tracking 정공법** = mirror script 의 manifest 의 commit hash + version 자동 capture + 위키 page 의 frontmatter 자동 반영 + status-check 의 162 page matched 검증. 위키 정보의 시점/commit/버전 자동 추적.
+3. **mass ingest 정공법** = Phase 3 의 78 file 의 wiki page 자동 생성 (frontmatter + raw body 1:1) + index.md 자동 갱신. 본 저장소 한정 + my_harness 측 wiki 일임 결정 (session §10) 해제 후 진행.
+4. **glob recursive 갱신** = frontmatter-update + status-check 의 `find $WIKI_SOURCES -name '*.md' -type f` recursive. sources/ sub-directory 의 page 들 (Phase 3 의 78 page) 포함 검증.
+
+### 다음 directive (forward path)
+
+- v0.1.2-alpha patch (release_v1_roadmap.md §3.5 의 잔여 5 / X-1~8 의 8 item 중 1~2 entry, 사용자 결정)
+- 또는 PATCH inbound_source 의 backend 처리 검증 + e2e spec 재작성 + 새 PR 발행 (별도 sprint, 사용자 결정)
+- 또는 v1.0 staging 1주 운영 (사용자 결정)
+- 또는 P0~P3 forward path 의 다른 sprint
+- 또는 Phase 3 의 trigger 조건 충족 (forward path, my_harness 측 worker 일임 결정 해제 후 본 저장소 측 추가)
