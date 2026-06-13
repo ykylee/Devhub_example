@@ -101,6 +101,7 @@
 - flat memory 위치: legacy fallback 및 공용 색인 전용
 - 문서 포맷 원칙: 원본은 Markdown(`.md`) 유지, HTML은 보고/취합용 파생 산출물로만 사용 (`docs/governance/document-standards.md` §0)
 - **문서 tier 라벨**: `docs/` 하위 신규/수정 문서는 `docs/governance/document-standards.md` §2 메타 헤더에 `Tier: 사외 / 사내 / 공용` 필드 명시 필수 (다음 `document-standards.md` 갱신 시 정식 도입)
+- **위키 1:1 mirror 정공법 (2026-06-13, Phase 1.5 추가)**: 본 저장소 의 mirror scope (Phase 1+1.5, ~140 file) — `docs/llm-wiki/mirror-list.md` §1.7 의 위키의 source code + workflow + scripts + branch memory + traceability 의 raw mirror 1:1 byte-identical 정공법. **위키만으로 코드 maintenance 가능**. 모든 신규 PR은 mirror scope 갱신 요청 (mirror-list.md §1.7 + lint-config.toml + scripts/wiki-sync-devhub.sh 화이트리스트 정합) 필수. **PR 머지 후 `bash scripts/wiki-sync-devhub.sh` 1회 실행** (real mode) 으로 `~/wiki/raw/projects/devhub/` 의 1:1 mirror 갱신. **상세 SOP**: `docs/llm-wiki/operation-sop.md` §0+§9 의 정공법 + 본 저장소 의 main flat memory + branch memory 정합. **위반 시점 drift**: mirror byte-identical 검증 script (`docs/llm-wiki/operation-sop.md` §0) 의 `Total: ~140, Diff: 0` 미충족 시 즉시 fix.
 
 ## 워커 일반 메모 (2026-06-09 전면 갱신)
 

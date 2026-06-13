@@ -1,14 +1,188 @@
-# Phase 1 Mirror List (D-72, core subset ~80 file)
+# Phase 1 + 1.5 Mirror List (D-72, docs + source code maintenance scope ~140 file)
 
-- **문서 목적**: `scripts/wiki-sync-devhub.sh` 의 mirror source list. Phase 1 의 scope = **core subset ~80 file**. DevHub repo 의 의미 있는 file 중 wiki 의 LLM agent RAG source 로 적합한 file 의 명시.
-- **범위**: 본 Phase 1 의 mirror list scope. domain (66 file) + architecture (1) + infrastructure + validation (~100 file) 의 **mirror 제외** (Phase 3 mass ingest 의 scope). mirror 제외 사유 = 본 Phase 1 의 검증 가능한 정공법 (작은 core subset) + mirror 실행 시간.
-- **대상 독자**: yklee (owner), LLM agent (Phase 3 mass ingest 시 wiki page 작성자), `scripts/wiki-sync-devhub.sh` 의 자동 mirror 실행 시 source 결정.
-- **상태**: in_progress (D-72 Phase 1, 2026-06-10)
-- **최종 수정일**: 2026-06-10
+- **문서 목적**: `scripts/wiki-sync-devhub.sh` 의 mirror source list. **Phase 1** (docs subset, 85 file) + **Phase 1.5** (소스코드 + workflow + scripts + branch memory maintenance subset, ~55 file) = **~140 file**. DevHub repo 의 **소스코드 maintenance 가 wiki 만으로 가능**하도록 mirror scope 확장.
+- **범위**: 본 mirror list 의 scope = docs/adr + docs/governance + docs/planning + docs/setup + docs/requirements.md + docs/openapi.yaml + ai-workflow/memory (main flat + branch memory) + **.github/workflows/*.yml** + **scripts/*.sh** + **backend-core 의 maintenance-critical subset** + **frontend/tests/e2e spec subset**. **scope 외**: domain (66 file, Phase 3) + frontend source bulk (10000+ file, 빌드 산출물/node_modules) + backend bulk.
+- **대상 독자**: yklee (owner), LLM agent (코드 maintenance 작업 시 RAG source), `scripts/wiki-sync-devhub.sh` 의 자동 mirror 실행 시 source 결정.
+- **상태**: active (D-72 Phase 1.5, 2026-06-13)
+- **최종 수정일**: 2026-06-13 (Phase 1.5 추가: PR #578+#579+#580+#581 의 source code + workflow + scripts + branch memory 22 file, lint-config.toml 갱신, operation-sop.md 갱신)
 - **관련 문서**:
-  - [`./scope-and-rationale.md`](./scope-and-rationale.md) (Phase 1 scope + D-72 Q1~Q6 적용)
-  - [`./operation-sop.md`](./operation-sop.md) (sync + lint SOP)
-  - `scripts/wiki-sync-devhub.sh` (sync script 의 source)
+  - [`./scope-and-rationale.md`](./scope-and-rationale.md) (Phase 1+1.5 scope + D-72 Q1~Q6 적용)
+  - [`./operation-sop.md`](./operation-sop.md) (sync + lint SOP, **2026-06-13 갱신: Phase 1.5 추가 + sources/ page 본문 1:1 mirror 정공법**)
+  - [`./lint-config.toml`](./lint-config.toml) (L07 ADR 면제 + L03/L10 면제 + **L02 broken link Phase 1.5 갱신**)
+  - `scripts/wiki-sync-devhub.sh` (**2026-06-13 갱신: Phase 1.5 mirror pattern 추가**)
+
+## Phase 1 (docs subset, 85 file) — 기존 정공법
+
+기존 1.1~1.6 (ADR 31 + Governance 5 + Planning 27 + Setup 15 + Requirements + OpenAPI + memory main flat 3) = **85 file**. 본 section 의 내용은 위 historical 정공법 정합. 본 갱신은 Phase 1.5 추가가 목적.
+
+## 1.7 Phase 1.5 (source code + workflow + scripts + branch memory maintenance subset, ~55 file) — **2026-06-13 신규**
+
+**Phase 1.5 의 목적**: PR #578+#579+#580+#581 의 source code 변경분 + 운영/유지보수 critical file + branch memory 를 mirror 에 포함. wiki 만으로 **code maintenance 가능** (단순 SSOT 참조 + 1차 layer reasoning).
+
+**mirror 정공법**:
+- 22 file = 본 sprint 의 source code 변경분 (PR #578+#579+#580+#581 의 범위 외 file + branch memory/ 의 sprint 한정)
+- ~33 file = 운영/유지보수 critical file (keycloak_verifier.go, keycloak_admin_client.go, saovae_stub.go, fixtures.ts, signin helper, critical frontend tests, ci.yml 본문, etc.)
+- 100% = **찾기 쉽고 + 변경 빈도 낮고 + 문서화 가능** (lint-config.toml 의 L02 검증으로 위키 본문과 동기)
+
+### 1.7.1 Backend Go source (maintenance critical subset, ~25 file)
+
+**소스 경로**: `backend-core/internal/{auth,domain,routing,sso-integrations,view,httpapi}/` 의 key file.
+
+| source path | 의의 | maintenance 디테일 |
+|---|---|---|
+| `backend-core/internal/auth/keycloak_verifier.go` | JWKS 검증 (PR #167 + sprint -l ADR-0020 sub-carve D) | stale-while-error fallback, MaxStaleDuration, JWKS TTL |
+| `backend-core/internal/httpapi/keycloak_admin_client.go` | Keycloak Admin REST (KC-PR-C) | BearerTokenVerifier + IdentityAdmin 충족 |
+| `backend-core/internal/sso-integrations/keycloak/saovae_stub.go` | 사외 build 의 default wiring (sprint -a follow-up PR #539) | 4 port stub + webhook handler |
+| `backend-core/internal/domain/auth-session/integration/ports.go` | Port interface (ADR-0030) | 4 port + 4 type alias + 3 sentinel error |
+| `backend-core/internal/domain/auth-session/view/auth.go` | BearerTokenVerifier interface (deprecation) | canonical = integration/ports.go |
+| `backend-core/internal/domain/auth-session/view/handler.go` | IdentityAdmin + OIDCLogoutClient interface | canonical = integration/ports.go |
+| `backend-core/internal/domain/application-lifecycle/routing/auto_route.go` | **PR #579 신규** — AutoRouter interface + 3 case pattern matcher | external_ref `^GITEA-([0-9]+)$` + req_department + graceful degradation |
+| `backend-core/internal/domain/dev-request/view/voc_handler.go` | voc handler (PR #514 + PR #579 AutoRouter 통합) | createOrGetVoc + AutoRouter.Route() + RouteVoc() + auto_routed envelope |
+| `backend-core/main.go` | runtime injection (`DEVHUB_BUILD_TIER`) | saovae_stub default + `=internal` real |
+| `backend-core/internal/audit/middleware.go` | X-Request-ID + audit enrichment | request_id propagation |
+| `backend-core/internal/rbac/policy_store.go` | rbac_policies seeded | system_admin / developer / manager / team_manager |
+| `backend-core/internal/store/postgres/repository_ops.go` | ListRepositoryBuildRuns (P1-7 N-9) | devhub_repository_build_runs |
+| ... (additional 13 file) | | |
+
+**mirror 정책**: ~25 file. **lint 영향**: L02 broken link 의 source code link 가 raw/ 에 존재 (mirror scope 내) → L02 PASS. L10 면제 불요 (raw/ 의 1:1 mirror).
+
+### 1.7.2 Frontend e2e + helper (maintenance critical subset, ~8 file)
+
+**소스 경로**: `frontend/tests/e2e/`, `frontend/lib/`.
+
+| source path | 의의 | maintenance 디테일 |
+|---|---|---|
+| `frontend/tests/e2e/fixtures.ts` | loginAs + waitForSignInForm (PR #579 5+6차 commit + PR #580 통합) | waitForSignInForm default 30s→60s, loginAs 30s→60s, restart logic |
+| `frontend/tests/e2e/voc-auto-routing.spec.ts` | **PR #579 신규** — TC-INBOUND-SRC-01 + NEG | beforeAll hook 으로 PATCH inbound_source 1회 처리 |
+| `frontend/tests/e2e/signout.spec.ts` | PR #580 의 signout CI timeout 완화 | 타임아웃 상향 |
+| `frontend/tests/e2e-manifests/smoke.txt` | PR #580 신규 — spec selection SSOT (smoke) | |
+| `frontend/tests/e2e-manifests/quarantine.txt` | PR #580 신규 — spec selection SSOT (quarantine) | |
+| `frontend/lib/auth/tokenStore.ts` | tokenStore (ADR-0019) | access/refresh/id persist |
+| `frontend/lib/auth/apiClient.ts` | apiClient auto Authorization | BearerTokenVerifier integration |
+| `frontend/lib/auth/role-routing.ts` | RBAC routing (defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin) | system route gate |
+
+**mirror 정책**: 8 file.
+
+### 1.7.3 Workflows + scripts (운영 critical, ~7 file)
+
+**소스 경로**: `.github/workflows/*.yml`, `scripts/*.sh`.
+
+| source path | 의의 | maintenance 디테일 |
+|---|---|---|
+| `.github/workflows/ci.yml` | CI fast required (PR #578 의 e2e-internal 폐기 반영) | 9 jobs (e2e shard 1/2/3 + backend + frontend + lint 4종) |
+| `.github/workflows/e2e-regression.yml` | PR #580 신규 — non-quarantine full regression | |
+| `.github/workflows/e2e-quarantine.yml` | PR #580 신규 — flaky/quarantine 전용 | |
+| `scripts/wiki-sync-devhub.sh` | 본 wiki mirror script | BSD-rsync safe + manifest |
+| `scripts/select-playwright-specs.sh` | PR #580 신규 — spec selection | |
+| `scripts/ci-e2e-sync-check.sh` | CI sync check | DEVHUB_BUILD_TIER 의도적 미포함 |
+| `scripts/check-migration-uniqueness.sh` | NOW-5 migration prefix CI guard | |
+
+**mirror 정책**: 7 file.
+
+### 1.7.4 Branch memory (sprint 한정, ~7 file)
+
+**소스 경로**: `ai-workflow/memory/<agent>/<branch>/{state.json, session_handoff.md, work_backlog.md, backlog/YYYY-MM-DD.md, pr_body.md}`.
+
+**mirror 정책**: 본 sprint 의 **active + 30일 이내 CLOSED** branch 만. 본 sprint 범위 = `feat/work_260612-7-v1-1-inbound-source-impl/` + `feat/work_260612-6-e2e-internal-removal/` + `codex/work_260612-579-ci-rearchitecture/` + `codex/work_260613-ci-retro-and-memory/`. **forward**: archive 시 (PR 머지 + 30일 후) `mavis-trash` 권장. **lint 영향**: frontmatter 형식만 검증 (raw/ 의 1:1 mirror, 본문 직접 합성 X).
+
+### 1.7.5 Traceability + ID slot doc (link SSOT, ~5 file)
+
+**소스 경로**: `docs/traceability/`.
+
+| source path | 의의 | maintenance 디테일 |
+|---|---|---|
+| `docs/traceability/report.md` | traceability matrix (§1 REQ → §6 변경 이력) | REQ/ARCH/API/RM/IMPL/UT/TC ID + ADR 인덱스 |
+| `docs/traceability/README.md` | traceability entry | workflow 정합 |
+| `docs/traceability/conventions.md` | ID slot conventions (kebab-case module ID) | REQ-FR-NNN / ARCH-NN / API-NN / RM-{domain}-NN / IMPL-{module}-NN |
+| `docs/traceability/sync-checklist.md` | PR traceability sync 절차 | 영향 단계 ID 발급/갱신 + matrix row + PR body |
+| `docs/traceability/_archive/` | historical sync (옵션) | |
+
+**mirror 정책**: 4 file (sync-checklist 필수).
+
+## 2. mirror 실행 정책 (script 의 source list, Phase 1.5 추가)
+
+`scripts/wiki-sync-devhub.sh` 의 mirror 실행 시 다음 12 패턴으로 file 매칭 (Phase 1 = 7 패턴 + Phase 1.5 = 5 패턴):
+
+| # | 패턴 | mirror source | mirror target |
+|---|---|---|---|
+| 1 | ADR | `docs/adr/ADR-*.md` | `~/wiki/raw/projects/devhub/docs/adr/ADR-*.md` |
+| 2 | Governance | `docs/governance/*.md` | `~/wiki/raw/projects/devhub/docs/governance/*.md` |
+| 3 | Planning | `docs/planning/*.md` | `~/wiki/raw/projects/devhub/docs/planning/*.md` |
+| 4 | Setup | `docs/setup/*.md` | `~/wiki/raw/projects/devhub/docs/setup/*.md` |
+| 5 | Requirements | `docs/requirements.md` | `~/wiki/raw/projects/devhub/docs/requirements.md` |
+| 6 | OpenAPI | `docs/openapi.yaml` | `~/wiki/raw/projects/devhub/docs/openapi.yaml` |
+| 7 | AI-workflow memory (main flat) | `ai-workflow/memory/{state.json, session_handoff.md, work_backlog.md}` | `~/wiki/raw/projects/devhub/ai-workflow-memory/{state.json, session_handoff.md, work_backlog.md}` |
+| **8** | **Workflows (Phase 1.5)** | **`.github/workflows/*.yml`** | **`~/wiki/raw/projects/devhub/.github/workflows/*.yml`** |
+| **9** | **Scripts (Phase 1.5)** | **`scripts/*.sh` (mirror list 화이트리스트)** | **`~/wiki/raw/projects/devhub/scripts/*.sh`** |
+| **10** | **Backend critical Go (Phase 1.5)** | **`backend-core/internal/{auth,domain,httpapi,audit,rbac,store,sso-integrations}/**/*.go` (mirror list 화이트리스트)** | **`~/wiki/raw/projects/devhub/backend-core/internal/...`** |
+| **11** | **Frontend e2e critical (Phase 1.5)** | **`frontend/tests/e2e/{fixtures,signout}.ts` + `frontend/tests/e2e/voc-*.spec.ts` + `frontend/tests/e2e-manifests/*.txt` + `frontend/lib/auth/{tokenStore,apiClient,role-routing}.ts`** | **`~/wiki/raw/projects/devhub/frontend/...`** |
+| **12** | **Traceability (Phase 1.5)** | **`docs/traceability/{README,conventions,report,sync-checklist}.md`** | **`~/wiki/raw/projects/devhub/docs/traceability/...`** |
+| 13 | **Branch memory (Phase 1.5, optional)** | **`ai-workflow/memory/<agent>/<branch>/{state,session_handoff,work_backlog}.{json,md}` (active + 30일 이내 CLOSED)** | **`~/wiki/raw/projects/devhub/ai-workflow/memory/<agent>/<branch>/...`** |
+
+**mirror size 추정** (2026-06-13 main HEAD `5864ce8` 기준):
+- Phase 1: 85 file (≈ 3.5MB)
+- Phase 1.5: ~55 file (≈ 1.5MB)
+- **합 ≈ 5MB, ~140 file**
+
+**제외 패턴** (mirror 미실시, Phase 1 + 1.5):
+- 빌드 산출물: `target/`, `backend-core/main`, `frontend/.next/`, `playwright-report/`, `test-results/`, `dist/`, `build/`, `__pycache__/`, `node_modules/`
+- VCS + IDE: `.git/`, `.idea/`, `.vscode/`, `.DS_Store`
+- Backend source bulk: `backend-core/cmd/`, `backend-core/migrations/`, `backend-core/test/` (생성물, 위키 정합 불요)
+- Frontend source bulk: `frontend/src/`, `frontend/app/`, `frontend/components/`, `frontend/node_modules/`, `frontend/.next/`, `frontend/dist/`
+- Archive: `infra/idp/_archive_*/` (immutable archive)
+- Public Wiki (기존): `docs/wiki/` (대외 공개용, LLM Wiki 와 cross-link 없음)
+- LLM Wiki (본 Phase): `docs/llm-wiki/` (mirror 미필요, source-of-truth)
+- Lint/scratch: `_lint/`, `scratch/`, `playwright-report/`
+
+## 3. lint 영향 (Phase 1.5 갱신)
+
+| L rule | 영향 | DevHub 적용 (Phase 1.5) |
+|---|---|---|
+| L01 | frontmatter 누락 | wiki page 만, raw/ 적용 X |
+| L02 | broken wiki link | **Phase 1.5 갱신**: source code 의 `raw/.../*.go` / `raw/.../*.ts` link 가 mirror scope 내 → wiki page 의 source code link 정상 (L02 PASS). wiki `concepts/rbac.md` 의 backend source code link 는 L02 PASS (raw/ 에 존재). |
+| L03 | 고아 페이지 | wiki page 만, raw/ 적용 X (변동 X) |
+| L04 | 중복 페이지 | wiki page 만, raw/ 적용 X |
+| L05 | stale (90일+) | wiki page 만, raw/ 적용 X |
+| L06 | sources: 경로 부재 | wiki page 만, raw/ 적용 X |
+| L07 | 모순 (같은 title 두 페이지) | DevHub ADR-*.md 면제 (변동 X) |
+| L08 | index.md 미등록 wiki 페이지 | Phase 3 의 wiki page 작성 후 해소 (변동 X) |
+| L09 | log.md 1주일+ 미갱신 | out-of-repo, my_harness 측 관리 |
+| L10 | raw/ source 0 | **Phase 1.5 갱신**: Phase 1.5 mirror scope 내 file 들의 wiki page (예: `sources/adr-0028-...md`) 의 raw/ source = 1:1 mirror → L10 PASS |
+
+## 4. forward path (Phase 1.5 + Phase 3 + Phase N)
+
+| 단계 | mirror list | 정공법 |
+|---|---|---|
+| **Phase 1 (기존)** | docs subset 85 file | 본 문서 §1.1~1.6 (2026-06-10 작성) |
+| **Phase 1.5 (본 갱신)** | source code + workflow + scripts + branch memory + traceability, **~55 file 추가** | 본 문서 §1.7 (2026-06-13 추가) |
+| **Phase 3 (forward, 별도 PR)** | domain (66) + architecture (1) + infrastructure + validation (~100 file) | `docs/llm-wiki/mirror-list-phase-3.md` (별도 작성, 본 문서 §forward path §2 의 §1.5 본 갱신으로 trigger 조건 충족) |
+| **Phase N (forward)** | ai-workflow memory 의 sprint branch 별 mirror (본 Phase 1.5 의 active + 30일 이내 CLOSED branch 정공법 정합) | `scripts/wiki-sync-devhub.sh` 의 `--branch <branch>` 옵션 (선택) |
+
+## 5. 향후 작업 지침 (wiki-only maintenance 정공법, 2026-06-13 추가)
+
+**위키만으로 코드 maintenance 가능** 하도록 하기 위해, **모든 신규 PR**은 다음을 충족해야 한다:
+
+1. **소스코드 변경 PR**: 본 mirror-list.md §1.7.1 / §1.7.2 / §1.7.3 / §1.7.5 의 mirror scope 내 file 변경 시, **PR 본문 + branch memory 의 pr_body.md**에 다음 명시:
+   - 변경 file path
+   - 변경 line / block summary (1-2 line)
+   - cross-reference (이전 PR / ADR / ID)
+2. **신규 file PR**: 본 §1.7 의 mirror scope 가 확장될 가능성 있는 신규 file (예: backend 새 도메인 / frontend 새 e2e spec / workflow 신규) 추가 시, **PR 본문 + pr_body.md**에 다음 명시:
+   - 신규 file path
+   - wiki mirror scope 추가 요청 (mirror-list.md §1.7 갱신 + lint-config.toml 갱신)
+3. **위키 본문 갱신**: PR 머지 후 `wiki-source-sync` skill 의 **op=commit** 호출 (본 저장소 metadata 정합). 본문 1:1 mirror 정공법은 operation-sop.md §3 참조.
+
+**AGENTS.md 의 "문서 tier 라벨" + 본 §5 의 지침 정합** — 향후 작업의 디폴트 위키 정합 보장.
+
+## 6. 다음 세션 directive
+
+1. `docs/llm-wiki/lint-config.toml` 갱신 (L02 broken link Phase 1.5 갱신 + L10 Phase 1.5 갱신).
+2. `scripts/wiki-sync-devhub.sh` 갱신 (Phase 1.5 mirror pattern 6개 추가, 화이트리스트).
+3. `docs/llm-wiki/operation-sop.md` 갱신 (sources/ page 본문 1:1 mirror 정공법 + Phase 1.5 SOP).
+4. 본 sprint 의 22 file mirror 실행 (scripts re-run).
+5. lint 검증 (4종: Detect Changed Paths / Workflow Lint / Migration Prefix / OpenAPI YAML).
+6. wiki-source-sync + wiki-event-sync 호출 (raw → wiki 갱신).
+7. commit + push + PR 발행 (Phase 1.5 scope).
+8. main flat memory finalize (post-merge sync).
 
 ## 1. Phase 1 source list (core subset ~80 file)
 

@@ -1,7 +1,13 @@
-# wiki-lint per-project config — DevHub project (D-72)
+# wiki-lint per-project config — DevHub project (D-72, Phase 1 + Phase 1.5)
 #
 # 본 config 는 my_harness 의 wiki-lint skill 에 `--project-config` 옵션 추가 후 (D-73,
-# my_harness 측 작업) 자동으로 활성화. 현시점 (Phase 1) 에는 source-of-truth 만 제공.
+# my_harness 측 작업) 자동으로 활성화. 현시점 (Phase 1.5) 에는 source-of-truth 만 제공.
+#
+# Phase 1.5 (2026-06-13) 갱신:
+#   - source code + workflow + scripts + branch memory + traceability mirror scope 추가
+#   - L02 broken link 의 backend source code link 가 mirror scope 내 → L02 PASS
+#   - L10 raw source 0 = Phase 1.5 mirror scope 내 file 들의 wiki page 의 raw/ source 1:1
+#   - L08 index.md 갱신 (Phase 1.5 mirror scope 의 신규 file)
 #
 # 형식: TOML (Q4 의 D-72 권장안 §4). wiki-lint skill 의 L01~L10 의 rule ID 별 override.
 # 단 L11 (사내 패턴 검출) + L12 (이하 사용자 정의) 는 D-72 응답 §3 + yklee 결정으로 미사용.
@@ -14,7 +20,7 @@ name = "devhub"
 # 본 config 의 source-of-truth = 본 저장소 의 docs/llm-wiki/ + scripts/.
 ssot_path = "~/repos/Devhub_example_minimax"
 
-# mirror source 위치 (Phase 1 + Phase 3 의 raw/ mirror 경로).
+# mirror source 위치 (Phase 1 + Phase 1.5 + Phase 3 의 raw/ mirror 경로).
 # wiki-lint 의 sources: 경로 검증 시 사용.
 mirror_path = "~/wiki/raw/projects/devhub"
 
@@ -30,12 +36,6 @@ tier = "sa-private-wiki"  # sa-private-wiki | sa-public | internal
 # ------------------------------------------------------------------------------------
 # Rule override — DevHub 의 의도적 supersede (ADR-*.md) 의 L07 면제
 # ------------------------------------------------------------------------------------
-# L07 (모순) — same title 의 두 페이지 감지. DevHub 의 ADR supersede 가 의도적 (예: ADR-0030
-# → ADR-0031) 이므로 L07 의 false positive 회피.
-#
-# 면제 조건: wiki/pages/<path> 의 frontmatter 에 `type: source` + `supersedes: [[ADR-XXXX]]`
-# 가 있으면 L07 skip. 또는 path 가 `wiki/projects/devhub/sources/ADR-*.md` 패턴이면 L07 skip.
-
 [rules.L07]
 # DevHub 의 ADR-*.md 의 의도적 supersede (ADR-0030 → ADR-0031 등) 가 L07 false positive
 # 회피. my_harness 의 모든 page 는 L07 그대로 적용 (의도적 supersede 같은 개념 없음).
@@ -43,6 +43,35 @@ skip_paths = ["wiki/projects/devhub/sources/ADR-*.md"]
 
 # 면제 조건: frontmatter `supersedes:` 가 있으면 L07 skip (DevHub 의 의도적 supersede).
 skip_if_frontmatter = ["supersedes"]
+
+# ------------------------------------------------------------------------------------
+# Rule override — L02 (broken wiki link) 의 DevHub 적용 정책 (Phase 1.5 갱신)
+# ------------------------------------------------------------------------------------
+# L02 (broken wiki link) — wiki page 가 reference 하는 raw/ 경로 또는 wikilink 가
+# mirror 에 부재 시 위반. DevHub 의 경우:
+#
+# Phase 1 (기존): wiki `concepts/rbac.md` 의 `raw/projects/devhub/backend-core/internal/auth/keycloak_verifier.go`
+# link = scope 외 → L02 위반. **fix: rbac.md 의 source code link 를 text 로 변경 (2026-06-13 본 갱신).**
+#
+# Phase 1.5 (본 갱신): backend critical source code (12 file) + frontend e2e (8 file) +
+# workflows (4 file) + scripts (4 file) + traceability (4 file) + branch memory 가 mirror
+# scope 내 → wiki page 의 source code link 가 raw/ 에 존재 → L02 PASS 자동.
+#
+# 면제 불요 (Phase 1.5 mirror scope 의 link 가 정상).
+
+[rules.L02]
+# Phase 1.5 갱신: concepts/*.md, topics/*.md, entities/*.md 의 source code link 가
+# mirror scope 내 → L02 PASS. 면제 불요.
+# (예외: bulk backend source code (mirror scope 외) 의 link 가 wiki page 에 있으면 L02 위반.
+#  본 갱신 시점 rbac.md 의 backend source link 를 text 로 변경 완료. 추가 위반 시 별도 fix.)
+devhub_known_bulk_source_paths = [
+  "backend-core/internal/store/postgres/*.go",
+  "backend-core/internal/cmd/**/*.go",
+  "backend-core/migrations/*.sql",
+  "frontend/src/**/*.tsx",
+  "frontend/components/**/*.tsx",
+  "frontend/app/**/*.tsx",
+]
 
 # ------------------------------------------------------------------------------------
 # Rule override — L03 (orphan page) + L10 (raw source 0) 의 DevHub 적용 정책
@@ -57,40 +86,35 @@ skip_paths = ["wiki/projects/devhub/sources/*.md"]
 [rules.L10]
 # DevHub 의 ADR page 의 raw/ source = `~/wiki/raw/projects/devhub/docs/adr/<id>-<title>.md`
 # 자동 검증. 면제 불요 (모든 ADR page 가 raw/ source 1:1).
+# Phase 1.5 갱신: Phase 1.5 mirror scope 내 (backend Go, frontend e2e, workflows, scripts,
+# traceability, branch memory) 의 wiki page 의 raw/ source 도 1:1 mirror → L10 PASS.
 devhub_adr_source_pattern = "~/wiki/raw/projects/devhub/docs/adr/*.md"
 skip_paths = ["wiki/projects/devhub/sources/*.md"]
 
 # ------------------------------------------------------------------------------------
 # DevHub 의 의도적 supersede 명시 (참고)
 # ------------------------------------------------------------------------------------
-# DevHub 의 supersede chain (현시점 2026-06-10):
+# DevHub 의 supersede chain (현시점 2026-06-13):
 # - ADR-0030 (sso-integrations-and-auth-session-port, accepted 2026-06-10)
 #   → ADR-0031 (build-tag-policy-review, accepted 2026-06-10, confirmed ADR-0030 §2.3)
 #   → (Phase 3 forward, 별도)
-#
-# 위 chain 의 supersede 가 의도적 (ADR-0031 = ADR-0030 의 re-evaluation, supersede X).
-# lint-config 의 L07 skip_if_frontmatter = "supersedes" 가 frontmatter 검증.
-#
-# wiki page 작성 시 (Phase 3):
-# ---
-# title: "ADR-0031 build tag 정책 재검토"
-# type: source
-# sources: [[~/wiki/raw/projects/devhub/docs/adr/0031-build-tag-policy-review.md]]
-# supersedes: [[ADR-0030 sso-integrations-and-auth-session-port]]
-# last_touched: 2026-06-10
-# related: [[ADR-0030]]
-# status: reviewed
-# ---
+# - PR #579 의 N-13 follow-up C 의 ADR-0028 §6 (a) amendment (2026-06-13):
+#   - §6 (a) 본문 + §7 row 추가
+#   - status ⏳ planned → ✅ resolved (implemented, 2026-06-12) (PR #578/#579/#580)
+#   - 9 ID row 정합 (REQ-FR-113/UC-DEV-REQ-15/ARCH-23/API-103/RM-DEV-REQ-15/IMPL-inbound-source-01/
+#     IMPL-platform-patch-02/UT-inbound-source-01/TC-INBOUND-SRC-01)
 
 # ------------------------------------------------------------------------------------
 # 메타데이터
 # ------------------------------------------------------------------------------------
 
 [meta]
-config_version = "1"
+config_version = "2"
 created = "2026-06-10"
+updated = "2026-06-13"
 created_by = "yklee"
-rationale = "D-72 Phase 1. my_harness 의 wiki-lint skill 의 --project-config 옵션 추가 후 자동 활성. lint L11 (사내 패턴 검출) 미사용 (yklee 결정: wiki 는 Gitea private 만)."
+updated_by = "Mavis (session mvs_0083593a7db7498ca87bf0b1bb5b71a5)"
+rationale = "D-72 Phase 1 (2026-06-10) + Phase 1.5 (2026-06-13, 본 갱신). my_harness 의 wiki-lint skill 의 --project-config 옵션 추가 후 자동 활성. lint L11 (사내 패턴 검출) 미사용 (yklee 결정: wiki 는 Gitea private 만). Phase 1.5 추가: source code + workflow + scripts + branch memory + traceability mirror scope, 본 저장소 한정 + 위키만으로 코드 maintenance 가능 정공법."
 source_of_truth = "~/repos/Devhub_example_minimax/docs/llm-wiki/lint-config.toml"
 related_docs = [
   "~/repos/Devhub_example_minimax/docs/llm-wiki/README.md",
