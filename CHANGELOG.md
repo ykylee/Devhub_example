@@ -22,6 +22,7 @@ main HEAD: `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` (re-tag
 | **T-d-79-5** | D-79 wiki-lint 통합 (L01~L10) | D-74 | ⏳ planned (v0.1.1-alpha) |
 | **T-d-80-7** | D-80 wiki-lint 통합 (L01~L10) | D-74 | ⏳ planned (v0.1.1-alpha) |
 | **X-1** | System Admin 운영 대시보드 (RM-M4-07) | — | ✅ implemented (2026-06-13, sprint `feat/work_260614-x1-system-admin-dashboard` 1차 PR #583 + sprint `feat/work_260614-x1-frontend-e2e` 2차 PR — backend IntegrationRepository method 3 + httpapi admin endpoint 3 + openapi paths 3 + frontend widget 4 + admin landing page 강화 + e2e admin-x1.spec.ts 3 case + ADR-0032) |
+| **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | T-d-79-2/T-d-80-2 | ✅ implemented (2026-06-13, sprint `feat/work_260614-x2-system-admin-dashboard` 1차 PR #586 + sprint `feat/work_260614-x2-webhook-adapter` 2차 PR #587 + sprint `feat/work_260614-x2-jira-generic-adapter` 3차 PR #588 + sprint `feat/work_260614-x2-openapi-frontend` 4차 PR #589 + sprint `feat/work_260614-x2-frontend-e2e` 5차 PR — backend auto_route multi-provider pattern + WebhookAdapter interface + Gitea/Jira/Generic adapters + openapi schema + frontend multi-provider 운영 UI 4 widget + e2e admin-x2 4 case + ADR-0033) |
 | **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | T-d-79-2/T-d-80-2 | ⏳ planned (v0.1.1-alpha) |
 | **X-3** | 평문 secret envelope 암호화 (DEK + 키관리 ADR) | ADR | ⏳ planned (v0.1.1-alpha) |
 | **X-4** | Phase D — project 생성 flow ↔ SCM create 연계 | T-d-72-5/6 | ⏳ planned (v0.1.1-alpha) |

@@ -69,6 +69,11 @@
 | `frontend/components/admin/x1-widgets/DashboardSummaryWidget.tsx` | **X-1 2차 PR 신규** — widget 4종 4 (totalJobs/queueDepth/failed/successRate) | successRate = succeeded/(succeeded+failed)*100, 소수점 1자리 |
 | `frontend/domain/integration-registry/service/admin-x1.service.ts` | **X-1 2차 PR 신규** — adminX1Service class + listSyncJobs/GetSyncJob/getStatusSummary | apiClient<T> 정공법 (자동 token refresh + session death) |
 | `frontend/tests/e2e/admin-x1.spec.ts` | **X-1 2차 PR 신규** — TC-ADMIN-X1-01/02/03 (system_admin widget 4 + sync job status API mock + non-admin redirect) | page.route() mock + waitForResponse API-106 fetch 검증 |
+| `frontend/components/admin/inbound-source-config/InboundSourceTypeSelector.tsx` | **X-2 5차 PR 신규** — provider_type select (Gitea/Jira/Other/Disabled 4 option) | 1차 출처 X-2 PR #586 의 InboundSourceType enum 정공법 |
+| `frontend/components/admin/inbound-source-config/InboundSourceConfigEditor.tsx` | **X-2 5차 PR 신규** — JSONB textarea editor (parse error + save) | InboundSourceRoutingConfig struct 1:1 매핑 |
+| `frontend/components/admin/inbound-source-config/PatternPreview.tsx` | **X-2 5차 PR 신규** — provider-specific pattern + custom regex 검증 (MATCH/NO MATCH) | auto_route.go 의 gitea/jira/github/gitlab regex 정공법 |
+| `frontend/components/admin/inbound-source-config/InboundSourceManager.tsx` | **X-2 5차 PR 신규** — 4 widget 통합 view + platform selector + save + audit | system_admin /admin/inbound-source 진입 |
+| `frontend/tests/e2e/admin-x2.spec.ts` | **X-2 5차 PR 신규** — TC-ADMIN-X2-01/02/03/04 (system_admin 진입 + 4 widget 렌더 + type selector 변경 + non-admin redirect + pattern preview 검증) | page.locator("#inbound-source-type-select") + textarea fill |
 
 **mirror 정책**: 12 file (6 e2e/manifest + 1 Zustand store + 1 RBAC routing + 4 X-1 widget + 1 admin-x1 service + 1 X-1 e2e = 14 항목 중 12 core). **forward**: 새 frontend helper/page/component 추가 시 PR 본문에 mirror scope 추가 요청.
 
