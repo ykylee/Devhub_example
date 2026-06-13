@@ -673,12 +673,8 @@ WHERE job_id = $2::uuid`
 
 // IntegrationSyncJobListOptions parameterizes ListIntegrationSyncJobs
 // (X-1 System Admin 운영 대시보드, RM-M4-07).
-// 빈 status 면 모든 status, 빈 status 외는 4개 status 중 하나.
-type IntegrationSyncJobListOptions struct {
-	Status domain.IntegrationSyncJobStatus // 빈 문자열이면 모든 status
-	Limit  int
-	Offset int
-}
+// store.IntegrationSyncJobListOptions 와 동일 (type alias).
+type IntegrationSyncJobListOptions = store.IntegrationSyncJobListOptions
 
 func scanIntegrationSyncJob(row pgx.Row) (domain.IntegrationSyncJob, error) {
 	var j domain.IntegrationSyncJob

@@ -857,3 +857,91 @@ func (h *IntegrationHandler) DeleteIntegrationBinding(c *gin.Context) {
 	h.recordAuditBestEffort(c, "integration.binding.deleted", "integration_binding", bindingID, nil)
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
+
+// X-1 System Admin 운영 대시보드 (release_v0-1_roadmap.md line 198, RM-M4-07)
+// — Gitea sync job 큐/상태 조회 endpoint. system_admin 일임
+// (routePermissionTable 의 integration_sync_jobs resource gate).
+
+// ListIntegrationSyncJobs — `GET /api/v1/admin/integrations/sync-jobs?status=&limit=&offset=` (API-104)
+func (h *IntegrationHandler) ListIntegrationSyncJobs(c *gin.Context) {
+	status := c.Query("status")
+	if status != "" && !isValidSyncJobStatus(status) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status", "valid": []string{"queued", "running", "succeeded", "failed"}})
+		return
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if limit < 1 || limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	jobs, total, err := h.cfg.IntegrationStore.ListIntegrationSyncJobs(c.Request.Context(), store.IntegrationSyncJobListOptions{
+		Status: domain.IntegrationSyncJobStatus(status),
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "list integration sync jobs", "detail": err.Error()})
+		return
+	}
+	items := make([]gin.H, 0, len(jobs))
+	for _, j := range jobs {
+		items = append(items, gin.H{
+			"job_id":       j.JobID,
+			"provider_id":  j.ProviderID,
+			"requested_by": emptyAsNil(j.RequestedBy),
+			"status":       string(j.Status),
+			"created_at":   j.CreatedAt.UTC().Format(time.RFC3339),
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"items": items,
+		"total": total,
+		"limit": limit,
+		"offset": offset,
+	})
+}
+
+// GetIntegrationSyncJob — `GET /api/v1/admin/integrations/sync-jobs/:jobID` (API-105)
+func (h *IntegrationHandler) GetIntegrationSyncJob(c *gin.Context) {
+	jobID := c.Param("jobID")
+	job, err := h.cfg.IntegrationStore.GetIntegrationSyncJob(c.Request.Context(), jobID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "integration sync job not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "get integration sync job", "detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"job_id":       job.JobID,
+		"provider_id":  job.ProviderID,
+		"requested_by": emptyAsNil(job.RequestedBy),
+		"status":       string(job.Status),
+		"created_at":   job.CreatedAt.UTC().Format(time.RFC3339),
+	})
+}
+
+// GetIntegrationSyncJobStatusSummary — `GET /api/v1/admin/integrations/summary` (API-106)
+// X-1 dashboard summary endpoint. sync job 4 status 별 count.
+func (h *IntegrationHandler) GetIntegrationSyncJobStatusSummary(c *gin.Context) {
+	counts, err := h.cfg.IntegrationStore.GetIntegrationSyncJobStatusCounts(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "get integration sync job status counts", "detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"sync_job_status_counts": counts,
+	})
+}
+
+func isValidSyncJobStatus(s string) bool {
+	switch s {
+	case "queued", "running", "succeeded", "failed":
+		return true
+	}
+	return false
+}

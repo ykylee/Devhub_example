@@ -52,10 +52,10 @@ v0.1.0-alpha 출시 (2026-06-11) + v0.1.1-alpha 격하 (commit `3e2701b3`) 이�
    - `GetIntegrationSyncJob(ctx, jobID)` — 단건 조회
    - `GetSyncJobStatusCounts(ctx)` — `queued` / `running` / `succeeded` / `failed` count (dashboard summary)
 2. httpapi admin 운영 endpoint 3종 (system_admin 권한 가드)
-   - `GET /api/v0-1/admin/integrations/sync-jobs?status=&limit=&offset=` — sync job 큐/상태
-   - `GET /api/v0-1/admin/integrations/sync-jobs/:jobID` — 단건 조회
-   - `GET /api/v0-1/admin/integrations/summary` — sync job status count + provider health count
-3. (선택) provider health endpoint — `RuntimeSnapshotProvider.GetProviderHealthSummary(ctx)` 메서드 보강 + `GET /api/v0-1/admin/integrations/provider-health`
+  - `GET /api/v1/admin/integrations/sync-jobs?status=&limit=&offset=` — sync job 큐/상태
+  - `GET /api/v1/admin/integrations/sync-jobs/:jobID` — 단건 조회
+  - `GET /api/v1/admin/integrations/summary` — sync job status count + provider health count
+3. (선택) provider health endpoint — `RuntimeSnapshotProvider.GetProviderHealthSummary(ctx)` 메서드 보강 + `GET /api/v1/admin/integrations/provider-health`
 
 ### 2.2 frontend (scope = 1 page + 1 widget set + 1 e2e)
 
@@ -132,10 +132,10 @@ v0.1.0-alpha 출시 (2026-06-11) + v0.1.1-alpha 격하 (commit `3e2701b3`) 이�
 
 ### 5.1 backend
 
-- `API-104` — `GET /api/v0-1/admin/integrations/sync-jobs?status=&limit=&offset=`
-- `API-105` — `GET /api/v0-1/admin/integrations/sync-jobs/:jobID`
-- `API-106` — `GET /api/v0-1/admin/integrations/summary`
-- (선택) `API-107` — `GET /api/v0-1/admin/integrations/provider-health`
+- `API-104` — `GET /api/v1/admin/integrations/sync-jobs?status=&limit=&offset=`
+- `API-105` — `GET /api/v1/admin/integrations/sync-jobs/:jobID`
+- `API-106` — `GET /api/v1/admin/integrations/summary`
+- (선택) `API-107` — `GET /api/v1/admin/integrations/provider-health`
 - `IMPL-admin-x1-01` — `IntegrationRepository.ListIntegrationSyncJobs/GetIntegrationSyncJob/GetSyncJobStatusCounts`
 - `IMPL-admin-x1-02` — httpapi admin handler 3종 + route
 - (선택) `IMPL-admin-x1-03` — `RuntimeSnapshotProvider.GetProviderHealthSummary` 보강

@@ -87,6 +87,14 @@ type IntegrationBindingListOptions struct {
 	Offset       int
 }
 
+// IntegrationSyncJobListOptions — X-1 System Admin 운영 대시보드
+// (RM-M4-07) 의 integration_sync_jobs 조회 옵션. 빈 Status 면 모든 status.
+type IntegrationSyncJobListOptions struct {
+	Status domain.IntegrationSyncJobStatus
+	Limit  int
+	Offset int
+}
+
 type DevRequestListOptions struct {
 	Statuses       []domain.DevRequestStatus
 	AssigneeUserID string

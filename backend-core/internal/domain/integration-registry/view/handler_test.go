@@ -3,6 +3,7 @@ package view
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -542,6 +543,10 @@ type fakeIntegrationStore struct {
 	updateProviderFunc      func(ctx context.Context, p domain.IntegrationProvider) (domain.IntegrationProvider, error)
 	deleteProviderFunc      func(ctx context.Context, id string) error
 	createSyncJobFunc       func(ctx context.Context, providerID string, triggerBy string) (string, error)
+	// X-1 System Admin 운영 대시보드 (RM-M4-07) — sync job list/get/status counts
+	listSyncJobsFunc        func(ctx context.Context, opts store.IntegrationSyncJobListOptions) ([]domain.IntegrationSyncJob, int, error)
+	getSyncJobFunc          func(ctx context.Context, jobID string) (domain.IntegrationSyncJob, error)
+	getSyncJobCountsFunc    func(ctx context.Context) (domain.IntegrationSyncJobStatusCounts, error)
 	listBindingsFunc        func(ctx context.Context, opts store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error)
 	getBindingByIDFunc      func(ctx context.Context, id string) (domain.IntegrationBinding, error)
 	createBindingFunc       func(ctx context.Context, p domain.IntegrationBinding) (domain.IntegrationBinding, error)
@@ -656,6 +661,32 @@ func (s *fakeIntegrationStore) CreateIntegrationSyncJob(ctx context.Context, pro
 		return s.createSyncJobFunc(ctx, providerID, triggerBy)
 	}
 	return "job-123", nil
+}
+
+func (s *fakeIntegrationStore) ListIntegrationSyncJobs(ctx context.Context, opts store.IntegrationSyncJobListOptions) ([]domain.IntegrationSyncJob, int, error) {
+	if s.listSyncJobsFunc != nil {
+		return s.listSyncJobsFunc(ctx, opts)
+	}
+	return []domain.IntegrationSyncJob{
+		{JobID: "job-a", ProviderID: "prov-a", RequestedBy: "admin-x1", Status: domain.IntegrationSyncJobStatusQueued, CreatedAt: time.Now()},
+		{JobID: "job-b", ProviderID: "prov-b", RequestedBy: "admin-x1", Status: domain.IntegrationSyncJobStatusRunning, CreatedAt: time.Now().Add(-time.Second)},
+	}, 2, nil
+}
+
+func (s *fakeIntegrationStore) GetIntegrationSyncJob(ctx context.Context, jobID string) (domain.IntegrationSyncJob, error) {
+	if s.getSyncJobFunc != nil {
+		return s.getSyncJobFunc(ctx, jobID)
+	}
+	return domain.IntegrationSyncJob{
+		JobID: jobID, ProviderID: "prov-a", RequestedBy: "admin-x1", Status: domain.IntegrationSyncJobStatusSucceeded, CreatedAt: time.Now(),
+	}, nil
+}
+
+func (s *fakeIntegrationStore) GetIntegrationSyncJobStatusCounts(ctx context.Context) (domain.IntegrationSyncJobStatusCounts, error) {
+	if s.getSyncJobCountsFunc != nil {
+		return s.getSyncJobCountsFunc(ctx)
+	}
+	return domain.IntegrationSyncJobStatusCounts{Queued: 1, Running: 1, Succeeded: 5, Failed: 0}, nil
 }
 
 func (s *fakeIntegrationStore) ListIntegrationBindings(ctx context.Context, opts store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error) {
@@ -2787,5 +2818,97 @@ func TestExternalTaskStoreOrUnavailable_StoreAvailable(t *testing.T) {
 	}
 	if storeI == nil {
 		t.Fatal("expected non-nil store")
+	}
+}
+
+// --- X-1 System Admin 운영 대시보드 Handler Tests (RM-M4-07) -------------
+
+func TestListIntegrationSyncJobs_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest("GET", "/admin/integrations/sync-jobs?status=queued&limit=10&offset=0", nil)
+
+	h.ListIntegrationSyncJobs(c)
+
+	if rec.Code != 200 {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var resp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp["total"].(float64) != 2 {
+		t.Errorf("expected total=2 from fake, got %v", resp["total"])
+	}
+	items, ok := resp["items"].([]any)
+	if !ok || len(items) != 2 {
+		t.Errorf("expected 2 items, got %d", len(items))
+	}
+}
+
+func TestListIntegrationSyncJobs_InvalidStatus(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest("GET", "/admin/integrations/sync-jobs?status=invalid_status", nil)
+
+	h.ListIntegrationSyncJobs(c)
+
+	if rec.Code != 400 {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestGetIntegrationSyncJob_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest("GET", "/admin/integrations/sync-jobs/job-abc", nil)
+	c.Params = gin.Params{{Key: "jobID", Value: "job-abc"}}
+
+	h.GetIntegrationSyncJob(c)
+
+	if rec.Code != 200 {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var resp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp["job_id"] != "job-abc" {
+		t.Errorf("expected job_id=job-abc, got %v", resp["job_id"])
+	}
+}
+
+func TestGetIntegrationSyncJobStatusSummary_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := NewIntegrationHandler(IntegrationConfig{IntegrationStore: &fakeIntegrationStore{}})
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest("GET", "/admin/integrations/summary", nil)
+
+	h.GetIntegrationSyncJobStatusSummary(c)
+
+	if rec.Code != 200 {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	var resp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	counts, ok := resp["sync_job_status_counts"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected sync_job_status_counts object, got %T", resp["sync_job_status_counts"])
+	}
+	if counts["queued"].(float64) != 1 || counts["running"].(float64) != 1 || counts["succeeded"].(float64) != 5 {
+		t.Errorf("expected counts 1/1/5/0, got %v", counts)
 	}
 }

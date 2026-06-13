@@ -467,6 +467,12 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.GET("/admin/api-keys", handler.auth.ListAPIKeys)
 	v1.PATCH("/admin/api-keys/:api_key_id", handler.auth.UpdateAPIKeyMeta)
 	v1.DELETE("/admin/api-keys/:api_key_id", handler.auth.RevokeAPIKey)
+	// X-1 System Admin 운영 대시보드 (release_v0-1_roadmap.md line 198, RM-M4-07,
+	// sprint `feat/work_260614-x1-system-admin-dashboard`). system_admin 일임
+	// (routePermissionTable 의 integration_sync_jobs resource gate).
+	v1.GET("/admin/integrations/sync-jobs", handler.integ.ListIntegrationSyncJobs)
+	v1.GET("/admin/integrations/sync-jobs/:jobID", handler.integ.GetIntegrationSyncJob)
+	v1.GET("/admin/integrations/summary", handler.integ.GetIntegrationSyncJobStatusSummary)
 	v1.POST("/risks/:risk_id/mitigations", handler.createRiskMitigation)
 	v1.GET("/commands/:command_id", handler.getCommand)
 	v1.POST("/commands/:command_id/approve", handler.approveCommand)
