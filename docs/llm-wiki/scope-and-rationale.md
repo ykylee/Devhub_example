@@ -1,24 +1,24 @@
-# Phase 1 + Phase 1.5 Scope + Rationale (D-72 Q1~Q6 본 저장소 측 적용)
+# Phase 1 + Phase 1.5 + Phase 3 Scope + Rationale (D-72 Q1~Q6 본 저장소 측 적용)
 
-- **문서 목적**: D-72 응답 (my_harness 의 작업 에이전트, RESPONSE.md, 15KB) 의 6 질문별 권장안을 본 저장소 (DevHub) 측에 적용한 정공법 + rationale. Phase 1 의 scope 한계 + **Phase 1.5 (2026-06-13, 본 저장소 한정 + 위키만으로 코드 maintenance 가능 정공법)** + Phase 3 (mass ingest) 까지의 forward path.
-- **범위**: 본 file = 본 저장소 측의 D-72 Q1~Q6 적용 정공법. Q3 단순화 (lint L11 제거 + sa-internal/ 격리 제거) 의 본 저장소 측 영향 + 본 Phase 1+1.5 의 mirror list scope 결정 + lint-config 의 per-project config 적용.
+- **문서 목적**: D-72 응답 (my_harness 의 작업 에이전트, RESPONSE.md, 15KB) 의 6 질문별 권장안을 본 저장소 (DevHub) 측에 적용한 정공법 + rationale. Phase 1 의 scope 한계 + **Phase 1.5 (2026-06-13, 본 저장소 한정 + 위키만으로 코드 maintenance 가능 정공법)** + **Phase 3 (2026-06-13, mass ingest = domain + architecture + infrastructure + validation)** 의 forward path.
+- **범위**: 본 file = 본 저장소 측의 D-72 Q1~Q6 적용 정공법. Q3 단순화 (lint L11 제거 + sa-internal/ 격리 제거) 의 본 저장소 측 영향 + 본 Phase 1+1.5+3 의 mirror list scope 결정 + lint-config 의 per-project config 적용.
 - **대상 독자**: yklee (owner), LLM agent (Phase 3 mass ingest 시 wiki page 작성자 + **코드 maintenance 시 RAG source**), my_harness 작업 에이전트 (D-73 wiki-lint `--project` 옵션 추가 시).
-- **상태**: active (D-72 Phase 1 + **Phase 1.5 (2026-06-13 추가)**)
-- **최종 수정일**: 2026-06-13 (Phase 1.5 추가: mirror scope 6 패턴 ~55 file, lint-config.toml 갱신, operation-sop.md 갱신, 위키 1:1 mirror 정공법)
+- **상태**: active (D-72 Phase 1 + **Phase 1.5 (2026-06-13 추가)** + **Phase 3 (2026-06-13 추가)**)
+- **최종 수정일**: 2026-06-13 (Phase 3 추가: docs/domain + architecture + infrastructure + validation ~78 file mirror + 78 wiki page 신규 생성 + index.md 78 line append, scripts 갱신, lint-config.toml 갱신)
 - **관련 문서**:
-  - [`../README.md`](../README.md) (**2026-06-13 갱신**: Phase 1.5 정합)
-  - [`./mirror-list.md`](./mirror-list.md) (**2026-06-13 갱신 완료**: Phase 1+1.5 mirror list, 13 패턴 ~140 file)
-  - [`./lint-config.toml`](./lint-config.toml) (**2026-06-13 갱신 완료**: per-project config, config_version 2)
-  - [`./operation-sop.md`](./operation-sop.md) (**2026-06-13 갱신 완료**: sync + lint SOP, §0 위키 1:1 mirror 4 layer)
+  - [`../README.md`](../README.md) (**2026-06-13 갱신**: Phase 1.5+3 정합)
+  - [`./mirror-list.md`](./mirror-list.md) (**2026-06-13 갱신 완료**: Phase 1+1.5+3 mirror list, 15 패턴 ~220 file)
+  - [`./lint-config.toml`](./lint-config.toml) (**2026-06-13 갱신 완료**: per-project config, config_version 3)
+  - [`./operation-sop.md`](./operation-sop.md) (**2026-06-13 갱신 완료**: sync + lint SOP, §0 위키 1:1 mirror 4 layer + Phase 3 mass ingest SOP)
   - [`../../scratch/devhub_wiki_integration_response/RESPONSE.md`](../../scratch/devhub_wiki_integration_response/RESPONSE.md) (D-72 권장안, 15KB)
 
-## 0. Phase 1.5 추가 (2026-06-13, 본 저장소 한정)
+## 0. Phase 1.5 + Phase 3 추가 (2026-06-13, 본 저장소 한정)
 
 ### 0.1 trigger
 
-본 sprint 의 verification 으로 **위키만으로 코드 maintenance 불가능** 발견 (소스코드 22 file + workflows + scripts + branch memory 가 mirror scope 외). **fix**: mirror scope 확장 = Phase 1.5 (6 패턴, ~55 file). **본 저장소 한정** = my_harness 측 wiki 일임 결정 (session §10) 해제 후 본 저장소 측에서 진행.
+본 sprint 의 verification 으로 **위키만으로 코드 maintenance 불가능** 발견 (소스코드 22 file + workflows + scripts + branch memory 가 mirror scope 외). **fix**: mirror scope 확장 = Phase 1.5 (6 패턴, ~55 file) + Phase 3 (2 패턴, ~78 file) = **15 패턴, ~220 file**. **본 저장소 한정** = my_harness 측 wiki 일임 결정 (session §10) 해제 후 본 저장소 측에서 진행.
 
-### 0.2 추가 scope (mirror-list.md §1.7 참조)
+### 0.2 Phase 1.5 추가 scope (mirror-list.md §1.7 참조)
 
 - **§1.7.1 Backend Go critical (15 file)**: `main.go` + `sso-integrations/keycloak/saovae_stub.go` + `auth-session/{integration/ports,view/auth,view/handler}.go` + `application-lifecycle/routing/auto_route.go` + `dev-request/view/voc_handler.go` + `audit-ops/{view/keycloak_events_webhook,service/keycloak_event_puller,view/audit,repository/audit_logs}.go` + `rbac.go` + `rbac-permissions/view/rbac.go` + `httpapi/repository_ops.go` + `store/repository_ops.go`.
 - **§1.7.2 Frontend e2e critical (7 file)**: `tests/e2e/{fixtures,signout,voc-auto-routing}.ts` + `tests/e2e-manifests/{smoke,quarantine}.txt` + `lib/store.ts` + `domain/auth-session/service/role-routing.ts`.
@@ -26,17 +26,24 @@
 - **§1.7.4 Branch memory (active + 30일 이내 CLOSED)**: `ai-workflow/memory/<agent>/<branch>/*`.
 - **§1.7.5 Traceability (4 file)**: `docs/traceability/{README,conventions,report,sync-checklist}.md`.
 
-### 0.3 verification 정공법 (위반 시점 drift trigger)
+### 0.3 Phase 3 추가 scope (mirror-list.md §1.8 참조)
+
+- **§1.8.1 Domain (~66 file)**: `docs/domain/**/*` (10+ sub-directory: auth-session + rbac-permissions + organization-management + application-lifecycle + dev-request + onboarding + audit-ops + realtime + cross-cut 등).
+- **§1.8.2 Architecture (1 file)**: `docs/architecture/README.md`.
+- **§1.8.3 Infrastructure (9 file)**: `docs/infrastructure/**/*` (keycloak-idp + deployment-automation + monitoring 등).
+- **§1.8.4 Validation (2 file)**: `docs/validation/{N-10-manager-rbac,2026-06-12-n13-test2-rebase-verification}.md`.
+
+### 0.4 verification 정공법 (위반 시점 drift trigger)
 
 ```bash
-# 본 sprint 의 verification script (위 0.2 의 scope + Phase 1 의 85 file = 118 file)
+# 본 sprint 의 verification script (위 0.2 + 0.3 의 scope + Phase 1 의 85 file = 196 file)
 python3 << 'EOF'
 import os, hashlib
 # ... (본 section 의 scope list + Phase 1 의 85 file 의 byte-identical 검증)
 EOF
 ```
 
-**기대**: `Total: 118, Identical: 118, Diff: 0, Missing: 0`. **위반 시**: 즉시 fix (mirror-list.md §1.7 + lint-config.toml + scripts/wiki-sync-devhub.sh 의 화이트리스트 갱신).
+**기대**: `Total: 196, Identical: 196, Diff: 0, Missing: 0`. **위반 시**: 즉시 fix (mirror-list.md §1.7/§1.8 + lint-config.toml + scripts/wiki-sync-devhub.sh 의 화이트리스트 갱신).
 
 ## 1. D-72 6 질문의 본 저장소 측 적용
 

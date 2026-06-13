@@ -1,13 +1,18 @@
-# wiki-lint per-project config — DevHub project (D-72, Phase 1 + Phase 1.5)
+# wiki-lint per-project config — DevHub project (D-72, Phase 1 + Phase 1.5 + Phase 3)
 #
 # 본 config 는 my_harness 의 wiki-lint skill 에 `--project-config` 옵션 추가 후 (D-73,
-# my_harness 측 작업) 자동으로 활성화. 현시점 (Phase 1.5) 에는 source-of-truth 만 제공.
+# my_harness 측 작업) 자동으로 활성화. 현시점 (Phase 1+1.5+3) 에는 source-of-truth 만 제공.
 #
 # Phase 1.5 (2026-06-13) 갱신:
 #   - source code + workflow + scripts + branch memory + traceability mirror scope 추가
 #   - L02 broken link 의 backend source code link 가 mirror scope 내 → L02 PASS
 #   - L10 raw source 0 = Phase 1.5 mirror scope 내 file 들의 wiki page 의 raw/ source 1:1
 #   - L08 index.md 갱신 (Phase 1.5 mirror scope 의 신규 file)
+#
+# Phase 3 (2026-06-13) 갱신:
+#   - docs/domain + docs/architecture + docs/infrastructure + docs/validation mirror scope 추가
+#   - mass ingest 정공법 (78 file) + 위키 page 자동 생성
+#   - L08 fix (wiki-source-sync --auto-fix 가 신규 page 의 index.md 갱신)
 #
 # 형식: TOML (Q4 의 D-72 권장안 §4). wiki-lint skill 의 L01~L10 의 rule ID 별 override.
 # 단 L11 (사내 패턴 검출) + L12 (이하 사용자 정의) 는 D-72 응답 §3 + yklee 결정으로 미사용.
@@ -109,12 +114,12 @@ skip_paths = ["wiki/projects/devhub/sources/*.md"]
 # ------------------------------------------------------------------------------------
 
 [meta]
-config_version = "2"
+config_version = "3"
 created = "2026-06-10"
 updated = "2026-06-13"
 created_by = "yklee"
 updated_by = "Mavis (session mvs_0083593a7db7498ca87bf0b1bb5b71a5)"
-rationale = "D-72 Phase 1 (2026-06-10) + Phase 1.5 (2026-06-13, 본 갱신). my_harness 의 wiki-lint skill 의 --project-config 옵션 추가 후 자동 활성. lint L11 (사내 패턴 검출) 미사용 (yklee 결정: wiki 는 Gitea private 만). Phase 1.5 추가: source code + workflow + scripts + branch memory + traceability mirror scope, 본 저장소 한정 + 위키만으로 코드 maintenance 가능 정공법."
+rationale = "D-72 Phase 1 (2026-06-10) + Phase 1.5 (2026-06-13) + Phase 3 (2026-06-13, 본 갱신). my_harness 의 wiki-lint skill 의 --project-config 옵션 추가 후 자동 활성. lint L11 (사내 패턴 검출) 미사용 (yklee 결정: wiki 는 Gitea private 만). Phase 1.5: source code + workflow + scripts + branch memory + traceability. Phase 3: domain + architecture + infrastructure + validation. 본 저장소 한정 + 위키만으로 코드 maintenance 가능 정공법."
 source_of_truth = "~/repos/Devhub_example_minimax/docs/llm-wiki/lint-config.toml"
 related_docs = [
   "~/repos/Devhub_example_minimax/docs/llm-wiki/README.md",

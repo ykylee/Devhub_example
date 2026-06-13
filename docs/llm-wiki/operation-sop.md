@@ -1,16 +1,19 @@
-# Phase 1 + Phase 1.5 Operation SOP — Sync + Lint + Wiki-only Maintenance
+# Phase 1 + Phase 1.5 + Phase 3 Operation SOP — Sync + Lint + Wiki-only Maintenance + Mass Ingest
 
-- **문서 목적**: `~/wiki/` Obsidian vault (out-of-repo, Gitea private) 의 DevHub mirror 운영 SOP. `scripts/wiki-sync-devhub.sh` 의 실행 trigger / frequency / dry-run 절차 + wiki-lint 의 L01~L10 검증 trigger + **위키만으로 코드 maintenance 가능 정공법** (Phase 1.5 추가).
-- **범위**: Phase 1 (in-repo 변경) + **Phase 1.5 (소스코드 + workflow + scripts + branch memory + traceability mirror scope, 본 저장소 한정 + 위키만으로 maintenance 가능)** + Phase 1 mirror 실행 (out-of-repo) + Phase 3 (mass ingest) 의 forward path + v2.0 (full compile) 진입 시점.
+- **문서 목적**: `~/wiki/` Obsidian vault (out-of-repo, Gitea private) 의 DevHub mirror 운영 SOP. `scripts/wiki-sync-devhub.sh` 의 실행 trigger / frequency / dry-run 절차 + wiki-lint 의 L01~L10 검증 trigger + **위키만으로 코드 maintenance 가능 정공법** (Phase 1.5 추가) + **mass ingest 정공법** (Phase 3 추가).
+- **범위**: Phase 1 (in-repo 변경) + **Phase 1.5 (소스코드 + workflow + scripts + branch memory + traceability mirror scope, 본 저장소 한정 + 위키만으로 maintenance 가능)** + **Phase 3 (mass ingest = docs/domain + architecture + infrastructure + validation + 위키 page 자동 생성 ~78 file)** + Phase 1 mirror 실행 (out-of-repo) + v2.0 (full compile) 진입 시점.
 - **대상 독자**: yklee (owner), DevHub 의 LLM agent (wiki page 작성자 + **코드 maintenance 작업 시 RAG source**), my_harness 작업 에이전트 (D-73 wiki-lint 옵션 추가 시).
-- **상태**: active (D-72 Phase 1 + Phase 1.5, 2026-06-13)
-- **최종 수정일**: 2026-06-13 (Phase 1.5 추가: source code + workflow + scripts + branch memory + traceability mirror scope, lint-config.toml 갱신, 위키 본문 1:1 mirror 정공법)
+- **상태**: active (D-72 Phase 1 + Phase 1.5 + Phase 3, 2026-06-13)
+- **최종 수정일**: 2026-06-13 (Phase 3 추가: docs/domain + architecture + infrastructure + validation ~78 file mirror + 78 wiki page 신규 생성 + index.md 78 line append, scripts 갱신, lint-config.toml 갱신, 위키 본문 1:1 mirror 정공법, mass ingest SOP)
 - **관련 문서**:
   - [`./README.md`](../README.md) (5 file root index)
-  - [`./scope-and-rationale.md`](../scope-and-rationale.md) (Phase 1+1.5 scope + D-72 Q1~Q6 적용)
-  - [`./mirror-list.md`](../mirror-list.md) (**Phase 1+1.5 source list, 13 패턴 ~140 file**)
-  - [`./lint-config.toml`](../lint-config.toml) (**Phase 1.5 갱신: L02 broken link + L10 raw source 0 정합**)
-  - `../../scripts/wiki-sync-devhub.sh` (**Phase 1.5 sync script, 13 패턴**)
+  - [`./scope-and-rationale.md`](../scope-and-rationale.md) (Phase 1+1.5+3 scope + D-72 Q1~Q6 적용)
+  - [`./mirror-list.md`](../mirror-list.md) (**Phase 1+1.5+3 source list, 15 패턴 ~220 file**)
+  - [`./lint-config.toml`](../lint-config.toml) (**Phase 1.5+3 갱신: L02 broken link + L10 raw source 0 정합, config_version 3**)
+  - `../../scripts/wiki-sync-devhub.sh` (**Phase 1.5+3 sync script, 15 패턴**)
+  - `../../scripts/wiki-mass-ingest.sh` (**Phase 3 NEW: mass ingest 정공법**)
+  - `../../scripts/wiki-frontmatter-update.sh` (**provenance tracking**)
+  - `../../scripts/wiki-status-check.sh` (**status 검증 command**)
   - my_harness 의 [`scratch/devhub_wiki_integration_response/RESPONSE.md`](../../../scratch/devhub_wiki_integration_response/RESPONSE.md)
 
 ## 0. 위키만으로 코드 maintenance 가능 정공법 (Phase 1.5 의 핵심, 2026-06-13)

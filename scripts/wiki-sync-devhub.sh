@@ -86,8 +86,8 @@ else
 fi
 echo "[wiki-sync-devhub] target vault: $VAULT_ROOT (Gitea private)"
 
-# ----- mirror list (Phase 1 + Phase 1.5 source patterns) -----
-# 13 패턴 (docs/llm-wiki/mirror-list.md §2):
+# ----- mirror list (Phase 1 + Phase 1.5 + Phase 3 source patterns) -----
+# 15 패턴 (docs/llm-wiki/mirror-list.md §2):
 #   Phase 1 (7 패턴):
 #     1. ADR: docs/adr/0[0-9][0-9][0-9]-*.md
 #     2. Governance: docs/governance/*.md
@@ -103,6 +103,9 @@ echo "[wiki-sync-devhub] target vault: $VAULT_ROOT (Gitea private)"
 #    11. Frontend e2e critical (화이트리스트): frontend/tests/e2e/{fixtures,signout,voc-*}.ts + frontend/tests/e2e-manifests/*.txt + frontend/lib/auth/{tokenStore,apiClient,role-routing}.ts
 #    12. Traceability: docs/traceability/{README,conventions,report,sync-checklist}.md
 #    13. Branch memory (active + 30일 이내 CLOSED): ai-workflow/memory/<agent>/<branch>/{state.json, session_handoff.md, work_backlog.md, backlog/YYYY-MM-DD.md, pr_body.md}
+#   Phase 3 (2 패턴):
+#    14. Domain: docs/domain/**/*.md (66 file)
+#    15. Architecture + Infrastructure + Validation: docs/{architecture,infrastructure,validation}/*.md (12 file)
 
 # ----- helper: list all mirror sources -----
 list_sources() {
@@ -189,6 +192,15 @@ list_sources() {
       done
     done
   fi
+
+  # Phase 3: 14. Domain (~66 file)
+  [[ -d "$SRC/docs/domain" ]] && find "$SRC/docs/domain" -type f -name "*.md" 2>/dev/null
+
+  # Phase 3: 15. Architecture + Infrastructure + Validation (~12 file)
+  for d in architecture infrastructure validation; do
+    [[ -d "$SRC/docs/$d" ]] && find "$SRC/docs/$d" -type f -name "*.md" 2>/dev/null
+  done
+
   return 0
 }
 
@@ -301,6 +313,25 @@ if [[ $DRY_RUN -eq 1 ]]; then
       done
     done
   fi
+
+  echo ""
+  echo "  === Phase 3 (mass ingest, 2 패턴) ==="
+
+  echo ""
+  echo "  Domain (docs/domain/**/*.md, ~66 file):"
+  [[ -d "$SRC/docs/domain" ]] && find "$SRC/docs/domain" -type f -name "*.md" 2>/dev/null | sort | sed "s|^$SRC/||" | sed 's/^/    /' || true
+
+  echo ""
+  echo "  Architecture (docs/architecture/*.md, 1 file):"
+  [[ -d "$SRC/docs/architecture" ]] && find "$SRC/docs/architecture" -type f -name "*.md" 2>/dev/null | sort | sed "s|^$SRC/||" | sed 's/^/    /' || true
+
+  echo ""
+  echo "  Infrastructure (docs/infrastructure/**/*.md, 9 file):"
+  [[ -d "$SRC/docs/infrastructure" ]] && find "$SRC/docs/infrastructure" -type f -name "*.md" 2>/dev/null | sort | sed "s|^$SRC/||" | sed 's/^/    /' || true
+
+  echo ""
+  echo "  Validation (docs/validation/*.md, 2 file):"
+  [[ -d "$SRC/docs/validation" ]] && find "$SRC/docs/validation" -type f -name "*.md" 2>/dev/null | sort | sed "s|^$SRC/||" | sed 's/^/    /' || true
 
   COUNT=$(list_sources | wc -l | tr -d ' ')
   echo ""

@@ -133,13 +133,13 @@ if [[ "$MODE" == "all" ]]; then
     echo ""
   fi
 
-  # Wiki pages status
+  # Wiki pages status (recursive: include sub-directory Phase 3 pages)
   echo "## Wiki pages status"
   echo ""
   total=0
   matched=0
   stale=0
-  for page in "$WIKI_SOURCES"/*.md; do
+  while IFS= read -r page; do
     [[ ! -f "$page" ]] && continue
     [[ "$(basename "$page")" == "_manifest.md" ]] && continue
     total=$((total + 1))
@@ -154,7 +154,7 @@ if [[ "$MODE" == "all" ]]; then
     else
       stale=$((stale + 1))
     fi
-  done
+  done < <(find "$WIKI_SOURCES" -name "*.md" -type f)
   
   echo "| status | count |"
   echo "| --- | --- |"
@@ -172,22 +172,22 @@ if [[ "$MODE" == "stale" ]]; then
   echo "manifest commit: $COMMIT_SHORT"
   echo ""
   stale_count=0
-  for page in "$WIKI_SOURCES"/*.md; do
+  while IFS= read -r page; do
     [[ ! -f "$page" ]] && continue
     [[ "$(basename "$page")" == "_manifest.md" ]] && continue
-    
+
     if ! head -1 "$page" | grep -q "^---$"; then
-      echo "  STALE (no frontmatter): $(basename "$page")"
+      echo "  STALE (no frontmatter): ${page#$WIKI_SOURCES/}"
       stale_count=$((stale_count + 1))
       continue
     fi
 
     page_commit=$(awk 'NR>1 && /^---$/{exit} /^git_commit:/{print $2}' "$page")
     if [[ "$page_commit" != "$COMMIT_SHORT" ]]; then
-      echo "  STALE (commit=$page_commit, expected=$COMMIT_SHORT): $(basename "$page")"
+      echo "  STALE (commit=$page_commit, expected=$COMMIT_SHORT): ${page#$WIKI_SOURCES/}"
       stale_count=$((stale_count + 1))
     fi
-  done
+  done < <(find "$WIKI_SOURCES" -name "*.md" -type f)
   echo ""
   echo "Total stale: $stale_count"
   exit 0

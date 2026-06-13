@@ -81,7 +81,7 @@ print(f"  sync: {SYNC_TS}")
 # ----- update each wiki sources/ page's frontmatter -----
 UPDATED = 0
 SKIPPED = 0
-for page_path in sorted(glob.glob(f"{WIKI_SOURCES}/*.md")):
+for page_path in sorted(glob.glob(f"{WIKI_SOURCES}/**/*.md", recursive=True)):
     fname = os.path.basename(page_path)
     if fname == "_manifest.md":
         continue
