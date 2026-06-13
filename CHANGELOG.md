@@ -30,10 +30,10 @@ main HEAD: `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` (re-tag
 | **X-7** | ADR-0016 §6 alert 임계 확정 (P2-2) | — | ⏳ planned (v0.1.1-alpha) |
 | **X-8** | Keycloak SPI realm events push 전환 (P2-6/P3-5) | ADR-0019 | ⏳ planned (v0.1.1-alpha) |
 
-### v0.1.1-alpha release 정공법 (메모리 4 file + release_v1_roadmap.md + CHANGELOG.md)
+### v0.1.1-alpha release 정공법 (메모리 4 file + release_v0-1_roadmap.md + CHANGELOG.md)
 
-- `docs/planning/release_v1_roadmap.md` §3.5 NEXT block 의 title `v1.1` → `v0.1.1-alpha` 격하.
-- `ai-workflow/memory/state.json` M-v1.0 notes: v0.1.1-alpha release 정합 + 잔여 5 의 8 item 의 v0.1.1-alpha 격하 마킹.
+- `docs/planning/release_v0-1_roadmap.md` §3.5 NEXT block 의 title `v0.1.1` → `v0.1.1-alpha` 격하.
+- `ai-workflow/memory/state.json` M-v0.1.0 notes: v0.1.1-alpha release 정합 + 잔여 5 의 8 item 의 v0.1.1-alpha 격하 마킹.
 - `ai-workflow/memory/work_backlog.md` status line: v0.1.1-alpha release 정합 + §5 변경 이력 row.
 - `ai-workflow/memory/session_handoff.md` §0: v0.1.1-alpha release 정합 subsection.
 - `CHANGELOG.md`: 본 v0.1.1-alpha release note 추가.
@@ -42,7 +42,7 @@ main HEAD: `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` (re-tag
 
 - 잔여 5 의 8 item 의 실제 구현 = 사용자 결정 시점 별도 sprint.
 - v0.1.1-alpha release 후 v0.1.2-alpha 또는 v0.2.0-alpha 로 release (사용자 결정).
-- v1.0 정식 release = v0.1.x 의 follow-up patch + 사용자 결정 시점.
+- v0.1.0 정식 release = v0.1.x 의 follow-up patch + 사용자 결정 시점.
 
 ### Unchanged (v0.1.0-alpha 의 8 DoD 모두 close 정합 유지)
 
@@ -75,7 +75,7 @@ main HEAD: `d860b7c9` (PR #554 squash, N-6 skip + 4 file). Git tag: `v0.1.0-alph
 - Keycloak OIDC 통합 (ADR-0019, PR #167~#171) — JWKS cache + stale-while-error fallback (PR #242, 24h MaxStaleDuration)
 - RBAC PermissionCache LISTEN/NOTIFY (RM-M4-08)
 - Dashboard (developer/manager/admin) + 역할 routing (defaultLandingFor + isSystemAdmin)
-- Account admin: Keycloak Admin Client 위임 (`/api/v1/accounts/*`, PR #167 KC-PR-C)
+- Account admin: Keycloak Admin Client 위임 (`/api/v0-1/accounts/*`, PR #167 KC-PR-C)
 - Audit enrichment (source_ip / request_id / source_type, PR #57) + requireRequestID middleware
 - Sign Out endpoint (P1-6, PR for N-8)
 - e2e Kratos legacy 제거 + dynamic idp_subject sync (PR #249)
@@ -105,7 +105,7 @@ main HEAD: `d860b7c9` (PR #554 squash, N-6 skip + 4 file). Git tag: `v0.1.0-alph
 **AI Workflow**
 - ai-workflow v0.5.0 → v0.5.11 동기화 (PR #545, theirs-only 1 squash, 97 file / 4562줄)
 - 2-tier governance (사외/사내 형상관리, PR #531~#537) — `AGENTS.md` §사외/사내 + `docs/governance/worker_division.md` §6
-- v1.1 sprint -a follow-up (PR #538~#543) — port interface + saovae_stub (sso-integrations/keycloak)
+- v0.1.1 sprint -a follow-up (PR #538~#543) — port interface + saovae_stub (sso-integrations/keycloak)
 - D-72 Phase 1/2/3 wiki integration + D-79/D-80 thin wrapper (PR #544, #551, #552)
 - Vault ingestion (T-d-72-4, 82 wiki page 신규 ingest, vault commit b1599cc, 2026-06-11)
 - T-d-72-2 (D-72 Phase 1 mirror) re-sync 완료 (2026-06-11 01:45:04Z, 83 file, 1.6M)
@@ -114,7 +114,7 @@ main HEAD: `d860b7c9` (PR #554 squash, N-6 skip + 4 file). Git tag: `v0.1.0-alph
 - Frontend 80 files / 1033 tests PASS (FE-08 신규)
 - e2e Playwright 40 TC 게이트 (PR #86) + GitHub Actions CI 도입
 - Design system (semantic theme + responsive + a11y baseline)
-- PermissionEditor at /admin/settings/permissions ↔ /api/v1/rbac/policies
+- PermissionEditor at /admin/settings/permissions ↔ /api/v0-1/rbac/policies
 - e2e strict mode violation fix (`repositories-ui.spec.ts` L42 `.first()` 추가, commit `82935f8b`)
 
 ### Changed
@@ -123,8 +123,8 @@ main HEAD: `d860b7c9` (PR #554 squash, N-6 skip + 4 file). Git tag: `v0.1.0-alph
 - **2-tier governance (사외/사내 형상관리)** (PR #531~#537, 2026-06-10) — GitHub 사외 = single source-of-truth / 사내 SCM = GitHub read-only pull
 - **Kratos 잔재 residual cleanup** (sprint -ad) — 11 파일 삭제 + `identity_resolver.go` 신규 + Kratos 흐름 완전 제거
 - `account_password.go` + `kratos_login_client` / `settings_client` / `session_cache` / `admin_client` + `password_auth_types` 모두 삭제
-- `/api/v1/account/password` endpoint 폐기 — Keycloak Account Console redirect 위임 (`keycloak_operations.md` §8.5b)
-- main flat memory 분리 (state.json 1515 → 150 line, 90% 감소, sprint `maintenance/work_260610-b-v1-pre-release-housekeeping`)
+- `/api/v0-1/account/password` endpoint 폐기 — Keycloak Account Console redirect 위임 (`keycloak_operations.md` §8.5b)
+- main flat memory 분리 (state.json 1515 → 150 line, 90% 감소, sprint `maintenance/work_260610-b-v0-1-pre-release-housekeeping`)
 - v0.5.11-beta ai-workflow 표준화 (메모리 3 file reapply 분기 theirs-only 흡수 + 백업 보존)
 - 명명 재검토 (PR #532, 2026-06-10) — `DEVHUB_APP_NAME` / `DEVHUB_APP_SHORT_NAME` env var override
 
@@ -149,7 +149,7 @@ main HEAD: `d860b7c9` (PR #554 squash, N-6 skip + 4 file). Git tag: `v0.1.0-alph
 ### Deprecated
 
 - `infra/idp/hydra.yaml` / `kratos.yaml` + setup README/ENVIRONMENT_NOTES (PR #169) — Keycloak 단일 IdP 전환
-- `/api/v1/account/password` endpoint — Keycloak Account Console redirect 위임
+- `/api/v0-1/account/password` endpoint — Keycloak Account Console redirect 위임
 - `DEVHUB_HYDRA_*` / `DEVHUB_KRATOS_*` env — PR #167 머지로 제거
 - `infra/idp/README.md` — deprecated (PR #169)
 
@@ -162,12 +162,12 @@ main HEAD: `d860b7c9` (PR #554 squash, N-6 skip + 4 file). Git tag: `v0.1.0-alph
 ### v0.1.0-alpha 후속 (잔여 follow-up)
 
 **잔여 3** (T-d-79-2 / T-d-80-2, my_harness 측 SSOT 작성) — 사용자 전달 후 진행 중.
-**잔여 5** (T-d-72-5/6 + D-73/74 + X-1~8, v1.1 forward path) — v1.1 milestone (2026-07-31) 진입 시점 별도 sprint.
+**잔여 5** (T-d-72-5/6 + D-73/74 + X-1~8, v0.1.1 forward path) — v0.1.1 milestone (2026-07-31) 진입 시점 별도 sprint.
 **vault Gitea remote push** — 사용자 수동.
 
 ### 8 DoD 잔여 (skipped)
 
-- **N-6 (v1.0 staging 1주 운영 검증)** — ✅ skipped, 사용자 결정 (2026-06-11). v0.1.0-alpha release blocker 0건.
+- **N-6 (v0.1.0 staging 1주 운영 검증)** — ✅ skipped, 사용자 결정 (2026-06-11). v0.1.0-alpha release blocker 0건.
 
 ### 1차 종합 매트릭스 (2026-05-13, PR #89 + #90)
 

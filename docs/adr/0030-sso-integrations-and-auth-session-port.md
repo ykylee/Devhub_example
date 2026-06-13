@@ -1,26 +1,26 @@
-# ADR-0030: auth-session 도메인의 Port interface 도입 + sso-integrations/ 분리 (v1.1 sprint -a)
+# ADR-0030: auth-session 도메인의 Port interface 도입 + sso-integrations/ 분리 (v0.1.1 sprint -a)
 
 - **문서 목적**: auth-session 도메인 layer 가 사내 IdP (Keycloak) 와 결합을 끊고 **Adapter pattern** 으로 port interface 만 의존하도록 분리하는 결정을 명문화한다. 실제 구현은 `sso-integrations/keycloak/` (사내 IdP infra 통합) 트리로 이전. Phase 2 (v1.2) 의 agentic RAG layer 가 본 port 를 invoke 가능.
 - **범위**: `backend-core/internal/domain/auth-session/integration/ports.go` (NEW, interface 만) + `backend-core/internal/sso-integrations/` (NEW 트리, sprint -a follow-up 에서 구현) + `backend-core/main.go` runtime injection (sprint -a follow-up) + `infra/idp/` 의 immutable archive.
 - **대상 독자**: Backend / IdP / AI agent / ops 트랙 담당자, 후속 sprint 작업자, owner.
 - **상태**: accepted (sprint -a, 2026-06-10)
 - **최종 수정일**: 2026-06-10
-- **결정 근거 sprint**: `feat/work_260610-v1-1-sprint-a-sso-integrations` (v1.1 sprint -a)
+- **결정 근거 sprint**: `feat/work_260610-v0-1-1-sprint-a-sso-integrations` (v0.1.1 sprint -a)
 - **Tier**: **공용** (interface 만 노출, 사내 한정 정보 미포함)
 - **관련 문서**: [`docs/governance/worker_division.md` §6 사외/사내 2-tier 분업](../governance/worker_division.md), [`docs/governance/worker_division.md` §6.7 명명 재검토](../governance/worker_division.md#67-명명-재검토-2026-06-10), [`docs/planning/external-integrations-agentic-rag-roadmap.md` §0.4 + §3 + §6](../planning/external-integrations-agentic-rag-roadmap.md) (장기 비전), [ADR-0019](./0019-keycloak-only-idp.md) (Keycloak 단일화 — 본 ADR 의 supersession 후보), [ADR-0020](./0020-account-user-management-boundary.md) (사내 IdP 팀 ↔ DevHub 운영자 책임 매트릭스), [code-taxonomy.md §1](../code-taxonomy.md) (Domain layer purity 원칙).
 
 ## 1. 배경
 
-### 1.1 v1.0 의 Keycloak 결합
+### 1.1 v0.1.0 의 Keycloak 결합
 
-v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 implementation 으로 구성:
+v0.1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 implementation 으로 구성:
 
-**Interface (v1.0, view/ 패키지에 정의)**:
+**Interface (v0.1.0, view/ 패키지에 정의)**:
 - `backend-core/internal/domain/auth-session/view/auth.go:59` — `BearerTokenVerifier` (`VerifyBearerToken(ctx, token) (AuthenticatedActor, error)`)
 - `backend-core/internal/domain/auth-session/view/handler.go:27` — `IdentityAdmin` (`FindIdentityByUserID`, `LogoutUserSession`)
 - `backend-core/internal/domain/auth-session/view/handler.go:197` — `OIDCLogoutClient` (`OIDCLogout`)
 
-**Implementation (v1.0, 사내 IdP 종속)**:
+**Implementation (v0.1.0, 사내 IdP 종속)**:
 - `backend-core/internal/domain/auth-session/service/keycloak_verifier.go:23` — `KeycloakJWKSVerifier` (JWKS + RS256/RS384/RS512)
 - `backend-core/internal/httpapi/keycloak_admin_client.go:35` — `KeycloakAdminClient` (Keycloak Admin REST + OIDC user logout)
 - `backend-core/internal/domain/audit-ops/view/keycloak_events_webhook.go:41` — `ReceiveKeycloakEventWebhook` (Keycloak SPI webhook ingest)
@@ -106,11 +106,11 @@ v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 imp
 
 | Phase | Sprint | Status |
 |---|---|---|
-| 1.1a (Keycloak port interface + interface 의 canonical 위치) — 본 PR (sprint -a) | v1.1 sprint -a | **accepted (P1), done (PR #538 머지, 2026-06-10)** |
-| 1.1b (sso-integrations/ 실제 구현 + saovae stub + main wiring + infra/idp archive) | v1.1 sprint -a follow-up | **accepted (P1), done (PR #539 + PR #540 머지, 2026-06-10)** |
-| 1.2 (gitea + ci port) | v1.1 sprint -b | planned (P1) |
-| 1.3 (hrdb + commandworker + serviceaction) | v1.1 sprint -c | planned (P1) |
-| 1.4 (homelab + adapters 통합 + legacy archive) | v1.1 sprint -d | planned (P1) |
+| 1.1a (Keycloak port interface + interface 의 canonical 위치) — 본 PR (sprint -a) | v0.1.1 sprint -a | **accepted (P1), done (PR #538 머지, 2026-06-10)** |
+| 1.1b (sso-integrations/ 실제 구현 + saovae stub + main wiring + infra/idp archive) | v0.1.1 sprint -a follow-up | **accepted (P1), done (PR #539 + PR #540 머지, 2026-06-10)** |
+| 1.2 (gitea + ci port) | v0.1.1 sprint -b | planned (P1) |
+| 1.3 (hrdb + commandworker + serviceaction) | v0.1.1 sprint -c | planned (P1) |
+| 1.4 (homelab + adapters 통합 + legacy archive) | v0.1.1 sprint -d | planned (P1) |
 | 2.2 (Agentic planner + tool registry + ssoKeycloakPort 도 invoke) | v1.2 sprint -b | planned (P1) |
 | C-h (ADR-0030 §5 timeline + traceability report.md IMPL row 갱신) | `docs/work_260610-traceability-impl-sso-keycloak` PR | **done (2026-06-10)** — §5 1.1a + 1.1b status accepted/done 명시 + `docs/traceability/report.md` §2.4 + §3.1/§3.3 matrix 갱신 + §4 ADR-0030 row 신규 + §6 변경 이력 row 신규. |
 
@@ -142,7 +142,7 @@ v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 imp
 
 ### 7.2 Open questions
 
-1. **KeycloakUserEvent / KeycloakAdminEvent 의 canonical 위치**: ports.go 에 정의 vs `sso-integrations/keycloak/events.go` (adapter) + port 는 interface 만. **현재**: ports.go 에 정의 (mirror 와 동일). sprint -a follow-up 에서 v1.0 의 httpapi/ mirror 와 통합 결정.
+1. **KeycloakUserEvent / KeycloakAdminEvent 의 canonical 위치**: ports.go 에 정의 vs `sso-integrations/keycloak/events.go` (adapter) + port 는 interface 만. **현재**: ports.go 에 정의 (mirror 와 동일). sprint -a follow-up 에서 v0.1.0 의 httpapi/ mirror 와 통합 결정.
 2. **Sprint -a follow-up 의 검증 환경**: `sso-integrations/keycloak/` 가 import 되는 시점에 `go build` (사외, default) 가 stub 으로 통과해야 함. **stub 의 정확성** (sprint -a follow-up 의 1차 review item) 이 매우 중요.
 3. **Phase 2 (v1.2) 의 ssoKeycloakPort 노출**: agentic RAG layer 가 user 자동 생성 시 `ssoKeycloakPort.CreateUser` 등 호출. Phase 1 의 port 가 RBAC impersonation 까지 포함할지 (sprint -a follow-up 의 `IdentityAdmin` 확장 여부) 결정 필요.
 
@@ -156,7 +156,7 @@ v1.0 에서 DevHub 의 인증 layer 는 다음 3 개의 interface + 2 개의 imp
 
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
-| 2026-06-10 | 1차 작성 — auth-session 도메인의 port interface 도입 + sso-integrations/ 분리 결정. view/ 의 interface 는 deprecated alias 로 backward compat. sprint -a follow-up 에서 실제 구현 이전. 사용자 2026-06-10 결정 (외부 시스템 연동 = agentic RAG 와 함께 발전) + PR #537 §0.4 (Keycloak 분류 재정의) 의 code-level 적용. | `feat/work_260610-v1-1-sprint-a-sso-integrations` |
+| 2026-06-10 | 1차 작성 — auth-session 도메인의 port interface 도입 + sso-integrations/ 분리 결정. view/ 의 interface 는 deprecated alias 로 backward compat. sprint -a follow-up 에서 실제 구현 이전. 사용자 2026-06-10 결정 (외부 시스템 연동 = agentic RAG 와 함께 발전) + PR #537 §0.4 (Keycloak 분류 재정의) 의 code-level 적용. | `feat/work_260610-v0-1-1-sprint-a-sso-integrations` |
 | 2026-06-10 | §5 결정 timeline 갱신 — 1.1a (sprint -a, port interface) status = **accepted/done** (PR #538 머지) + 1.1b (sprint -a follow-up, real adapter + saovae_stub + main wiring + infra/idp archive) status = **accepted/done** (PR #539 + PR #540 머지). C-h (ADR timeline + traceability 정합 PR) row 신규 — `docs/work_260610-traceability-impl-sso-keycloak` PR 의 후속 정합. | `docs/work_260610-traceability-impl-sso-keycloak` |
 | 2026-06-10 | §2.3 결정 (옵션 2 runtime injection) row 에 [ADR-0031 §4 재평가](./0031-build-tag-policy-review.md) confirmed reference 추가. sprint -a follow-up PR #540 (real adapter) + PR #542 (e2e-internal job) 머지 후 정량 측정 결과 본 결정 유지. supersession X. | `docs/work_260610-c-j-build-tag-review` |
 | 2026-06-12 | **partial supersession (baseline 변경 정공법)** — e2e-internal job 폐기 결정 (사용자: "사내 환경용 셋팅, GitHub Action 으로 체크 불요") 정합. 본 ADR §2.3 runtime injection 결정과 e2e-internal job 폐기 = **독립 결정** (runtime injection 유지, e2e-internal 만 폐기). ADR-0031 partial supersession 정공법 정합. CI matrix 1쌍 → 단일 matrix (e2e shard 1/2/3 saovae_stub default 만). 사내 staging/prod-smoke 가 real adapter 검증 책임. **결론 변동 0건** (runtime injection 결정 = confirmed). 신규 ID 발급 0건 (housekeeping follow-up 정공법). | `fix/work_260612-6-e2e-internal-removal` |

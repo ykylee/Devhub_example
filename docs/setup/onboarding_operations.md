@@ -6,7 +6,7 @@
 - 상태: draft (1차)
 - 최종 수정일: 2026-05-22
 - 결정 근거 sprint: `claude/work_260522-onboarding-ops-sop`
-- 관련 문서: [ADR-0021](../adr/0021-onboarding-self-service-unit-selection.md), [Onboarding IMPL plan §7 #6](../domain/onboarding/impl_plan.md), [Keycloak 운영 SOP](./keycloak_operations.md), [release_v1_roadmap §1.3 #7](../planning/release_v1_roadmap.md).
+- 관련 문서: [ADR-0021](../adr/0021-onboarding-self-service-unit-selection.md), [Onboarding IMPL plan §7 #6](../domain/onboarding/impl_plan.md), [Keycloak 운영 SOP](./keycloak_operations.md), [release_v0-1_roadmap §1.3 #7](../planning/release_v0-1_roadmap.md).
 
 ## 1. 배경 + 책임 분리
 
@@ -35,9 +35,9 @@
 | 전이 | 트리거 | Audit action | 응답 코드 |
 | --- | --- | --- | --- |
 | `(none) → limited` | 미등록 사용자 첫 진입 | (none) | `GET /me` → 200 + `onboarding_required=true` |
-| `limited → pending_review` | `POST /api/v1/me/onboarding` 성공 | `account.onboarding_completed` | 201 Created |
-| `pending_review → reviewed` | `POST /api/v1/admin/users/:id/review` (system_admin) | `account.review_confirmed` | 200 OK |
-| `reviewed → pending_review` | `PATCH /api/v1/me` 의 `primary_unit_id` 변경 | `account.unit_changed` | 200 OK |
+| `limited → pending_review` | `POST /api/v0-1/me/onboarding` 성공 | `account.onboarding_completed` | 201 Created |
+| `pending_review → reviewed` | `POST /api/v0-1/admin/users/:id/review` (system_admin) | `account.review_confirmed` | 200 OK |
+| `reviewed → pending_review` | `PATCH /api/v0-1/me` 의 `primary_unit_id` 변경 | `account.unit_changed` | 200 OK |
 
 ## 3. Feature flag 운영
 
@@ -66,17 +66,17 @@
 
 ```
 1. Keycloak 로그인 성공
-   → backend GET /api/v1/me 호출
+   → backend GET /api/v0-1/me 호출
    → response.onboarding_required = true
    → frontend redirect /devhub/onboarding
 
 2. 사용자가 OrganizationPicker 에서 소속 선택 + display_name 입력
-   → POST /api/v1/me/onboarding
+   → POST /api/v0-1/me/onboarding
    → 201 Created + audit 'account.onboarding_completed'
    → users row 생성 + onboarding_completed_at=NOW() + review_status='pending_review'
 
 3. system_admin 이 /admin/settings/users 의 pending_review filter 에서 확인
-   → POST /api/v1/admin/users/:user_id/review
+   → POST /api/v0-1/admin/users/:user_id/review
    → 200 OK + audit 'account.review_confirmed'
    → review_status='reviewed'
 
@@ -160,7 +160,7 @@ backend access log 가 stdout 으로 가는 경우 (`internal/httpapi/me_onboard
 
 ```bash
 # 운영 환경 log 경로 (deploy 별로 다름)
-grep '/api/v1/me/onboarding' /var/log/devhub/backend.log \
+grep '/api/v0-1/me/onboarding' /var/log/devhub/backend.log \
     | awk '{print $9}' \
     | sort | uniq -c | sort -rn
 # expected: 201 (성공) > 422 (invalid_payload, 사용자 실수) >> 5xx
@@ -327,8 +327,8 @@ groups:
 1. **환경변수 변경**: deploy 환경 파일 (`docs/setup/deploy.env.example` 파생) 의 `DEVHUB_ONBOARDING_GATE_ENABLED` 를 `0` 으로 set.
 2. **backend 재기동**: docker 환경이면 `docker compose restart backend-core`. native 환경이면 systemd / supervisor 단위 restart. 재기동 후 `curl http://localhost:8080/health` 로 health check.
 3. **rollback 확인**:
-   - `POST /api/v1/me/onboarding` → 404 `onboarding_feature_disabled` (signal: rollback 활성)
-   - `GET /api/v1/platforms` (보호 endpoint) 를 미완료 사용자 token 으로 호출 → 200 (gate 풀림 신호. 진단용. 정상 사용자 흐름엔 영향 없음)
+   - `POST /api/v0-1/me/onboarding` → 404 `onboarding_feature_disabled` (signal: rollback 활성)
+   - `GET /api/v0-1/platforms` (보호 endpoint) 를 미완료 사용자 token 으로 호출 → 200 (gate 풀림 신호. 진단용. 정상 사용자 흐름엔 영향 없음)
 4. **영향 사용자 인벤토리**:
 
    ```sql
@@ -354,7 +354,7 @@ groups:
 
 1. Root cause fix 가 backend / frontend PR 으로 머지된 후 staging 재배포.
 2. `DEVHUB_ONBOARDING_GATE_ENABLED=1` (또는 unset 으로 default true) set + backend 재기동.
-3. `curl -H 'Authorization: Bearer <admin-token>' http://localhost:8080/api/v1/admin/users/<test-user>/review` 가 200 또는 422 (정상 응답) 반환 확인 — 404 면 flag 복원 실패.
+3. `curl -H 'Authorization: Bearer <admin-token>' http://localhost:8080/api/v0-1/admin/users/<test-user>/review` 가 200 또는 422 (정상 응답) 반환 확인 — 404 면 flag 복원 실패.
 4. §4.3 SQL #6 (CHECK 위반) 재검증 — rollback 기간 동안 정합 깨지지 않았는지 확인.
 5. rollback 기간 동안 unit 변경한 사용자가 있다면 (audit 공백 구간) `review_status` 수동 검증 — 본인이 변경한 unit 으로 `review_status='pending_review'` 진입했어야 정상.
 
@@ -423,7 +423,7 @@ DoD #1~#7 모두 통과 시 staging → prod promote 검토. 단 1개 실패해�
 | `pending_review` admin 검토 SLA 정책 | P2 | 사내 정책 결정 — 24h / 48h / 72h. 정책 결정 후 §4.2 S3 임계 구체화. |
 | `pending_review` aging alert | P3 | SLA 정책 + Prometheus metric 후 — `pending_review` row 가 SLA 초과 시 admin 알림. |
 | Onboarding `limited` 사용자 reminder 알림 | P3 | 매 로그인 시 강제 진입이 사실상의 reminder 인데, 일정 기간 미로그인 사용자에게 별도 채널 (이메일) reminder 발송. |
-| Multi-region monitoring | v1.1+ | staging / prod / DR 환경 별 신호 통합. |
+| Multi-region monitoring | v0.1.1+ | staging / prod / DR 환경 별 신호 통합. |
 
 ## 9. 변경 이력
 

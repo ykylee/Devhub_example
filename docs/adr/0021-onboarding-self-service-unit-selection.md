@@ -46,10 +46,10 @@ ADR-0020 §3.2 의 "user 조직 unit assignment" 책임 주체를 다음과 같�
 
 | 운영 동작 | 책임 주체 | 도구 |
 | --- | --- | --- |
-| **신규 user 의 unit 초기 배치** | **사용자 self-service onboarding** | DevHub `/devhub/onboarding` (`POST /api/v1/me/onboarding`, API-83) |
-| **기존 user 의 unit 변경 (self-service)** | **사용자 본인** | DevHub `/account` (`PATCH /api/v1/me`, API-85) — `review_status='pending_review'` 자동 재진입 |
-| **사용자 등록 후 검토 (`pending_review → reviewed`)** | **DevHub admin** | DevHub `/admin/settings/users` (`POST /api/v1/admin/users/:user_id/review`, API-86) |
-| **사용자 사전 등록** | **DevHub admin** | DevHub `/admin/settings/users` (`POST /api/v1/users`, API-33 확장) — `onboarding_completed_at=NULL`, 사용자 첫 로그인 시 onboarding 강제 진입 |
+| **신규 user 의 unit 초기 배치** | **사용자 self-service onboarding** | DevHub `/devhub/onboarding` (`POST /api/v0-1/me/onboarding`, API-83) |
+| **기존 user 의 unit 변경 (self-service)** | **사용자 본인** | DevHub `/account` (`PATCH /api/v0-1/me`, API-85) — `review_status='pending_review'` 자동 재진입 |
+| **사용자 등록 후 검토 (`pending_review → reviewed`)** | **DevHub admin** | DevHub `/admin/settings/users` (`POST /api/v0-1/admin/users/:user_id/review`, API-86) |
+| **사용자 사전 등록** | **DevHub admin** | DevHub `/admin/settings/users` (`POST /api/v0-1/users`, API-33 확장) — `onboarding_completed_at=NULL`, 사용자 첫 로그인 시 onboarding 강제 진입 |
 | **`users.role` 직접 수정** | **금지** (Keycloak claim 매핑 + event listener 자동 sync, ADR-0020 §3.2 결정 유지) | — |
 
 - Onboarding payload (`POST /me/onboarding` + `PATCH /me` + `POST /users` 모두) 에 **role 필드 비포함** — concept §5.8 결정. "소속 선택 = 권한 상승" 경로 차단.
@@ -60,7 +60,7 @@ ADR-0020 §3.2 의 "user 조직 unit assignment" 책임 주체를 다음과 같�
 
 | 단계 | 조건 | 접근 범위 |
 | --- | --- | --- |
-| `limited (skip)` | `users` row 미존재 | 공통 메뉴 + `/devhub/onboarding` 페이지 + `GET /api/v1/me` 만 |
+| `limited (skip)` | `users` row 미존재 | 공통 메뉴 + `/devhub/onboarding` 페이지 + `GET /api/v0-1/me` 만 |
 | `pending_review` | row 존재 + `onboarding_completed_at IS NOT NULL` + `review_status='pending_review'` | 공통 메뉴 + 할당된 과제/저장소/어플리케이션 (무소속 처리) |
 | `reviewed` | row 존재 + `review_status='reviewed'` | 정상 접근 (모든 도메인 API) |
 
@@ -69,9 +69,9 @@ ADR-0020 §3.2 의 "user 조직 unit assignment" 책임 주체를 다음과 같�
 | 전이 | 트리거 | Audit |
 | --- | --- | --- |
 | `(none) → limited` | 미등록 사용자의 첫 진입 | (none) |
-| `limited → pending_review` | `POST /api/v1/me/onboarding` 성공 | `account.onboarding_completed` |
-| `pending_review → reviewed` | `POST /api/v1/admin/users/:id/review` (system_admin) | `account.review_confirmed` |
-| `reviewed → pending_review` | `PATCH /api/v1/me` 의 `primary_unit_id` 변경 | `account.unit_changed` |
+| `limited → pending_review` | `POST /api/v0-1/me/onboarding` 성공 | `account.onboarding_completed` |
+| `pending_review → reviewed` | `POST /api/v0-1/admin/users/:id/review` (system_admin) | `account.review_confirmed` |
+| `reviewed → pending_review` | `PATCH /api/v0-1/me` 의 `primary_unit_id` 변경 | `account.unit_changed` |
 
 ### 3.3 Lazy auto-create 폐기 (ADR-0020 부분 supersession)
 
@@ -79,7 +79,7 @@ ADR-0020 §3.2 / §4.1 sub-carve B / §4.2 / §6.1 / §6.2 의 **lazy auto-creat
 
 - `authenticateActor` 는 `GetUser` miss 시 user row 를 **생성하지 않는다** — DB row miss 를 정상 상태 (token-only actor) 로 취급한다.
 - `AuthenticatedActor` 의 `Email` / `DisplayName` 은 Keycloak token claim 에서 직접 추출 (PR #239 의 `keycloak_verifier.go::extractDisplayName` 재사용 — 함수 자체는 보존, 호출 시점만 변경).
-- `users` row 의 첫 INSERT 는 **onboarding 제출 시점** (`POST /api/v1/me/onboarding`) 에 단일 트랜잭션으로 수행.
+- `users` row 의 첫 INSERT 는 **onboarding 제출 시점** (`POST /api/v0-1/me/onboarding`) 에 단일 트랜잭션으로 수행.
 - 폐기되는 audit event:
   - `account.lazy_provisioned` (ADR-0020 sub-carve B 신규) — 신규 emit **중단**. 기존 emit 이력은 audit_logs 에 보존 (immutable).
   - `user.role_default_assigned` (ADR-0020 sub-carve B 신규) — 신규 emit **중단**. event listener (ADR-0020 sub-carve C, PR #241) 의 group → role 매핑이 정공법.
@@ -99,10 +99,10 @@ Backend (source of truth, REQ-FR-ONBOARD-009 + ARCH §9.3):
 
 - `onboardingGate` middleware 가 미완료 사용자에 대해 allowlist 외 모든 endpoint 를 `403 Forbidden` + `{ code: "onboarding_required" }` 차단.
 - Allowlist (backend endpoint 만 — frontend 정적 페이지는 본 정책과 무관):
-  - `GET /api/v1/me` (API-32 확장 — `onboarding_required` flag 반환)
-  - `POST /api/v1/me/onboarding` (API-83)
-  - `GET /api/v1/organizations/search` (API-84)
-  - `GET /api/v1/organization/hierarchy` (기존)
+  - `GET /api/v0-1/me` (API-32 확장 — `onboarding_required` flag 반환)
+  - `POST /api/v0-1/me/onboarding` (API-83)
+  - `GET /api/v0-1/organizations/search` (API-84)
+  - `GET /api/v0-1/organization/hierarchy` (기존)
   - 정적/health endpoint
 
 Frontend (UX layer, REQ-FR-ONBOARD-010):
@@ -197,17 +197,17 @@ ADR-0020 의 **핵심 결정** (옵션 A — Keycloak account vs DevHub user 책
 
 | Carve | RM ID | 영역 | Worker | Milestone | 진입 조건 |
 | --- | --- | --- | --- | --- | --- |
-| **IMPL-onboarding-backend** | RM-ONBOARD-01 | migration + onboardingGate middleware + 5 endpoint handler (API-83/84/85/86 + API-32/33 확장) + audit event const + lazy_auto_create 폐기. Feature flag default OFF. | Claude | M-v1.1 | 없음 (단독 진입 가능) |
-| **IMPL-onboarding-frontend** | RM-ONBOARD-02 | `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + banner + `(dashboard)/layout` 3-branch gating + `/account` unit edit | Gemini | M-v1.1 | Carve A 머지 후 |
-| **IMPL-onboarding-admin** | RM-ONBOARD-03 | `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review user list filter + `ConfirmReviewModal` | Gemini | M-v1.1 | Carve A 머지 후. Carve B 와 병행 가능 |
-| **IMPL-onboarding-tests** | RM-ONBOARD-04 | UT-onboarding-* (handler 단위) + TC-ONBOARD-* (E2E mega lifecycle, concept §8 #12 의 6 시드 활용) + `docs/domain/onboarding/test_cases.md` | Claude (UT) + Gemini (E2E) | M-v1.1 | Carve A + B + C 모두 머지 후 |
+| **IMPL-onboarding-backend** | RM-ONBOARD-01 | migration + onboardingGate middleware + 5 endpoint handler (API-83/84/85/86 + API-32/33 확장) + audit event const + lazy_auto_create 폐기. Feature flag default OFF. | Claude | M-v0.1.1 | 없음 (단독 진입 가능) |
+| **IMPL-onboarding-frontend** | RM-ONBOARD-02 | `/onboarding` page + OrganizationPicker (typeahead + tree) + skip flag sessionStorage + banner + `(dashboard)/layout` 3-branch gating + `/account` unit edit | Gemini | M-v0.1.1 | Carve A 머지 후 |
+| **IMPL-onboarding-admin** | RM-ONBOARD-03 | `/admin/settings/users` 의 "Confirm Review" 액션 + pending_review user list filter + `ConfirmReviewModal` | Gemini | M-v0.1.1 | Carve A 머지 후. Carve B 와 병행 가능 |
+| **IMPL-onboarding-tests** | RM-ONBOARD-04 | UT-onboarding-* (handler 단위) + TC-ONBOARD-* (E2E mega lifecycle, concept §8 #12 의 6 시드 활용) + `docs/domain/onboarding/test_cases.md` | Claude (UT) + Gemini (E2E) | M-v0.1.1 | Carve A + B + C 모두 머지 후 |
 
-GitHub issue 등록: P2-8 ~ P2-11 (4건, `release_v1_roadmap.md` §3.3 매트릭스 참조).
+GitHub issue 등록: P2-8 ~ P2-11 (4건, `release_v0-1_roadmap.md` §3.3 매트릭스 참조).
 
 ### 6.2 후속 carve (concept §5.4 옵션 C/D)
 
 - **HRDB cross-check** — 사용자가 입력한 소속과 HRDB 의 직원-부서 매핑 비교 + 불일치 시 경고. ADR-0008 deprecated (외부 Keycloak 시나리오 채택, issue #215 cancelled) 후 사실 정합 필요.
-- **Keycloak group → unit 자동 매핑** — 사용자의 Keycloak group membership 으로 unit 자동 유추. ADR-0019 §5.3 sub-carve 의 group staging-prod (잔여 1건, v1.0 release gate) 완료 후 결합.
+- **Keycloak group → unit 자동 매핑** — 사용자의 Keycloak group membership 으로 unit 자동 유추. ADR-0019 §5.3 sub-carve 의 group staging-prod (잔여 1건, v0.1.0 release gate) 완료 후 결합.
 - **Review status reversal** — admin 이 `reviewed → pending_review` 강제 되돌리기 (재교육/재인증). 운영 정책 결정 후 carve.
 
 ### 6.3 부가 프로필 필드 확장 (REQ-FR-ONBOARD-012 후속)
