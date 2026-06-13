@@ -949,3 +949,53 @@ PR #579 의 7 commit (= 본 PR 의 8-step) = e2e shard 3/3 fail 의 chronic flak
 1. **scope 분리 정공법** (cross-project lesson §1): version downgrade 정공법 = 1차 PR (30+ file, 1:1 mirror 정공법), X-1 = 2차 PR (5~8 commit, FE+BE). bundle 가능 조건 미충족 → 별도 PR.
 2. **historical record vs forward-facing docs 분리**: state.json/session_handoff.md/work_backlog.md 의 historical v1 reference = 그대로 유지 (각 PR 의 당시 v1.0/v1.1 표기는 변경 불가). forward-facing docs (release_roadmap/ADR/setup/planning/validation) 만 v0.1 정공법.
 3. **mirror 1:1 byte-identical 정공법** (cross-project lesson §1): `docs/planning/release_v0-1_roadmap.md` 의 raw/ ↔ 위키 mirror md5 동일 (5ee61d55...). file name 변경 시 mirror script 의 source list 자동 갱신 (find glob) + lint-config + operation-sop 의 reference 자동 갱신.
+
+## 28. 본 세션 후속 (2026-06-13, X-1 System Admin 운영 대시보드 4~5차 commit + 2차 PR 머지)
+
+### X-1 2차 PR #584 MERGED (squash 23c0ccd, main HEAD 23c0ccd)
+
+**X-1 v0.1.1 milestone sprint 100% 완료** (1차 PR #583 + 2차 PR #584).
+
+### 4차 commit (4a19392, branch `feat/work_260614-x1-frontend-e2e`) — frontend widget 4 + admin page 강화
+
+- 9 file, 700 line
+- `frontend/components/admin/x1-widgets/{SyncJobQueueWidget,SyncJobStatusWidget,ProviderHealthWidget,DashboardSummaryWidget,index,x1-widgets.test.tsx}` (6 file)
+- `frontend/app/(dashboard)/admin/page.tsx` 강화 (X-1 widget 4 grid + 운영 도구 link, "Sys Admin Dashboard Archived" 메시지 제거)
+- `frontend/domain/integration-registry/service/admin-x1.service.ts` (adminX1Service class + 3 method)
+- `frontend/domain/integration-registry/schema/integration.types.ts` (X-1 types +39 line)
+
+### 5차 commit (3dabe96, PR #584) — e2e + ADR-0032 + docs 정합
+
+- 5 file, 340 line
+- `frontend/tests/e2e/admin-x1.spec.ts` (TC-ADMIN-X1-01/02/03)
+- `docs/adr/0032-system-admin-x1-dashboard.md` (10 section 정책 결정 ADR)
+- `docs/traceability/report.md` (헤더 메타 + §4 ADR-0032 row + §6 row)
+- `CHANGELOG.md` (X-1 row status ⏳ planned → ✅ implemented)
+- `docs/llm-wiki/mirror-list.md` (§1.7.2 frontend e2e+helper scope +6 file)
+
+### 검증
+
+- `bash scripts/check-openapi-yaml-lint.sh` PASS
+- `bash scripts/check-tier-separation.sh` PASS (사내 한정 패턴 매칭 0)
+- 1차 PR #583 검증: `go build ./...` + `go test ./internal/domain/integration-registry/view/` (4/4)
+- CI frontend-unit (X-1 widget 4 + types + service): 5 case
+- CI e2e (admin-x1.spec.ts): 3 case
+
+### 정합
+
+- main HEAD = `23c0ccd` (squash PR #584)
+- mirror 927 file, 162 page matched, 0 stale
+- 위키 1:1 mirror byte-identical (manifest = HEAD)
+- ADR-0032 = accepted 2026-06-13
+
+### X-1 residual (별도 follow-up, 본 sprint scope 외)
+
+- §2.4/§2.5/§3.1 의 IMPL/UT 컬럼 cross-ref 일괄 보강 = 별도 housekeeping sprint
+- ADR-0032 §3 Provider Health Endpoint (API-107) = 별도 follow-up sprint (post-MVP, 1주일 staging 후)
+- `docs/openapi.yaml` (line 9455) ↔ `swaggerui/asset/openapi.yaml` (line 9360) drift 95 line = 별도 sprint sync
+
+### CRITICAL 레슨런
+
+1. **scope 분리 정공법 (cross-project lesson §1)**: X-1 sprint = 1차 PR #583 (backend + openapi) + 2차 PR #584 (frontend + e2e + docs) 의 2-step 분리. backend half 와 frontend half 가 다른 PR 인 이유: backend 검증 (go test + openapi lint) 와 frontend 검증 (Vitest + Playwright e2e) 가 다른 CI 잡에서 실행되므로 PR 단위로 분리하는 게 자연스러움. scope 폭주 방지 + PR review 부담 분산.
+2. **mirror list §1.7.2 frontend e2e+helper scope 갱신 정공법**: X-1 frontend widget 4 + admin-x1 service + admin-x1 e2e = 6 file 추가. mirror-list.md 의 source list 동적 = wiki-sync-devhub.sh 가 자동 반영. **위반 시점 drift**: mirror byte-identical 검증 script 의 Diff != 0 미충족 시 즉시 fix.
+3. **traceability partial 정합 정공법 (cross-project lesson)**: 본 2차 PR 은 §6 row + §4 ADR row + 헤더 메타 만 갱신. §2.4/§2.5/§3.1 의 IMPL/UT 컬럼 일괄 보강 = 별도 housekeeping sprint. **이유**: 한 PR 에서 모든 위치 동시 갱신 시 scope 폭주 → review 부담 + conflict 가능성 ↑. **원칙**: PR scope = 한 가지 정합 (e.g. X-1 1차 PR 의 IMPL 정합) + housekeeping 별도.

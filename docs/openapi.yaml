@@ -6021,6 +6021,128 @@ paths:
         "403":
           $ref: "#/components/responses/ForbiddenEnvelope"
         "503":
+  # X-1 System Admin 운영 대시보드 (release_v0-1_roadmap.md line 198, RM-M4-07).
+  # Gitea sync job 큐/상태 + dashboard summary 조회. system_admin 일임
+  # (routePermissionTable 의 integration_sync_jobs resource gate).
+  /api/v1/admin/integrations/sync-jobs:
+    get:
+      tags:
+        - Integration
+      summary: "Gitea sync job 큐/상태 조회 (X-1 dashboard 위젯)"
+      operationId: listIntegrationSyncJobs
+      description: |
+        `integration_sync_jobs` table 의 status filter + limit/offset + order by created_at desc.
+        status=queued/running/succeeded/failed 4 status 만 허용, 그 외 400.
+        limit 1~100, default 50. offset 0+.
+        system_admin 일임.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [queued, running, succeeded, failed]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: "조회 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total, limit, offset]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/IntegrationSyncJob"
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+  /api/v1/admin/integrations/sync-jobs/{jobID}:
+    get:
+      tags:
+        - Integration
+      summary: "Gitea sync job 단건 조회 (X-1 dashboard 위젯)"
+      operationId: getIntegrationSyncJob
+      description: |
+        `integration_sync_jobs` table 의 단건 조회. not found 시 404.
+        system_admin 일임.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: "조회 성공"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationSyncJob"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFoundEnvelope"
+  /api/v1/admin/integrations/summary:
+    get:
+      tags:
+        - Integration
+      summary: "X-1 dashboard summary — sync job 4 status 별 count"
+      operationId: getIntegrationSyncJobStatusSummary
+      description: |
+        `integration_sync_jobs` 의 4 status 별 count (queued/running/succeeded/failed).
+        X-1 dashboard 의 "Dashboard Summary" 위젯 백엔드.
+        system_admin 일임.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "조회 성공"
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sync_job_status_counts]
+                properties:
+                  sync_job_status_counts:
+                    $ref: "#/components/schemas/IntegrationSyncJobStatusCounts"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+
           $ref: "#/components/responses/ServiceUnavailableEnvelope"
   /api/v1/admin/api-keys/{api_key_id}:
     patch:
@@ -8008,6 +8130,76 @@ components:
     # -----------------------------------------------------------------------
     # IntegrationTestResult
     # -----------------------------------------------------------------------
+    # -----------------------------------------------------------------------
+    # IntegrationSyncJob (X-1 System Admin 운영 대시보드, RM-M4-07)
+    # -----------------------------------------------------------------------
+    IntegrationSyncJob:
+      type: object
+      required:
+        - job_id
+        - provider_id
+        - status
+        - created_at
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          description: "Sync job UUID"
+          example: "b1c2d3e4-6666-7777-8888-9999aaaabbbb"
+        provider_id:
+          type: string
+          format: uuid
+          description: "Integration provider UUID"
+          example: "8f8cdb8d-c690-458f-a243-a8b8b67f9a4d"
+        requested_by:
+          type: string
+          description: "Sync job 요청자 login (system_admin / actor)"
+          example: "admin-x1"
+        status:
+          type: string
+          enum:
+            - "queued"
+            - "running"
+            - "succeeded"
+            - "failed"
+          description: "Sync job lifecycle status"
+          example: "queued"
+        created_at:
+          type: string
+          format: date-time
+          description: "Sync job 생성 일시 (UTC)"
+          example: "2026-06-13T22:00:00Z"
+
+    # -----------------------------------------------------------------------
+    # IntegrationSyncJobStatusCounts (X-1 dashboard summary)
+    # -----------------------------------------------------------------------
+    IntegrationSyncJobStatusCounts:
+      type: object
+      required:
+        - queued
+        - running
+        - succeeded
+        - failed
+      properties:
+        queued:
+          type: integer
+          description: "queued 상태 job count"
+          example: 1
+        running:
+          type: integer
+          description: "running 상태 job count"
+          example: 1
+        succeeded:
+          type: integer
+          description: "succeeded 상태 job count"
+          example: 5
+        failed:
+          type: integer
+          description: "failed 상태 job count"
+          example: 0
+
+    # -----------------------------------------------------------------------
+
     IntegrationTestResult:
       type: object
       required:
