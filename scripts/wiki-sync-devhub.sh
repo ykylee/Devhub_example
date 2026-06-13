@@ -331,22 +331,60 @@ list_sources | while IFS= read -r f; do
   echo "  copied: $rel"
 done
 
-# ----- manifest 자동 생성 -----
+# ----- manifest 자동 생성 (provenance: commit hash + version + branch + dirty) -----
 MANIFEST="$DEST/_manifest.md"
+
+# git provenance capture (mirror 의 source 의 SSOT provenance)
+GIT_COMMIT=$(git -C "$SRC" rev-parse HEAD 2>/dev/null || echo "unknown")
+GIT_COMMIT_SHORT=$(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git -C "$SRC" branch --show-current 2>/dev/null || echo "unknown")
+GIT_DIRTY=$(git -C "$SRC" status --porcelain 2>/dev/null | head -1)
+if [[ -n "$GIT_DIRTY" ]]; then
+  GIT_DIRTY_FLAG="(dirty: uncommitted changes)"
+else
+  GIT_DIRTY_FLAG=""
+fi
+SYNC_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# Version capture (DevHub 의 2 version system: /VERSION + ai-workflow/VERSION)
+VERSION_SYSTEM=$(cat "$SRC/VERSION" 2>/dev/null | head -1 | tr -d '[:space:]' || echo "unknown")
+VERSION_WORKFLOW=$(cat "$SRC/ai-workflow/VERSION" 2>/dev/null | head -1 | tr -d '[:space:]' || echo "unknown")
+
 {
-  echo "# raw/projects/devhub/_manifest.md (D-72 Phase 1 + Phase 1.5)"
+  echo "# raw/projects/devhub/_manifest.md (D-72 Phase 1 + Phase 1.5, provenance tracking)"
   echo ""
-  echo "- source: $SRC"
-  echo "- target: $DEST"
-  echo "- vault: $VAULT_ROOT (Gitea private)"
-  echo "- sync tool: scripts/wiki-sync-devhub.sh (BSD-rsync safe, Phase 1.5 13 패턴)"
-  echo "- mirror list: docs/llm-wiki/mirror-list.md §2"
-  echo "- lint config: docs/llm-wiki/lint-config.toml"
-  echo "- operation SOP: docs/llm-wiki/operation-sop.md"
+  echo "## Provenance"
   echo ""
-  echo "## Last sync"
+  echo "본 manifest 는 wiki mirror 의 **provenance tracking** 의 SSOT. 위키의 모든 정보의 상태(시점/commit/version/branch/dirty)를 본 manifest 에서 검증 가능."
   echo ""
-  echo "- timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "| field | value |"
+  echo "| --- | --- |"
+  echo "| source repo | $SRC |"
+  echo "| target vault | $DEST |"
+  echo "| sync tool | scripts/wiki-sync-devhub.sh (BSD-rsync safe, Phase 1.5 13 패턴) |"
+  echo "| mirror list | docs/llm-wiki/mirror-list.md §2 |"
+  echo "| lint config | docs/llm-wiki/lint-config.toml |"
+  echo "| operation SOP | docs/llm-wiki/operation-sop.md |"
+  echo ""
+  echo "### Git state (mirror 의 source 의 provenance)"
+  echo ""
+  echo "| field | value |"
+  echo "| --- | --- |"
+  echo "| commit (full) | $GIT_COMMIT |"
+  echo "| commit (short) | $GIT_COMMIT_SHORT |"
+  echo "| branch | $GIT_BRANCH |"
+  echo "| dirty | $GIT_DIRTY_FLAG |"
+  echo ""
+  echo "### Version (DevHub 의 2 version system)"
+  echo ""
+  echo "| field | value |"
+  echo "| --- | --- |"
+  echo "| system version (root /VERSION) | $VERSION_SYSTEM |"
+  echo "| workflow version (ai-workflow/VERSION) | $VERSION_WORKFLOW |"
+  echo ""
+  echo "### Last sync"
+  echo ""
+  echo "- timestamp: $SYNC_TIMESTAMP"
   echo "- count: $(find "$DEST" -type f 2>/dev/null | wc -l | tr -d ' ') file"
   echo "- size: $(du -sh "$DEST" 2>/dev/null | cut -f1)"
   echo ""
@@ -357,7 +395,7 @@ MANIFEST="$DEST/_manifest.md"
   find "$DEST" -type f -not -name "_manifest.md" 2>/dev/null | sort | while IFS= read -r f; do
     rel="${f#"$DEST"/}"
     size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo "?")
-    echo "| $(date -u +%Y-%m-%dT%H:%M:%SZ) | $rel | $size |"
+    echo "| $SYNC_TIMESTAMP | $rel | $size |"
   done
 } > "$MANIFEST"
 
@@ -365,3 +403,5 @@ echo "[wiki-sync-devhub] DONE"
 echo "  files: $(find "$DEST" -type f 2>/dev/null | wc -l | tr -d ' ')"
 echo "  size:  $(du -sh "$DEST" 2>/dev/null | cut -f1)"
 echo "  manifest: $MANIFEST"
+echo "  commit: $GIT_COMMIT_SHORT ($GIT_BRANCH) $GIT_DIRTY_FLAG"
+echo "  version: system=$VERSION_SYSTEM workflow=$VERSION_WORKFLOW"
