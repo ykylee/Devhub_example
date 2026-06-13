@@ -1079,3 +1079,38 @@ CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`
 1. **기존 infrastructure 최대 활용 정공법 (cross-project lesson)**: N-13 의 backend foundation (PR A-1) + PR A-2 (auto_route.go + voc_handler) 가 main 에 byte-identical 포함 — X-2 의 1차 commit 은 **새 method 추가가 아닌** 기존 pattern matcher 의 **multi-provider depth 정밀화** 만.
 2. **JSONB schema 의 typed parse 정공법**: `InboundSourceRoutingConfig` struct + `ParseInboundSourceRoutingConfig(raw string)` 함수로 platform.InboundSourceConfig (raw text) 의 typed parse. 빈 문자열 / invalid JSON 의 silent skip (zero value + nil error) = 운영자 audit 으로 silent invalid 알림.
 3. **ProviderHint field 추가 정공법 (X-2 의 reason 정밀화)**: AutoRouteDecision.Reason (`external_ref_pattern` / `requester_email` / `req_department` / `no_match`) 에 ProviderHint (`gitea` | `jira` | `github` | `gitlab` | `other_custom` | `custom` | empty) 필드 추가 — reason + provider 의 정밀 식별. 운영자 dashboard 에서 "왜 gitea enum 으로 match 됐는가" 즉시 식별.
+
+## 31. 본 세션 후속 (2026-06-13, X-2 inbound webhook multi-provider adapter 2차 PR #587 MERGED)
+
+### X-2 의 2차 commit (PR #587, main HEAD 57fda7e)
+
+**3 file 신규, 408 line, go test 9/9 PASS**:
+- `backend-core/internal/infrastructure/webhook/adapter.go` (102 line) — WebhookAdapter interface + registry dispatcher + helper (payloadHashHex, firstHeader)
+- `backend-core/internal/infrastructure/webhook/gitea_adapter.go` (109 line) — GiteaWebhookAdapter (provider_type='scm', Gitea/Forgejo/Gogs X-Gitea-*/X-Gogs-* header + repository/sender envelope)
+- `backend-core/internal/infrastructure/webhook/adapter_test.go` (152 line, 9 case)
+
+### 정공법 (cross-project lesson §1 scope 분리)
+
+**본 2차 commit = adapter package + Gitea adapter 신규 만**, IngestIntegrationProviderWebhook handler 통합 (provider_type='scm' dispatch) = **3~5차 commit 의 후속** (scope 폭주 방지 + ADR-0033 결정 + 다중 adapter 추가 시 일괄 dispatch).
+
+### 검증
+
+- `go build ./...` PASS
+- `go test -v ./internal/infrastructure/webhook/` 9/9 PASS
+
+### 정합
+
+- 1차 PR #586 의 auto_route.go giteaExternalRefPattern `^GITEA-\d+$` 와 cross-ref (Gitea adapter 의 ExternalRef `GITEA-<number>` 정공법)
+- IngestIntegrationProviderWebhook handler 통합 = 후속 commit
+
+### 잔여 (X-2 3~5차, 별도 follow-up)
+
+- 3차: openapi.yaml 정합 (multi-provider endpoint 명세)
+- 4차: frontend multi-provider 운영 UI (system_admin /admin/settings/integrations 의 InboundSourceConfig JSONB editor)
+- 5차: e2e + ADR-0033 (Multi-Provider Webhook Architecture) + traceability/CHANGELOG/mirror-list
+
+### CRITICAL 레슨런 (3건)
+
+1. **adapter registry dispatcher 정공법 (cross-project lesson)**: `package webhook` + `RegisterAdapter` + `GetAdapterForProviderType` 함수 — provider_type 별로 adapter dispatch. multi-provider 일반화의 foundation. 추후 Jira/Generic adapter 추가 시 `RegisterAdapter` 호출만으로 dispatch 가능.
+2. **GiteaExternalRef 의 cross-ref 정공법**: Gitea adapter 의 `buildGiteaExternalRef` 가 `pull_request/issue/release` = `GITEA-<number>`, `push/repository` = `GITEA-<repository.full_name>` 정공법 — AutoRoute 의 `giteaExternalRefPattern` (`^GITEA-\d+$`) 와 1:1 매핑. webhook ingest → AutoRoute routing 의 seamless 통합.
+3. **scope 분리 정공법 (cross-project lesson §1)**: 본 2차 commit 은 adapter package + Gitea adapter 만 (3 file 신규, 408 line). IngestIntegrationProviderWebhook handler 통합 + Jira/Generic adapter + openapi + frontend + e2e + ADR-0033 = 3~5차 commit 으로 분할. **이유**: adapter 도입 자체가 큰 architectural change → 한 commit 으로 handler 통합 + 다중 adapter + ADR-0033 까지 묶으면 review 부담 ↑ + scope 폭주.
