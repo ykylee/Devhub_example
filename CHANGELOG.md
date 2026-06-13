@@ -21,7 +21,7 @@ main HEAD: `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` (re-tag
 | **D-74** | `_lint/devhub/` per-project lint report 디렉터리 셋업 | T-d-72-3 | ⏳ planned (v0.1.1-alpha) |
 | **T-d-79-5** | D-79 wiki-lint 통합 (L01~L10) | D-74 | ⏳ planned (v0.1.1-alpha) |
 | **T-d-80-7** | D-80 wiki-lint 통합 (L01~L10) | D-74 | ⏳ planned (v0.1.1-alpha) |
-| **X-1** | System Admin 운영 대시보드 (RM-M4-07) | — | ⏳ planned (v0.1.1-alpha) |
+| **X-1** | System Admin 운영 대시보드 (RM-M4-07) | — | ✅ implemented (2026-06-13, sprint `feat/work_260614-x1-system-admin-dashboard` 1차 PR #583 + sprint `feat/work_260614-x1-frontend-e2e` 2차 PR — backend IntegrationRepository method 3 + httpapi admin endpoint 3 + openapi paths 3 + frontend widget 4 + admin landing page 강화 + e2e admin-x1.spec.ts 3 case + ADR-0032) |
 | **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | T-d-79-2/T-d-80-2 | ⏳ planned (v0.1.1-alpha) |
 | **X-3** | 평문 secret envelope 암호화 (DEK + 키관리 ADR) | ADR | ⏳ planned (v0.1.1-alpha) |
 | **X-4** | Phase D — project 생성 flow ↔ SCM create 연계 | T-d-72-5/6 | ⏳ planned (v0.1.1-alpha) |
