@@ -52,11 +52,43 @@ func initHomeLabMetrics() {
 				Help: "Unix time of the latest successful HomeLab pull-and-ingest run.",
 			},
 		)
+		scmCreateRunsTotal = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "devhub_scm_create_runs_total",
+				Help: "Total number of SCM create runs by result.",
+			},
+			[]string{"result"},
+		)
+		scmCreateDuration = prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "devhub_scm_create_duration_seconds",
+				Help:    "Duration of SCM create runs by result.",
+				Buckets: prometheus.DefBuckets,
+			},
+			[]string{"result"},
+		)
+		scmCreateReposGaug = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "devhub_scm_create_repos_total",
+				Help: "Number of repositories currently in success state.",
+			},
+		)
+		scmCreateFailures = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "devhub_scm_create_failures_total",
+				Help: "Total number of SCM create failures by provider.",
+			},
+			[]string{"scm_provider"},
+		)
 		registerCollector(homeLabPullRunsTotal)
 		registerCollector(homeLabPullDuration)
 		registerCollector(homeLabServicesGauge)
 		registerCollector(homeLabDegradedGauge)
 		registerCollector(homeLabLastSuccess)
+		registerCollector(scmCreateRunsTotal)
+		registerCollector(scmCreateDuration)
+		registerCollector(scmCreateReposGaug)
+		registerCollector(scmCreateFailures)
 	})
 }
 
@@ -90,4 +122,64 @@ func observeHomeLabSnapshot(snapshot HomeLabSnapshot) {
 func observeHomeLabPullSuccess(now time.Time) {
 	initHomeLabMetrics()
 	homeLabLastSuccess.Set(float64(now.UTC().Unix()))
+}
+
+// X-5 Gitea pull metric helpers (ADR-0034 §3.5).
+var (
+	giteaPullRunsTotal        *prometheus.CounterVec
+	giteaPullDuration         *prometheus.HistogramVec
+	giteaPullRepositoriesGaug prometheus.Gauge
+	giteaPullConsecFailures   *prometheus.GaugeVec
+	giteaPullLastSuccess      prometheus.Gauge
+
+	// X-4 SCM create metric (ADR-0035 §3.3)
+	scmCreateRunsTotal *prometheus.CounterVec
+	scmCreateDuration  *prometheus.HistogramVec
+	scmCreateReposGaug prometheus.Gauge
+	scmCreateFailures  *prometheus.CounterVec
+)
+
+func observeGiteaPull(result string, duration time.Duration) {
+	initHomeLabMetrics()
+	_ = result
+	_ = duration
+	// Placeholder: Gitea metric registration will be added by X-5 PR (#592) when merged.
+}
+
+func observeGiteaPullRepositoriesTotal(count int) {
+	initHomeLabMetrics()
+	_ = count
+}
+
+func observeGiteaPullAlertTriggered(repositoryID string, consecutiveFailures int) {
+	initHomeLabMetrics()
+	_ = repositoryID
+	_ = consecutiveFailures
+}
+
+func observeGiteaPullLastSuccess(now time.Time) {
+	initHomeLabMetrics()
+	_ = now
+}
+
+// X-4 SCM create metric helpers (ADR-0035 §3.3).
+// Init merged into initHomeLabMetrics (single sync.Once for thread-safety).
+
+func observeSCMSuccess(duration time.Duration) {
+	initHomeLabMetrics()
+	scmCreateRunsTotal.WithLabelValues("success").Inc()
+	scmCreateDuration.WithLabelValues("success").Observe(duration.Seconds())
+	scmCreateReposGaug.Inc()
+}
+
+func observeSCMError(errorClass string, duration time.Duration) {
+	initHomeLabMetrics()
+	label := "unknown"
+	switch errorClass {
+	case "validation", "permission", "not_found", "rate_limit", "server", "network", "config":
+		label = errorClass
+	}
+	scmCreateRunsTotal.WithLabelValues("error").Inc()
+	scmCreateDuration.WithLabelValues("error").Observe(duration.Seconds())
+	scmCreateFailures.WithLabelValues(label).Inc()
 }
