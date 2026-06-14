@@ -135,7 +135,10 @@ func (c *SCMCreator) CreateRepository(ctx context.Context, req SCMCreateRequest)
 	}
 
 	if c.Store != nil {
-		_ = c.Store.UpdateSCMCreateState(callCtx, req.RepositoryID, SCMCreateFailed,
+		// Use parent ctx (not callCtx) for the failure-state write. callCtx may already
+		// be expired due to the Gitea timeout that triggered this failure path, and
+		// a stale-context write would silently drop the row. codex review #2 (P2).
+		_ = c.Store.UpdateSCMCreateState(ctx, req.RepositoryID, SCMCreateFailed,
 			result.ErrorClass+": "+result.ErrorMessage, 0, "", "", time.Now().UTC())
 	}
 
@@ -148,14 +151,21 @@ func (c *SCMCreator) CreateRepository(ctx context.Context, req SCMCreateRequest)
 }
 
 func (c *SCMCreator) recordOutcome(ctx context.Context, start time.Time, result *SCMCreateResult, success bool, compensation bool) {
-	if success && c.OnSuccess != nil {
-		c.OnSuccess(ctx, *result)
+	// success path: emit metric unconditionally; emit hook only if wired.
+	// codex review #3 (P2): callers without OnSuccess were falling through to
+	// observeSCMError and double-counting success as failure.
+	if success {
 		observeSCMSuccess(time.Since(start))
+		if c.OnSuccess != nil {
+			c.OnSuccess(ctx, *result)
+		}
 		return
 	}
-	if !success && c.OnError != nil {
+	// failure path: emit hook if wired; emit metric unconditionally.
+	if c.OnError != nil {
 		c.OnError(ctx, *result)
 	}
+	observeSCMError(result.ErrorClass, time.Since(start))
 	if compensation && c.OnCompensation != nil {
 		c.OnCompensation(ctx, *result)
 	}
