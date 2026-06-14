@@ -16,7 +16,7 @@ BEGIN;
 -- updated_at: trigger or manual.
 -- last_alert_at: 5회 연속 실패 시 alert emit 시각 (idempotent, 같은 incident 의 중복 alert 방지). NULL = never alerted.
 CREATE TABLE IF NOT EXISTS public.repository_pull_state (
-    repository_id uuid PRIMARY KEY REFERENCES public.repositories(id) ON DELETE CASCADE,
+    repository_id bigint PRIMARY KEY REFERENCES public.repositories(id) ON DELETE CASCADE,
     last_pull_at timestamptz,
     last_pull_status text,
     last_pull_error text,

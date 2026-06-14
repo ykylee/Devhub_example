@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -403,5 +404,111 @@ func TestPullError_Class(t *testing.T) {
 		if tt.pe.Class != tt.want {
 			t.Errorf("class = %s; want %s", tt.pe.Class, tt.want)
 		}
+	}
+}
+
+func TestGiteaClient_ListPullRequestsSince_Truncation(t *testing.T) {
+	// Mock Gitea server returns 50 PRs per page for 4 pages (200 total),
+	// signaling that more pages exist beyond max_pages=4.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/repos/test-org/test-repo/pulls", func(w http.ResponseWriter, r *http.Request) {
+		page := r.URL.Query().Get("page")
+		// Always return 50 (full page), forcing the client to keep fetching.
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		prs := make([]string, 50)
+		for i := 0; i < 50; i++ {
+			prs[i] = fmt.Sprintf(`{"id":%d,"number":%d,"state":"open","title":"PR","body":"","head_sha":"abc","updated_at":"2026-06-14T00:00:00Z","created_at":"2026-06-14T00:00:00Z","user":{"login":"alice"}}`, i+1, i+1)
+		}
+		fmt.Fprintf(w, "[%s]", strings.Join(prs, ","))
+		_ = page
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	client := NewGiteaClient(srv.URL, "test-token")
+	prs, truncated, err := client.ListPullRequestsSince(context.Background(), "test-org", "test-repo", time.Time{})
+	if err != nil {
+		t.Fatalf("expected nil err, got %v", err)
+	}
+	if len(prs) != 200 {
+		t.Errorf("len(prs) = %d; want 200 (4 pages * 50)", len(prs))
+	}
+	if !truncated {
+		t.Error("truncated = false; want true (>= 200 PRs indicates more pages exist)")
+	}
+}
+
+func TestGiteaPullAdapter_PullAndIngestSince_Truncated(t *testing.T) {
+	// Mock Gitea server that returns 200+ PRs (truncation)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/repos/test-org/test-repo/pulls", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		prs := make([]string, 50)
+		for i := 0; i < 50; i++ {
+			prs[i] = fmt.Sprintf(`{"id":%d,"number":%d,"state":"open","title":"PR","body":"","head_sha":"abc","updated_at":"2026-06-14T00:00:00Z","created_at":"2026-06-14T00:00:00Z","user":{"login":"alice"}}`, i+1, i+1)
+		}
+		fmt.Fprintf(w, "[%s]", strings.Join(prs, ","))
+	})
+	mux.HandleFunc("/api/v1/repos/test-org/test-repo/actions/runs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `[]`)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	client := NewGiteaClient(srv.URL, "test-token")
+	store := newFakeStore()
+	store.seed("repo-1", time.Time{})
+
+	adapter := &GiteaPullAdapter{Client: client, Store: store, MaxItemsPerCall: 100}
+	err := adapter.PullAndIngestSince(context.Background(), RepositoryTarget{ID: "repo-1", Owner: "test-org", Name: "test-repo"})
+
+	// Expect a partial PullError (truncation signaled as partial)
+	if err == nil {
+		t.Fatal("expected partial error, got nil")
+	}
+	var pe *PullError
+	if !errors.As(err, &pe) {
+		t.Fatalf("expected *PullError, got %T", err)
+	}
+	if pe.Class != "partial" {
+		t.Errorf("Class = %s; want partial (truncation)", pe.Class)
+	}
+	if !strings.Contains(pe.Message, "truncated") {
+		t.Errorf("Message should mention truncation, got: %s", pe.Message)
+	}
+	if store.pullState["repo-1"].status != "partial" {
+		t.Errorf("status = %s; want partial", store.pullState["repo-1"].status)
+	}
+	// The adapter MUST NOT increment consecutive_failures on its own; the loop owns that.
+	cf := store.pullState["repo-1"].consecutiveFailures
+	if cf != 0 {
+		t.Errorf("consecutiveFailures = %d; want 0 (loop owns the counter; adapter must not double-count)", cf)
+	}
+}
+
+func TestGiteaPullAdapter_PullAndIngestSince_NoDoubleIncrement(t *testing.T) {
+	// Regression test for the v1 review double-count bug: the adapter must not increment
+	// consecutive_failures on its own in either the partial or hard-error path.
+	// The loop (RunGiteaPullLoop) is the single source of truth for the counter.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/repos/test-org/test-repo/pulls", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "internal error")
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	client := NewGiteaClient(srv.URL, "test-token")
+	store := newFakeStore()
+	store.seed("repo-1", time.Time{})
+
+	adapter := &GiteaPullAdapter{Client: client, Store: store, MaxItemsPerCall: 100}
+	_ = adapter.PullAndIngestSince(context.Background(), RepositoryTarget{ID: "repo-1", Owner: "test-org", Name: "test-repo"})
+
+	cf := store.pullState["repo-1"].consecutiveFailures
+	if cf != 0 {
+		t.Errorf("consecutiveFailures = %d; want 0 (adapter must not increment; loop owns it)", cf)
 	}
 }

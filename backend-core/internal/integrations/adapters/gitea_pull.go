@@ -64,11 +64,16 @@ type GiteaCommit struct {
 }
 
 // ListPullRequestsSince fetches PRs updated after `since`. Returns up to 50 per page, max 200 total.
-func (c *GiteaClient) ListPullRequestsSince(ctx context.Context, owner, repo string, since time.Time) ([]GiteaPullRequest, error) {
+// If more than 200 PRs are updated since `since`, the returned (truncated bool) signals
+// truncation so the caller can log a metric / alert. Silent truncation would hide a real
+// "we missed updates" failure mode.
+func (c *GiteaClient) ListPullRequestsSince(ctx context.Context, owner, repo string, since time.Time) (prs []GiteaPullRequest, truncated bool, err error) {
 	out := []GiteaPullRequest{}
 	page := 1
-	for page <= 4 {
-		u := fmt.Sprintf("%s/api/v1/repos/%s/%s/pulls?state=all&page=%d&limit=50", c.BaseURL, owner, repo, page)
+	const maxPages = 4
+	const pageSize = 50
+	for page <= maxPages {
+		u := fmt.Sprintf("%s/api/v1/repos/%s/%s/pulls?state=all&page=%d&limit=%d", c.BaseURL, owner, repo, page, pageSize)
 		if !since.IsZero() {
 			q := url.Values{}
 			q.Set("since", since.UTC().Format(time.RFC3339))
@@ -76,15 +81,16 @@ func (c *GiteaClient) ListPullRequestsSince(ctx context.Context, owner, repo str
 		}
 		var batch []GiteaPullRequest
 		if err := c.doJSON(ctx, "GET", u, &batch); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		out = append(out, batch...)
-		if len(batch) < 50 {
-			break
+		if len(batch) < pageSize {
+			return out, false, nil
 		}
 		page++
 	}
-	return out, nil
+	// We fetched maxPages full pages — additional pages likely exist.
+	return out, true, nil
 }
 
 // ListBuilds fetches recent builds for a repo.
@@ -204,9 +210,17 @@ func (a *GiteaPullAdapter) PullAndIngestSince(ctx context.Context, target Reposi
 	}
 
 	// PRs
-	prs, prErr := a.Client.ListPullRequestsSince(ctx, target.Owner, target.Name, since)
+	prs, prTruncated, prErr := a.Client.ListPullRequestsSince(ctx, target.Owner, target.Name, since)
 	if prErr != nil {
 		return &PullError{Class: "gitea_api", Message: "list pull requests", Cause: prErr}
+	}
+	if prTruncated {
+		// The Gitea API returned >= 200 PRs updated since `since`; additional pages were not fetched.
+		// Record this as a partial outcome so the loop can alert (operational visibility).
+		// The next cycle will catch up from the new last_pull_at (the upserts advanced the cursor).
+		// We do NOT advance last_pull_at on truncated cycles — see partial branch below.
+		_ = a.Store.UpdatePullState(ctx, target.ID, "partial", "pr list truncated at max_pages (>= 200 PRs updated since last_pull_at); next cycle will catch up", since)
+		return &PullError{Class: "partial", Message: "pr list truncated; >= 200 PRs updated since last_pull_at", Cause: ErrGiteaPartial}
 	}
 
 	// Builds
@@ -259,10 +273,10 @@ func (a *GiteaPullAdapter) PullAndIngestSince(ctx context.Context, target Reposi
 		if err := a.Store.UpdatePullState(ctx, target.ID, "partial", strings.Join(partialReasons, "; "), since); err != nil {
 			return &PullError{Class: "store", Message: "partial state update", Cause: err}
 		}
-		// increment consecutive_failures and apply backoff
-		if _, err := a.Store.IncrementConsecutiveFailures(ctx, target.ID); err != nil {
-			return &PullError{Class: "store", Message: "increment consecutive failures", Cause: err}
-		}
+		// NOTE: consecutive_failures increment + backoff application are owned by the loop
+		// (RunGiteaPullLoop) — see ADR-0034 §3.3 + §3.4. The adapter only records the
+		// partial outcome + reason; the loop performs the counter mutation once per
+		// failed cycle. Double-counting was a real bug in the v1 review.
 		return &PullError{Class: "partial", Message: strings.Join(partialReasons, "; "), Cause: ErrGiteaPartial}
 	}
 
