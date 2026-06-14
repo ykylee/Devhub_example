@@ -197,7 +197,7 @@
 | --- | --- | --- |
 | **X-1** | System Admin 운영 대시보드 (RM-M4-07 — Gitea sync job 큐/상태 + provider health) | FE+BE |
 | **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | BE |
-| **X-3** | 평문 secret envelope 암호화 (#6 — credentials_ref/api_token/auth_secret DEK + 키관리 ADR) | BE/보안 |
+| **X-3** | 평문 secret envelope 암호화 (#6 — credentials_ref/api_token/auth_secret DEK + 키관리 ADR) | BE/보안 | ✅ resolved (accepted + impl, 2026-05-29 sprint `gemini/work_260529-a-envelope-encryption` PR #447) |
 | **X-4** | Phase D — project 생성 flow ↔ SCM create 연계 | FE+BE |
 | **X-5** | Gitea Hourly Pull 정밀화 (RM-M4-06 잔여, issue #231) | BE |
 | **X-6** | Keycloak group staging-prod 적용 (P1-3, issue #214) | 사내 |
