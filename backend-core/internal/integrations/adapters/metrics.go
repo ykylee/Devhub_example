@@ -101,7 +101,41 @@ func initHomeLabMetrics() {
 		registerCollector(giteaPullDuration)
 		registerCollector(giteaPullRepositoriesGaug)
 		registerCollector(giteaPullConsecFailures)
-		registerCollector(giteaPullLastSuccess)
+		
+		scmCreateRunsTotal = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "devhub_scm_create_runs_total",
+				Help: "Total number of SCM create runs by result.",
+			},
+			[]string{"result"},
+		)
+		scmCreateDuration = prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "devhub_scm_create_duration_seconds",
+				Help:    "Duration of SCM create runs by result.",
+				Buckets: prometheus.DefBuckets,
+			},
+			[]string{"result"},
+		)
+		scmCreateReposGaug = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "devhub_scm_create_repos_total",
+				Help: "Number of repositories currently in success state.",
+			},
+		)
+		scmCreateFailures = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "devhub_scm_create_failures_total",
+				Help: "Total number of SCM create failures, partitioned by error class and SCM provider.",
+			},
+			[]string{"error_class", "scm_provider"},
+		)
+	registerCollector(giteaPullLastSuccess)
+
+		registerCollector(scmCreateRunsTotal)
+		registerCollector(scmCreateDuration)
+		registerCollector(scmCreateReposGaug)
+		registerCollector(scmCreateFailures)
 	})
 }
 
@@ -158,4 +192,39 @@ func observeGiteaPullAlertTriggered(repositoryID string, consecutiveFailures int
 func observeGiteaPullLastSuccess(now time.Time) {
 	initHomeLabMetrics()
 	giteaPullLastSuccess.Set(float64(now.UTC().Unix()))
+}
+
+// X-4 SCM create metric helpers (ADR-0035 §3.3).
+var (
+	scmCreateRunsTotal *prometheus.CounterVec
+	scmCreateDuration  *prometheus.HistogramVec
+	scmCreateReposGaug prometheus.Gauge
+	scmCreateFailures  *prometheus.CounterVec
+)
+
+func observeSCMSuccess(duration time.Duration) {
+	initHomeLabMetrics()
+	scmCreateRunsTotal.WithLabelValues("success").Inc()
+	scmCreateDuration.WithLabelValues("success").Observe(duration.Seconds())
+	scmCreateReposGaug.Inc()
+}
+
+func observeSCMError(errorClass string, scmProvider string, duration time.Duration) {
+	initHomeLabMetrics()
+	// errorClass label: validation | permission | not_found | rate_limit | server | network | config | unknown
+	classLabel := "unknown"
+	switch errorClass {
+	case "validation", "permission", "not_found", "rate_limit", "server", "network", "config":
+		classLabel = errorClass
+	}
+	// scm_provider label: gitea | github | gitlab | unknown — sourced from SCMCreateRequest.SCMProvider
+	// so dashboards/alerts grouping by provider see real provider values, not error classes.
+	// codex review #6 (P2).
+	providerLabel := "unknown"
+	if scmProvider != "" {
+		providerLabel = scmProvider
+	}
+	scmCreateRunsTotal.WithLabelValues("error").Inc()
+	scmCreateDuration.WithLabelValues("error").Observe(duration.Seconds())
+	scmCreateFailures.WithLabelValues(classLabel, providerLabel).Inc()
 }
