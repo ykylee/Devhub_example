@@ -70,7 +70,10 @@ X-5 (Gitea Hourly Pull, PR #592) 의 `GiteaClient` 를 X-4 에서 재사용. **�
 - `devhub_scm_create_runs_total{result=success|error}` (Counter)
 - `devhub_scm_create_duration_seconds{result}` (Histogram)
 - `devhub_scm_create_repos_total` (Gauge) — 현재 success 상태 repo 수
-- `devhub_scm_create_failures_total{scm_provider}` (Counter, label 분리)
+- `devhub_scm_create_failures_total{error_class, scm_provider}` (Counter, 2 label)
+  - `error_class`: validation | permission | not_found | rate_limit | server | network | config | unknown
+  - `scm_provider`: gitea | github | gitlab | unknown (sourced from `SCMCreateRequest.SCMProvider`)
+  - **2026-06-14 갱신**: prior 1 label `{scm_provider}` 의 `scm_provider` 에 ErrorClass (server/permission/...) 가 들어가던 버그 fix — CounterVec label 차원 2개 (error_class × scm_provider) 로 정합. dashboards/alerts 가 진짜 provider 별 grouping 가능. codex PR #595 re-review #6 (P2).
 
 ### 3.4 SCM failure 보상
 
@@ -134,6 +137,16 @@ ALTER TABLE public.repositories
 | `DEVHUB_SCM_CREATE_TIMEOUT` | `30s` | Gitea API call timeout |
 | `DEVHUB_SCM_CREATE_RETRY_MAX` | `0` | 자동 retry (default 0 = 보상만, 운영자 수동) |
 | `DEVHUB_SCM_CREATE_BACKOFF_CAP` | `24h` | 자동 backoff cap (X-5 와 동일) |
+
+### 3.6 변경이력 (2026-06-14)
+
+| 일자 | commit | 변경 | trigger |
+|---|---|---|---|
+| 2026-06-14 | `3d810e5` | timeout 시 failure state write 가 parent ctx 사용 (callCtx expired 회피) | codex PR #593 review #2 (P2) |
+| 2026-06-14 | `3d810e5` | recordOutcome success path: metric unconditional + hook optional (nil hook double-count 회피) | codex PR #593 review #3 (P2) |
+| 2026-06-14 | `3e90cef` | observeSCMError 이중 호출 제거 (failure Counter 2배 fix) | codex PR #595 re-review #4 (P2) |
+| 2026-06-14 | `3e90cef` | nil Client (config error) 시 store 에 'failed' write 추가 (pending stuck 회피) | codex PR #595 re-review #5 (P2) |
+| 2026-06-14 | `3e90cef` | `devhub_scm_create_failures_total` label 1차원 → 2차원 (error_class × scm_provider) | codex PR #595 re-review #6 (P2) |
 
 ## 4. trade-off
 
