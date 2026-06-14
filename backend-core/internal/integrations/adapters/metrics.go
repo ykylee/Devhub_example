@@ -16,6 +16,12 @@ var (
 	homeLabServicesGauge prometheus.Gauge
 	homeLabDegradedGauge prometheus.Gauge
 	homeLabLastSuccess   prometheus.Gauge
+
+	giteaPullRunsTotal        *prometheus.CounterVec
+	giteaPullDuration         *prometheus.HistogramVec
+	giteaPullRepositoriesGaug prometheus.Gauge
+	giteaPullConsecFailures   *prometheus.GaugeVec
+	giteaPullLastSuccess      prometheus.Gauge
 )
 
 func initHomeLabMetrics() {
@@ -52,11 +58,50 @@ func initHomeLabMetrics() {
 				Help: "Unix time of the latest successful HomeLab pull-and-ingest run.",
 			},
 		)
+		giteaPullRunsTotal = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "devhub_gitea_pull_runs_total",
+				Help: "Total number of Gitea pull cycles by result.",
+			},
+			[]string{"result"},
+		)
+		giteaPullDuration = prometheus.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "devhub_gitea_pull_duration_seconds",
+				Help:    "Duration of Gitea pull cycles by result.",
+				Buckets: prometheus.DefBuckets,
+			},
+			[]string{"result"},
+		)
+		giteaPullRepositoriesGaug = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "devhub_gitea_pull_repositories_total",
+				Help: "Number of repositories due in the current Gitea pull cycle.",
+			},
+		)
+		giteaPullConsecFailures = prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: "devhub_gitea_pull_consecutive_failures",
+				Help: "Consecutive failure count per repository (alert trigger when >= threshold).",
+			},
+			[]string{"repository_id"},
+		)
+		giteaPullLastSuccess = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: "devhub_gitea_pull_last_success_unixtime",
+				Help: "Unix time of the latest successful Gitea pull cycle.",
+			},
+		)
 		registerCollector(homeLabPullRunsTotal)
 		registerCollector(homeLabPullDuration)
 		registerCollector(homeLabServicesGauge)
 		registerCollector(homeLabDegradedGauge)
 		registerCollector(homeLabLastSuccess)
+		registerCollector(giteaPullRunsTotal)
+		registerCollector(giteaPullDuration)
+		registerCollector(giteaPullRepositoriesGaug)
+		registerCollector(giteaPullConsecFailures)
+		registerCollector(giteaPullLastSuccess)
 	})
 }
 
@@ -90,4 +135,27 @@ func observeHomeLabSnapshot(snapshot HomeLabSnapshot) {
 func observeHomeLabPullSuccess(now time.Time) {
 	initHomeLabMetrics()
 	homeLabLastSuccess.Set(float64(now.UTC().Unix()))
+}
+
+// Gitea pull metric helpers (X-5 ADR-0034 §1.4).
+
+func observeGiteaPull(result string, duration time.Duration) {
+	initHomeLabMetrics()
+	giteaPullRunsTotal.WithLabelValues(result).Inc()
+	giteaPullDuration.WithLabelValues(result).Observe(duration.Seconds())
+}
+
+func observeGiteaPullRepositoriesTotal(count int) {
+	initHomeLabMetrics()
+	giteaPullRepositoriesGaug.Set(float64(count))
+}
+
+func observeGiteaPullAlertTriggered(repositoryID string, consecutiveFailures int) {
+	initHomeLabMetrics()
+	giteaPullConsecFailures.WithLabelValues(repositoryID).Set(float64(consecutiveFailures))
+}
+
+func observeGiteaPullLastSuccess(now time.Time) {
+	initHomeLabMetrics()
+	giteaPullLastSuccess.Set(float64(now.UTC().Unix()))
 }
