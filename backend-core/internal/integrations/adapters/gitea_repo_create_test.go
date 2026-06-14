@@ -353,3 +353,76 @@ func TestSCMCreator_Timeout(t *testing.T) {
 		t.Errorf("Status = %s; want failed (timeout)", result.Status)
 	}
 }
+
+func TestSCMCreator_OnSuccessNil(t *testing.T) {
+	// codex review #3 (P2): when OnSuccess is nil, the success path must still
+	// emit the success metric (not silently fall through to observeSCMError).
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/user/repos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintf(w, `{"id":42,"name":"new-repo","full_name":"alice/new-repo","clone_url":"https://gitea.example.com/alice/new-repo.git","html_url":"https://gitea.example.com/alice/new-repo","default_branch":"main","private":true}`)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	client := NewGiteaClient(srv.URL, "test-token")
+	store := newFakeSCMStore()
+	store.seed("repo-1")
+	creator := &SCMCreator{
+		Client:   client,
+		Store:    store,
+		Timeout:  5 * time.Second,
+		OnSuccess: nil, // explicit: hook absent
+		OnError:   nil,
+	}
+	result := creator.CreateRepository(context.Background(), SCMCreateRequest{
+		RepositoryID: "repo-1",
+		SCMProvider:  "gitea",
+		RepoName:     "new-repo",
+	})
+	if result.Status != SCMCreateSuccess {
+		t.Errorf("Status = %s; want success", result.Status)
+	}
+	// store state was updated despite OnSuccess=nil
+	if store.get("repo-1").Status != SCMCreateSuccess {
+		t.Errorf("store status = %s; want success", store.get("repo-1").Status)
+	}
+}
+
+func TestSCMCreator_TimeoutUsesParentCtxForFailureWrite(t *testing.T) {
+	// codex review #2 (P2): on timeout, the failure-state write must use the
+	// parent context (not the expired callCtx), so the failure row is recorded.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/user/repos", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	client := NewGiteaClient(srv.URL, "test-token")
+	store := newFakeSCMStore()
+	store.seed("repo-1")
+	creator := &SCMCreator{
+		Client:  client,
+		Store:   store,
+		Timeout: 100 * time.Millisecond,
+	}
+	parentCtx := context.Background()
+	result := creator.CreateRepository(parentCtx, SCMCreateRequest{
+		RepositoryID: "repo-1",
+		SCMProvider:  "gitea",
+		RepoName:     "new-repo",
+	})
+	if result.Status != SCMCreateFailed {
+		t.Errorf("Status = %s; want failed (timeout)", result.Status)
+	}
+	// Verify the failure write used the parent ctx (store should reflect the
+	// failed state even though the timeout-fired ctx is now expired).
+	if store.get("repo-1").Status != SCMCreateFailed {
+		t.Errorf("store status = %s; want failed (failure write must succeed even after timeout)", store.get("repo-1").Status)
+	}
+	if store.get("repo-1").ErrMsg == "" {
+		t.Error("store ErrMsg should be set with the failure class/message")
+	}
+}
