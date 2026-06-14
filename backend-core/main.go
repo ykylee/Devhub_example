@@ -384,6 +384,79 @@ func main() {
 		}
 	}
 
+	// X-5 Gitea Hourly Pull 정밀화 (ADR-0034, sprint feat/x5-gitea-hourly-pull).
+	// opt-in via DEVHUB_GITEA_PULL_ENABLED. cycle interval default 1h.
+	// Gitea API → DevHub pr_activities / build_runs / quality_snapshots since-based sync.
+	if cfg.GiteaPullEnabled {
+		giteaBase := strings.TrimSpace(cfg.GiteaAPIBaseURL)
+		if giteaBase == "" {
+			log.Printf("gitea pull loop skipped: set DEVHUB_GITEA_API_BASE_URL (sprint feat/x5-gitea-hourly-pull)")
+		} else {
+			giteaInterval := 1 * time.Hour
+			if strings.TrimSpace(cfg.GiteaPullInterval) != "" {
+				if parsed, err := time.ParseDuration(cfg.GiteaPullInterval); err == nil && parsed > 0 {
+					giteaInterval = parsed
+				} else {
+					log.Printf("invalid DEVHUB_GITEA_PULL_INTERVAL=%q; fallback to %s", cfg.GiteaPullInterval, giteaInterval)
+				}
+			}
+			giteaCycleTimeout := 30 * time.Minute
+			if strings.TrimSpace(cfg.GiteaPullCycleTimeout) != "" {
+				if parsed, err := time.ParseDuration(cfg.GiteaPullCycleTimeout); err == nil && parsed > 0 {
+					giteaCycleTimeout = parsed
+				} else {
+					log.Printf("invalid DEVHUB_GITEA_PULL_CYCLE_TIMEOUT=%q; fallback to %s", cfg.GiteaPullCycleTimeout, giteaCycleTimeout)
+				}
+			}
+			giteaConcurrency := cfg.GiteaPullConcurrency
+			if giteaConcurrency <= 0 {
+				giteaConcurrency = 4
+			}
+			giteaBackoffCap := 24 * time.Hour
+			if strings.TrimSpace(cfg.GiteaPullBackoffCap) != "" {
+				if parsed, err := time.ParseDuration(cfg.GiteaPullBackoffCap); err == nil && parsed > 0 {
+					giteaBackoffCap = parsed
+				} else {
+					log.Printf("invalid DEVHUB_GITEA_PULL_BACKOFF_CAP=%q; fallback to %s", cfg.GiteaPullBackoffCap, giteaBackoffCap)
+				}
+			}
+			giteaFailureAlertThreshold := cfg.GiteaPullFailureAlertThreshold
+			if giteaFailureAlertThreshold <= 0 {
+				giteaFailureAlertThreshold = 5
+			}
+
+			giteaClient := adapters.NewGiteaClient(giteaBase, cfg.GiteaAPIToken)
+			// NOTE: the production RepositoryPullStore wiring is provided by a follow-up PR.
+			// In this PR we wire only the loop with a nil store; the loop will fail-fast on cycle
+			// and emit error audit. Operators are expected to provide a store implementation
+			// alongside DEVHUB_GITEA_PULL_ENABLED=true.
+			adapter := &adapters.GiteaPullAdapter{
+				Client:         giteaClient,
+				Store:          nil, // follow-up: wire to repository store
+				MaxItemsPerCall: 200,
+			}
+			repoLister := func(ctx context.Context) ([]adapters.RepositoryTarget, error) {
+				// follow-up: query repositories table where provider_type='gitea' and not in backoff.
+				return nil, nil
+			}
+			onCycle := func(r adapters.PullCycleResult) {
+				log.Printf("gitea pull cycle %s result=%s synced=%d errored=%d partial=%d skipped=%d",
+					r.CycleID, r.OverallResult, r.RepositoriesSynced, r.RepositoriesErrored, r.RepositoriesPartial, r.RepositoriesSkipped)
+			}
+			onError := func(err error) {
+				log.Printf("gitea pull loop error: %v", err)
+			}
+			go func() {
+				err := adapters.RunGiteaPullLoop(ctx, adapter, repoLister, giteaInterval, giteaCycleTimeout, giteaConcurrency, giteaBackoffCap, giteaFailureAlertThreshold, onCycle, onError)
+				if err != nil && err != context.Canceled {
+					log.Printf("gitea pull loop stopped: %v", err)
+				}
+			}()
+			log.Printf("gitea pull loop enabled (interval=%s cycle_timeout=%s concurrency=%d backoff_cap=%s alert_threshold=%d)",
+				giteaInterval, giteaCycleTimeout, giteaConcurrency, giteaBackoffCap, giteaFailureAlertThreshold)
+		}
+	}
+
 	// DREQ intake token cron loop — ADR-0017 §6 (a)+(c)+(d), sprint claude/work_260518-t.
 	// 만료 token 자동 hard-revoke + expiring_soon/stale Prometheus gauge emit.
 	// store 와 audit emitter 가 모두 준비된 경우만 활성화 — config gate 가 false 거나

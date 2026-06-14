@@ -97,6 +97,22 @@ type Config struct {
 	HomeLabPullHTTPRetryMax int
 	// HomeLabPullHTTPRetryBackoff controls retry backoff duration (time.ParseDuration format).
 	HomeLabPullHTTPRetryBackoff string
+	// GiteaPullEnabled enables background Gitea pull-and-sync loop (X-5 ADR-0034).
+	GiteaPullEnabled bool
+	// GiteaPullInterval controls the Gitea pull cycle interval (time.ParseDuration format).
+	GiteaPullInterval string
+	// GiteaPullCycleTimeout caps a single cycle's total time (time.ParseDuration format).
+	GiteaPullCycleTimeout string
+	// GiteaPullConcurrency limits per-repository parallelism within a cycle.
+	GiteaPullConcurrency int
+	// GiteaPullBackoffCap is the maximum exponential-backoff window (time.ParseDuration format).
+	GiteaPullBackoffCap string
+	// GiteaPullFailureAlertThreshold is the consecutive-failure count that triggers a metric event.
+	GiteaPullFailureAlertThreshold int
+	// GiteaAPIBaseURL is the Gitea instance base URL (e.g. https://gitea.example.com).
+	GiteaAPIBaseURL string
+	// GiteaAPIToken is an optional API token for Gitea.
+	GiteaAPIToken string
 	// HomeLabPullMaxBytes caps the snapshot payload size (file or HTTP body) in
 	// bytes. 0 (default) means unlimited (legacy behavior). Production-recommended
 	// value is 5 MB. ADR-0015 §6 (1) — size limit + streaming decode.
@@ -175,6 +191,14 @@ func Load() Config {
 		HomeLabPullToken:               strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_TOKEN")),
 		HomeLabPullHTTPRetryMax:        envInt("DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX"),
 		HomeLabPullHTTPRetryBackoff:    strings.TrimSpace(os.Getenv("DEVHUB_HOMELAB_PULL_HTTP_RETRY_BACKOFF")),
+		GiteaPullEnabled:               envBool("DEVHUB_GITEA_PULL_ENABLED"),
+		GiteaPullInterval:              strings.TrimSpace(os.Getenv("DEVHUB_GITEA_PULL_INTERVAL")),
+		GiteaPullCycleTimeout:          strings.TrimSpace(os.Getenv("DEVHUB_GITEA_PULL_CYCLE_TIMEOUT")),
+		GiteaPullConcurrency:           envInt("DEVHUB_GITEA_PULL_CONCURRENCY"),
+		GiteaPullBackoffCap:            strings.TrimSpace(os.Getenv("DEVHUB_GITEA_PULL_BACKOFF_CAP")),
+		GiteaPullFailureAlertThreshold: envInt("DEVHUB_GITEA_PULL_FAILURE_ALERT_THRESHOLD"),
+		GiteaAPIBaseURL:                strings.TrimSpace(os.Getenv("DEVHUB_GITEA_API_BASE_URL")),
+		GiteaAPIToken:                  strings.TrimSpace(os.Getenv("DEVHUB_GITEA_API_TOKEN")),
 		HomeLabPullMaxBytes:            envInt64("DEVHUB_HOMELAB_PULL_MAX_BYTES"),
 		DREQTokenCronEnabled:           envBool("DEVHUB_DREQ_TOKEN_CRON_ENABLED"),
 		DREQTokenCronInterval:          strings.TrimSpace(os.Getenv("DEVHUB_DREQ_TOKEN_CRON_INTERVAL")),
