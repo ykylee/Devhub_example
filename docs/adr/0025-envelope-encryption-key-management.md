@@ -3,8 +3,8 @@
 ## 1. 상태
 - **상태**: Accepted
 - **작성일**: 2026-05-29
-- **수정일**: 2026-05-29
-- **결정 근거 sprint**: `gemini/work_260529-a-envelope-encryption`
+- **수정일**: 2026-06-14
+- **결정 근거 sprint**: `gemini/work_260529-a-envelope-encryption`, `chore/x3-envelope-status-align` (X-3 정합 housekeeping)
 - **관련 문서**: [`backend-core/internal/domain/integration-registry/repository/integration_registry.go`](../../backend-core/internal/domain/integration-registry/repository/integration_registry.go), [v0.1.0 릴리즈 로드맵 §3.5 신규 도출 백로그](../planning/release_v0-1_roadmap.md), [Session Handoff EOD](../../ai-workflow/memory/session_handoff.md).
 
 ---
@@ -72,3 +72,4 @@
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-05-29 | 1차 발행 (Accepted). KEK 기반 AES-GCM-256 봉투 암호화 및 자동 격상 정책 수립. | `gemini/work_260529-a-envelope-encryption` |
+| 2026-06-14 | X-3 정합 housekeeping. release_v0-1_roadmap.md §3.5 X-3 row status `✅ resolved` 명시 (본 ADR-0025 + `gemini/work_260529-a-envelope-encryption` PR #447 정공법). `internal/crypt` + `IntegrationRepository` 자동 Encrypt/Decrypt + 6 unit test (envelope_test.go) + plaintext bypass mode (DEVHUB_ENCRYPTION_KEY 미설정 시) 모두 main byte-identical. 헤더 메타 갱신 (수정일 + 결정 근거 sprint). | `chore/x3-envelope-status-align` |
