@@ -38,6 +38,7 @@ type SCMCreateResult struct {
 	ExternalID      int64  // Gitea repo ID
 	CloneURL        string
 	HTMLURL         string
+	SCMProvider     string // gitea | github | gitlab | (future) — populated from SCMCreateRequest
 	ErrorClass      string
 	ErrorMessage    string
 	CompensationAction string // none | retry_scheduled
@@ -71,6 +72,7 @@ func (c *SCMCreator) CreateRepository(ctx context.Context, req SCMCreateRequest)
 	result := SCMCreateResult{
 		RepositoryID: req.RepositoryID,
 		Status:       SCMCreatePending,
+		SCMProvider:  req.SCMProvider,
 	}
 
 	timeout := c.Timeout
@@ -80,17 +82,25 @@ func (c *SCMCreator) CreateRepository(ctx context.Context, req SCMCreateRequest)
 	callCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// Mark pending before the call (in case crash recovery / crash visibility)
-	if c.Store != nil {
-		_ = c.Store.UpdateSCMCreateState(callCtx, req.RepositoryID, SCMCreatePending, "", 0, "", "", start)
-	}
-
 	if c.Client == nil {
 		result.Status = SCMCreateFailed
 		result.ErrorClass = "config"
 		result.ErrorMessage = "GiteaClient is nil"
+		result.SCMProvider = req.SCMProvider
+		// Persist the failed state directly (skip the pending write) so the
+		// repository doesn't remain stuck in 'pending' when the creator itself
+		// is misconfigured. codex review #5 (P2).
+		if c.Store != nil {
+			_ = c.Store.UpdateSCMCreateState(ctx, req.RepositoryID, SCMCreateFailed,
+				"config: "+result.ErrorMessage, 0, "", "", time.Now().UTC())
+		}
 		c.recordOutcome(ctx, start, &result, false, false)
 		return result
+	}
+
+	// Mark pending before the call (in case crash recovery / crash visibility)
+	if c.Store != nil {
+		_ = c.Store.UpdateSCMCreateState(callCtx, req.RepositoryID, SCMCreatePending, "", 0, "", "", start)
 	}
 
 	options := GiteaRepoOptions{
@@ -161,13 +171,14 @@ func (c *SCMCreator) recordOutcome(ctx context.Context, start time.Time, result 
 		}
 		return
 	}
-	// failure path: emit hook if wired; emit metric unconditionally.
+	// failure path: emit hook if wired; emit metric unconditionally exactly once.
+	// codex review #4 (P2): prior code emitted observeSCMError in both the hook
+	// branch and the trailing line, double-counting each failure.
 	if c.OnError != nil {
 		c.OnError(ctx, *result)
 	}
-	observeSCMError(result.ErrorClass, time.Since(start))
 	if compensation && c.OnCompensation != nil {
 		c.OnCompensation(ctx, *result)
 	}
-	observeSCMError(result.ErrorClass, time.Since(start))
+	observeSCMError(result.ErrorClass, result.SCMProvider, time.Since(start))
 }

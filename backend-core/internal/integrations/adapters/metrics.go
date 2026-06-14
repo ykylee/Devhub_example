@@ -126,9 +126,9 @@ func initHomeLabMetrics() {
 		scmCreateFailures = prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "devhub_scm_create_failures_total",
-				Help: "Total number of SCM create failures by provider.",
+				Help: "Total number of SCM create failures, partitioned by error class and SCM provider.",
 			},
-			[]string{"scm_provider"},
+			[]string{"error_class", "scm_provider"},
 		)
 	registerCollector(giteaPullLastSuccess)
 
@@ -209,14 +209,22 @@ func observeSCMSuccess(duration time.Duration) {
 	scmCreateReposGaug.Inc()
 }
 
-func observeSCMError(errorClass string, duration time.Duration) {
+func observeSCMError(errorClass string, scmProvider string, duration time.Duration) {
 	initHomeLabMetrics()
-	label := "unknown"
+	// errorClass label: validation | permission | not_found | rate_limit | server | network | config | unknown
+	classLabel := "unknown"
 	switch errorClass {
 	case "validation", "permission", "not_found", "rate_limit", "server", "network", "config":
-		label = errorClass
+		classLabel = errorClass
+	}
+	// scm_provider label: gitea | github | gitlab | unknown — sourced from SCMCreateRequest.SCMProvider
+	// so dashboards/alerts grouping by provider see real provider values, not error classes.
+	// codex review #6 (P2).
+	providerLabel := "unknown"
+	if scmProvider != "" {
+		providerLabel = scmProvider
 	}
 	scmCreateRunsTotal.WithLabelValues("error").Inc()
 	scmCreateDuration.WithLabelValues("error").Observe(duration.Seconds())
-	scmCreateFailures.WithLabelValues(label).Inc()
+	scmCreateFailures.WithLabelValues(classLabel, providerLabel).Inc()
 }
