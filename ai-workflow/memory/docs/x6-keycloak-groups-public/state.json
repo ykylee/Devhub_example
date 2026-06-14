@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "docs/x6-keycloak-groups-public",
+  "milestones": {
+    "M-v0.1.1": {
+      "status": "in_progress",
+      "x6_keycloak_groups": [
+        "ADR-0036 (X-6 Architecture, 9 section) — Accepted",
+        "sprint plan (2-PR 분할: 사외 docs / 사내 script)",
+        "keycloak_operations.md §4.3/§4.4 cross-ref (이미 merge)",
+        "verify-keycloak-groups.sh cross-ref (이미 merge)",
+        "4 신규 ID (REQ/ARCH/RM/IMPL)",
+        "Tier: 공용 (docs only, 사내 한정 정보 미포함)",
+        "잔여: 사내 PR (scripts/setup-keycloak-groups.sh + runbook, 사내 Gitea push)",
+        "잔여: staging Keycloak admin console 적용 (사용자 수동)",
+        "잔여: prod Keycloak admin console 적용 (사용자 수동, staging 1주 후)"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/docs/x6-keycloak-groups-public/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/docs/x6-keycloak-groups-public/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/docs/x6-keycloak-groups-public/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 사외 PR 머지 후 main flat memory 3 file finalize (X-6 row done 마킹 확정)",
+      "위키 mirror 갱신: `bash scripts/wiki-sync-devhub.sh` (PR 머지 후 1회 실행)",
+      "사내 PR (infra/x6-keycloak-groups-internal) 준비: scripts/setup-keycloak-groups.sh + runbook (사내 Gitea push)",
+      "staging Keycloak admin console 적용 (사용자 follow-up, 1주 관찰)",
+      "prod Keycloak admin console 적용 (사용자 follow-up, staging 1주 후)",
+      "다음 sprint: X-8 (Keycloak SPI realm events) 또는 X-4 Phase 2 (handler post-commit wire)"
+    ]
+  }
+}
