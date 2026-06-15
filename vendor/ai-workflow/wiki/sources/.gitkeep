@@ -1,0 +1,9 @@
+# v0.7.17+ L2 dense content emit target (in-repo)
+#
+# 본 dir 는 tools/emit_wiki_l2_body.py 가 L1 raw mirror (ai-workflow/wiki/concepts/ 등)
+# 의 본문을 추출하여 dense derived view 로 emit 하는 target.
+#
+# 정공법: in-repo storage (v0.7.17+, 외부 vault ~/wiki/ 연결 없음).
+# - L1 raw mirror: ai-workflow/wiki/{concepts,decisions,entities,patterns,topics}/*.md
+# - L2 dense sources: ai-workflow/wiki/sources/{stem}.md (이 dir)
+# - Drift: L2 last_touched vs L1 mtime (7일 임계값)

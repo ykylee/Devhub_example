@@ -187,21 +187,21 @@
 
 | # | 패턴 | mirror source | mirror target |
 |---|---|---|---|
-| 1 | ADR | `docs/adr/ADR-*.md` | `~/wiki/raw/projects/devhub/docs/adr/ADR-*.md` |
-| 2 | Governance | `docs/governance/*.md` | `~/wiki/raw/projects/devhub/docs/governance/*.md` |
-| 3 | Planning | `docs/planning/*.md` | `~/wiki/raw/projects/devhub/docs/planning/*.md` |
-| 4 | Setup | `docs/setup/*.md` | `~/wiki/raw/projects/devhub/docs/setup/*.md` |
-| 5 | Requirements | `docs/requirements.md` | `~/wiki/raw/projects/devhub/docs/requirements.md` |
-| 6 | OpenAPI | `docs/openapi.yaml` | `~/wiki/raw/projects/devhub/docs/openapi.yaml` |
-| 7 | AI-workflow memory (main flat) | `ai-workflow/memory/{state.json, session_handoff.md, work_backlog.md}` | `~/wiki/raw/projects/devhub/ai-workflow-memory/{state.json, session_handoff.md, work_backlog.md}` |
-| **8** | **Workflows (Phase 1.5)** | **`.github/workflows/*.yml`** | **`~/wiki/raw/projects/devhub/.github/workflows/*.yml`** |
-| **9** | **Scripts (Phase 1.5)** | **`scripts/*.sh` (mirror list 화이트리스트)** | **`~/wiki/raw/projects/devhub/scripts/*.sh`** |
-| **10** | **Backend critical Go (Phase 1.5)** | **`backend-core/internal/{auth,domain,httpapi,audit,rbac,store,sso-integrations}/**/*.go` (mirror list 화이트리스트)** | **`~/wiki/raw/projects/devhub/backend-core/internal/...`** |
-| **11** | **Frontend e2e critical (Phase 1.5)** | **`frontend/tests/e2e/{fixtures,signout}.ts` + `frontend/tests/e2e/voc-*.spec.ts` + `frontend/tests/e2e-manifests/*.txt` + `frontend/lib/auth/{tokenStore,apiClient,role-routing}.ts`** | **`~/wiki/raw/projects/devhub/frontend/...`** |
-| **12** | **Traceability (Phase 1.5)** | **`docs/traceability/{README,conventions,report,sync-checklist}.md`** | **`~/wiki/raw/projects/devhub/docs/traceability/...`** |
-| 13 | **Branch memory (Phase 1.5, optional)** | **`ai-workflow/memory/<agent>/<branch>/{state,session_handoff,work_backlog}.{json,md}` (active + 30일 이내 CLOSED)** | **`~/wiki/raw/projects/devhub/ai-workflow/memory/<agent>/<branch>/...`** |
-| **14** | **Domain (Phase 3, mass ingest)** | **`docs/domain/**/[*].md`** | **`~/wiki/raw/projects/devhub/docs/domain/...`** |
-| **15** | **Architecture + Infrastructure + Validation (Phase 3, mass ingest)** | **`docs/{architecture,infrastructure,validation}/[*].md`** | **`~/wiki/raw/projects/devhub/docs/{architecture,infrastructure,validation}/...`** |
+| 1 | ADR | `docs/adr/ADR-*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/adr/ADR-*.md` |
+| 2 | Governance | `docs/governance/*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/governance/*.md` |
+| 3 | Planning | `docs/planning/*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/planning/*.md` |
+| 4 | Setup | `docs/setup/*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/setup/*.md` |
+| 5 | Requirements | `docs/requirements.md` | `ai-workflow/wiki/raw/projects/devhub/docs/requirements.md` |
+| 6 | OpenAPI | `docs/openapi.yaml` | `ai-workflow/wiki/raw/projects/devhub/docs/openapi.yaml` |
+| 7 | AI-workflow memory (main flat) | `ai-workflow/memory/{state.json, session_handoff.md, work_backlog.md}` | `ai-workflow/wiki/raw/projects/devhub/ai-workflow-memory/{state.json, session_handoff.md, work_backlog.md}` |
+| **8** | **Workflows (Phase 1.5)** | **`.github/workflows/*.yml`** | **`ai-workflow/wiki/raw/projects/devhub/.github/workflows/*.yml`** |
+| **9** | **Scripts (Phase 1.5)** | **`scripts/*.sh` (mirror list 화이트리스트)** | **`ai-workflow/wiki/raw/projects/devhub/scripts/*.sh`** |
+| **10** | **Backend critical Go (Phase 1.5)** | **`backend-core/internal/{auth,domain,httpapi,audit,rbac,store,sso-integrations}/**/*.go` (mirror list 화이트리스트)** | **`ai-workflow/wiki/raw/projects/devhub/backend-core/internal/...`** |
+| **11** | **Frontend e2e critical (Phase 1.5)** | **`frontend/tests/e2e/{fixtures,signout}.ts` + `frontend/tests/e2e/voc-*.spec.ts` + `frontend/tests/e2e-manifests/*.txt` + `frontend/lib/auth/{tokenStore,apiClient,role-routing}.ts`** | **`ai-workflow/wiki/raw/projects/devhub/frontend/...`** |
+| **12** | **Traceability (Phase 1.5)** | **`docs/traceability/{README,conventions,report,sync-checklist}.md`** | **`ai-workflow/wiki/raw/projects/devhub/docs/traceability/...`** |
+| 13 | **Branch memory (Phase 1.5, optional)** | **`ai-workflow/memory/<agent>/<branch>/{state,session_handoff,work_backlog}.{json,md}` (active + 30일 이내 CLOSED)** | **`ai-workflow/wiki/raw/projects/devhub/ai-workflow/memory/<agent>/<branch>/...`** |
+| **14** | **Domain (Phase 3, mass ingest)** | **`docs/domain/**/[*].md`** | **`ai-workflow/wiki/raw/projects/devhub/docs/domain/...`** |
+| **15** | **Architecture + Infrastructure + Validation (Phase 3, mass ingest)** | **`docs/{architecture,infrastructure,validation}/[*].md`** | **`ai-workflow/wiki/raw/projects/devhub/docs/{architecture,infrastructure,validation}/...`** |
 
 **mirror size 추정** (2026-06-13 main HEAD `32454fc` 기준):
 - Phase 1: 85 file (≈ 3.5MB)
@@ -282,11 +282,11 @@
 
 | ADR ID | 제목 | mirror target |
 | --- | --- | --- |
-| ADR-0001 | idp-selection | `~/wiki/raw/projects/devhub/docs/adr/0001-idp-selection.md` |
-| ADR-0002 | rbac-policy-edit-api | `~/wiki/raw/projects/devhub/docs/adr/0002-rbac-policy-edit-api.md` |
+| ADR-0001 | idp-selection | `ai-workflow/wiki/raw/projects/devhub/docs/adr/0001-idp-selection.md` |
+| ADR-0002 | rbac-policy-edit-api | `ai-workflow/wiki/raw/projects/devhub/docs/adr/0002-rbac-policy-edit-api.md` |
 | ... | ... | ... |
-| ADR-0030 | sso-integrations-and-auth-session-port | `~/wiki/raw/projects/devhub/docs/adr/0030-sso-integrations-and-auth-session-port.md` |
-| ADR-0031 | build-tag-policy-review | `~/wiki/raw/projects/devhub/docs/adr/0031-build-tag-policy-review.md` |
+| ADR-0030 | sso-integrations-and-auth-session-port | `ai-workflow/wiki/raw/projects/devhub/docs/adr/0030-sso-integrations-and-auth-session-port.md` |
+| ADR-0031 | build-tag-policy-review | `ai-workflow/wiki/raw/projects/devhub/docs/adr/0031-build-tag-policy-review.md` |
 
 **mirror 정책**: 31 file 모두 mirror (의미 있는 SSOT 결정). `infra/idp/_archive_*/` 의 immutable archive 미포함 (sprint -a follow-up PR #540 의 immutable archive 결정 정합).
 
@@ -298,13 +298,13 @@
 
 | file | mirror target |
 | --- | --- |
-| `code-taxonomy.md` | `~/wiki/raw/projects/devhub/docs/governance/code-taxonomy.md` |
-| `document-standards.md` | `~/wiki/raw/projects/devhub/docs/governance/document-standards.md` |
-| `keycloak_admin_responsibility.md` | `~/wiki/raw/projects/devhub/docs/governance/keycloak_admin_responsibility.md` |
-| `README.md` | `~/wiki/raw/projects/devhub/docs/governance/README.md` |
-| `worker_division.md` | `~/wiki/raw/projects/devhub/docs/governance/worker_division.md` |
+| `code-taxonomy.md` | `ai-workflow/wiki/raw/projects/devhub/docs/governance/code-taxonomy.md` |
+| `document-standards.md` | `ai-workflow/wiki/raw/projects/devhub/docs/governance/document-standards.md` |
+| `keycloak_admin_responsibility.md` | `ai-workflow/wiki/raw/projects/devhub/docs/governance/keycloak_admin_responsibility.md` |
+| `README.md` | `ai-workflow/wiki/raw/projects/devhub/docs/governance/README.md` |
+| `worker_division.md` | `ai-workflow/wiki/raw/projects/devhub/docs/governance/worker_division.md` |
 
-**mirror 정책**: 5 file 모두 mirror. 단 `worker_division.md` 의 사내 한정 정보 (DEVHUB_KEYCLOAK_*, internal-registry, 172.16.0.0/12) **포함되지만** D-72 응답 §3 + yklee 결정으로 `sa-internal/` 격리 불요 + GitHub Wiki 가 아닌 Gitea private 만 push 이므로 mirror 허용.
+**mirror 정책**: 5 file 모두 mirror. 단 `worker_division.md` 의 사내 한정 정보 (DEVHUB_KEYCLOAK_*, internal-registry, 172.16.0.0/12) **포함되지만** D-72 응답 §3 + yklee 결정으로 `sa-internal/` 격리 불요 + GitHub Wiki 가 아닌 in-repo (v0.7.17+) 만 push 이므로 mirror 허용.
 
 ### 1.3 Planning — 27 file
 
@@ -349,7 +349,7 @@
 
 **소스 경로**: `docs/setup/*.md`
 
-**mirror 정책**: 15 file 모두 mirror. setup 의 운영 SOP (test-server-deployment, single-port-deployment, docker-packaging-deployment-guide 등) 가 LLM agent 의 RAG source 로 가치 높음. **정합 (2026-06-11 본 sprint 검증)**: code `find docs/setup -maxdepth 1 -type f -name "*.md" | wc -l` = 15, vault raw `find ~/wiki/raw/projects/devhub/docs/setup -type f | wc -l` = 15 — **drift 0** (mirror script 자동 정공법).
+**mirror 정책**: 15 file 모두 mirror. setup 의 운영 SOP (test-server-deployment, single-port-deployment, docker-packaging-deployment-guide 등) 가 LLM agent 의 RAG source 로 가치 높음. **정합 (2026-06-11 본 sprint 검증)**: code `find docs/setup -maxdepth 1 -type f -name "*.md" | wc -l` = 15, vault raw `find ai-workflow/wiki/raw/projects/devhub/docs/setup -type f | wc -l` = 15 — **drift 0** (mirror script 자동 정공법).
 
 **file list (2026-06-11 main HEAD `f879b89` 기준, `find docs/setup -maxdepth 1 -type f -name "*.md" | wc -l` = 15)**:
 
@@ -439,13 +439,13 @@
 
 | 패턴 | mirror source | mirror target |
 | --- | --- | --- |
-| ADR | `docs/adr/ADR-*.md` | `~/wiki/raw/projects/devhub/docs/adr/ADR-*.md` |
-| Governance | `docs/governance/*.md` | `~/wiki/raw/projects/devhub/docs/governance/*.md` |
-| Planning | `docs/planning/*.md` | `~/wiki/raw/projects/devhub/docs/planning/*.md` |
-| Setup | `docs/setup/*.md` | `~/wiki/raw/projects/devhub/docs/setup/*.md` |
-| Requirements | `docs/requirements.md` | `~/wiki/raw/projects/devhub/docs/requirements.md` |
-| OpenAPI | `docs/openapi.yaml` | `~/wiki/raw/projects/devhub/docs/openapi.yaml` |
-| AI-workflow memory (main flat) | `ai-workflow/memory/{state.json, session_handoff.md, work_backlog.md}` | `~/wiki/raw/projects/devhub/ai-workflow-memory/{state.json, session_handoff.md, work_backlog.md}` |
+| ADR | `docs/adr/ADR-*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/adr/ADR-*.md` |
+| Governance | `docs/governance/*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/governance/*.md` |
+| Planning | `docs/planning/*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/planning/*.md` |
+| Setup | `docs/setup/*.md` | `ai-workflow/wiki/raw/projects/devhub/docs/setup/*.md` |
+| Requirements | `docs/requirements.md` | `ai-workflow/wiki/raw/projects/devhub/docs/requirements.md` |
+| OpenAPI | `docs/openapi.yaml` | `ai-workflow/wiki/raw/projects/devhub/docs/openapi.yaml` |
+| AI-workflow memory (main flat) | `ai-workflow/memory/{state.json, session_handoff.md, work_backlog.md}` | `ai-workflow/wiki/raw/projects/devhub/ai-workflow-memory/{state.json, session_handoff.md, work_backlog.md}` |
 
 **제외 패턴** (mirror 미실시):
 - 빌드 산출물: `target/`, `backend-core/main`, `frontend/.next/`, `playwright-report/`, `test-results/`, `dist/`, `build/`, `__pycache__/`, `node_modules/`

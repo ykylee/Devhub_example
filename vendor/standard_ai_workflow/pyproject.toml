@@ -1,0 +1,177 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "standard-ai-workflow"
+version = "0.7.17"
+description = "Standard AI workflow kit — bootstrap, skills, MCP servers, templates, and examples."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "yklee", email = "ddn777@hotmail.com"},
+]
+keywords = [
+    "ai",
+    "workflow",
+    "mcp",
+    "code-agent",
+    "harness",
+    "standard-ai-workflow",
+    "bootstrap",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# The full ``workflow-source`` distribution bundles the ``workflow_kit`` core
+# library, the ``bootstrap_lib`` package, and all skills/MCP servers/templates.
+# Most consumers should install this meta-package and use ``workflow_kit`` as
+# the importable library name.
+#
+# Note: ``workflow_kit`` is shipped as part of this same distribution
+# (see ``[tool.setuptools.packages]`` below), so we do NOT declare it as
+# an external dependency — that would force pip to fetch it from PyPI,
+# which is unnecessary for a local ``pip install -e .`` install.
+dependencies = [
+    "pydantic>=2.0.0",
+    "anyio>=4.0.0",
+]
+
+[project.optional-dependencies]
+# MCP server transport. ``stdio-sdk`` uses the official mcp Python SDK
+# (experimental). ``jsonrpc-bridge`` is the draft fixture (always available).
+mcp-jsonrpc = []
+mcp-sdk = [
+    "mcp[cli]>=1.0",
+]
+# v0.7.4+ Property-Based Testing (PBT) — hypothesis framework (optional)
+pbt = [
+    "hypothesis>=6.0",
+]
+# v0.7.4+ Memory Profiling — objgraph (reference chain visualization, optional)
+profiling = [
+    "objgraph>=3.5",
+]
+# Smoke test runner + linter + formatters.
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.1",
+    "mypy>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ykylee/standard_ai_workflow"
+Repository = "https://github.com/ykylee/standard_ai_workflow"
+Issues = "https://github.com/ykylee/standard_ai_workflow/issues"
+
+[tool.setuptools]
+# ``workflow-source`` is not a single importable package — it's a bundle of:
+#   - ``workflow_kit/`` (importable, lives at workflow-source/workflow_kit/)
+#   - ``scripts/bootstrap_lib/`` (importable, lives at workflow-source/scripts/bootstrap_lib/)
+#   - skills/, mcp_servers/, templates/, examples/, etc. (non-code assets)
+#
+# For a full install we only need the two importable sub-packages on
+# ``sys.path``. The rest is consumed via the repo's directory layout
+# (or copied into the consumer's project by the bootstrap script).
+packages = [
+    "bootstrap_lib",
+    "bootstrap_lib.harnesses",
+    "workflow_kit",
+    "workflow_kit.common",
+    "workflow_kit.common.modes",
+    "workflow_kit.common.state",
+    "workflow_kit.common.contracts",
+    "workflow_kit.common.schemas",
+    "workflow_kit.contract_v1",
+    "workflow_kit.server",
+    "workflow_kit.harness",
+]
+
+# Single-file modules that don't live inside a package directory.
+# ``bootstrap_workflow_kit`` is the legacy CLI shim kept for back-compat
+# (see scripts/bootstrap_workflow_kit.py docstring) and ships as a
+# top-level module from ``scripts/``.
+py-modules = ["bootstrap_workflow_kit"]
+
+[tool.setuptools.package-dir]
+# Map package names to their on-disk locations. This lets us ship
+# ``workflow_kit`` and ``bootstrap_lib`` from the same distribution even
+# though they live in different subdirectories of the repo.
+"workflow_kit" = "workflow_kit"
+"workflow_kit.common" = "workflow_kit/common"
+"workflow_kit.common.modes" = "workflow_kit/common/modes"
+"workflow_kit.common.state" = "workflow_kit/common/state"
+"workflow_kit.common.contracts" = "workflow_kit/common/contracts"
+"workflow_kit.common.schemas" = "workflow_kit/common/schemas"
+"workflow_kit.server" = "workflow_kit/server"
+"workflow_kit.harness" = "workflow_kit/harness"
+"bootstrap_lib" = "scripts/bootstrap_lib"
+"bootstrap_lib.harnesses" = "scripts/bootstrap_lib/harnesses"
+
+[tool.setuptools.package-data]
+workflow_kit = ["README.md", "py.typed"]
+bootstrap_lib = ["py.typed"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["__pycache__/*", "*.pyc", "*.pyo"]
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# v0.7.6+ workflow-doctor external config
+# ---------------------------------------------------------------------------
+#
+# workflow_kit.common.metadata.load_config() 가 이 section 을 읽어 DoctorConfig 반환.
+# baseline dispatcher / CLI doctor / partial mode / opt-in / CI threshold 의 SSOT.
+#
+# 운영 시 부분 config 가능 — partial_rules / opt_in / thresholds / excluded_paths /
+# fail_on 5 field 모두 optional. 없는 field 는 default fallback (DoctorConfig()).
+
+[tool.workflow-doctor]
+# baseline 별 hard constraint rule list. evaluate_compliance(baseline, partial_rules=...)
+# 의 partial_rules 인자로 전달. 해당 rule 의 non_compliant 는 hard fail (CI fail).
+# v0.7.6 default: resiliency 의 RES-WF-01/02 (변경 관리 + critical workload 식별).
+partial_rules = { resiliency = ["RES-WF-01", "RES-WF-02"] }
+
+# baseline 별 opt-in rule dict. opt-in rule 은 default disable, 명시적 enable 시에만
+# evaluate 대상. (v0.7.6 시점: security-auth 의 2FA 는 opt-in 권장, default disable)
+opt_in = { "security-auth" = ["SEC-AUTH-04"] }
+
+# dim 별 alert threshold
+# - score_alert: 0.0~1.0, score trend 의 dim 별 alert 시 사용 (tools/score_wiki_trend.py)
+# - memory_alert_mb: profiling baseline 의 leak/regression alert 시 사용
+thresholds = { score_alert = 0.3, memory_alert_mb = 100.0 }
+
+# lint / score 측정 시 skip 할 path glob (build / venv / cache / wiki mirror)
+excluded_paths = ["build/*", ".venv/*", ".venv-build/*", "__pycache__/*", ".worktrees/*"]
+
+# CI integration — evaluate_compliance 결과 status 가 이 값 이상이면 exit 1.
+# "compliant" | "advisory" | "non_compliant". default: "non_compliant".
+fail_on = "non_compliant"

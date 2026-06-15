@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-06-08T22:00:00+09:00",
+  "release": "v0.5.7",
+  "status": "shipped",
+  "tasks": [
+    {
+      "id": "TASK-V057-001",
+      "name": "Contract v1 §4.2/§5.2 multi-component fan-out/in + §6.3 cross-ref row",
+      "status": "done",
+      "branch": "release/v0.5.7",
+      "sub_tasks": [
+        {"id": "A", "name": "§4.2/§5.2 fan-out/in (delegator.choose_roles + validate_fanin_output)", "status": "done"},
+        {"id": "B", "name": "§6.3 cross-ref 갱신 / fan-in 통합 row 추가", "status": "done"},
+        {"id": "C", "name": "P2: required_model_tier + recommend_model_tier 자동 main/small", "status": "done"},
+        {"id": "D", "name": "P2: artifacts[].action + added/removed/total 분리", "status": "done"}
+      ],
+      "deliverables": [
+        "workflow_kit/contract_v1/delegator.py (choose_roles, recommend_model_tier, MAIN_TIER_KEYWORDS, 9 markers)",
+        "workflow_kit/contract_v1/output_validator.py (validate_fanin_output, REQUIRED_SUB_RESULT_FIELDS, ALLOWED_ARTIFACT_ACTIONS)",
+        "workflow_kit/contract_v1/__init__.py (export 추가)",
+        "core/orchestrator_subagent_contract_v1.md (§4.2/§5.2/§6.3 row 2개/§4.1/§5.1 fields)",
+        "core/orchestrator_contract_v1_wire_guide.md (Mavis wire 가이드, 250 줄)",
+        "tests/check_contract_v1_multi_component.py (17 check, 신규)",
+        "tests/check_contract_v1_delegator.py (4 model_tier check 추가)",
+        "tests/check_contract_v1_direct_only.py (DIRECT_ONLY_ACTIONS 9개)",
+        "releases/Beta-v0.5.7.md"
+      ]
+    }
+  ],
+  "regressions": {
+    "contract_v1": {
+      "roundtrip": "pass",
+      "role_mapping": "pass",
+      "direct_only_9_actions": "pass",
+      "output_validator": "pass",
+      "delegator_with_model_tier": "pass",
+      "multi_component_17": "pass",
+      "pilot_phase11": "pass"
+    },
+    "docs": "111/111 pass",
+    "bootstrap": "env-dependent (main과 동일, v0.5.7 범위 밖)",
+    "linter": "env-dependent (main과 동일, v0.5.7 범위 밖)"
+  },
+  "spec_gaps_v057": [
+    {
+      "gap": "sub_result status enum",
+      "resolution": "parent status enum과 동일 (ok/partial/failed) — spec §5.2 명시"
+    },
+    {
+      "gap": "parent_delegation_id location",
+      "resolution": "§5 output top-level (sub_results 있으면 필수)"
+    }
+  ],
+  "next_release_candidates": [
+    "Mavis 측 choose_role/choose_roles 자동 wire (mavis-team hook)",
+    "PyPI 배포",
+    "fan-out/in pilot walkthrough (Devhub N+1 endpoint)",
+    "contract v2 streaming/observability"
+  ]
+}

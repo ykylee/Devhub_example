@@ -1,0 +1,9 @@
+frozen_at: 2026-06-12-v6.3
+source: /home/yklee/repos/standard_ai_workflow/ai-workflow/memory/active
+files:
+  - PROJECT_PROFILE.md
+  - project_status_assessment.md
+  - repository_assessment.md
+  - state.json
+  - state.json.template
+  - work_backlog.md

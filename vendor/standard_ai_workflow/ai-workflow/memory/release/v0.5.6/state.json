@@ -1,0 +1,69 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-07",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/release/v0.5.6/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.6/backlog/2026-06-07.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/backlog/",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "**현재 브랜치**: `release/v0.5.6` (main #75a3fc6 에서 분기, 2026-06-07) — merge 완료 (79f3bec)",
+    "current_axis": "**현재 브랜치**: `release/v0.5.6` (main #75a3fc6 에서 분기, 2026-06-07) — merge 완료",
+    "current_focus": "TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator — done, v0.5.6-beta tag push 완료",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "v0.5.6 merge (PR #20): contract v1 §5/§6 P0 enforcement (validator + delegator)",
+      "v0.5.6-beta tag push (c8f4560, 2026-06-07)",
+      "v0.5.5 merge (PR #19): Phase 11 본격 pilot",
+      "v0.5.5-beta tag push",
+      "issue #1 영구 해결 (v0.5.4)"
+    ],
+    "environment_constraints": [
+      "Python 3.10+ (현재 환경 3.14)",
+      ".venv 필요 (pydantic/anyio/mcp 의존성)",
+      "smoke test 회귀 0, linter status ok 유지"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.6/backlog/2026-06-07.md",
+    "task_count": 1,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator (P0 enforcement)"
+    ]
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/release/v0.5.6/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md",
+    "ai-workflow/memory/release/v0.5.6/backlog/2026-06-07.md",
+    "ai-workflow/memory/release/v0.5.6/PROJECT_PROFILE.md",
+    "workflow-source/workflow_kit/contract_v1/output_validator.py",
+    "workflow-source/workflow_kit/contract_v1/delegator.py",
+    "workflow-source/tests/check_contract_v1_output_validator.py",
+    "workflow-source/tests/check_contract_v1_delegator.py",
+    "workflow-source/core/orchestrator_subagent_contract_v1.md",
+    "workflow-source/releases/Beta-v0.5.6.md"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  }
+}

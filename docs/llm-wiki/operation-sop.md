@@ -1,6 +1,6 @@
 # Phase 1 + Phase 1.5 + Phase 3 Operation SOP — Sync + Lint + Wiki-only Maintenance + Mass Ingest
 
-- **문서 목적**: `~/wiki/` Obsidian vault (out-of-repo, Gitea private) 의 DevHub mirror 운영 SOP. `scripts/wiki-sync-devhub.sh` 의 실행 trigger / frequency / dry-run 절차 + wiki-lint 의 L01~L10 검증 trigger + **위키만으로 코드 maintenance 가능 정공법** (Phase 1.5 추가) + **mass ingest 정공법** (Phase 3 추가).
+- **문서 목적**: `ai-workflow/wiki/` Obsidian vault (out-of-repo, in-repo (v0.7.17+)) 의 DevHub mirror 운영 SOP. `scripts/wiki-sync-devhub.sh` 의 실행 trigger / frequency / dry-run 절차 + wiki-lint 의 L01~L10 검증 trigger + **위키만으로 코드 maintenance 가능 정공법** (Phase 1.5 추가) + **mass ingest 정공법** (Phase 3 추가).
 - **범위**: Phase 1 (in-repo 변경) + **Phase 1.5 (소스코드 + workflow + scripts + branch memory + traceability mirror scope, 본 저장소 한정 + 위키만으로 maintenance 가능)** + **Phase 3 (mass ingest = docs/domain + architecture + infrastructure + validation + 위키 page 자동 생성 ~78 file)** + Phase 1 mirror 실행 (out-of-repo) + v2.0 (full compile) 진입 시점.
 - **대상 독자**: yklee (owner), DevHub 의 LLM agent (wiki page 작성자 + **코드 maintenance 작업 시 RAG source**), my_harness 작업 에이전트 (D-73 wiki-lint 옵션 추가 시).
 - **상태**: active (D-72 Phase 1 + Phase 1.5 + Phase 3, 2026-06-13)
@@ -125,7 +125,7 @@ bash scripts/wiki-sync-devhub.sh --dry-run
 ```
 [wiki-sync-devhub] source root: /Users/yklee/repos/Devhub_example_minimax
 [wiki-sync-devhub] dry-run: True (no actual mirror)
-[wiki-sync-devhub] target vault: /Users/yklee/wiki (Gitea private)
+[wiki-sync-devhub] target vault: /Users/yklee/wiki (in-repo (v0.7.17+))
 [wiki-sync-devhub] collecting files (dry-run)...
 
   === Phase 1 (docs subset, 7 패턴) ===
@@ -211,7 +211,7 @@ bash scripts/wiki-sync-devhub.sh
 ```bash
 # DevHub 의 wiki page 만 lint (my_harness 와 격리)
 python3 ~/repos/my_harness/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py \
-  --vault-path ~/wiki \
+  --vault-path $SRC/ai-workflow/wiki \
   --project devhub \
   --project-config ~/repos/Devhub_example_minimax/docs/llm-wiki/lint-config.toml
 ```
@@ -251,8 +251,8 @@ python3 ~/repos/my_harness/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py
 
 | # | 위험 | 영향 | 대응 |
 | --- | --- | --- | --- |
-| R-d-72-S-1 | mirror 실행 중 `~/wiki/` 의 다른 file 변경 (Obsidian 동기화) | mirror 결과 불완전 + Obsidian 충돌 | mirror 실행 시 vault 잠금 (단, Obsidian 의 atomic write 보장 X — mirror 실행 시간 단축으로 위험 감소) |
-| R-d-72-S-2 | `~/wiki/` 의 Gitea push 가 다른 owner 와 충돌 | vault sync conflict | mirror + Gitea push 단일 owner (yklee) 만 — 다중 owner 시 owner 별 raw/ 분리 |
+| R-d-72-S-1 | mirror 실행 중 `ai-workflow/wiki/` 의 다른 file 변경 (Obsidian 동기화) | mirror 결과 불완전 + Obsidian 충돌 | mirror 실행 시 vault 잠금 (단, Obsidian 의 atomic write 보장 X — mirror 실행 시간 단축으로 위험 감소) |
+| R-d-72-S-2 | `ai-workflow/wiki/` 의 Gitea push 가 다른 owner 와 충돌 | vault sync conflict | mirror + Gitea push 단일 owner (yklee) 만 — 다중 owner 시 owner 별 raw/ 분리 |
 | R-d-72-S-3 | `scripts/wiki-sync-devhub.sh` 의 source list 가 stale (mirror-list.md 와 drift) | 일부 source 누락 | script 의 화이트리스트 (`backend_files` + `frontend_files`) + `find` glob 동적 정합 |
 | R-d-72-S-4 | `target/` 또는 `node_modules/` 의 산출물 mirror | vault 비대화 (수 MB → 수 GB) | script 의 exclude list 정합 (mirror-list.md §2 의 "제외 패턴") |
 | R-d-72-S-5 | `infra/idp/_archive_*/` mirror | vault 비대화 + ADR-0001/0009 cross-ref 정합 깨짐 | exclude list 정합 (`_archive_*/` 패턴) |
@@ -261,7 +261,7 @@ python3 ~/repos/my_harness/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py
 | **R-d-72-S-8a** | **Phase 1.5 추가 — backend bulk source code (`cmd/`, `migrations/`, `test/`, `internal/store/postgres/*.go` 등) 의 mirror 누락** | **위키만으로 backend maintenance 시 일부 file 의 detail 미확인 가능** | **mirror-list.md §1.7.1 + script 의 `backend_files` 화이트리스트 정합. 본 갱신 시점 12 file 화이트리스트 (PR #579 + ADR-0030/0031 정공법의 maintenance critical). forward: 새 backend file 추가 시 PR 본문에 mirror scope 추가 요청 + mirror-list 갱신.** |
 | **R-d-72-S-8b** | **Phase 1.5 추가 — frontend bulk source code (`src/`, `components/`, `app/`, `node_modules/`, `.next/`) 의 mirror 누락** | **위키만으로 frontend maintenance 시 page/component 의 detail 미확인 가능** | **mirror-list.md §1.7.2 + script 의 `frontend_files` 화이트리스트 정합. 본 갱신 시점 8 file (e2e + lib/auth). forward: 새 frontend page/component 추가 시 PR 본문에 mirror scope 추가 요청.** |
 | **R-d-72-S-8c** | **Phase 1.5 추가 — branch memory 의 archive 미정공법** | **active branch 외 archive branch memory 가 mirror 에 포함되어 vault 비대화** | **mirror-list.md §1.7.4 정공법: active + 30일 이내 CLOSED branch 만. forward: 30일 후 `mavis-trash` 권장.** |
-| R-d-72-S-9 | `openapi.yaml` 의 사내 한정 정보 mirror | Gitea private 만 push 이므로 노출 0, 단 lint L11 (사내 패턴 검출) 자동 검출 권장 | mirror 허용 (D-72 응답 §3 + yklee 결정) + lint L11 의 D-73 작업 (선택) |
+| R-d-72-S-9 | `openapi.yaml` 의 사내 한정 정보 mirror | in-repo (v0.7.17+) 만 push 이므로 노출 0, 단 lint L11 (사내 패턴 검출) 자동 검출 권장 | mirror 허용 (D-72 응답 §3 + yklee 결정) + lint L11 의 D-73 작업 (선택) |
 | R-d-72-S-10 | `scratch/devhub_wiki_integration_response/RESPONSE.md` (D-72 응답) mirror | 불필요 + D-72 응답은 my_harness 측 작업 — vault 비대화 | exclude list 정합 (`scratch/` 패턴) |
 | **R-d-72-S-11 (Phase 1.5 신규)** | **위키 본문이 raw/ 와 1:1 mirror 가 아닌 stub (L10 면제만으로 wiki 정상 처리)** | **위키만으로 코드 maintenance 시 detail 미확인** | **본 SOP §0 정공법 — 위키의 `sources/adr-0028-...md` page 의 본문 = raw/ 의 `docs/adr/0028-...md` 의 1:1 byte-identical mirror. frontmatter 만 추가, 본문은 raw/ 본문 그대로.** |
 | **R-d-72-S-12 (Phase 1.5 신규)** | **위키의 source code link 가 raw/ 에 부재 (L02 위반)** | **위키의 link 깨짐** | **mirror-list.md §1.7.1 + §1.7.2 의 화이트리스트가 raw/ 의 source code link 와 1:1 정합. 본 갱신 시점 12 backend + 8 frontend file 의 raw/ mirror 정상 → 위키의 L02 link PASS.** |
@@ -276,9 +276,9 @@ python3 ~/repos/my_harness/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py
 bash scripts/wiki-sync-devhub.sh
 
 # 2. mirror 결과 검증
-ls -la ~/wiki/raw/projects/devhub/
-cat ~/wiki/raw/projects/devhub/_manifest.md
-find ~/wiki/raw/projects/devhub -type f | wc -l  # 기대: ~840
+ls -la ai-workflow/wiki/raw/projects/devhub/
+cat ai-workflow/wiki/raw/projects/devhub/_manifest.md
+find ai-workflow/wiki/raw/projects/devhub -type f | wc -l  # 기대: ~840
 
 # 3. 위키 1:1 mirror byte-identical 검증 (Phase 1.5 추가)
 python3 << 'EOF'
@@ -287,7 +287,7 @@ EOF
 
 # 4. lint 실행 (D-73 옵션 활성 후)
 python3 ~/repos/my_harness/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py \
-  --vault-path ~/wiki \
+  --vault-path $SRC/ai-workflow/wiki \
   --project devhub \
   --project-config ~/repos/Devhub_example_minimax/docs/llm-wiki/lint-config.toml
 ```
@@ -312,19 +312,19 @@ bash scripts/wiki-sync-devhub.sh --dry-run
 - **Phase 1+1.5 의 lint = "사용자 수동 lint (선택)"**: wiki-lint 의 `--project` + `--project-config` 옵션은 my_harness 측 D-73 의 작업. 본 PR 은 lint-config.toml 의 source 만 제공. **옵션 추가 후 자동 활성**.
 - **CI hook (push 시 자동 mirror) 미사용**: D-72 응답 §5 D-71.3 의 consumer 원칙 — wiki 는 derived, mirror 는 명시적 trigger. 자동 mirror 는 raw/ 의 SSOT 위배 위험.
 - **mirror list 의 core subset ~140 file (Phase 1+1.5)**: D-72 응답 §4 #3 의 "100~200 파일" 정합. 본 세션 scope = Phase 1+1.5 = docs + source code maintenance critical + branch memory. **Phase 3 의 domain (66) + architecture (1) + infrastructure + validation (~100 file) = 별도 PR**.
-- **mirror 실행 = 본 PR scope 외**: 본 PR 의 lint 검증은 `bash scripts/wiki-sync-devhub.sh --dry-run` 의 source list 정합만. 실제 mirror 는 사용자 (yklee) 가 Phase 1+1.5 mirror 실행 시점에 진행. **이유**: mirror 실행은 `~/wiki/` 의 out-of-repo 변경 — 본 PR 의 in-repo 검증 가능 영역 (CI 4/4) 의 검증 범위 외.
+- **mirror 실행 = 본 PR scope 외**: 본 PR 의 lint 검증은 `bash scripts/wiki-sync-devhub.sh --dry-run` 의 source list 정합만. 실제 mirror 는 사용자 (yklee) 가 Phase 1+1.5 mirror 실행 시점에 진행. **이유**: mirror 실행은 `ai-workflow/wiki/` 의 out-of-repo 변경 — 본 PR 의 in-repo 검증 가능 영역 (CI 4/4) 의 검증 범위 외.
 - **scratch/ exclude**: `scratch/devhub_wiki_integration_response/RESPONSE.md` (D-72 응답) 는 본 Phase 1 의 reference. **mirror 미포함** (vault 비대화 + D-72 응답은 my_harness 측 작업).
 - **`backend-core/` / `frontend/` / `backend-ai/` 의 source code bulk mirror 제외**: vault 비대화 + LLM agent 의 코드 정합은 **Phase 1.5 의 maintenance critical subset (~28 file)** 만 mirror. **forward: 새 backend file (e.g. 새 domain) / 새 frontend page 추가 시 PR 본문에 mirror scope 추가 요청**.
-- **`openapi.yaml` 의 사내 한정 정보 mirror 허용**: D-72 응답 §3 + yklee 결정 (wiki 는 Gitea private 만) 으로 `sa-internal/` 격리 불요. 단 lint L11 (사내 패턴 검출) 의 D-73 작업은 권장 (선택).
+- **`openapi.yaml` 의 사내 한정 정보 mirror 허용**: D-72 응답 §3 + yklee 결정 (wiki 는 in-repo (v0.7.17+) 만) 으로 `sa-internal/` 격리 불요. 단 lint L11 (사내 패턴 검출) 의 D-73 작업은 권장 (선택).
 - **위키의 본문 1:1 mirror 정공법 (Phase 1.5 핵심)**: 위키의 `sources/adr-0028-...md` page 의 본문 = raw/ 의 `docs/adr/0028-...md` 의 1:1 byte-identical mirror. **frontmatter 만 추가, 본문은 raw/ 본문 그대로**. 본 정공법으로 L10 (raw/ source 0) 면제 + L02 (broken wiki link) PASS + 위키만으로 코드 maintenance 가능.
 - **본 저장소 한정 (Phase 1.5 정공법)**: my_harness 측 wiki 일임 결정 (session §10) 해제 후 본 저장소 측에서 진행. my_harness 측 D-73 (wiki-lint 옵션 추가) 의 결과는 본 정공법과 독립.
 
 ## 8. 다음 세션 directive
 
-1. **Phase 1.5 의 mirror 실행** (T-d-72-2 + 본 갱신): `bash scripts/wiki-sync-devhub.sh` 1회 실행 → `~/wiki/raw/projects/devhub/` 에 ~840 file / ~6.6M mirror + `_manifest.md`. **본 sprint 의 22 file + maintenance critical ~28 file + branch memory ~700+ file = 위키만으로 코드 maintenance 가능 정공법**.
+1. **Phase 1.5 의 mirror 실행** (T-d-72-2 + 본 갱신): `bash scripts/wiki-sync-devhub.sh` 1회 실행 → `ai-workflow/wiki/raw/projects/devhub/` 에 ~840 file / ~6.6M mirror + `_manifest.md`. **본 sprint 의 22 file + maintenance critical ~28 file + branch memory ~700+ file = 위키만으로 코드 maintenance 가능 정공법**.
 2. **wiki-source-sync + wiki-event-sync 호출** (raw → wiki 갱신): 본 sprint 의 4 PR + memory finalize + 3 ADR 갱신 + Phase 1.5 scope 의 file 변경분.
 3. **lint 검증** (wiki-lint 의 L01~L10, D-73 옵션 활성 후): 사용자 수동 lint (선택) 또는 D-73 옵션 추가 시 자동.
-4. **vault Gitea private push** (yklee 수동): `~/wiki/` 의 변경분을 my_harness 측 Gitea private 으로 push.
+4. **vault in-repo (v0.7.17+) push** (yklee 수동): `ai-workflow/wiki/` 의 변경분을 my_harness 측 in-repo (v0.7.17+) 으로 push.
 5. **commit + push + PR 발행** (Phase 1.5 scope): 본 sprint scope = `docs/llm-wiki/mirror-list.md` (Phase 1.5 추가) + `docs/llm-wiki/lint-config.toml` (Phase 1.5 갱신) + `docs/llm-wiki/operation-sop.md` (Phase 1.5 갱신) + `scripts/wiki-sync-devhub.sh` (Phase 1.5 sync script).
 6. **main flat memory finalize** (post-merge sync): state.json + session_handoff.md + work_backlog.md 의 mirror 갱신.
 7. 또는 **Phase 3 (mass ingest) trigger** (forward path): domain (66) + architecture (1) + infrastructure + validation (~100 file). 본 저장소 측의 별도 PR. **위키 1:1 mirror 정공법 + maintenance critical subset 의 mirror scope 확장**.
@@ -342,9 +342,9 @@ bash scripts/wiki-sync-devhub.sh --dry-run
      - 신규 file path
      - **wiki mirror scope 추가 요청** (mirror-list.md §1.7 갱신 + lint-config.toml 갱신 + scripts/wiki-sync-devhub.sh 의 화이트리스트 갱신)
 2. **PR 머지 후** 위키 mirror 갱신:
-   - `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode) → `~/wiki/raw/projects/devhub/` 의 1:1 mirror 갱신
-   - `python3 ~/wiki/skills/wiki-source-sync/scripts/wiki-source-sync.py --project=devhub --scope=all --auto-fix` (raw → wiki)
-   - `python3 ~/wiki/skills/wiki-event-sync/scripts/wiki-event-sync.py --op=commit --project=devhub --ref=<merge-commit-sha> --intent="..."` (wiki event sync)
+   - `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode) → `ai-workflow/wiki/raw/projects/devhub/` 의 1:1 mirror 갱신
+   - `python3 ai-workflow/wiki/skills/wiki-source-sync/scripts/wiki-source-sync.py --project=devhub --scope=all --auto-fix` (raw → wiki)
+   - `python3 ai-workflow/wiki/skills/wiki-event-sync/scripts/wiki-event-sync.py --op=commit --project=devhub --ref=<merge-commit-sha> --intent="..."` (wiki event sync)
 3. **위키의 1:1 mirror 정공법 자동 검증**:
    - 본 SOP §0 의 verification script 실행 (Total: ~140, Diff: 0, Identical: ~140)
    - 실패 시 즉시 fix (위키 갱신 + lint-config.toml 갱신)

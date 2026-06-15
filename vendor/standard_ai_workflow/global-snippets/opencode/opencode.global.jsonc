@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Keep this global snippet additive.
+  // Do not set model, provider, or project-local instructions here.
+  "mcp": {
+    "openaiDeveloperDocs": {
+      "type": "remote",
+      "url": "https://developers.openai.com/mcp"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "source_of_truth": {
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.10/backlog/2026-06-09.md"
+  },
+  "session": {
+    "in_progress_items": [],
+    "recent_done_items": [
+      "TASK-V0510-001 개발자용 설치·사용 가이드 신규 작성 (docs/INSTALLATION_AND_USAGE.md + DOCUMENT_INDEX 갱신 + 메모리 layer 동기화, 2026-06-09)",
+      "v0.5.10 merge (8359cfc): choose_roles sub.delegation_id parent-prefix spec 정합",
+      "v0.5.10-beta tag push",
+      "v0.5.9.1 merge (c202634): wire 가이드 §3 sub_payloads fix + 회귀",
+      "v0.5.9 merge (1006ff0): wire 가이드 §7/§8/§9 보강",
+      "v0.5.8 merge (6213dcc): interactive --harness picker + packaging smoke automation"
+    ]
+  }
+}

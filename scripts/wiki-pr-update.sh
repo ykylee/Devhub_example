@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wiki-pr-update.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 PR-vault update wrapper.
-# PR (`gh pr view <num>`) 의 metadata + touched files → `~/wiki/` 의 prs/<num>.md 신규 + log.md append.
+# PR (`gh pr view <num>`) 의 metadata + touched files → `ai-workflow/wiki/` 의 prs/<num>.md 신규 + log.md append.
 # PR-auto-update skill 의 본 저장소 측 thin wrapper (D-72 pattern).
 #
 # 사용:
@@ -11,7 +11,7 @@
 # 본 script 의 source-of-truth:
 #   - my_harness 측 SSOT: ~/repos/my_harness/ai-workflow/core/wiki_pr_update_skill_spec.md
 #   - my_harness skill:    ~/repos/my_harness/ai-workflow/skills/wiki-pr-update/
-#   - vault 운영 규약:     ~/wiki/AGENTS.md (v1.5, D-71) 의 §11.1 D-72 cross-project
+#   - vault 운영 규약:     ai-workflow/wiki/AGENTS.md (v1.5, D-71) 의 §11.1 D-72 cross-project
 #   - 본 저장소 trigger:   `gh pr merge` 후 사용자가 본 wrapper 수동 실행 (AGENTS.md §6.5 정책)
 #
 # 결정적 단순: 3 단계.
@@ -37,7 +37,7 @@ QUIET=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
 MYHARNESS_ROOT="${MYHARNESS_ROOT:-$HOME/repos/my_harness}"
-VAULT_ROOT="${VAULT_ROOT:-$HOME/wiki}"
+VAULT_ROOT="${VAULT_ROOT:-${SRC}/ai-workflow/wiki}"
 WIKI_PR_UPDATE_SCRIPT="$MYHARNESS_ROOT/ai-workflow/skills/wiki-pr-update/scripts/run_wiki_pr_update.py"
 WIKI_INGEST_WRAPPER="$SCRIPT_DIR/wiki-ingest-from-raw.sh"
 
@@ -238,4 +238,4 @@ log "[wiki-pr-update]   index.md: prs 섹션 갱신"
 if [[ $REINGEST -eq 0 ]]; then
   log "[wiki-pr-update]   (no re-ingest — touched files 는 wiki/ 의 기존 sources/<title>.md 그대로 유지)"
 fi
-log "[wiki-pr-update]   (vault Gitea push 는 사용자가 수동으로 ~/wiki/AGENTS.md §6.5 정책)"
+log "[wiki-pr-update]   (vault Gitea push 는 사용자가 수동으로 ai-workflow/wiki/AGENTS.md §6.5 정책)"

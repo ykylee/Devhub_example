@@ -1,0 +1,32 @@
+{
+  "mcp_servers": {
+    "standardAiWorkflowReadOnly": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "workflow_kit.server.read_only_jsonrpc",
+        "--stdio-lines"
+      ],
+      "env": {
+        "PYTHONPATH": "workflow-source",
+        "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>"
+      },
+      "transport_ready": false,
+      "transport": "jsonrpc-bridge",
+      "description": "Read-only MCP tools for the Standard AI Workflow kit. Draft JSON-RPC bridge by default; switch to stdio-sdk once check_read_only_mcp_sdk_stdio.py is green.",
+      "tools": [
+        "latest_backlog",
+        "check_doc_metadata",
+        "check_doc_links",
+        "suggest_impacted_docs",
+        "create_backlog_entry",
+        "create_session_handoff_draft",
+        "create_environment_record_stub",
+        "check_quickstart_stale_links",
+        "summarize_git_history",
+        "smart_context_reader"
+      ]
+    }
+  }
+}
+

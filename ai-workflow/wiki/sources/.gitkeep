@@ -1,0 +1,14 @@
+# ai-workflow/wiki/sources/ — v0.7.17+ in-repo L2 dense sources
+#
+# 본 dir 는 standard_ai_workflow v0.7.17 의 ai-workflow/wiki/sources/ pattern 그대로
+# (vendor/standard_ai_workflow/ai-workflow/wiki/sources/ 의 디렉터리 구조와 1:1 정합).
+#
+# 본 저장소 (Devhub_example_minimax) 의 위키 운영 = in-repo only:
+#   - L1 raw mirror: ai-workflow/wiki/{concepts,decisions,entities,patterns,topics}/*.md
+#   - L2 dense sources: ai-workflow/wiki/sources/<stem>.md
+#   - 1차 출처: ai-workflow/memory/active/
+#   - 2차 출처: ai-workflow/wiki/sources/
+#
+# 외부 vault (~/wiki/) 연결 없음 (2026-06-15 v0.7.17 적용 결정).
+# vendor 내의 tools/refresh_wiki_memory.py, emit_wiki_l2_body.py,
+# score_wiki_maintainability.py 가 본 dir 들을 그대로 사용 가능.

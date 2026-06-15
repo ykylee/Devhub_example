@@ -1,7 +1,7 @@
 # Wiki-Ingest Skill (본 저장소 측 사용법 가이드)
 
 - 문서 목적: `scripts/wiki-ingest-from-raw.sh` 의 본 저장소 (= DevHub) 측 사용법을 정리한다. raw mirror + wiki page 자동 ingest flow 의 1-step entry point.
-- 범위: 본 저장소 `~/repos/Devhub_example_minimax/` 의 7 패턴 (mirror list §3) source → LLM Wiki vault (`~/wiki/projects/devhub/`) 의 wiki page 자동 작성.
+- 범위: 본 저장소 `~/repos/Devhub_example_minimax/` 의 7 패턴 (mirror list §3) source → LLM Wiki vault (`ai-workflow/wiki/projects/devhub/`) 의 wiki page 자동 작성.
 - 대상 독자: DevHub repo 운영자, yklee (owner), my_harness 측 skill 개발자
 - 상태: **draft** (D-72, 2026-06-11)
 - 최종 수정일: 2026-06-11
@@ -9,20 +9,20 @@
   - [./mirror-list.md](./mirror-list.md) (Phase 1 source 7 패턴, 82 file)
   - [./scope-and-rationale.md](./scope-and-rationale.md) (D-72 Q1~Q6 정공법)
   - [./operation-sop.md](./operation-sop.md) (sync + lint SOP)
-  - `~/wiki/AGENTS.md` (vault 운영 규약 v1.5, §2.1 Ingest)
+  - `ai-workflow/wiki/AGENTS.md` (vault 운영 규약 v1.5, §2.1 Ingest)
   - `~/repos/my_harness/ai-workflow/core/wiki_ingest_skill_spec.md` (my_harness 측 SSOT)
   - `~/repos/my_harness/ai-workflow/skills/wiki-ingest-from-raw/SKILL.md` (my_harness skill 정의)
 
 ## 1. 목적
 
-기존의 `scripts/wiki-sync-devhub.sh` 는 **raw mirror 만** 자동화 (mirror list 의 7 패턴 source 를 `~/wiki/raw/projects/devhub/` 로 복사). 본 sprint 의 `scripts/wiki-ingest-from-raw.sh` 는 **raw → wiki page 자동 ingest** 까지 통합:
+기존의 `scripts/wiki-sync-devhub.sh` 는 **raw mirror 만** 자동화 (mirror list 의 7 패턴 source 를 `ai-workflow/wiki/raw/projects/devhub/` 로 복사). 본 sprint 의 `scripts/wiki-ingest-from-raw.sh` 는 **raw → wiki page 자동 ingest** 까지 통합:
 
 ```
 [본 저장소 ~/repos/Devhub_example_minimax/]
     ↓ wiki-sync-devhub.sh (raw mirror)
-[raw mirror ~/wiki/raw/projects/devhub/]
+[raw mirror ai-workflow/wiki/raw/projects/devhub/]
     ↓ wiki-ingest-from-raw skill (vault 의 wiki page 자동 작성)
-[wiki page ~/wiki/projects/devhub/sources/<title>.md]
+[wiki page ai-workflow/wiki/projects/devhub/sources/<title>.md]
 ```
 
 **핵심 정공법**: 사용자가 "raw 만 갱신되고 wiki 는 업데이트가 안됐다" 라고 말할 때, 본 sprint 의 wrapper 가 **2 단계를 1 명령**으로 통합.
@@ -51,7 +51,7 @@ bash scripts/wiki-ingest-from-raw.sh --project devhub
 - step 1: raw mirror dry-run (mirror list 의 82 file)
 - step 2: wiki ingest dry-run (각 source 의 frontmatter + body + cross-ref preview)
 - JSON stdout (findings 83개, INGEST-01 info)
-- Markdown report: `~/wiki/_lint/devhub/ingest_YYYY-MM-DD.md`
+- Markdown report: `ai-workflow/wiki/_lint/devhub/ingest_YYYY-MM-DD.md`
 
 ### 3.2 실제 ingest (--apply 명시)
 
@@ -173,7 +173,7 @@ cat /tmp/ingest-preview.json | jq '.findings[] | select(.action == "create") | .
 # 3. 검토 완료 후 apply
 bash scripts/wiki-ingest-from-raw.sh --project devhub --apply
 # 4. post-ingest wiki-lint 자동 실행
-#    (errors 발견 시 ~/wiki/_lint/devhub/ingest_YYYY-MM-DD.md 의 warnings 에 추가됨)
+#    (errors 발견 시 ai-workflow/wiki/_lint/devhub/ingest_YYYY-MM-DD.md 의 warnings 에 추가됨)
 # 5. Obsidian 에서 graph view 확인
 # 6. (선택) wiki-sync-ai-workflow.sh + Obsidian Git plugin 으로 vault commit/push
 ```
@@ -211,7 +211,7 @@ bash scripts/wiki-ingest-from-raw.sh --project devhub --source docs/setup/keyclo
 - 본 저장소 mirror script: `scripts/wiki-sync-devhub.sh`
 - my_harness skill SSOT: `~/repos/my_harness/ai-workflow/core/wiki_ingest_skill_spec.md`
 - my_harness skill 구현: `~/repos/my_harness/ai-workflow/skills/wiki-ingest-from-raw/`
-- vault 운영 규약: `~/wiki/AGENTS.md` (v1.5, D-71, §2.1 Ingest)
-- lint SSOT: `~/wiki/schema/lint_rules.md`
+- vault 운영 규약: `ai-workflow/wiki/AGENTS.md` (v1.5, D-71, §2.1 Ingest)
+- lint SSOT: `ai-workflow/wiki/schema/lint_rules.md`
 - lint skill: `~/repos/my_harness/ai-workflow/skills/wiki-lint/`
 - AGENTS.md (본 저장소): 사외/사내 2-tier 정책 + vault 공유 자원 정책

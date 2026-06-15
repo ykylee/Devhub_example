@@ -49,39 +49,39 @@ EOF
 
 D-72 응답 §2 의 6 질문 권장안을 본 저장소 측에 적용. 각 권장안 + 본 저장소 측 정합 + 본 Phase 1 의 deliverable.
 
-### Q1 (vault 동거): D-72-A 채택 — `~/wiki/` 단일 + `wiki/projects/{devhub,my-harness}/` 동거
+### Q1 (vault 동거): D-72-A 채택 — `ai-workflow/wiki/` 단일 + `wiki/projects/{devhub,my-harness}/` 동거
 
 **권장 (D-72)**: A — 동거 가능, D-71.1 의도 유지. D-71.1 의 의도 = "second brain 은 out-of-repo, mobile-friendly, 사설 메모 흡수 가능".
 
 **본 저장소 측 정합**:
 - 본 저장소 (DevHub) 의 in-repo 변경 = `docs/llm-wiki/` (SSOT + config + SOP + mirror list) + `scripts/wiki-sync-devhub.sh` (sync script 의 source).
-- `~/wiki/` 의 out-of-repo 변경 = `raw/projects/devhub/` (mirror 실행 후) — **본 PR scope 외**, 사용자가 `bash scripts/wiki-sync-devhub.sh` 실행 시 생성.
+- `ai-workflow/wiki/` 의 out-of-repo 변경 = `raw/projects/devhub/` (mirror 실행 후) — **본 PR scope 외**, 사용자가 `bash scripts/wiki-sync-devhub.sh` 실행 시 생성.
 - 본 Phase 1 의 deliverable = **in-repo source-of-truth** (mirror 실행 trigger + 정책의 source). **mirror 실행 결과는 본 PR scope 외**.
 
 **본 Phase 1 적용**:
 - `docs/llm-wiki/{README.md, scope-and-rationale.md, mirror-list.md, lint-config.toml, operation-sop.md}` 5 file 작성 (본 PR scope).
 - `scripts/wiki-sync-devhub.sh` 작성 (본 PR scope).
-- `~/wiki/raw/projects/devhub/` 의 실제 mirror = **본 PR scope 외** (Phase 1 의 mirror list 의 source-of-truth 만 본 PR, mirror 실행은 사용자 confirm 후).
+- `ai-workflow/wiki/raw/projects/devhub/` 의 실제 mirror = **본 PR scope 외** (Phase 1 의 mirror list 의 source-of-truth 만 본 PR, mirror 실행은 사용자 confirm 후).
 
 ### Q2 (raw/ 정책): D-72-A+C 채택 — per-project 분리 + per-project manifest
 
 **권장 (D-72)**: A+C — `raw/projects/{my-harness,devhub}/` per-project 격리 + `_manifest.md` per-project.
 
 **본 저장소 측 정합**:
-- `scripts/wiki-sync-devhub.sh` 의 DEST = `~/wiki/raw/projects/devhub/` (Q2-A 정합).
+- `scripts/wiki-sync-devhub.sh` 의 DEST = `ai-workflow/wiki/raw/projects/devhub/` (Q2-A 정합).
 - `raw/projects/devhub/_manifest.md` 자동 생성 (Q2-C 정합). manifest 의 entry = `[YYYY-MM-DD HH:MM:SS] <project>=devhub <rel_path>=<src> size=<bytes>`.
 - mirror list 의 source = `docs/llm-wiki/mirror-list.md` 의 "Phase 1 source list" (core subset).
 
 **본 Phase 1 적용**:
-- `scripts/wiki-sync-devhub.sh` 작성 (DEST = `~/wiki/raw/projects/devhub/`, manifest 자동 생성, BSD-rsync safe).
+- `scripts/wiki-sync-devhub.sh` 작성 (DEST = `ai-workflow/wiki/raw/projects/devhub/`, manifest 자동 생성, BSD-rsync safe).
 - `docs/llm-wiki/mirror-list.md` 의 source list = ADR (31) + governance (5) + planning (26) + setup (15) + requirements.md + openapi.yaml + ai-workflow-memory main flat 3 file = **~80 file (core subset)**.
 
 ### Q3 (3-tier 정책): D-72-A 단순화 채택 — 단일 vault, sa-internal/ 격리 + lint L11 불요
 
-**권장 (D-72)**: A 단순화 — `~/wiki/` 가 yklee 개인 Gitea private repo 만 push. lint L11 + sa-internal/ 격리 불요.
+**권장 (D-72)**: A 단순화 — `ai-workflow/wiki/` 가 yklee 개인 in-repo (v0.7.17+) repo 만 push. lint L11 + sa-internal/ 격리 불요.
 
 **본 저장소 측 정합**:
-- 본 저장소 의 3-tier 정책 (= GitHub vs 사내 SCM push 분리) 의 **적용 대상 = DevHub repo 자체** (`~/repos/Devhub_example_minimax/`). `~/wiki/` 는 별도 Gitea private repo (my_harness 의 D-72 응답 §3) — 다른 정책.
+- 본 저장소 의 3-tier 정책 (= GitHub vs 사내 SCM push 분리) 의 **적용 대상 = DevHub repo 자체** (`~/repos/Devhub_example_minimax/`). `ai-workflow/wiki/` 는 별도 in-repo (v0.7.17+) repo (my_harness 의 D-72 응답 §3) — 다른 정책.
 - 따라서 `docs/llm-wiki/` 의 4 file + `scripts/wiki-sync-devhub.sh` 의 **모든 변경 = 공용** (사내 한정 정보 미포함). Tier 검증 PASS 예상.
 - `mirror-list.md` 의 source list 는 **사외/공용 file 만** (ADR/governance/planning/setup/requirements/openapi/ai-workflow-memory main flat). 사내 한정 정보는 `infra/idp/_archive_*/`, `infra/idp/keycloak-realm.ci.json`, `docker-compose.{local,test,deploy,colima}.yml`, `scripts/setup-keycloak.sh` 등 — **mirror list 에 미포함**.
 
@@ -128,12 +128,12 @@ D-72 응답 §2 의 6 질문 권장안을 본 저장소 측에 적용. 각 권�
 **권장 (D-72)**: 단일 AGENTS.md / index.md / log.md (out-of-repo) + per-project `_lint/<project>/` 분리.
 
 **본 저장소 측 정합**:
-- `~/wiki/AGENTS.md`, `~/wiki/index.md`, `~/wiki/log.md` = out-of-repo 변경. **본 PR scope 외**. my_harness 의 D-72 응답 §2 Q6 의 "단일 AGENTS.md" 결정 = my_harness 측 D-73 의 작업 (두 project 합의본 작성).
-- `~/wiki/_lint/devhub/` 의 per-project lint report = **본 PR scope 외** (mirror 실행 + wiki-lint 의 `--project` 옵션 활성 후).
+- `ai-workflow/wiki/AGENTS.md`, `ai-workflow/wiki/index.md`, `ai-workflow/wiki/log.md` = out-of-repo 변경. **본 PR scope 외**. my_harness 의 D-72 응답 §2 Q6 의 "단일 AGENTS.md" 결정 = my_harness 측 D-73 의 작업 (두 project 합의본 작성).
+- `ai-workflow/wiki/_lint/devhub/` 의 per-project lint report = **본 PR scope 외** (mirror 실행 + wiki-lint 의 `--project` 옵션 활성 후).
 - 본 저장소 측의 정합 = **`docs/llm-wiki/lint-config.toml` 의 devhub config** 가 my_harness 의 D-73 작업 후 활성화. 본 PR 은 **config 의 source** 만 제공.
 
 **본 Phase 1 적용**:
-- 본 PR 의 scope = in-repo 변경. out-of-repo (`~/wiki/AGENTS.md` 등) 변경 미포함. my_harness 의 D-72 Q6 의 정공법 (단일 AGENTS.md) 은 my_harness 측 D-73 에서 진행.
+- 본 PR 의 scope = in-repo 변경. out-of-repo (`ai-workflow/wiki/AGENTS.md` 등) 변경 미포함. my_harness 의 D-72 Q6 의 정공법 (단일 AGENTS.md) 은 my_harness 측 D-73 에서 진행.
 
 ## 2. Phase 1 scope 결정
 
@@ -157,7 +157,7 @@ D-72 응답 §2 의 6 질문 권장안을 본 저장소 측에 적용. 각 권�
 
 | 단계 | 작업 | 의존 |
 | --- | --- | --- |
-| **Phase 1 mirror 실행** (본 PR 머지 후) | 사용자 (yklee) 가 `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `~/wiki/raw/projects/devhub/` 에 ~80 file mirror + `_manifest.md` 자동 생성 | 본 PR 머지 |
+| **Phase 1 mirror 실행** (본 PR 머지 후) | 사용자 (yklee) 가 `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real, dry-run 아닌) → `ai-workflow/wiki/raw/projects/devhub/` 에 ~80 file mirror + `_manifest.md` 자동 생성 | 본 PR 머지 |
 | **D-73 (my_harness 측)** | wiki-lint skill 에 `--project` + `--project-config` 옵션 추가 | Phase 1 mirror 실행 |
 | **D-74 (my_harness 측)** | my_harness 의 `_lint/my-harness/` 디렉터리 + 본 저장소 의 `_lint/devhub/` 디렉터리 셋업 | D-73 |
 | **Phase 3 (mass ingest)** | 별도 PR — DevHub 의 docs/domain + docs/architecture + docs/infrastructure + docs/validation (총 ~100 file) 의 mirror + `wiki/projects/devhub/{concepts,entities,topics,sources}/` 30~50 wiki page 작성 | D-73 + D-74 |
@@ -169,11 +169,11 @@ D-72 응답 §2 의 6 질문 권장안을 본 저장소 측에 적용. 각 권�
 ## 3. 알려둘 trade-off (의도적 결정)
 
 - **`docs/llm-wiki/` 선택 (vs `docs/wiki/` 또는 `docs/wiki-integration/`)**: 기존 `docs/wiki/` 가 **Public Wiki** (GitHub Wiki 게시 source, 인간 큐레이션) 임. 본 Phase 1 의 **LLM Wiki SSOT** 와 audience 다름. 디렉터리 이름 분리 = 두 wiki 의 명확한 구분. **`docs/wiki/` (Public) ↔ `docs/llm-wiki/` (LLM)** 의 cross-link 없음.
-- **`docs/llm-wiki/` 의 5 file 모두 본 PR scope (in-repo)**: my_harness 의 D-72 응답은 단일 wiki vault + wiki/projects/{devhub,my-harness}/ 동거 였지만, 본 저장소 측의 in-repo SSOT 는 별도 위치. **본 저장소 의 SSOT 가 `docs/llm-wiki/`, my_harness 의 wiki vault 가 `~/wiki/wiki/projects/devhub/`**. 두 SSOT 의 일관성은 lint-config.toml + mirror list 로 유지.
+- **`docs/llm-wiki/` 의 5 file 모두 본 PR scope (in-repo)**: my_harness 의 D-72 응답은 단일 wiki vault + wiki/projects/{devhub,my-harness}/ 동거 였지만, 본 저장소 측의 in-repo SSOT 는 별도 위치. **본 저장소 의 SSOT 가 `docs/llm-wiki/`, my_harness 의 wiki vault 가 `ai-workflow/wiki/wiki/projects/devhub/`**. 두 SSOT 의 일관성은 lint-config.toml + mirror list 로 유지.
 - **mirror list 의 scope = core subset (~80 file)**: D-72 응답 §4 #3 의 "100~200 파일" 의 1/2. domain (66) + architecture + infrastructure + validation (~100 file) 은 **Phase 3 (mass ingest)** 에서 별도 PR. 본 PR 의 lint 검증 + mirror 실행의 **검증 가능한 정공법** = 작은 core subset.
 - **lint-config.toml 의 L07 ADR 면제 config 작성 (옵션 미사용)**: wiki-lint 의 `--project` + `--project-config` 옵션은 my_harness 측 D-73 의 작업. 본 PR 은 **config 의 source 만 제공**. 옵션 추가 후 자동 활성.
-- **`~/wiki/` out-of-repo 변경 미포함**: 본 PR scope 의 의도적 한계. `~/wiki/raw/projects/devhub/`, `~/wiki/AGENTS.md`, `~/wiki/index.md`, `~/wiki/log.md`, `~/wiki/_lint/devhub/`, `~/wiki/wiki/projects/devhub/`, `~/wiki/wiki/cross/`, `~/wiki/schema/` 등 모두 out-of-repo = 본 PR scope 외. **본 PR 의 source-of-truth 만 in-repo**.
-- **mirror 실행은 본 PR scope 외 (본 PR 의 lint 검증은 `bash scripts/wiki-sync-devhub.sh --dry-run` 의 source list dry-run 만)**: 실제 mirror 는 사용자 (yklee) 가 Phase 1 mirror 실행 시점에 진행. **이유**: mirror 실행은 `~/wiki/` 의 out-of-repo 변경 — 본 PR 의 in-repo 검증 가능 영역 (CI 4/4) 의 검증 범위 외.
+- **`ai-workflow/wiki/` out-of-repo 변경 미포함**: 본 PR scope 의 의도적 한계. `ai-workflow/wiki/raw/projects/devhub/`, `ai-workflow/wiki/AGENTS.md`, `ai-workflow/wiki/index.md`, `ai-workflow/wiki/log.md`, `ai-workflow/wiki/_lint/devhub/`, `ai-workflow/wiki/wiki/projects/devhub/`, `ai-workflow/wiki/wiki/cross/`, `ai-workflow/wiki/schema/` 등 모두 out-of-repo = 본 PR scope 외. **본 PR 의 source-of-truth 만 in-repo**.
+- **mirror 실행은 본 PR scope 외 (본 PR 의 lint 검증은 `bash scripts/wiki-sync-devhub.sh --dry-run` 의 source list dry-run 만)**: 실제 mirror 는 사용자 (yklee) 가 Phase 1 mirror 실행 시점에 진행. **이유**: mirror 실행은 `ai-workflow/wiki/` 의 out-of-repo 변경 — 본 PR 의 in-repo 검증 가능 영역 (CI 4/4) 의 검증 범위 외.
 
 ## 4. 다음 세션 directive
 

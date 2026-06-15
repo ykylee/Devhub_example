@@ -1,0 +1,55 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-01",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-01.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/backlog/",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "python3 workflow-source/tests/check_docs.py",
+    "isolated_tests": "python3 workflow-source/tests/check_demo_workflow.py",
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "Existing codebase onboarding completed; inferred primary stack: unknown.",
+    "current_axis": "Existing codebase onboarding completed; inferred primary stack: unknown.",
+    "current_focus": "TASK-001 표준 AI 워크플로우 초기 도입",
+    "in_progress_items": [
+      "TASK-001 표준 AI 워크플로우 초기 도입"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-01.md",
+    "task_count": 1,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": []
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md",
+    "ai-workflow/memory/backlog/2026-05-01.md",
+    "ai-workflow/memory/PROJECT_PROFILE.md",
+    "README.md",
+    "docs/README.md"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-09",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/release/v0.5.10/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.10/backlog/2026-06-09.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/README.md",
+    "operations_path": "ai-workflow/memory/release/v0.5.10/",
+    "backlog_path": "ai-workflow/memory/release/v0.5.10/backlog/",
+    "handoff_path": "ai-workflow/memory/release/v0.5.10/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "PYTHONPATH=workflow-source python3 workflow-source/tests/check_bootstrap.py",
+    "isolated_tests": "PYTHONPATH=workflow-source python3 workflow-source/tests/check_<name>.py",
+    "runtime_checks": "PYTHONPATH=workflow-source bash -c 'set -e; for t in workflow-source/tests/check_*.py; do python3 \"$t\"; done'",
+    "editable_install": "cd workflow-source && python3 -m pip install -e \".[mcp-sdk,dev]\""
+  },
+  "session": {
+    "current_baseline": "**현재 브랜치**: `main` (HEAD #8359cfc, v0.5.10-beta) clean. 본 세션은 docs/INSTALLATION_AND_USAGE.md 만 추가하고 commit 미발생",
+    "current_axis": "**현재 작업 축**: 사용자 scope clarification 결과 좁혀진 범위 — 설치·사용 가이드만 진행. '전체 문서 재작성'과 'TODO 디폴트 명세 문서화'는 별도 작업으로 분리",
+    "current_focus": "TASK-V0510-001 개발자용 설치·사용 가이드 신규 작성 — done",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-V0510-001 개발자용 설치·사용 가이드 신규 작성 (docs/INSTALLATION_AND_USAGE.md + DOCUMENT_INDEX 갱신 + 메모리 layer 동기화)",
+      "v0.5.10 merge (8359cfc): choose_roles sub.delegation_id parent-prefix spec 정합",
+      "v0.5.10-beta tag push",
+      "v0.5.9.1 merge (c202634): wire 가이드 §3 sub_payloads fix + 회귀",
+      "v0.5.9 merge (1006ff0): wire 가이드 §7/§8/§9 보강",
+      "v0.5.8 merge (6213dcc): interactive --harness picker + packaging smoke automation"
+    ],
+    "environment_constraints": [
+      "Python 3.10+ (현재 환경 3.13.7, editable install 검증 완료)",
+      ".venv 사용 시 pydantic>=2.0 / anyio>=4.0 / mcp[cli]>=1.0 필요",
+      "editable install 시 cwd 가 workflow-source/ 여야 함",
+      "editable install 하지 않은 경우 PYTHONPATH=workflow-source 필요 (CI 경로)",
+      "smoke test 회귀 0, linter warning baseline (v0.5.0 부터 알려진) 유지"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.10/backlog/2026-06-09.md",
+    "task_count": 1,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-V0510-001 개발자용 설치·사용 가이드 신규 작성"
+    ]
+  },
+  "next_documents": [
+    "docs/INSTALLATION_AND_USAGE.md",
+    "docs/DOCUMENT_INDEX.md",
+    "ai-workflow/memory/release/v0.5.10/session_handoff.md",
+    "ai-workflow/memory/release/v0.5.10/backlog/2026-06-09.md",
+    "workflow-source/releases/Beta-v0.5.10.md",
+    "workflow-source/core/orchestrator_contract_v1_wire_guide.md"
+  ],
+  "deferred_work": [
+    "전체 문서 재작성/갱신 (27 core 문서, 10 템플릿, harness apply_guide, PROJECT_PROFILE) — 별도 세션/이슈",
+    "bootstrap_lib TODO 디폴트 120+개 명세 문서화 — 별도 세션/이슈 (코드 변경 없음)",
+    "v0.5.11: Mavis engine hook + 추가 회귀 + deprecation 정리"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  }
+}
