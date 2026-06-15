@@ -32,6 +32,11 @@ DOCS_LLM_WIKI = REPO_ROOT / "docs" / "llm-wiki"
 INREPO_PATH = "ai-workflow/wiki"
 LEGACY_VAULT = "${HOME}/wiki"
 LEGACY_VAULT_LITERAL = "~/wiki"
+# Codex P2 회피: dense sources 의 legacy nested path ("$VAULT_ROOT/wiki/projects/devhub/sources")
+# 는 v0.7.17 의 flat 구조 (ai-workflow/wiki/sources/) 와 안 맞음 — wiki-mass-ingest /
+# wiki-status-check / wiki-frontmatter-update 의 WIKI_SOURCES 가 "wiki/projects/devhub/sources"
+# 로 박혀있던 게 codex 지적의 본체. 0 회 강제.
+LEGACY_DENSE_NESTED = "/wiki/projects/devhub/sources"
 
 
 def test_scripts_no_legacy_vault_root():
@@ -75,12 +80,33 @@ def test_inrepo_memory_log_exists():
     assert log_path.is_file(), f"in-repo memory event log 부재: {log_path}"
 
 
+def test_scripts_no_legacy_dense_nested_path():
+    """scripts/wiki-*.sh: WIKI_SOURCES 의 legacy nested ($VAULT_ROOT/wiki/projects/devhub/sources) 0 회.
+
+    Codex P2 (PR #600, 2026-06-15) 의 본체. v0.7.17 의 flat in-repo 구조는
+    ai-workflow/wiki/sources/ 만 사용 — legacy nested ("wiki/projects/devhub/sources") 가
+    박혀있으면 wiki-mass-ingest 가 "wiki sources/ 부재" validation 에서 exit.
+    """
+    legacy_count = 0
+    legacy_files = []
+    for f in sorted(SCRIPTS_DIR.glob("wiki-*.sh")):
+        text = f.read_text(encoding="utf-8")
+        if LEGACY_DENSE_NESTED in text:
+            legacy_count += text.count(LEGACY_DENSE_NESTED)
+            legacy_files.append(f.name)
+    assert legacy_count == 0, (
+        f"scripts/wiki-*.sh 의 WIKI_SOURCES 가 legacy nested ({LEGACY_DENSE_NESTED}) "
+        f"{legacy_count} 회 사용: {legacy_files}. v0.7.17+ flat (ai-workflow/wiki/sources) 으로 redirect 필수."
+    )
+
+
 def main() -> int:
     tests = [
         test_scripts_no_legacy_vault_root,
         test_docs_no_legacy_wiki_literal,
         test_inrepo_wiki_dirs_exist,
         test_inrepo_memory_log_exists,
+        test_scripts_no_legacy_dense_nested_path,
     ]
     passed = 0
     failed = 0

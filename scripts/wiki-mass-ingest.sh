@@ -8,7 +8,7 @@
 #
 # 본 script 의 source-of-truth:
 #   - mirror manifest: ai-workflow/wiki/raw/projects/devhub/_manifest.md
-#   - 위키 sources/ pages: ai-workflow/wiki/wiki/projects/devhub/sources/*.md
+#   - 위키 sources/ pages: ai-workflow/wiki/sources/*.md (v0.7.17+ flat)
 #   - Phase 3 scope: docs/domain + docs/architecture + docs/infrastructure + docs/validation
 #
 # 본 script 의 정공법:
@@ -60,7 +60,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
 VAULT_ROOT="${SRC}/ai-workflow/wiki"
 RAW_DIR="$VAULT_ROOT/raw/projects/devhub"
-WIKI_SOURCES="$VAULT_ROOT/wiki/projects/devhub/sources"
+WIKI_SOURCES="$VAULT_ROOT/sources"
 MANIFEST="$RAW_DIR/_manifest.md"
 
 # ----- validation -----
