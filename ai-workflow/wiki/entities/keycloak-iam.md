@@ -1,7 +1,7 @@
 ---
 type: entity
 status: active
-last_ingested_from: ai-workflow/wiki/raw/projects/devhub/docs/adr/0019-keycloak-only-idp.md + ai-workflow/wiki/raw/projects/devhub/docs/setup/keycloak_operations.md + ai-workflow/wiki/raw/projects/devhub/docs/infrastructure/keycloak-idp/
+last_ingested_from: docs/adr/0019-keycloak-only-idp.md + docs/setup/keycloak_operations.md + docs/infrastructure/keycloak-idp/
 related_pages: [concepts/devhub-overview, patterns/in-repo-redirect, entities/gitea-scm, entities/postgres-store]
 created: 2026-06-15
 updated: 2026-06-15

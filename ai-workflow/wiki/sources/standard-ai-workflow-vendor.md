@@ -1,7 +1,7 @@
 ---
 type: topic
 status: active
-last_ingested_from: ai-workflow/wiki/topics/standard-ai-workflow-vendor.md (L1)
+last_ingested_from: ai-workflow/wiki/topics/standard-ai-workflow-vendor.md
 related_pages: [sources/standard-ai-workflow-vendor]
 created: 2026-06-15
 updated: 2026-06-15

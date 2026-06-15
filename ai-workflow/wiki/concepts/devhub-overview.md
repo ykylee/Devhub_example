@@ -1,7 +1,7 @@
 ---
 type: concept
 status: active
-last_ingested_from: ai-workflow/wiki/raw/projects/devhub/AGENTS.md + ai-workflow/wiki/raw/projects/devhub/docs/architecture.md + ai-workflow/wiki/raw/projects/devhub/docs/planning/release_v0-1_roadmap.md
+last_ingested_from: AGENTS.md + docs/architecture.md + docs/planning/release_v0-1_roadmap.md
 related_pages: [decisions/v0.7.17-import, entities/keycloak-iam, patterns/in-repo-redirect, topics/standard-ai-workflow-vendor]
 created: 2026-06-15
 updated: 2026-06-15

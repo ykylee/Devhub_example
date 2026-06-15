@@ -1,7 +1,7 @@
 ---
 type: topic
 status: active
-last_ingested_from: ai-workflow/wiki/raw/projects/devhub/vendor/standard_ai_workflow/harnesses/minimax-code/README.md + ai-workflow/wiki/raw/projects/devhub/vendor/standard_ai_workflow/core/global_workflow_standard.md + ai-workflow/wiki/raw/projects/devhub/vendor/standard_ai_workflow/core/orchestrator_subagent_contract_v1.md + ai-workflow/wiki/raw/projects/devhub/vendor/standard_ai_workflow/core/workflow_task_modes.md
+last_ingested_from: vendor/standard_ai_workflow/harnesses/minimax-code/README.md + vendor/standard_ai_workflow/core/global_workflow_standard.md + vendor/standard_ai_workflow/core/orchestrator_subagent_contract_v1.md + vendor/standard_ai_workflow/core/workflow_task_modes.md
 related_pages: [concepts/devhub-overview, decisions/v0.7.17-import, patterns/in-repo-redirect]
 created: 2026-06-15
 updated: 2026-06-15

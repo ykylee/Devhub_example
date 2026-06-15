@@ -1,7 +1,7 @@
 ---
 type: concept
 status: active
-last_ingested_from: ai-workflow/wiki/concepts/devhub-overview.md (L1)
+last_ingested_from: ai-workflow/wiki/concepts/devhub-overview.md
 related_pages: [sources/devhub-overview]
 created: 2026-06-15
 updated: 2026-06-15

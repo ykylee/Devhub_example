@@ -1,7 +1,7 @@
 ---
 type: pattern
 status: active
-last_ingested_from: ai-workflow/wiki/raw/projects/devhub/ai-workflow/IMPORT_NOTES.md + ai-workflow/wiki/raw/projects/devhub/vendor/standard_ai_workflow/tools/emit_wiki_l2_body.py + ai-workflow/wiki/raw/projects/devhub/vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py
+last_ingested_from: ai-workflow/IMPORT_NOTES.md + vendor/standard_ai_workflow/tools/emit_wiki_l2_body.py + vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py
 related_pages: [concepts/devhub-overview, decisions/v0.7.17-import, topics/standard-ai-workflow-vendor]
 created: 2026-06-15
 updated: 2026-06-15

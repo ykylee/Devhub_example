@@ -1,7 +1,7 @@
 ---
 type: entity
 status: active
-last_ingested_from: ai-workflow/wiki/entities/keycloak-iam.md (L1)
+last_ingested_from: ai-workflow/wiki/entities/keycloak-iam.md
 related_pages: [sources/keycloak-iam]
 created: 2026-06-15
 updated: 2026-06-15

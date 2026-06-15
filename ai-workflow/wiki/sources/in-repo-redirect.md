@@ -1,7 +1,7 @@
 ---
 type: pattern
 status: active
-last_ingested_from: ai-workflow/wiki/patterns/in-repo-redirect.md (L1)
+last_ingested_from: ai-workflow/wiki/patterns/in-repo-redirect.md
 related_pages: [sources/in-repo-redirect]
 created: 2026-06-15
 updated: 2026-06-15
