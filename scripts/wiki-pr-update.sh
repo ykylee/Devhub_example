@@ -143,6 +143,16 @@ PR_JSON=$(gh pr view "$PR_NUM" --json number,title,state,author,baseRefName,head
   exit 1
 }
 
+# touched files: PR 의 전체 commit/squash diff (REST API 페이지네이션 — squash 머지 PR 의 *all files*)
+# 2026-06-15 결정:
+#   - `gh pr diff --name-only` → empty (squash 1 commit)
+#   - `gh pr view --json files` → 첫 페이지 100 file (페이지네이션 한계)
+#   - `gh api --paginate .../pulls/<num>/files` → 전체 (Link header 의 rel="next"/"last" 자동 follow, PR #600 = 774 file 정상)
+TOUCHED_FILES_RAW=$(gh api --paginate "repos/$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)/pulls/$PR_NUM/files" --jq '.[].filename' 2>/dev/null || true)
+
+# TOUCHED_FILES 의 빈 줄 제거 + 중복 제거
+TOUCHED_FILES=$(echo "$TOUCHED_FILES_RAW" | grep -v '^$' | sort -u)
+
 PR_STATE=$(echo "$PR_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['state'])")
 PR_TITLE=$(echo "$PR_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['title'])")
 PR_HEAD_SHA=$(echo "$PR_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['headRefOid'])")
@@ -153,10 +163,6 @@ log "[wiki-pr-update]   title: $PR_TITLE"
 log "[wiki-pr-update]   head.sha: $PR_HEAD_SHA"
 [[ -n "$PR_MERGED_AT" ]] && log "[wiki-pr-update]   mergedAt: $PR_MERGED_AT"
 
-# touched files: PR 의 전체 commit/squash diff (REST API — squash 머지 PR 의 *all files*)
-# 2026-06-15 결정: `gh pr diff --name-only` 가 *squash 1 commit* 머지 PR 에서 empty 반환 (PR #600/601/602 모두 해당)
-# → `gh pr view --json files` 의 REST API 가 *PR 의 모든 touched file* 정확히 반환.
-TOUCHED_FILES=$(gh pr view "$PR_NUM" --json files --jq '.files[].path' 2>/dev/null || true)
 TOUCHED_COUNT=$(echo "$TOUCHED_FILES" | grep -c . 2>/dev/null || echo 0)
 log "[wiki-pr-update]   touched files: $TOUCHED_COUNT"
 
