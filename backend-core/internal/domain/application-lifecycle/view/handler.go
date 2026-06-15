@@ -3,6 +3,7 @@ package view
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/devhub/backend-core/internal/domain"
 	"github.com/devhub/backend-core/internal/shared/httphelp"
@@ -71,6 +72,10 @@ type PlatformStore interface {
 	ListRepositoryPullRequests(context.Context, int64, store.PRActivityListOptions) ([]domain.PRActivity, int, error)
 	ListRepositoryBuildRuns(context.Context, int64, store.BuildRunListOptions) ([]domain.BuildRun, int, error)
 	ListRepositoryQualitySnapshots(context.Context, int64, store.QualitySnapshotListOptions) ([]domain.QualitySnapshot, int, error)
+	// CountOpenAndMergedPRs — Sprint A (kpi-tests-per-domain-scope.md §6.1) 의
+	// repository KPI 종합 정공법. pr_activities 의 (event_type='opened'|'merged') 별
+	// distinct number count. state="closed"+merged_at IS NOT NULL 도 "merged" 로 합산.
+	CountOpenAndMergedPRs(context.Context, int64, time.Time, time.Time) (int, int, error)
 
 	// Application 롤업
 	ComputePlatformRollup(context.Context, string, domain.PlatformRollupOptions) (domain.PlatformRollup, error)

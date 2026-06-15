@@ -15,7 +15,7 @@
 
 기존 1.1~1.6 (ADR 31 + Governance 5 + Planning 27 + Setup 15 + Requirements + OpenAPI + memory main flat 3) = **85 file**. 본 section 의 내용은 위 historical 정공법 정합. 본 갱신은 Phase 1.5 추가가 목적.
 
-## 1.7 Phase 1.5 (source code + workflow + scripts + branch memory maintenance subset, ~59 file) — **2026-06-13 신규 (X-5 follow-up 으로 4 file 추가)**
+## 1.7 Phase 1.5 (source code + workflow + scripts + branch memory maintenance subset, ~65 file) — **2026-06-13 신규 (X-5 follow-up 4 file + Sprint A 6 file 추가)**
 
 **Phase 1.5 의 목적**: PR #578+#579+#580+#581 의 source code 변경분 + 운영/유지보수 critical file + branch memory 를 mirror 에 포함. wiki 만으로 **code maintenance 가능** (단순 SSOT 참조 + 1차 layer reasoning).
 
@@ -54,7 +54,7 @@
 
 **본 sprint 의 verification 으로 발각** (2026-06-13): 원본 Phase 1.5 의 12 file 화이트리스트 중 `keycloak_verifier.go` + `keycloak_admin_client.go` + `audit/middleware.go` + `rbac/policy_store.go` + `store/postgres/repository_ops.go` 의 경로 outdated (해당 경로에 file 부재). **fix**: §1.7.1 의 file list 의 정확한 경로 정합 (audit-ops/ + rbac-permissions/ + httpapi/ + store/ 의 실제 경로). **forward**: 새 backend file 추가 시 PR 본문에 mirror scope 추가 요청 (mirror-list.md §1.7.1 + script 의 화이트리스트 갱신).
 
-### 1.7.2 Frontend e2e + helper (maintenance critical subset, 6 file)
+**mirror 정책**: 25 file. **lint 영향**: L02 broken link 의 source code link 가 raw/ 에 존재 (mirror scope 내) → L02 PASS. L10 면제 불요 (raw/ 의 1:1 mirror).
 
 **소스 경로**: `frontend/tests/e2e/`, `frontend/lib/`, `frontend/domain/`. **본 sprint 의 verification 으로 정확한 경로 정합** (2026-06-13).
 
@@ -72,7 +72,12 @@
 | `frontend/components/admin/x1-widgets/ProviderHealthWidget.tsx` | **X-1 2차 PR 신규** — widget 4종 3 (placeholder, API-107 별도 carve) | ADR-0032 §3 carve — v0.1.1 후속 sprint |
 | `frontend/components/admin/x1-widgets/DashboardSummaryWidget.tsx` | **X-1 2차 PR 신규** — widget 4종 4 (totalJobs/queueDepth/failed/successRate) | successRate = succeeded/(succeeded+failed)*100, 소수점 1자리 |
 | `frontend/domain/integration-registry/service/admin-x1.service.ts` | **X-1 2차 PR 신규** — adminX1Service class + listSyncJobs/GetSyncJob/getStatusSummary | apiClient<T> 정공법 (자동 token refresh + session death) |
-| `frontend/tests/e2e/admin-x1.spec.ts` | **X-1 2차 PR 신규** — TC-ADMIN-X1-01/02/03 (system_admin widget 4 + sync job status API mock + non-admin redirect) | page.route() mock + waitForResponse API-106 fetch 검증 |
+| `frontend/domain/repository-integration/schema/repository-kpi.types.ts` | **Sprint A 신규** — RepositoryKPI type (quality_score + build_success_rate + open_pr_count + merged_pr_count + active_contributor_count) | GET /api/v1/repositories/:id/kpi 정합 |
+| `frontend/domain/repository-integration/schema/repository-tests.types.ts` | **Sprint A 신규** — RepositoryTestResults type (totals + pass_rate + recent) | GET /api/v1/repositories/:id/test-results 정합 (build_runs 분포) |
+| `frontend/domain/repository-integration/service/repository-kpi.service.ts` | **Sprint A 신규** — fetchRepositoryKPI (windowDays option) | apiClient.get<RepositoryKPIResponse> 정공법 |
+| `frontend/domain/repository-integration/service/repository-tests.service.ts` | **Sprint A 신규** — fetchRepositoryTestResults (window + limit option) | apiClient.get<RepositoryTestResultsResponse> 정공법 |
+| `frontend/domain/repository-integration/view/RepositoryKPISection.tsx` | **Sprint A 신규** — 4 card (Quality Score / Build Success Rate / Pull Requests / Active Contributors) + window selector | kpi-tests-per-domain-scope.md §2.1 Repository sub-section |
+| `frontend/domain/repository-integration/view/RepositoryTestsSection.tsx` | **Sprint A 신규** — Pass Rate (Recharts 도넛) + Status Distribution (7 status) + Recent Runs table + window selector | kpi-tests-per-domain-scope.md §2.1 Repository sub-section |
 | `frontend/components/admin/inbound-source-config/InboundSourceTypeSelector.tsx` | **X-2 5차 PR 신규** — provider_type select (Gitea/Jira/Other/Disabled 4 option) | 1차 출처 X-2 PR #586 의 InboundSourceType enum 정공법 |
 | `frontend/components/admin/inbound-source-config/InboundSourceConfigEditor.tsx` | **X-2 5차 PR 신규** — JSONB textarea editor (parse error + save) | InboundSourceRoutingConfig struct 1:1 매핑 |
 | `frontend/components/admin/inbound-source-config/PatternPreview.tsx` | **X-2 5차 PR 신규** — provider-specific pattern + custom regex 검증 (MATCH/NO MATCH) | auto_route.go 의 gitea/jira/github/gitlab regex 정공법 |

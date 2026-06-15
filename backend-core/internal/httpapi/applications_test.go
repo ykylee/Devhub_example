@@ -645,6 +645,11 @@ func (s *memoryPlatformStore) ListRepositoryQualitySnapshots(_ context.Context, 
 	return []domain.QualitySnapshot{}, 0, nil
 }
 
+func (s *memoryPlatformStore) CountOpenAndMergedPRs(_ context.Context, _ int64, _, _ time.Time) (int, int, error) {
+	// 1차 메모리 store 는 PR row 가 없는 환경 가정. handler test 는 0,0, nil 로
+	// 정상 response 검증. 별도 PR seed 가 필요한 test 는 sub-type 으로 override.
+	return 0, 0, nil
+}
 // --- Application 롤업 (sprint claude/work_260514-c) ---
 
 func (s *memoryPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {

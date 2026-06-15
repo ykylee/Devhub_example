@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/x-repository-kpi-tests-section",
+  "milestones": {
+    "M-v0.1.1": {
+      "status": "in_progress",
+      "x_repository_kpi_tests_section_sprint_a": [
+        "backend: GET /api/v1/repositories/:id/kpi + /test-results (2 handler)",
+        "backend: PlatformStore interface CountOpenAndMergedPRs method 추가",
+        "backend: PostgresStore.CountOpenAndMergedPRs + memoryPlatformStore mock",
+        "openapi.yaml 2 path 추가 (kpi + test-results)",
+        "frontend: RepositoryKPISection + RepositoryTestsSection component 2",
+        "frontend: 2 service + 2 schema 신규",
+        "frontend: ManagerView 안에 import + 배치",
+        "Tier: 공용 (frontend + backend + openapi, 사내 한정 정보 미포함)"
+      ]
+    }
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/feat/x-repository-kpi-tests-section/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/feat/x-repository-kpi-tests-section/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/feat/x-repository-kpi-tests-section/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "concept_doc": "docs/planning/kpi-tests-per-domain-scope.md",
+    "sprint_plan": "docs/planning/2026-06-15-x-repository-kpi-tests-section-sprint-plan.md"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (Sprint A done 마킹 확정)",
+      "위키 mirror 갱신: bash scripts/wiki-sync-devhub.sh (PR 머지 후 1회 실행)",
+      "e2e spec 별도 PR (TC-REPO-KPI-TESTS-01) — 본 PR scope 외",
+      "다음 sprint: Sprint B (Project sub-section, contribution_weight 가중치 적용)"
+    ]
+  }
+}

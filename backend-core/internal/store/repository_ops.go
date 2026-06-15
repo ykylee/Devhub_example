@@ -264,6 +264,25 @@ LIMIT $1 OFFSET $2`
 	return out, total, nil
 }
 
+// CountOpenAndMergedPRs returns distinct PR number count for event_type='opened' (open)
+// and event_type='merged' (merged). Sprint A — kpi-tests-per-domain-scope.md §6.1 repository
+// KPI 종합 정공법. state="closed" + merged_at IS NOT NULL row 는 event_type='merged' 로
+// upsert 되므로 본 query 가 정확. 그 외 (state="closed" + not merged) 는 합산에서 제외
+// (raw kpi 가치 낮음).
+func (s *PostgresStore) CountOpenAndMergedPRs(ctx context.Context, repositoryID int64, from, to time.Time) (int, int, error) {
+	const query = `
+SELECT
+  COUNT(DISTINCT number) FILTER (WHERE event_type = 'opened')::int AS open_count,
+  COUNT(DISTINCT number) FILTER (WHERE event_type = 'merged')::int AS merged_count
+FROM pr_activities
+WHERE repository_id = $1 AND occurred_at >= $2 AND occurred_at < $3`
+	var open, merged int
+	if err := s.pool.QueryRow(ctx, query, repositoryID, from, to).Scan(&open, &merged); err != nil {
+		return 0, 0, fmt.Errorf("count open/merged prs: %w", err)
+	}
+	return open, merged, nil
+}
+
 // --- Application 롤업 (API-57, concept §13.4) ---
 
 // ComputePlatformRollup aggregates connected repos' metrics into Application-level

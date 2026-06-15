@@ -2226,6 +2226,167 @@ paths:
           $ref: "#/components/responses/ServerErrorEnvelope"
 
   # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id}/kpi — Repository KPI 종합 (Sprint A)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/kpi:
+    get:
+      tags:
+        - Repository
+      summary: "Repository KPI 종합 (raw, weight=1)"
+      operationId: getRepositoryKPI
+      description: |
+        단일 repository 의 raw KPI 종합. 가중치 미적용 (single repo = weight=1).
+        kpi-tests-per-domain-scope.md §2.1 (Repository sub-section).
+        데이터 소스: quality_snapshots + build_runs + pr_activities.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository ID"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window start (RFC3339). default 30d ago"
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window end (RFC3339). default now"
+      responses:
+        "200":
+          description: "KPI 종합"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  repository_id: 101
+                  window_from: "2026-05-16T00:00:00Z"
+                  window_to: "2026-06-15T00:00:00Z"
+                  quality_score: 87.3
+                  quality_score_measured_at: "2026-06-14T22:00:00Z"
+                  build_success_rate: 0.94
+                  build_run_count: 47
+                  open_pr_count: 3
+                  merged_pr_count: 12
+                  active_contributor_count: 4
+                request_id: "req_repo_kpi"
+                trace_id: "trace_repo_kpi"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/repositories/{repository_id}/test-results — Repository test results (Sprint A)
+  # ---------------------------------------------------------------------------
+  /api/v1/repositories/{repository_id}/test-results:
+    get:
+      tags:
+        - Repository
+      summary: "Repository test results (build_runs 기반 분포)"
+      operationId: listRepositoryTestResults
+      description: |
+        단일 repository 의 test results 분포 + 최근 N 회 상세. 별도 repository_tests
+        table 미존재로 build_runs.status 분포로 test results 표현 (kpi-tests-per-domain-scope.md
+        §2.1 Repository sub-section). 별도 repository_tests table 도입은 후속.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Repository ID"
+        - name: window
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+          description: "Window short string. default 30d"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: "Test results 분포 + recent"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  repository_id: 101
+                  window_from: "2026-05-16T00:00:00Z"
+                  window_to: "2026-06-15T00:00:00Z"
+                  totals:
+                    success: 42
+                    failed: 3
+                    running: 1
+                    cancelled: 1
+                  pass_rate: 0.875
+                  recent:
+                    - id: 100
+                      run_external_id: "gitea-build-5678"
+                      commit_sha: "feedface"
+                      status: "success"
+                      branch: "main"
+                      started_at: "2026-06-14T10:00:00Z"
+                request_id: "req_repo_test_results"
+                trace_id: "trace_repo_test_results"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
   # GET /api/v1/repositories/{repository_id}/projects — repository 연결 project (P3 batch 3, staticTokenAuth 허용)
   # POST /api/v1/repositories/{repository_id}/projects — project 연결 (P3 batch 3, bearerAuth only)
   # ---------------------------------------------------------------------------
