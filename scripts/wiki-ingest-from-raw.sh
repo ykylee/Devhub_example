@@ -11,7 +11,7 @@
 #   - my_harness 측 SSOT: ~/repos/my_harness/ai-workflow/core/wiki_ingest_skill_spec.md
 #   - my_harness skill:    ~/repos/my_harness/ai-workflow/skills/wiki-ingest-from-raw/
 #   - DevHub mirror tool:  scripts/wiki-sync-devhub.sh
-#   - vault 운영 규약:     ~/wiki/AGENTS.md (v1.5, D-71) 의 §2.1 Ingest
+#   - vault 운영 규약:     ai-workflow/wiki/AGENTS.md (v1.5, D-71) 의 §2.1 Ingest
 #
 # 결정적 단순: 2 단계 wrapper.
 #   1. raw mirror (wiki-sync-devhub.sh) — raw/ 갱신
@@ -39,7 +39,7 @@ QUIET=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
 MYHARNESS_ROOT="${MYHARNESS_ROOT:-$HOME/repos/my_harness}"
-VAULT_ROOT="${VAULT_ROOT:-$HOME/wiki}"
+VAULT_ROOT="${VAULT_ROOT:-${SRC}/ai-workflow/wiki}"
 WIKI_INGEST_SCRIPT="$MYHARNESS_ROOT/ai-workflow/skills/wiki-ingest-from-raw/scripts/run_wiki_ingest.py"
 WIKI_LINT_SCRIPT="$MYHARNESS_ROOT/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py"
 

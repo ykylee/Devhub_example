@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wiki-query.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 vault query wrapper.
-# vault (`~/wiki/`) 의 LLM wiki 패턴 (D-71, AGENTS.md v1.5) 의 §2.2 Query 오퍼레이션
+# vault (`ai-workflow/wiki/`) 의 LLM wiki 패턴 (D-71, AGENTS.md v1.5) 의 §2.2 Query 오퍼레이션
 # 6 step 자동화 (read + query/ 페이지 file + log.md append).
 #
 # 사용:
@@ -12,7 +12,7 @@
 # 본 script 의 source-of-truth:
 #   - my_harness 측 SSOT: ~/repos/my_harness/ai-workflow/core/wiki_query_skill_spec.md
 #   - my_harness skill:    ~/repos/my_harness/ai-workflow/skills/wiki-query/
-#   - vault 운영 규약:     ~/wiki/AGENTS.md (v1.5, D-71) 의 §2.2 Query
+#   - vault 운영 규약:     ai-workflow/wiki/AGENTS.md (v1.5, D-71) 의 §2.2 Query
 #
 # 결정적 단순: read 가 main. write 는 --file 옵션.
 #   1. read (my_harness 의 run_wiki_query.py) — frontmatter + wikilink + full-text 검색
@@ -42,7 +42,7 @@ QUIET=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
 MYHARNESS_ROOT="${MYHARNESS_ROOT:-$HOME/repos/my_harness}"
-VAULT_ROOT="${VAULT_ROOT:-$HOME/wiki}"
+VAULT_ROOT="${VAULT_ROOT:-${SRC}/ai-workflow/wiki}"
 WIKI_QUERY_SCRIPT="$MYHARNESS_ROOT/ai-workflow/skills/wiki-query/scripts/run_wiki_query.py"
 
 usage() {

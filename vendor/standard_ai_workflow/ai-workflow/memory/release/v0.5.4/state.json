@@ -1,0 +1,69 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-07",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/release/v0.5.4/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.4/backlog/2026-06-07.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/backlog/",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "**현재 브랜치**: `release/v0.5.4` (main #a961fa0 에서 분기, 2026-06-07)",
+    "current_axis": "**현재 브랜치**: `release/v0.5.4` (main #a961fa0 에서 분기, 2026-06-07)",
+    "current_focus": "TASK-V054-001 orchestrator → sub-agent delegation contract v1 (closes issue #1)",
+    "in_progress_items": [
+      "TASK-V054-001 orchestrator → sub-agent delegation contract v1 (closes issue #1)"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-V054-002 maturity matrix 동기화 (Phase 9/10 → done, Phase 11 → in_progress)",
+      "TASK-V054-003 root baseline 동기화 (state.json + docs/PROJECT_PROFILE.md v0.5.4 baseline)",
+      "v0.5.3 merge (PR #17): antigravity MCP 표준화 + cross-language stack 표시",
+      "v0.5.3-beta tag push (commit b6ae73aa, 2026-06-07)"
+    ],
+    "environment_constraints": [
+      "Python 3.10+ (현재 환경 3.14)",
+      ".venv 필요 (pydantic/anyio/mcp 의존성)",
+      "smoke test 회귀 0, linter status ok 유지"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.4/backlog/2026-06-07.md",
+    "task_count": 3,
+    "in_progress_items": [
+      "TASK-V054-001 orchestrator → sub-agent delegation contract v1 (closes issue #1)"
+    ],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-V054-002 maturity matrix 동기화",
+      "TASK-V054-003 root baseline 동기화"
+    ]
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/release/v0.5.4/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md",
+    "ai-workflow/memory/release/v0.5.4/backlog/2026-06-07.md",
+    "ai-workflow/memory/release/v0.5.4/PROJECT_PROFILE.md",
+    "workflow-source/core/orchestrator_subagent_contract_v1.md",
+    "workflow-source/core/maturity_matrix.json"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  }
+}

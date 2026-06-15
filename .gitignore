@@ -194,3 +194,8 @@ ui-screenshots-shard-2/
 # Git worktree directories (sprint branch별 worktree)
 .worktrees/
 .worktrees/**
+
+# === vendor: standard_ai_workflow v0.7.17+ (2026-06-15) ===
+# vendor 디렉터리는 standard_ai_workflow 의 표준화 워크플로우 발매 패키지를
+# 격리 import 한 read-only reference. 본 저장소 운영에 영향 없음.
+# 갱신: ai-workflow/IMPORT_NOTES.md §6 의 SOP.

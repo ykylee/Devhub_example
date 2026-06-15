@@ -1,0 +1,59 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-02",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-02.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/backlog/",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "TODO: 빠른 테스트 명령 입력",
+    "isolated_tests": "TODO: 격리 테스트 명령 입력",
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "TODO: Summarize the current session focus.",
+    "current_axis": "TODO: Summarize the current session focus.",
+    "current_focus": "TASK-001 표준 AI 워크플로우 초기 도입",
+    "in_progress_items": [
+      "TASK-001 표준 AI 워크플로우 초기 도입",
+      "TASK-042 워크플로우 엔진 구조 리팩토링 검토 및 계획"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-041 워크플로우 킷 코드베이스 전수 분석"
+    ],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-05-02.md",
+    "task_count": 3,
+    "in_progress_items": [
+      "TASK-042 워크플로우 엔진 구조 리팩토링 검토 및 계획"
+    ],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-041 워크플로우 킷 코드베이스 전수 분석"
+    ]
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md",
+    "ai-workflow/memory/backlog/2026-05-02.md"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  }
+}

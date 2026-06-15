@@ -1,0 +1,58 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-07",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/release/v0.5.3/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.3/backlog/2026-06-07.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/backlog/",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "**현재 브랜치**: `release/v0.5.3` (main #9497a35 에서 분기, 2026-06-07)",
+    "current_axis": "**현재 브랜치**: `release/v0.5.3` (main #9497a35 에서 분기, 2026-06-07)",
+    "current_focus": "TASK-V053-001 antigravity MCP config 경로 표준화",
+    "in_progress_items": [
+      "TASK-V053-001 antigravity MCP config 경로 표준화",
+      "TASK-V053-002 cross-language stack 표시"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.3/backlog/2026-06-07.md",
+    "task_count": 2,
+    "in_progress_items": [
+      "TASK-V053-001 antigravity MCP config 경로 표준화",
+      "TASK-V053-002 cross-language stack 표시"
+    ],
+    "blocked_items": [],
+    "done_items": []
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/release/v0.5.3/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md",
+    "ai-workflow/memory/release/v0.5.3/backlog/2026-06-07.md",
+    "ai-workflow/memory/release/v0.5.3/PROJECT_PROFILE.md",
+    "workflow-source/core/maturity_matrix.json"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  }
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wiki-sync-devhub.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 의미 있는 파일을
-# ~/wiki/raw/projects/devhub/ 로 mirror. my_harness 의 wiki-sync-ai-workflow.sh 와 동일 패턴.
+# ai-workflow/wiki/raw/projects/devhub/ 로 mirror. my_harness 의 wiki-sync-ai-workflow.sh 와 동일 패턴.
 #
 # 사용:
 #   bash scripts/wiki-sync-devhub.sh              # real mirror
@@ -57,7 +57,7 @@ done
 # ----- paths -----
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
-VAULT_ROOT="${HOME}/wiki"
+VAULT_ROOT="${SRC}/ai-workflow/wiki"
 DEST="$VAULT_ROOT/raw/projects/devhub"
 
 # ----- validation -----

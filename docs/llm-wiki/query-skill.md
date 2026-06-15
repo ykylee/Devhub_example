@@ -1,11 +1,11 @@
 # Wiki-Query Skill (본 저장소 측 사용법 가이드)
 
-- 문서 목적: LLM agent (또는 사용자) 가 `~/wiki/` Obsidian vault 를 query 할 때 사용하는 본 저장소 측 wrapper + guide. vault 의 LLM wiki 패턴 (D-71) 의 §2.2 Query 오퍼레이션 6 step 의 자동화 entry point.
+- 문서 목적: LLM agent (또는 사용자) 가 `ai-workflow/wiki/` Obsidian vault 를 query 할 때 사용하는 본 저장소 측 wrapper + guide. vault 의 LLM wiki 패턴 (D-71) 의 §2.2 Query 오퍼레이션 6 step 의 자동화 entry point.
 - 범위: `scripts/wiki-query.sh` (thin wrapper) + 본 가이드. **my_harness 측 SSOT**: `~/repos/my_harness/ai-workflow/core/wiki_query_skill_spec.md` (D-79) + `~/repos/my_harness/ai-workflow/skills/wiki-query/` (impl).
 - 대상 독자: DevHub/my_harness owner (yklee), LLM agent (wiki 의 RAG source 활용자), my_harness 작업 에이전트.
 - 상태: draft (D-79 Phase 1, 2026-06-11)
 - 최종 수정일: 2026-06-11
-- 관련 문서: [`docs/llm-wiki/ingest-skill.md`](./ingest-skill.md) (D-72 Phase 3, 가장 가까운 precedent), [`docs/llm-wiki/README.md`](../llm-wiki/README.md) (D-72 SSOT), `~/wiki/AGENTS.md` v1.5 §2.2 Query (vault 의 LLM 운영 규약), `~/wiki/schema/page_template.md` (frontmatter 형식), `~/wiki/schema/lint_rules.md` (L01~L10).
+- 관련 문서: [`docs/llm-wiki/ingest-skill.md`](./ingest-skill.md) (D-72 Phase 3, 가장 가까운 precedent), [`docs/llm-wiki/README.md`](../llm-wiki/README.md) (D-72 SSOT), `ai-workflow/wiki/AGENTS.md` v1.5 §2.2 Query (vault 의 LLM 운영 규약), `ai-workflow/wiki/schema/page_template.md` (frontmatter 형식), `ai-workflow/wiki/schema/lint_rules.md` (L01~L10).
 
 ## 1. 사용법
 
@@ -26,7 +26,7 @@ bash scripts/wiki-query.sh --query "ADR-0020" --format json --no-file
 ### 1.2 Read + Write (AGENTS.md §2.2 6 step 자동)
 
 ```bash
-# read 결과로 `~/wiki/wiki/projects/<project>/query/<date>-<topic>.md` 신규 + log.md 1 line append
+# read 결과로 `ai-workflow/wiki/wiki/projects/<project>/query/<date>-<topic>.md` 신규 + log.md 1 line append
 bash scripts/wiki-query.sh --query "ADR-0020 결정 사항" --file
 ```
 
@@ -125,7 +125,7 @@ bash scripts/wiki-query.sh --query "ADR-0020 결정 사항" --file
 
 ## 4. 권한 (permissions)
 
-본 skill 의 권한 경계는 **`~/wiki/AGENTS.md` v1.5 (D-71) 의 §2.2 Query 6 step + §6 금지**:
+본 skill 의 권한 경계는 **`ai-workflow/wiki/AGENTS.md` v1.5 (D-71) 의 §2.2 Query 6 step + §6 금지**:
 
 ### 4.1 허용 (read-only default)
 
@@ -158,19 +158,19 @@ bash scripts/wiki-query.sh --query "ADR-0020 결정 사항" --file
 
 | step | action | file |
 |---|---|---|
-| 1 | `index.md` 읽고 후보 페이지 식별 | `~/wiki/index.md` (read) |
+| 1 | `index.md` 읽고 후보 페이지 식별 | `ai-workflow/wiki/index.md` (read) |
 | 2 | 관련 `wiki/` 페이지 read + 종합 | `wiki/projects/<project>/{concepts,entities,topics,sources,...}` (read) |
 | 3 | 답변 끝에 `Filed as [[query/<date>-<topic>]]` 한 줄 | answer body |
 | 4 | `query/` 페이지 본문 4섹션 (질문 / 사용 컨텍스트 / 답변 / 후속 액션) | `wiki/projects/<project>/query/<date>-<topic>.md` (create) |
-| 5 | `log.md` `## [<date>] query | <topic>` 1 line | `~/wiki/log.md` (append) |
+| 5 | `log.md` `## [<date>] query | <topic>` 1 line | `ai-workflow/wiki/log.md` (append) |
 | 6 | 답변은 Obsidian 내부 file → 향후 ingest source 가산 | (`step 4` 의 page 가 source 후보) |
 
 ## 6. 실패 규칙 (failure rules)
 
 | 실패 | 처리 |
 |---|---|
-| `~/wiki/AGENTS.md` 부재 | exit 1 + `[wiki-query] error: vault AGENTS.md not found` + hint `wiki-init` (my_harness D-71 §2.2) |
-| `~/wiki/index.md` 부재 | exit 1 + hint `index.md 필요 (LLM query 의 첫 reading)` |
+| `ai-workflow/wiki/AGENTS.md` 부재 | exit 1 + `[wiki-query] error: vault AGENTS.md not found` + hint `wiki-init` (my_harness D-71 §2.2) |
+| `ai-workflow/wiki/index.md` 부재 | exit 1 + hint `index.md 필요 (LLM query 의 첫 reading)` |
 | `wiki/projects/<project>/query/` 부재 | 자동 생성 (mkdir -p) 후 진행 |
 | 0 results | exit 0 + stdout `## Hits` 빈 섹션. `--file` 모드라도 query/ 페이지는 작성 (후속 액션 항목 = "no hits" 명시) |
 | `--query` 부재 | exit 2 + usage |

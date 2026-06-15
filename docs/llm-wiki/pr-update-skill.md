@@ -1,11 +1,11 @@
 # Wiki-PR-Update Skill (본 저장소 측 사용법 가이드)
 
-- 문서 목적: PR (`gh pr view <num>`) 의 metadata + touched files → `~/wiki/` 의 prs/<num>.md 신규 + log.md append + (optional) touched file re-ingest 의 본 저장소 측 wrapper + guide. PR-auto-update skill 의 thin wrapper.
+- 문서 목적: PR (`gh pr view <num>`) 의 metadata + touched files → `ai-workflow/wiki/` 의 prs/<num>.md 신규 + log.md append + (optional) touched file re-ingest 의 본 저장소 측 wrapper + guide. PR-auto-update skill 의 thin wrapper.
 - 범위: `scripts/wiki-pr-update.sh` (thin wrapper) + 본 가이드. **my_harness 측 SSOT**: `~/repos/my_harness/ai-workflow/core/wiki_pr_update_skill_spec.md` (D-80) + `~/repos/my_harness/ai-workflow/skills/wiki-pr-update/` (impl).
 - 대상 독자: DevHub owner (yklee), my_harness 작업 에이전트, `gh` CLI 사용자.
 - 상태: draft (D-80 Phase 1, 2026-06-11)
 - 최종 수정일: 2026-06-11
-- 관련 문서: [`docs/llm-wiki/ingest-skill.md`](./ingest-skill.md) (D-72 Phase 3, 가장 가까운 precedent), [`docs/llm-wiki/query-skill.md`](./query-skill.md) (D-79, 동시 작성), [`docs/llm-wiki/README.md`](../llm-wiki/README.md), `~/wiki/AGENTS.md` v1.5 §11.1 D-72 cross-project, [`scripts/wiki-query.sh`](../../scripts/wiki-query.sh) (동시 작성, query page 작성 패턴), [`scripts/wiki-ingest-from-raw.sh`](../../scripts/wiki-ingest-from-raw.sh) (D-72, re-ingest dispatch).
+- 관련 문서: [`docs/llm-wiki/ingest-skill.md`](./ingest-skill.md) (D-72 Phase 3, 가장 가까운 precedent), [`docs/llm-wiki/query-skill.md`](./query-skill.md) (D-79, 동시 작성), [`docs/llm-wiki/README.md`](../llm-wiki/README.md), `ai-workflow/wiki/AGENTS.md` v1.5 §11.1 D-72 cross-project, [`scripts/wiki-query.sh`](../../scripts/wiki-query.sh) (동시 작성, query page 작성 패턴), [`scripts/wiki-ingest-from-raw.sh`](../../scripts/wiki-ingest-from-raw.sh) (D-72, re-ingest dispatch).
 
 ## 1. 사용법
 
@@ -19,7 +19,7 @@ gh pr merge <num> --squash
 bash scripts/wiki-pr-update.sh --pr <num> --apply
 ```
 
-CI hook (GitHub Actions) 은 **사용 안 함** — GitHub hosted runner 는 사내 host (vault `~/wiki/`) 접근 불가. 사내 self-hosted runner 도입 시 forward path.
+CI hook (GitHub Actions) 은 **사용 안 함** — GitHub hosted runner 는 사내 host (vault `ai-workflow/wiki/`) 접근 불가. 사내 self-hosted runner 도입 시 forward path.
 
 ### 1.2 사용 예시
 
@@ -101,7 +101,7 @@ bash scripts/wiki-pr-update.sh --pr <num> --project my-harness --apply
 
 ## 4. 권한 (permissions)
 
-본 skill 의 권한 경계는 **`~/wiki/AGENTS.md` v1.5 (D-71) 의 §11.1 D-72 cross-project + §6 금지 + AGENTS.md 본 저장소 §6.5 PR tier 정책**:
+본 skill 의 권한 경계는 **`ai-workflow/wiki/AGENTS.md` v1.5 (D-71) 의 §11.1 D-72 cross-project + §6 금지 + AGENTS.md 본 저장소 §6.5 PR tier 정책**:
 
 ### 4.1 허용
 
@@ -115,9 +115,9 @@ bash scripts/wiki-pr-update.sh --pr <num> --project my-harness --apply
 - `raw/` 수정 (AGENTS.md §6, 절대 금지)
 - `wiki/concepts/`, `wiki/entities/`, `wiki/topics/`, `wiki/sources/`, `wiki/comparisons/`, `wiki/query/` 등 read-only 영역 수정 (PR-update 의 책임 외)
 - `schema/` 수정
-- `~/wiki/AGENTS.md` 수정
+- `ai-workflow/wiki/AGENTS.md` 수정
 - 다른 project 의 `wiki/projects/<other>/` 수정
-- **vault Gitea remote push** (AGENTS.md 본 저장소 §6.5 정책 — 사외/사내 2-tier 형상관리 분리. vault = 사내 Gitea private. **본 skill 은 local vault 만 갱신, push 는 사용자 수동 결정 영역**)
+- **vault Gitea remote push** (AGENTS.md 본 저장소 §6.5 정책 — 사외/사내 2-tier 형상관리 분리. vault = 사내 in-repo (v0.7.17+). **본 skill 은 local vault 만 갱신, push 는 사용자 수동 결정 영역**)
 - 자동 lint 결과 자동 머지 (AGENTS.md §6)
 - `main` branch 의 자동 머지 (PR-auto-update ≠ PR-auto-merge)
 
@@ -138,7 +138,7 @@ bash scripts/wiki-pr-update.sh --pr <num> --project my-harness --apply
 | `gh` 미인증 | exit 1 + `gh auth login` 안내 |
 | PR 부재 (closed/merged 안 됨, 또는 다른 repo) | exit 1 + stderr 에 `gh pr view <num>` 의 raw error |
 | my_harness skill 부재 (`run_wiki_pr_update.py`) | exit 1 + SSOT 경로 안내 |
-| `~/wiki/AGENTS.md` 부재 | exit 1 + hint `wiki-init` (my_harness D-71 §2.2) |
+| `ai-workflow/wiki/AGENTS.md` 부재 | exit 1 + hint `wiki-init` (my_harness D-71 §2.2) |
 | `prs/` 디렉터리 부재 | 자동 생성 (mkdir -p) 후 진행 |
 | 0 touched files | 정상 (PR 이 docs-only 가 아닌 경우, 예: workflow 변경만). exit 0 + "no touched files" log |
 | `--reingest` 시 touched file 이 mirror-list 와 미매칭 | skip + "not in mirror list" log. 다른 file 들은 정상 진행 |
