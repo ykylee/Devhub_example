@@ -281,6 +281,9 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodPost, "/api/v1/integration/test-connection"}:                            {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodGet, "/api/v1/integration/bindings"}:                                    {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	{http.MethodPost, "/api/v1/integration/bindings"}:                                   {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
+	{http.MethodGet, "/api/v1/admin/integrations/sync-jobs"}:                            {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/admin/integrations/sync-jobs/:jobID"}:                     {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/admin/integrations/summary"}:                              {Resource: domain.ResourceInfrastructure, Action: domain.ActionView},
 	// PR #251 P2-4 sub-carve — Bindings UI 강화. API-81 PATCH + API-82 DELETE.
 	{http.MethodPatch, "/api/v1/integration/bindings/:binding_id"}:  {Resource: domain.ResourceInfrastructure, Action: domain.ActionEdit},
 	{http.MethodDelete, "/api/v1/integration/bindings/:binding_id"}: {Resource: domain.ResourceInfrastructure, Action: domain.ActionDelete},

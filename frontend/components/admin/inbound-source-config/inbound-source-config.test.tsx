@@ -42,7 +42,7 @@ describe("InboundSourceTypeSelector", () => {
   it("shows Gitea hint when value=gitea", async () => {
     const { InboundSourceTypeSelector } = await import("./InboundSourceTypeSelector");
     render(React.createElement(InboundSourceTypeSelector, { value: "gitea", onChange: () => {} }));
-    expect(screen.getByText(/GITEA-\\\d\+ external_ref \+ X-Gitea-\* header \+ provider_type='scm'/i)).toBeInTheDocument();
+    expect(screen.getByText(/GITEA-<number> external_ref \+ X-Gitea-\* header \+ provider_type='scm'/i)).toBeInTheDocument();
   });
 
   it("calls onChange when select changes", async () => {
@@ -95,7 +95,9 @@ describe("PatternPreview", () => {
   it("shows provider-default pattern for gitea", async () => {
     const { PatternPreview } = await import("./PatternPreview");
     render(React.createElement(PatternPreview, { type: "gitea", customPattern: "" }));
-    expect(screen.getByText(/pattern: \^GITEA-\\d\+\$/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) => element?.textContent === "pattern: ^GITEA-\\d+$"),
+    ).toBeInTheDocument();
   });
 
   it("shows custom pattern for other", async () => {
@@ -106,7 +108,9 @@ describe("PatternPreview", () => {
         customPattern: "^CUSTOM-\\d+$",
       }),
     );
-    expect(screen.getByText(/pattern: \^CUSTOM-\\d\+\$/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) => element?.textContent === "pattern: ^CUSTOM-\\d+$"),
+    ).toBeInTheDocument();
   });
 });
 

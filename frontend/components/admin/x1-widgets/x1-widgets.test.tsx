@@ -156,7 +156,7 @@ describe("ProviderHealthWidget", () => {
     const { ProviderHealthWidget } = await import("./ProviderHealthWidget");
     render(React.createElement(ProviderHealthWidget));
     await waitFor(() => {
-      expect(screen.getByText(/Provider Health/i)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /Provider Health/i })).toBeInTheDocument();
       expect(screen.getByText(/Provider health endpoint 미구현/)).toBeInTheDocument();
       expect(screen.getByText(/ADR-0032 §3 carve/)).toBeInTheDocument();
     });

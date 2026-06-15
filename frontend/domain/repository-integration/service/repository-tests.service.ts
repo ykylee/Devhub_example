@@ -36,6 +36,6 @@ export async function fetchRepositoryTestResults(
     params.set("limit", String(opts.limit));
   }
   const url = `${BASE_PATH(repositoryId)}?${params.toString()}`;
-  const res = await apiClient.get<RepositoryTestResultsResponse>(url);
+  const res = await apiClient<RepositoryTestResultsResponse>("GET", url);
   return res.data ?? null;
 }

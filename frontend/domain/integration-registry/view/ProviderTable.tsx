@@ -47,6 +47,8 @@ function providerTypeVariant(t: IntegrationProvider["provider_type"]): BadgeVari
     case "alm": return "accent";
     case "doc": return "warning";
     case "infra": return "accent";
+    case "task_tracker": return "secondary";
+    case "other": return "glass";
   }
 }
 

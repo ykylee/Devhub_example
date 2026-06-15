@@ -4,7 +4,7 @@
 - 범위: 통합 로드맵, 트랙별 세부 로드맵, 마일스톤별 backlog 위치, PR 별 트래커, 보안 리뷰 트래커, 향후 sprint plan
 - 대상 독자: 프로젝트 리드, 백엔드/프론트엔드/Auth/AI/운영 트랙 담당자, 후속 작업자
 - 상태: accepted
-- 최종 수정일: 2026-06-04
+- 최종 수정일: 2026-06-15
 - 관련 문서: [../README.md](../README.md), [../development_roadmap.md](../development_roadmap.md), [../DOCUMENT_INDEX.md](../DOCUMENT_INDEX.md)
 
 ## 0. 진입점 — 무엇부터 읽는가
@@ -88,7 +88,16 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 - **Capacity / 일정 시각화**: 마일스톤별 인력·기간 추정.
 - **회의록**: 트랙 간 sync 결정 (대안: 각 트랙 backlog 에 분산).
 
-## 5.1 도메인 컨셉 (Concept stage)
+## 5.1 운영 회고 / 레슨런
+
+CI, rollout, 복구 패턴처럼 후속 작업자가 반복해서 참고해야 하는 운영 회고는 본 디렉터리에 timestamped 문서로 남긴다.
+
+| 문서 | 범위 | 메모 |
+| --- | --- | --- |
+| [`2026-06-13-ci-rearchitecture-retrospective.md`](./2026-06-13-ci-rearchitecture-retrospective.md) | CI 재구성 결과 + PR #579 재평가 | required/regression/quarantine lane 분리, old PR 재평가 패턴 |
+| [`2026-06-15-pr-598-ci-recovery-retrospective.md`](./2026-06-15-pr-598-ci-recovery-retrospective.md) | PR #598 CI 복구 | `setup-go` cache restore failure + 최신 `main` 리베이스 후 regression 정리 |
+
+## 5.2 도메인 컨셉 (Concept stage)
 
 | 문서 | 단계 | 메모 |
 | --- | --- | --- |
@@ -120,6 +129,7 @@ PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물
 | 2026-05-15 | §5.1 외부 연동 capability matrix 추가 — `external_integration_capability_matrix.md`. provider별 capability/수집 방식/인증 모드/MVP 우선순위 정리. |
 | 2026-05-18 | §5.1 단일 외부 포트 reverse proxy design 검토 신규 — `single_port_reverse_proxy.md`. 외부 단일 포트 + `/devhub` prefix + backend/Hydra/Kratos sub-path 매핑 + nginx 권장 + OIDC URL 정합 + cookie scope + cutover 절차. 결정 후 ADR-0018 후보 승격. sprint `claude/work_260518-u`. |
 | 2026-05-18 | §5.1 외부 Keycloak SSO federation design 검토 신규 — `keycloak_sso_federation.md`. 옵션 3종 비교 (전체 대체/**Kratos federation**/Hydra brokering) + Kratos config + claim mapping + HRDB user mapping 4 옵션 (**employee_id strict link** 권장) + cutover 절차 + 단일 포트 design 정합 + 보안 점검 + carve out. RM-M4-09 의 구체화. 결정 후 ADR-0019 후보 승격. sprint `claude/work_260518-v`. |
+| 2026-06-15 | §5.1 운영 회고 / 레슨런 섹션 신설 — `2026-06-13-ci-rearchitecture-retrospective.md`, `2026-06-15-pr-598-ci-recovery-retrospective.md` 링크 추가. PR #598 CI 복구 기록 진입점 보강. |
 
 ## 7. 신규 자료 작성 규칙
 
