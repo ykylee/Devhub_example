@@ -512,3 +512,33 @@ func TestGiteaPullAdapter_PullAndIngestSince_NoDoubleIncrement(t *testing.T) {
 		t.Errorf("consecutiveFailures = %d; want 0 (adapter must not increment; loop owns it)", cf)
 	}
 }
+
+// stateToEventType 단위 test (X-5 production wire follow-up, IMPL-GITEA-PULL-INGEST-01).
+// 정합: pr_activities.event_type enum (migration 000001 L411) 와 1:1.
+func TestStateToEventType_Open(t *testing.T) {
+	if got := stateToEventType("open", false); got != "opened" {
+		t.Errorf("stateToEventType(open, false) = %q; want %q", got, "opened")
+	}
+}
+
+func TestStateToEventType_ClosedMerged(t *testing.T) {
+	if got := stateToEventType("closed", true); got != "merged" {
+		t.Errorf("stateToEventType(closed, true) = %q; want %q", got, "merged")
+	}
+}
+
+func TestStateToEventType_ClosedNotMerged(t *testing.T) {
+	if got := stateToEventType("closed", false); got != "closed" {
+		t.Errorf("stateToEventType(closed, false) = %q; want %q", got, "closed")
+	}
+}
+
+func TestStateToEventType_UnknownFallback(t *testing.T) {
+	// state="all" 또는 그 외 → "updated" defensive fallback (CHECK constraint 통과).
+	if got := stateToEventType("all", false); got != "updated" {
+		t.Errorf("stateToEventType(all, false) = %q; want %q", got, "updated")
+	}
+	if got := stateToEventType("", false); got != "updated" {
+		t.Errorf("stateToEventType('', false) = %q; want %q", got, "updated")
+	}
+}

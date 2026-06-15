@@ -33,17 +33,36 @@ func NewGiteaClient(baseURL, token string) *GiteaClient {
 
 // GiteaPullRequest is the minimal subset of Gitea PR schema we care about.
 type GiteaPullRequest struct {
-	ID        int64     `json:"id"`
-	Number    int       `json:"number"`
-	State     string    `json:"state"`
-	Title     string    `json:"title"`
-	Body      string    `json:"body"`
-	HeadSHA   string    `json:"head_sha"`
-	UpdatedAt time.Time `json:"updated_at"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64      `json:"id"`
+	Number    int        `json:"number"`
+	State     string     `json:"state"`
+	Title     string     `json:"title"`
+	Body      string     `json:"body"`
+	HeadSHA   string     `json:"head_sha"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	Merged    bool       `json:"merged"`
+	MergedAt  *time.Time `json:"merged_at,omitempty"`
 	User      struct {
 		Login string `json:"login"`
 	} `json:"user"`
+}
+
+// stateToEventType maps Gitea PR state (open/closed) + merged bool to
+// pr_activities.event_type enum (opened/reviewed/commented/closed/merged/reopened/updated).
+// Migration 000001 L411 enum constraint 정합. Defensive fallback = "updated".
+func stateToEventType(state string, merged bool) string {
+	switch state {
+	case "open":
+		return "opened"
+	case "closed":
+		if merged {
+			return "merged"
+		}
+		return "closed"
+	default:
+		return "updated"
+	}
 }
 
 // GiteaBuild is the minimal subset of Gitea Actions build schema.
@@ -238,7 +257,8 @@ func (a *GiteaPullAdapter) PullAndIngestSince(ctx context.Context, target Reposi
 			partialReasons = append(partialReasons, "max_items_per_call reached at pr")
 			break
 		}
-		if err := a.Store.UpsertPullActivity(ctx, target.ID, pr.ID, pr.Number, pr.State, pr.Title, pr.Body, pr.HeadSHA, pr.User.Login, pr.UpdatedAt); err != nil {
+		eventType := stateToEventType(pr.State, pr.Merged)
+		if err := a.Store.UpsertPullActivity(ctx, target.ID, pr.ID, pr.Number, eventType, pr.Title, pr.Body, pr.HeadSHA, pr.User.Login, pr.UpdatedAt); err != nil {
 			partialReasons = append(partialReasons, fmt.Sprintf("pr %d upsert: %v", pr.ID, err))
 			continue
 		}

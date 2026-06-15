@@ -143,13 +143,35 @@ semaphore `NewSemaphore(concurrency)` (default 4, env `DEVHUB_GITEA_PULL_CONCURR
 | staging Gitea 실 검증 SOP | **사내** | Gitea instance URL / API token / staging account 사내 한정 → 별도 docs (X-5 follow-up) |
 | production Gitea 검증 SOP | **사내** | 동일 |
 
+### 5.1 production wire follow-up (sprint `feat/x5-gitea-pull-store-wire`)
+
+1차 PR 의 `adapter.Store = nil` + `repoLister` placeholder (운영 시 fail-fast) → production wire 교체.
+| 영역 | Tier | 비고 |
+|---|---|---|
+| `PostgresStore.UpsertPullActivity` / `UpsertBuildRun` / `UpsertQualitySnapshot` | 공용 | pr_activities / build_runs / quality_snapshots ON CONFLICT upsert. migration 000001 L402/95/505 정합 |
+| `PostgresStore.UpdatePullState` / `IncrementConsecutiveFailures` / `ResetConsecutiveFailures` / `SetBackoff` / `BackoffUntil` / `LastPullAt` | 공용 | repository_pull_state CRUD (migration 000043) |
+| `PostgresStore.ListGiteaPullTargets` | 공용 | repositories + integration_providers + repository_pull_state LEFT JOIN, Gitea SCM 한정 |
+| `migration 000045_quality_snapshots_ref_name_unique` | 공용 | partial UNIQUE INDEX (tool='gitea-build' 한정) — ON CONFLICT upsert 정합 |
+| `gitea_pull.go` adapter `stateToEventType` helper + `GiteaPullRequest.Merged` field | 공용 | pr_activities.event_type enum 정합, adapter 책임 |
+| main.go production wire 교체 | 공용 | pgStore nil 가드 유지 (sqlite/in-memory 환경) |
+
 ## 6. 검증
+
+### 6.1 1차 PR (2026-06-14, sprint `feat/x5-gitea-hourly-pull`)
 
 - `go test ./internal/integrations/adapters/...` 8 신규 unit test PASS (gitea_pull_test.go)
 - `go test ./...` 30+ packages 회귀 0
 - `go build ./...` silent PASS
 - backend e2e shard 1/2/3 skip (path-detect: backend only 변경, frontend/e2e 영향 0)
 - openapi lint PASS (변경 0, cron worker = internal only)
+
+### 6.2 follow-up production wire (sprint `feat/x5-gitea-pull-store-wire`)
+
+- `go test ./internal/integrations/adapters/...` 4 신규 unit test (stateToEventType 4 case) PASS
+- `go test ./...` 30+ packages 회귀 0 (단, httpapi 의 routePermissionTable pre-existing FAIL 3건은 X-1 잔여 — 본 follow-up scope 외)
+- `go build ./...` silent PASS
+- 1 integration test (`TestIntegration_RepositoryPullState_AllMethods` + `TestIntegration_RepositoryPullIngest_UpsertPRBuildQuality` + `TestIntegration_ListGiteaPullTargets_Filter`) — DEVHUB_TEST_DB_URL 설정 시 PASS
+- openapi lint PASS (변경 0, main.go 변경 만, env var + import 만)
 
 ## 7. supersession
 
@@ -161,3 +183,4 @@ semaphore `NewSemaphore(concurrency)` (default 4, env `DEVHUB_GITEA_PULL_CONCURR
 | 일자 | 변경 | sprint |
 |---|---|---|
 | 2026-06-14 | 1차 발행 (Accepted). X-5 Gitea Hourly Pull 정밀화 + per-repo state + 4 concurrent + 24h backoff cap + 5 metric + 4 audit. | `feat/x5-gitea-hourly-pull` |
+| 2026-06-15 | **production wire follow-up** — §5.1 cross-tier 표 7 row 추가, §6.2 검증 추가, §9 정공법 추가. backend PostgresStore 9 method + ListGiteaPullTargets + migration 000045 + adapter stateToEventType helper + main.go production wire 교체. 본 ADR 의 accept 상태 유지 (1차 결정 변경 없음, follow-up 정합). | `feat/x5-gitea-pull-store-wire` |
