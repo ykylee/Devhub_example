@@ -15,7 +15,7 @@
 
 기존 1.1~1.6 (ADR 31 + Governance 5 + Planning 27 + Setup 15 + Requirements + OpenAPI + memory main flat 3) = **85 file**. 본 section 의 내용은 위 historical 정공법 정합. 본 갱신은 Phase 1.5 추가가 목적.
 
-## 1.7 Phase 1.5 (source code + workflow + scripts + branch memory maintenance subset, ~55 file) — **2026-06-13 신규**
+## 1.7 Phase 1.5 (source code + workflow + scripts + branch memory maintenance subset, ~59 file) — **2026-06-13 신규 (X-5 follow-up 으로 4 file 추가)**
 
 **Phase 1.5 의 목적**: PR #578+#579+#580+#581 의 source code 변경분 + 운영/유지보수 critical file + branch memory 를 mirror 에 포함. wiki 만으로 **code maintenance 가능** (단순 SSOT 참조 + 1차 layer reasoning).
 
@@ -45,8 +45,12 @@
 | `backend-core/internal/domain/rbac-permissions/view/rbac.go` | RBAC PermissionCache + permission cache (PR #29~#31) | LISTEN/NOTIFY (future ADR-0007) |
 | `backend-core/internal/httpapi/repository_ops.go` | ListRepositoryBuildRuns (P1-7 N-9 PR #555) | devhub_repository_build_runs + platformStoreOrUnavailable guard |
 | `backend-core/internal/store/repository_ops.go` | postgres store 의 repository_ops | BuildRun table CRUD + path 차이 (httpapi vs store 의 layer 분리) |
+| `backend-core/internal/store/repository_pull_ingest.go` | **X-5 production wire follow-up 신규** — PostgresStore 의 `UpsertPullActivity` / `UpsertBuildRun` / `UpsertQualitySnapshot` 3 method | pr_activities / build_runs / quality_snapshots ON CONFLICT upsert (migration 000001 L402/95/505 + 000045 partial unique 정합) |
+| `backend-core/internal/store/repository_pull_state.go` | **X-5 production wire follow-up 신규** — PostgresStore 의 `UpdatePullState` / `IncrementConsecutiveFailures` / `ResetConsecutiveFailures` / `SetBackoff` / `BackoffUntil` / `LastPullAt` 6 method | repository_pull_state CRUD (migration 000043), cold start 자동 upsert |
+| `backend-core/internal/store/repository_pull_targets.go` | **X-5 production wire follow-up 신규** — PostgresStore 의 `ListGiteaPullTargets` + `GiteaPullTarget` type | repositories + integration_providers + repository_pull_state LEFT JOIN, Gitea SCM 한정 + backoff filter |
+| `backend-core/internal/integrations/adapters/gitea_pull.go` | **X-5 1차 PR + follow-up 갱신** — GiteaClient 5 method + GiteaPullAdapter + stateToEventType helper | pr_activities.event_type enum 정합 (state="open"→"opened", state="closed"+merged=true→"merged", closed+!merged→"closed", fallback→"updated") |
 
-**mirror 정책**: 15 file. **lint 영향**: L02 broken link 의 source code link 가 raw/ 에 존재 (mirror scope 내) → L02 PASS. L10 면제 불요 (raw/ 의 1:1 mirror).
+**mirror 정책**: 19 file. **lint 영향**: L02 broken link 의 source code link 가 raw/ 에 존재 (mirror scope 내) → L02 PASS. L10 면제 불요 (raw/ 의 1:1 mirror).
 
 **본 sprint 의 verification 으로 발각** (2026-06-13): 원본 Phase 1.5 의 12 file 화이트리스트 중 `keycloak_verifier.go` + `keycloak_admin_client.go` + `audit/middleware.go` + `rbac/policy_store.go` + `store/postgres/repository_ops.go` 의 경로 outdated (해당 경로에 file 부재). **fix**: §1.7.1 의 file list 의 정확한 경로 정합 (audit-ops/ + rbac-permissions/ + httpapi/ + store/ 의 실제 경로). **forward**: 새 backend file 추가 시 PR 본문에 mirror scope 추가 요청 (mirror-list.md §1.7.1 + script 의 화이트리스트 갱신).
 

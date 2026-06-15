@@ -33,17 +33,36 @@ func NewGiteaClient(baseURL, token string) *GiteaClient {
 
 // GiteaPullRequest is the minimal subset of Gitea PR schema we care about.
 type GiteaPullRequest struct {
-	ID        int64     `json:"id"`
-	Number    int       `json:"number"`
-	State     string    `json:"state"`
-	Title     string    `json:"title"`
-	Body      string    `json:"body"`
-	HeadSHA   string    `json:"head_sha"`
-	UpdatedAt time.Time `json:"updated_at"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64      `json:"id"`
+	Number    int        `json:"number"`
+	State     string     `json:"state"`
+	Title     string     `json:"title"`
+	Body      string     `json:"body"`
+	HeadSHA   string     `json:"head_sha"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	Merged    bool       `json:"merged"`
+	MergedAt  *time.Time `json:"merged_at,omitempty"`
 	User      struct {
 		Login string `json:"login"`
 	} `json:"user"`
+}
+
+// stateToEventType maps Gitea PR state (open/closed) + merged bool to
+// pr_activities.event_type enum (opened/reviewed/commented/closed/merged/reopened/updated).
+// Migration 000001 L411 enum constraint 정합. Defensive fallback = "updated".
+func stateToEventType(state string, merged bool) string {
+	switch state {
+	case "open":
+		return "opened"
+	case "closed":
+		if merged {
+			return "merged"
+		}
+		return "closed"
+	default:
+		return "updated"
+	}
 }
 
 // GiteaBuild is the minimal subset of Gitea Actions build schema.
@@ -93,13 +112,22 @@ func (c *GiteaClient) ListPullRequestsSince(ctx context.Context, owner, repo str
 	return out, true, nil
 }
 
-// ListBuilds fetches recent builds for a repo.
+
+// Gitea version 별로 다름 (1.21+ = { "workflow_runs": [...] } wrapper, 그 이전 / 일부 fork
+// = bare array). 양쪽 shape 모두 decode 시도 — `workflow_runs` 가 있으면 그걸, 없으면
+// bare array 로 취급. (codex P1 — production wire 의 per-repo 호출에서 JSON decode fail 방지)
 func (c *GiteaClient) ListBuilds(ctx context.Context, owner, repo string, since time.Time) ([]GiteaBuild, error) {
 	u := fmt.Sprintf("%s/api/v1/repos/%s/%s/actions/runs?page=1&limit=50", c.BaseURL, owner, repo)
 	if !since.IsZero() {
 		q := url.Values{}
 		q.Set("since", since.UTC().Format(time.RFC3339))
 		u += "&" + q.Encode()
+	}
+	var wrapped struct {
+		WorkflowRuns []GiteaBuild `json:"workflow_runs"`
+	}
+	if err := c.doJSON(ctx, "GET", u, &wrapped); err == nil && len(wrapped.WorkflowRuns) > 0 {
+		return wrapped.WorkflowRuns, nil
 	}
 	var out []GiteaBuild
 	if err := c.doJSON(ctx, "GET", u, &out); err != nil {
@@ -238,7 +266,8 @@ func (a *GiteaPullAdapter) PullAndIngestSince(ctx context.Context, target Reposi
 			partialReasons = append(partialReasons, "max_items_per_call reached at pr")
 			break
 		}
-		if err := a.Store.UpsertPullActivity(ctx, target.ID, pr.ID, pr.Number, pr.State, pr.Title, pr.Body, pr.HeadSHA, pr.User.Login, pr.UpdatedAt); err != nil {
+		eventType := stateToEventType(pr.State, pr.Merged)
+		if err := a.Store.UpsertPullActivity(ctx, target.ID, pr.ID, pr.Number, eventType, pr.Title, pr.Body, pr.HeadSHA, pr.User.Login, pr.UpdatedAt); err != nil {
 			partialReasons = append(partialReasons, fmt.Sprintf("pr %d upsert: %v", pr.ID, err))
 			continue
 		}

@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
-
 	"github.com/devhub/backend-core/internal/domain"
 	apprep "github.com/devhub/backend-core/internal/domain/application-lifecycle/repository"
 	auditrep "github.com/devhub/backend-core/internal/domain/audit-ops/repository"
@@ -426,18 +426,38 @@ func main() {
 			}
 
 			giteaClient := adapters.NewGiteaClient(giteaBase, cfg.GiteaAPIToken)
-			// NOTE: the production RepositoryPullStore wiring is provided by a follow-up PR.
-			// In this PR we wire only the loop with a nil store; the loop will fail-fast on cycle
-			// and emit error audit. Operators are expected to provide a store implementation
-			// alongside DEVHUB_GITEA_PULL_ENABLED=true.
+			// production wire (X-5 follow-up, sprint feat/x5-gitea-pull-store-wire).
+			// pgStore 가 nil 이면 (sqlite / in-memory 환경) 1차 PR 의 fail-fast 정공법
+			// 유지 — adapter.Store=nil + repoLister noop 으로 cycle 마다 store nil
+			// 에러 audit emit. 운영 환경 (pgStore != nil) 에서만 production store wire.
+			var pullStore adapters.RepositoryPullStore
+			if pgStore != nil {
+				pullStore = pgStore
+			}
 			adapter := &adapters.GiteaPullAdapter{
 				Client:         giteaClient,
-				Store:          nil, // follow-up: wire to repository store
+				Store:          pullStore,
 				MaxItemsPerCall: 200,
 			}
 			repoLister := func(ctx context.Context) ([]adapters.RepositoryTarget, error) {
-				// follow-up: query repositories table where provider_type='gitea' and not in backoff.
-				return nil, nil
+				if pgStore == nil {
+					// noop lister — loop 가 0 repo cycle emit 하고 다음 cycle 대기
+					return nil, nil
+				}
+				targets, err := pgStore.ListGiteaPullTargets(ctx)
+				if err != nil {
+					return nil, err
+				}
+				out := make([]adapters.RepositoryTarget, 0, len(targets))
+				for _, t := range targets {
+					out = append(out, adapters.RepositoryTarget{
+						ID:         strconv.FormatInt(t.ID, 10),
+						Owner:      t.Owner,
+						Name:       t.Name,
+						ExternalID: strconv.FormatInt(t.ExternalID, 10),
+					})
+				}
+				return out, nil
 			}
 			onCycle := func(r adapters.PullCycleResult) {
 				log.Printf("gitea pull cycle %s result=%s synced=%d errored=%d partial=%d skipped=%d",

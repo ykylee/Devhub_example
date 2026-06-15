@@ -26,7 +26,7 @@ main HEAD: `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` (re-tag
 | **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | T-d-79-2/T-d-80-2 | ⏳ planned (v0.1.1-alpha) |
 | **X-3** | 평문 secret envelope 암호화 (DEK + 키관리 ADR) | ADR | ⏳ planned (v0.1.1-alpha) |
 | **X-4** | Phase D — project 생성 flow ↔ SCM create 연계 | T-d-72-5/6 | ⏳ planned (v0.1.1-alpha) |
-| **X-5** | Gitea Hourly Pull 정밀화 (RM-M4-06 잔여, issue #231) | — | ⏳ planned (v0.1.1-alpha) |
+| **X-5** | Gitea Hourly Pull 정밀화 (RM-M4-06 잔여, issue #231) | — | ✅ implemented (production wire, 2026-06-15 sprint `feat/x5-gitea-pull-store-wire`) — 1차 PR #592 + a49a5660 fix (cron worker + interface + metric + audit) + 본 follow-up PR (RepositoryPullStore 9 method + ListGiteaPullTargets + migration 000045 + adapter stateToEventType + main.go production wire) | 
 | **X-6** | Keycloak group staging-prod 적용 (P1-3, issue #214) | ADR-0019 | ⏳ planned (v0.1.1-alpha) |
 | **X-7** | ADR-0016 §6 alert 임계 확정 (P2-2) | — | ⏳ planned (v0.1.1-alpha) |
 | **X-8** | Keycloak SPI realm events push 전환 (P2-6/P3-5) | ADR-0019 | ⏳ planned (v0.1.1-alpha) |
