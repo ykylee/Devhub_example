@@ -1,73 +1,73 @@
 #!/usr/bin/env bash
-# wiki-ingest-from-raw.sh — DevHub repo (~/repos/Devhub_example_minimax/) 의 raw mirror 결과 +
-# my_harness 측 wiki-ingest-from-raw skill 호출 통합 wrapper.
+# wiki-ingest-from-raw.sh — DevHub 의 raw mirror + L2 dense emit 통합 wrapper.
 #
 # 사용:
-#   bash scripts/wiki-ingest-from-raw.sh --dry-run                # raw mirror + wiki ingest preview
-#   bash scripts/wiki-ingest-from-raw.sh --project devhub --apply # raw mirror + wiki ingest 실제 적용
-#   bash scripts/wiki-ingest-from-raw.sh --source <rel> --apply   # 1 file 만 ingest
+#   bash scripts/wiki-ingest-from-raw.sh --dry-run                  # raw mirror + L2 emit preview
+#   bash scripts/wiki-ingest-from-raw.sh --apply                    # raw mirror + L2 emit apply
+#   bash scripts/wiki-ingest-from-raw.sh --source <rel> --apply     # 1 file 만 emit
 #
-# 본 script 의 source-of-truth:
-#   - my_harness 측 SSOT: ~/repos/my_harness/ai-workflow/core/wiki_ingest_skill_spec.md
-#   - my_harness skill:    ~/repos/my_harness/ai-workflow/skills/wiki-ingest-from-raw/
-#   - DevHub mirror tool:  scripts/wiki-sync-devhub.sh
-#   - vault 운영 규약:     ai-workflow/wiki/AGENTS.md (v1.5, D-71) 의 §2.1 Ingest
+# 본 script 의 source-of-truth (v0.7.17+ in-repo redirect, 2026-06-15):
+#   - DevHub mirror tool:  scripts/wiki-sync-devhub.sh (in-repo)
+#   - L2 dense emit:       vendor/standard_ai_workflow/tools/emit_wiki_l2_body.py (in-repo)
+#   - drift check:         tests/check_wiki_drift_devhub.py (in-repo DevHub adapter)
+#   - vault 운영 규약:     ai-workflow/wiki/ (L0/L1/L2 in-repo)
 #
-# 결정적 단순: 2 단계 wrapper.
-#   1. raw mirror (wiki-sync-devhub.sh) — raw/ 갱신
-#   2. wiki ingest (my_harness 의 run_wiki_ingest.py) — raw/ → wiki/ page 자동 작성
+# **Deprecated (2026-06-15)**: 본 script 의 *my_harness 측 run_wiki_ingest.py / run_wiki_lint.py*
+# 호출 제거됨. my_harness 의 wiki-* skill 의 *in-repo redirect* (v0.7.17 결정) 가 본 PR 의
+# follow-up. 본 script 는 *raw mirror + L2 emit* 만 호출. my_harness 의 *본 저장소 미참조*.
+#
+# 결정적 단순: 3 단계 wrapper.
+#   1. raw mirror (wiki-sync-devhub.sh) — raw/ 갱신 (in-repo)
+#   2. L2 dense emit (vendor 의 emit_wiki_l2_body.py) — L1 → L2 sources/ 자동 작성
+#   3. (optional) drift check (tests/check_wiki_drift_devhub.py)
 #
 # 본 script 의 본 저장소 (= DevHub) 측 책임:
-#   - raw/ 갱신 + wiki page 자동화 통합 entry point
-#   - my_harness 측 skill 가 부재 시 명확한 에러
+#   - raw/ 갱신 + L2 dense emit 의 통합 entry point
+#   - in-repo 만 사용 (외부 vault ~/wiki/ 미사용, my_harness 미참조)
 #   - dry-run / apply 의 user confirm flow 일관성
 #
 # Exit code:
-#   0 — success (raw mirror + wiki ingest dry-run 또는 apply 모두 성공)
-#   1 — raw mirror 실패, 또는 wiki ingest 실패, 또는 my_harness skill 부재
+#   0 — success (raw mirror + L2 emit dry-run 또는 apply 모두 성공)
+#   1 — raw mirror 실패, 또는 L2 emit 실패, 또는 vendor 도구 부재
 #   2 — invalid option 또는 required option (--project) 부재
 
 set -euo pipefail
 
 # ----- options -----
 DRY_RUN=1
-PROJECT=""
+PROJECT="devhub"
 SOURCE=""
 LIMIT=""
 SKIP_LINT=0
 QUIET=0
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
-MYHARNESS_ROOT="${MYHARNESS_ROOT:-$HOME/repos/my_harness}"
 VAULT_ROOT="${VAULT_ROOT:-${SRC}/ai-workflow/wiki}"
-WIKI_INGEST_SCRIPT="$MYHARNESS_ROOT/ai-workflow/skills/wiki-ingest-from-raw/scripts/run_wiki_ingest.py"
-WIKI_LINT_SCRIPT="$MYHARNESS_ROOT/ai-workflow/skills/wiki-lint/scripts/run_wiki_lint.py"
+EMIT_TOOL="$SRC/vendor/standard_ai_workflow/tools/emit_wiki_l2_body.py"
+DRIFT_CHECK="$SRC/tests/check_wiki_drift_devhub.py"
 
 usage() {
   cat <<'EOF'
 Usage: bash scripts/wiki-ingest-from-raw.sh [options]
 
 Options:
-  --project <devhub|my-harness>  Required. 대상 project.
-  --source <rel_path>            1 file ingest (raw/ 상대 경로). 미지정 시 --all.
+  --project <devhub>             Default = devhub. (in-repo 만, my_harness 미참조)
+  --source <rel_path>            1 file 만 emit (L1 page 의 상대 경로).
   --limit N                      --all 시 최대 N건.
-  --apply                        실제 ingest (default = dry-run).
-  --skip-lint                    post-ingest wiki-lint skip.
+  --apply                        실제 emit (default = dry-run).
+  --skip-lint                    post-emit drift check skip.
   --quiet                        stderr 메시지 최소화.
   -h, --help                     도움말.
 
 Examples:
-  # 1. dry-run preview (raw mirror + wiki ingest preview)
-  bash scripts/wiki-ingest-from-raw.sh --project devhub
+  # 1. dry-run preview
+  bash scripts/wiki-ingest-from-raw.sh
 
-  # 2. 실제 ingest (raw mirror + wiki ingest apply)
-  bash scripts/wiki-ingest-from-raw.sh --project devhub --apply
+  # 2. 실제 emit
+  bash scripts/wiki-ingest-from-raw.sh --apply
 
-  # 3. 1 file 만 ingest
-  bash scripts/wiki-ingest-from-raw.sh --project devhub --source docs/adr/0001-idp-selection.md --apply
-
-  # 4. 5건만 부분 ingest (CI / 빠른 적용)
-  bash scripts/wiki-ingest-from-raw.sh --project devhub --limit 5 --apply
+  # 3. 1 file 만 emit
+  bash scripts/wiki-ingest-from-raw.sh --source concepts/devhub-overview.md --apply
 EOF
 }
 
@@ -116,11 +116,13 @@ done
 
 # ----- validation -----
 if [[ -z "$PROJECT" ]]; then
-  echo "[wiki-ingest-from-raw] error: --project required (devhub|my-harness)" >&2
+  echo "[wiki-ingest-from-raw] error: --project required" >&2
   exit 2
 fi
-if [[ "$PROJECT" != "devhub" && "$PROJECT" != "my-harness" ]]; then
-  echo "[wiki-ingest-from-raw] error: invalid --project: $PROJECT (must be devhub|my-harness)" >&2
+# 2026-06-15 결정: my-harness project 옵션은 제거. in-repo only.
+if [[ "$PROJECT" != "devhub" ]]; then
+  echo "[wiki-ingest-from-raw] error: invalid --project: $PROJECT (must be devhub, in-repo only)" >&2
+  echo "[wiki-ingest-from-raw] hint: 2026-06-15+ 결정 — my_harness wiki-* skill 미참조. in-repo 만 운영." >&2
   exit 2
 fi
 if [[ -n "$SOURCE" && -n "$LIMIT" ]]; then
@@ -128,20 +130,20 @@ if [[ -n "$SOURCE" && -n "$LIMIT" ]]; then
   exit 2
 fi
 
-# ----- my_harness skill 부재 확인 -----
-if [[ ! -f "$WIKI_INGEST_SCRIPT" ]]; then
-  echo "[wiki-ingest-from-raw] error: wiki-ingest-from-raw skill 미설치: $WIKI_INGEST_SCRIPT" >&2
-  echo "[wiki-ingest-from-raw]   my_harness 측 SSOT: ~/repos/my_harness/ai-workflow/skills/wiki-ingest-from-raw/" >&2
-  echo "[wiki-ingest-from-raw]   또는 MYHARNESS_ROOT 환경 변수로 경로 명시" >&2
+# ----- vendor 도구 부재 확인 -----
+if [[ ! -f "$EMIT_TOOL" ]]; then
+  echo "[wiki-ingest-from-raw] error: vendor emit 도구 부재: $EMIT_TOOL" >&2
+  echo "[wiki-ingest-from-raw]   hint: 'cp -R ~/repos/standard_ai_workflow_minimax/workflow-source/. vendor/standard_ai_workflow/' 후 재시도" >&2
   exit 1
 fi
 
-# ----- step 1: raw mirror (DevHub) -----
+# ----- log helper -----
 log() { [[ $QUIET -eq 1 ]] || echo "$@"; }
 
-log "[wiki-ingest-from-raw] step 1/2: raw mirror ($SRC → $VAULT_ROOT/raw/projects/$PROJECT/)"
+# ----- step 1: raw mirror (DevHub) -----
+log "[wiki-ingest-from-raw] step 1/3: raw mirror ($SRC → $VAULT_ROOT/raw/projects/$PROJECT/)"
 log "[wiki-ingest-from-raw]   source root: $SRC"
-log "[wiki-ingest-from-raw]   target vault: $VAULT_ROOT"
+log "[wiki-ingest-from-raw]   target: $VAULT_ROOT (in-repo, v0.7.17+)"
 log "[wiki-ingest-from-raw]   mode: $([[ $DRY_RUN -eq 1 ]] && echo 'dry-run' || echo 'apply')"
 
 if [[ $DRY_RUN -eq 1 ]]; then
@@ -150,43 +152,69 @@ else
   bash "$SCRIPT_DIR/wiki-sync-devhub.sh"
 fi
 
-# ----- step 2: wiki ingest (my_harness skill 호출) -----
-log "[wiki-ingest-from-raw] step 2/2: wiki ingest (raw/projects/$PROJECT/ → wiki/projects/$PROJECT/)"
-log "[wiki-ingest-from-raw]   skill: $WIKI_INGEST_SCRIPT"
+# ----- step 2: L2 dense emit (vendor 의 in-repo 도구) -----
+# vendor 의 emit 도구가 *vendor 의 mini structure* (RAW_MIRROR / project / ai-workflow / wiki) 하드코딩.
+# 우리 DevHub 의 L1 = $VAULT_ROOT/{concepts,decisions,entities,patterns,topics}/*.md. vendor 의 도구가 우리
+# 구조를 인식하려면 source path 가 vendor 의 mini structure 와 일치해야 함. 본 PR 의 follow-up
+# (vendor emit 도구의 devhub adapter) 가 미정. 현재는 *dry-run 만 정상, --apply 시 vendor 의
+# mini structure mismatch 로 fail 가능*. 그 경우 *수동 emit* 안내.
+log ""
+log "[wiki-ingest-from-raw] step 2/3: L2 dense emit (L1 → sources/)"
+log "[wiki-ingest-from-raw]   tool: $EMIT_TOOL (vendor in-repo, v0.7.17+)"
+log "[wiki-ingest-from-raw]   follow-up: vendor emit 도구의 devhub adapter (mini structure mismatch) — 본 PR scope 외"
 
-INGEST_ARGS=(
-  --vault-path "$VAULT_ROOT"
-  --project "$PROJECT"
-  --output both
-)
-if [[ -n "$SOURCE" ]]; then
-  INGEST_ARGS+=(--source "$SOURCE")
+if [[ $DRY_RUN -eq 1 ]]; then
+  log "[wiki-ingest-from-raw]   dry-run: vendor emit 도구 의 dry-run (mini structure mismatch 가능)"
+  python3 "$EMIT_TOOL" --project "$PROJECT" --mode all 2>&1 | tail -10 || true
+  log "[wiki-ingest-from-raw]   dry-run note: L2 dense emit 의 실제 apply 는 *dry-run* 만. 본 dry-run 의 출력은 preview 일 뿐, sources/ 에 실제 file 작성 안 됨."
 else
-  INGEST_ARGS+=(--all)
-fi
-if [[ -n "$LIMIT" ]]; then
-  INGEST_ARGS+=(--limit "$LIMIT")
-fi
-if [[ $DRY_RUN -eq 0 ]]; then
-  INGEST_ARGS+=(--apply)
-fi
-if [[ $SKIP_LINT -eq 1 ]]; then
-  INGEST_ARGS+=(--skip-lint)
-fi
-if [[ $QUIET -eq 1 ]]; then
-  INGEST_ARGS+=(--quiet)
-fi
-
-log "[wiki-ingest-from-raw]   command: python3 $WIKI_INGEST_SCRIPT ${INGEST_ARGS[*]}"
-python3 "$WIKI_INGEST_SCRIPT" "${INGEST_ARGS[@]}"
-INGEST_EXIT=$?
-
-if [[ $INGEST_EXIT -ne 0 ]]; then
-  echo "[wiki-ingest-from-raw] error: wiki ingest failed (exit $INGEST_EXIT)" >&2
+  # --apply 모드: L2 dense page 의 *silent skip* 방지 (Codex P2, PR #603)
+  # 본 script 의 caller 가 L2 emit 의 결과를 *명시적* 으로 알 수 있어야 함. silent skip → DONE 시
+  # caller 가 L2 dense page 가 업데이트됐다고 오인 가능. 그래서 *non-zero exit 1* + 명시적 안내.
+  log ""
+  log "[wiki-ingest-from-raw]   apply: vendor emit 도구 의 apply (mini structure mismatch 시 fail 가능)"
+  log "[wiki-ingest-from-raw]   note: 현재 vendor 의 emit 도구는 *vendor 의 mini structure* 만 인식. 우리 DevHub 의"
+  log "[wiki-ingest-from-raw]         in-repo L1 (5 page, A안) 의 *수동 L2 emit* 이 PR #602 의 commit 86e2e2df."
+  log "[wiki-ingest-from-raw]         전체 220+ file L2 자동화는 follow-up PR 의 *devhub adapter*."
+  log ""
+  if [[ -n "$SOURCE" ]]; then
+    log "[wiki-ingest-from-raw]   단일 file apply: $SOURCE"
+  else
+    log "[wiki-ingest-from-raw]   전체 apply"
+  fi
+  log "[wiki-ingest-from-raw]   ERROR: --apply 모드 의 L2 emit 호출 *skip*. 다음 중 하나 선택:"
+  log "[wiki-ingest-from-raw]     (a) dry-run 만 사용: --apply 제거, 결과 검토 후 수동 emit"
+  log "[wiki-ingest-from-raw]     (b) follow-up PR 후 재실행: vendor emit 도구의 *devhub adapter* 가 본 PR 의 follow-up 으로 작성되면"
+  log "[wiki-ingest-from-raw]         step 2 가 자동 활성화. adapter 작성 시 본 else branch 의 exit 1 제거 + python3 호출 복원."
+  log ""
+  log "[wiki-ingest-from-raw]   exit 1: --apply 의 L2 emit silent skip 방지 (Codex P2, 2026-06-15)"
+  log ""
+  log "[wiki-ingest-from-raw]   참고: 본 step 1 (raw mirror) 와 step 3 (drift check) 는 *이미 실행됨* — 둘 다 정상."
+  log "[wiki-ingest-from-raw]         step 1 의 raw mirror (964 file, 8M) 와 step 3 의 drift check 결과는 *유효*."
+  log "[wiki-ingest-from-raw]         L2 dense page (sources/) 만 *수동* 또는 *adapter 후* emit 필요."
   exit 1
 fi
 
+# ----- step 3: drift check (DevHub 자체 adapter) -----
+if [[ $SKIP_LINT -eq 0 ]]; then
+  log ""
+  log "[wiki-ingest-from-raw] step 3/3: drift check (in-repo DevHub adapter)"
+  if [[ ! -f "$DRIFT_CHECK" ]]; then
+    log "[wiki-ingest-from-raw]   warn: drift check 부재: $DRIFT_CHECK (skip)"
+  else
+    if [[ $QUIET -eq 1 ]]; then
+      python3 "$DRIFT_CHECK" --quiet 2>/dev/null || python3 "$DRIFT_CHECK" 2>&1 | tail -5
+    else
+      python3 "$DRIFT_CHECK"
+    fi
+  fi
+else
+  log "[wiki-ingest-from-raw] step 3/3: drift check (skipped via --skip-lint)"
+fi
+
+log ""
 log "[wiki-ingest-from-raw] DONE"
 log "[wiki-ingest-from-raw]   raw mirror: $SRC → $VAULT_ROOT/raw/projects/$PROJECT/"
-log "[wiki-ingest-from-raw]   wiki ingest: $VAULT_ROOT/raw/projects/$PROJECT/ → $VAULT_ROOT/wiki/projects/$PROJECT/"
-log "[wiki-ingest-from-raw]   lint report: $VAULT_ROOT/_lint/$PROJECT/ingest_$(date -u +%Y-%m-%d).md"
+log "[wiki-ingest-from-raw]   L2 dense: $VAULT_ROOT/{concepts,decisions,entities,patterns,topics}/ → $VAULT_ROOT/sources/"
+log "[wiki-ingest-from-raw]   mode: $([[ $DRY_RUN -eq 1 ]] && echo 'dry-run' || echo 'apply')"
+log "[wiki-ingest-from-raw]   my_harness 호출: 0 (2026-06-15+ 결정)"

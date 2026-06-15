@@ -10,3 +10,4 @@
 외부 vault (`~/wiki/`) 연결 없음 (2026-06-15 v0.7.17 적용 결정).
 
 위키 = 본 dir (in-repo) 단일 source. `vendor/standard_ai_workflow/tools/{refresh_wiki_memory,emit_wiki_l2_body,score_wiki_maintainability}.py` 가 본 dir 를 사용.
+[2026-06-15T13:03:30Z] pr-update | PR #600 | f813493 | state=MERGED | files=0 | idem=pr-600-f813493a3dad8dbf4162684fe6f6d154397e1217
