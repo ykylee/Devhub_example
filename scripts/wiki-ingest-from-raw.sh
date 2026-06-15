@@ -166,19 +166,33 @@ log "[wiki-ingest-from-raw]   follow-up: vendor emit 도구의 devhub adapter (m
 if [[ $DRY_RUN -eq 1 ]]; then
   log "[wiki-ingest-from-raw]   dry-run: vendor emit 도구 의 dry-run (mini structure mismatch 가능)"
   python3 "$EMIT_TOOL" --project "$PROJECT" --mode all 2>&1 | tail -10 || true
+  log "[wiki-ingest-from-raw]   dry-run note: L2 dense emit 의 실제 apply 는 *dry-run* 만. 본 dry-run 의 출력은 preview 일 뿐, sources/ 에 실제 file 작성 안 됨."
 else
+  # --apply 모드: L2 dense page 의 *silent skip* 방지 (Codex P2, PR #603)
+  # 본 script 의 caller 가 L2 emit 의 결과를 *명시적* 으로 알 수 있어야 함. silent skip → DONE 시
+  # caller 가 L2 dense page 가 업데이트됐다고 오인 가능. 그래서 *non-zero exit 1* + 명시적 안내.
+  log ""
   log "[wiki-ingest-from-raw]   apply: vendor emit 도구 의 apply (mini structure mismatch 시 fail 가능)"
   log "[wiki-ingest-from-raw]   note: 현재 vendor 의 emit 도구는 *vendor 의 mini structure* 만 인식. 우리 DevHub 의"
   log "[wiki-ingest-from-raw]         in-repo L1 (5 page, A안) 의 *수동 L2 emit* 이 PR #602 의 commit 86e2e2df."
   log "[wiki-ingest-from-raw]         전체 220+ file L2 자동화는 follow-up PR 의 *devhub adapter*."
   log ""
   if [[ -n "$SOURCE" ]]; then
-    log "[wiki-ingest-from-raw]   단일 file apply: $SOURCE (vendor 도구 의 devhub adapter 미정 — manual emit 권장)"
+    log "[wiki-ingest-from-raw]   단일 file apply: $SOURCE"
   else
-    log "[wiki-ingest-from-raw]   전체 apply: vendor emit 도구의 devhub adapter 미정 — manual emit 권장"
+    log "[wiki-ingest-from-raw]   전체 apply"
   fi
-  # vendor 의 emit 도구가 우리 DevHub 의 mini structure 와 안 맞으므로 호출은 *skip*.
-  # 본 PR 의 follow-up 에서 vendor 의 devhub adapter 작성 시 본 step 2 활성화.
+  log "[wiki-ingest-from-raw]   ERROR: --apply 모드 의 L2 emit 호출 *skip*. 다음 중 하나 선택:"
+  log "[wiki-ingest-from-raw]     (a) dry-run 만 사용: --apply 제거, 결과 검토 후 수동 emit"
+  log "[wiki-ingest-from-raw]     (b) follow-up PR 후 재실행: vendor emit 도구의 *devhub adapter* 가 본 PR 의 follow-up 으로 작성되면"
+  log "[wiki-ingest-from-raw]         step 2 가 자동 활성화. adapter 작성 시 본 else branch 의 exit 1 제거 + python3 호출 복원."
+  log ""
+  log "[wiki-ingest-from-raw]   exit 1: --apply 의 L2 emit silent skip 방지 (Codex P2, 2026-06-15)"
+  log ""
+  log "[wiki-ingest-from-raw]   참고: 본 step 1 (raw mirror) 와 step 3 (drift check) 는 *이미 실행됨* — 둘 다 정상."
+  log "[wiki-ingest-from-raw]         step 1 의 raw mirror (964 file, 8M) 와 step 3 의 drift check 결과는 *유효*."
+  log "[wiki-ingest-from-raw]         L2 dense page (sources/) 만 *수동* 또는 *adapter 후* emit 필요."
+  exit 1
 fi
 
 # ----- step 3: drift check (DevHub 자체 adapter) -----
