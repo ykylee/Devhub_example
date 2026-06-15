@@ -15,16 +15,18 @@ import {
   AreaChart, 
   Area 
 } from "recharts";
-import { 
-  Users, 
-  Layers, 
-  Clock, 
-  Eye, 
-  EyeOff, 
-  CheckCircle, 
-  GitFork, 
-  AlertTriangle, 
-  Cpu, 
+import {
+  Users,
+  Layers,
+  Clock,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  GitFork,
+  AlertTriangle,
+  Cpu,
+  FileText,
+} from "lucide-react";
 import { Repository, RepositoryActivity, RepositoryDashboardData } from "@/domain/repository-integration/service/repository.service";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 

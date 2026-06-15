@@ -31,10 +31,12 @@ type PRActivityListOptions struct {
 
 // BuildRunListOptions parameterizes ListRepositoryBuildRuns.
 type BuildRunListOptions struct {
-	Status string
-	Branch string
-	Limit  int
-	Offset int
+	Status     string
+	Branch     string
+	Limit      int
+	Offset     int
+	WindowFrom time.Time
+	WindowTo   time.Time
 }
 
 // QualitySnapshotListOptions parameterizes ListRepositoryQualitySnapshots.
@@ -174,9 +176,11 @@ func (s *PostgresStore) ListRepositoryBuildRuns(ctx context.Context, repositoryI
 SELECT COUNT(*) FROM ci_runs
 WHERE repository_id = $1
   AND ($2 = '' OR status = $2)
-  AND ($3 = '' OR branch = $3)`
+  AND ($3 = '' OR branch = $3)
+  AND ($4::timestamptz IS NULL OR COALESCE(started_at, created_at) >= $4)
+  AND ($5::timestamptz IS NULL OR COALESCE(started_at, created_at) < $5)`
 	var total int
-	if err := s.pool.QueryRow(ctx, countQuery, repositoryID, opts.Status, opts.Branch).Scan(&total); err != nil {
+	if err := s.pool.QueryRow(ctx, countQuery, repositoryID, opts.Status, opts.Branch, windowFromOrNil(opts.WindowFrom), windowToOrNil(opts.WindowTo)).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count ci_runs: %w", err)
 	}
 	const query = `
@@ -186,9 +190,11 @@ FROM ci_runs
 WHERE repository_id = $3
   AND ($4 = '' OR status = $4)
   AND ($5 = '' OR branch = $5)
+  AND ($6::timestamptz IS NULL OR COALESCE(started_at, created_at) >= $6)
+  AND ($7::timestamptz IS NULL OR COALESCE(started_at, created_at) < $7)
 ORDER BY COALESCE(started_at, created_at) DESC
 LIMIT $1 OFFSET $2`
-	rows, err := s.pool.Query(ctx, query, limit, offset, repositoryID, opts.Status, opts.Branch)
+	rows, err := s.pool.Query(ctx, query, limit, offset, repositoryID, opts.Status, opts.Branch, windowFromOrNil(opts.WindowFrom), windowToOrNil(opts.WindowTo))
 	if err != nil {
 		return nil, 0, fmt.Errorf("list ci_runs as build runs: %w", err)
 	}
@@ -661,4 +667,19 @@ func (s *PostgresStore) CountPlatformCriticalWarnings(ctx context.Context, platf
 		return 0, err
 	}
 	return rollup.CriticalWarningCount, nil
+}
+// windowFromOrNil / windowToOrNil — pgx 가 time.Time zero value 를 nil 로
+// cast 하기 위한 helper. WindowFrom/WindowTo 가 zero 면 SQL $N::timestamptz IS NULL
+// 분기 → filter 비활성. ListRepositoryBuildRuns 의 window 정합.
+func windowFromOrNil(t time.Time) any {
+	if t.IsZero() {
+		return nil
+	}
+	return t.UTC()
+}
+func windowToOrNil(t time.Time) any {
+	if t.IsZero() {
+		return nil
+	}
+	return t.UTC()
 }

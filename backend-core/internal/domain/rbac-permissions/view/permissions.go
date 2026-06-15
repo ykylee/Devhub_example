@@ -240,6 +240,10 @@ var routePermissionTable = map[routeKey]routePolicy{
 	{http.MethodGet, "/api/v1/repositories/:repository_id/pull-requests"}:     {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/repositories/:repository_id/build-runs"}:        {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/repositories/:repository_id/quality-snapshots"}: {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
+	// Sprint A — kpi-tests-per-domain-scope.md §6.1 (Repository sub-section).
+	// 신규 2 endpoint 의 RBAC 정합. Repository view 권한 보유 actor 만 접근 가능.
+	{http.MethodGet, "/api/v1/repositories/:repository_id/kpi"}:           {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/repositories/:repository_id/test-results"}: {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
 
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},

@@ -262,22 +262,17 @@ func (h *Handler) repositoryKPI(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "repository_id must be an integer"})
 		return
 	}
-	opts := store.RepositoryActivityOptions{}
-	if v := c.Query("from"); v != "" {
-		t, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "from must be RFC3339"})
-			return
-		}
-		opts.WindowFrom = t
+	// from/to 또는 ?window=Nd/Nw/Nm/Ny parse (codex P2: ?window=30d 시 opts 가
+	// zero time 으로 남으면 CountOpenAndMergedPRs SQL 의 occurred_at >= $2 가
+	// always-false 가 됨).
+	windowFrom, windowTo, err := parseTestResultsWindow(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": err.Error()})
+		return
 	}
-	if v := c.Query("to"); v != "" {
-		t, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"status": "rejected", "error": "to must be RFC3339"})
-			return
-		}
-		opts.WindowTo = t
+	opts := store.RepositoryActivityOptions{
+		WindowFrom: windowFrom,
+		WindowTo:   windowTo,
 	}
 	// quality_snapshots 의 평균 score + 마지막 measured_at 별도 조회 (ListRepositoryActivity 가
 	// quality 는 종합하지 않으므로). 단일 row 의 score (avg of 1) 이 raw quality score.
@@ -362,13 +357,15 @@ func (h *Handler) repositoryTestResults(c *gin.Context) {
 		}
 		limit = n
 	}
-	// build_runs 전체 (status 필터 없음) — 분포 계산용
-	allOpts := store.BuildRunListOptions{Limit: 200}
-	all, total, err := storeI.ListRepositoryBuildRuns(c.Request.Context(), repoID, allOpts)
-	if err != nil {
-		writeServerError(c, err, "repository.test_results.list")
-		return
+	// build_runs window-bounded — codex P2: ?window=Nd 시 totals/pass_rate/recent 가
+	// window 외 run 도 포함하던 회귀 fix. WindowFrom/WindowTo 가 zero 면 filter 미적용
+	// (정합 정공법).
+	allOpts := store.BuildRunListOptions{
+		Limit:      200,
+		WindowFrom: windowFrom,
+		WindowTo:   windowTo,
 	}
+	all, total, err := storeI.ListRepositoryBuildRuns(c.Request.Context(), repoID, allOpts)
 	totals := map[string]int{
 		"success":   0,
 		"failed":    0,
