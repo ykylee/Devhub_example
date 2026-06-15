@@ -199,3 +199,11 @@ ui-screenshots-shard-2/
 # vendor 디렉터리는 standard_ai_workflow 의 표준화 워크플로우 발매 패키지를
 # 격리 import 한 read-only reference. 본 저장소 운영에 영향 없음.
 # 갱신: ai-workflow/IMPORT_NOTES.md §6 의 SOP.
+
+# === ai-workflow/wiki/raw/ — wiki raw mirror (in-repo) ===
+# 본 dir 는 scripts/wiki-sync-devhub.sh 의 in-repo mirror 결과. 8.0M / 964 file.
+# 외부 `~/wiki/` vault 미사용 결정 (v0.7.17+, 2026-06-15) 으로 in-repo.
+# commit 부담 회피를 위해 ignore, 운영은 bash scripts/wiki-sync-devhub.sh 로 local regenerate.
+# Mirror provenance 는 ai-workflow/wiki/RAW_MIRROR_MANIFEST.md (raw/ 바깥 위치) 에 별도 commit.
+# 후속 결정: wiki raw mirror 의 full commit vs ignore (SSoT out-of-raw vs in-raw) — 미정, follow-up PR.
+/ai-workflow/wiki/raw/
