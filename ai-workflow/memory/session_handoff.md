@@ -1,9 +1,10 @@
-# Session Handoff — main (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 — PR #545)
+# Session Handoff — main (2026-06-15, X-5 follow-up + Sprint A 종합 — PR #596 + #597 MERGED)
 
-- 문서 목적: PR #545 (v0.5.0-beta → v0.5.11-beta 동기화, theirs-only 1 squash, 97 file / 4562줄 / 178줄 삭제) 상태 인계.
-- 범위: `ai-workflow/VERSION` + README/WORKFLOW_INDEX + 메모리 전체 + archive/ + codex/phase6 + gemini/phase6/7/10 + release/v0.5.{1..10} + `.gitignore` 백업 라인.
-- 상태: main HEAD `165b8e8` (PR #545 squash) → branch `chore/v0.5.11-sync-2026-06-10` push 완료, PR #545 open (https://github.com/ykylee/Devhub_example/pull/545). 3 file (state.json / session_handoff.md / work_backlog.md) reapply 분기는 theirs-only 흡수 + 백업 보존 — 머지 후 추가 결정 불요.
-- 최종 수정일: 2026-06-11 07:30 KST (PR #545 push 기준)
+문서 목적: PR #596 (X-5 Gitea Hourly Pull production wire follow-up) + PR #597 (Sprint A Repository KPI/Tests sub-section) 의 main 머지 + codex review 7건 fix + main flat memory finalize 정공법.
+범위: `backend-core/internal/{store,integrations/adapters,httpapi,domain/application-lifecycle/view/rbac-permissions}` + `frontend/domain/repository-integration/{schema,service,view}` + `docs/{planning,traceability,llm-wiki,adr/0034}` + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`.
+상태: main HEAD `25f2262e` (PR #597 squash, 2026-06-15 02:55 KST). PR #596 + #597 둘 다 MERGED. 본인 회귀 0건. CI 잔여 FAIL 은 X-1/X-2 의 pre-existing 회귀로 별도 housekeeping sprint (사용자 결정).
+최종 수정일: 2026-06-15 02:55 KST (PR #597 머지 후 main flat memory finalize)
+직전 handoff: §0a 참조 (PR #545 v0.5.11 sync ~ PR #595 X-4 merge).
 - 직전 handoff (PR #514 + #515 finalizing): §0a 참조, main HEAD `fee06d4` 까지.
 
 ## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 + N-6 skip)

@@ -117,54 +117,77 @@ repoLister := func(ctx context.Context) ([]adapters.RepositoryTarget, error) {
 
 ## 2. 변경 범위 (PR 1개, ~600 line)
 
-### 2.1 backend (5 file)
+### 2.1 backend (4 file)
 
 1. `backend-core/internal/store/repository_pull_ingest.go` (NEW, ~180 line)
-   - `UpsertPullActivity` (pr_activities UPSERT)
-   - `UpsertBuildRun` (build_runs UPSERT)
-   - `UpsertQualitySnapshot` (quality_snapshots UPSERT)
+   - `UpsertPullActivity(ctx, repositoryIDStr, giteaPRID, number, state, title, body, headSHA, authorLogin, updatedAt)` — repositoryID string → int64 parse + `INSERT ... ON CONFLICT (repository_id, external_pr_id, event_type, occurred_at) DO UPDATE SET ...` (pr_activities 의 UNIQUE constraint 활용). state → event_type 매핑은 adapter 책임.
+   - `UpsertBuildRun(ctx, repositoryIDStr, giteaBuildID, commitSHA, event, status, conclusion, createdAt)` — build_runs UPSERT (run_external_id UNIQUE). event → branch fallback (gitea_pull.go adapter 에서 b.Event 1차 사용, store 는 그대로 저장). createdAt → startedAt/finishedAt, conclusion 은 무시 (이미 status 와 중복).
+   - `UpsertQualitySnapshot(ctx, repositoryIDStr, commitSHA, recordedAt)` — quality_snapshots UPSERT (repository_id, ref_name UNIQUE 가정 — 기존 schema 에 unique 없으면 partial index 추가). 본 follow-up 에서는 `ON CONFLICT (repository_id, ref_name) DO UPDATE SET measured_at = EXCLUDED.measured_at, updated_at = now()` 가정 + migration 1건 (000045 partial unique index).
 
 2. `backend-core/internal/store/repository_pull_state.go` (NEW, ~200 line)
-   - 6 method (UpdatePullState / IncrementConsecutiveFailures / ResetConsecutiveFailures / SetBackoff / BackoffUntil / LastPullAt).
+   - 6 method 모두 `repository_pull_state` table CRUD.
+   - `UpdatePullState(ctx, repoIDStr, status, errMsg, lastPullAt)` — `INSERT ... ON CONFLICT (repository_id) DO UPDATE SET last_pull_at, last_pull_status, last_pull_error, updated_at`.
+   - `IncrementConsecutiveFailures(ctx, repoIDStr) (int, error)` — `INSERT ... ON CONFLICT (repository_id) DO UPDATE SET consecutive_failures = repository_pull_state.consecutive_failures + 1 RETURNING consecutive_failures` (state row 부재 시 1로 init).
+   - `ResetConsecutiveFailures`, `SetBackoff`, `BackoffUntil`, `LastPullAt` — 단순 SQL.
+   - 모든 method 에서 `repositoryIDStr → int64` parse + NotFound 시 자동 upsert (cold start).
 
 3. `backend-core/internal/store/repository_pull_targets.go` (NEW, ~80 line)
-   - `ListGiteaPullTargets` — store 자체 type 반환 + main.go 에서 adapter type 매핑.
+   - `ListGiteaPullTargets(ctx) ([]domain.RepositoryTarget, error)` — `adapters.RepositoryTarget` 반환 (domain type 아니므로 store → adapter 직접 의존 회피; 별도 type `GiteaPullTarget` 정의 후 caller 가 매핑). **단순화**: store 가 `adapters.RepositoryTarget` 으로 직접 반환하지 말고, raw struct 반환 + main.go 의 repoLister closure 에서 매핑. **cross-package import 회피 정공법**.
+
+   **Decision**: store package 가 `adapters` package 를 import 하면 layering 위반. 따라서 store 는 자체 type `GiteaPullTarget` (or store 의 기존 `Repository` type) 반환 + main.go 의 repoLister closure 에서 `adapters.RepositoryTarget` 매핑.
 
 4. `backend-core/main.go` (MODIFY, +15 line)
-   - L429 코멘트 제거 + L435 `Store: nil` → `Store: pgStore` + L438-441 repoLister closure 교체.
+   - L429 의 "production RepositoryPullStore wiring is provided by a follow-up PR" 코멘트 제거.
+   - L435 `Store: nil` → `Store: pgStore`.
+   - L438-441 `repoLister` closure → `pgStore.ListGiteaPullTargets(ctx)` 호출 + `adapters.RepositoryTarget` 매핑.
+   - `pgStore` 변수 범위 확인 필요 (이미 main.go 내 다른 cron loop 에서 사용 중일 가능성 높음).
 
-5. `backend-core/internal/integrations/adapters/gitea_pull.go` (MODIFY, +20 line)
-   - `GiteaPullRequest.Merged` field 추가 + adapter state → event_type 매핑 결정.
+5. `backend-core/internal/integrations/adapters/gitea_pull.go` (MODIFY, +20 line, +test -1)
+   - `GiteaPullRequest` struct 에 `Merged bool` field 추가.
+   - `GiteaClient.ListPullRequestsSince` 가 Gitea API response 의 `merged` boolean 파싱.
+   - adapter 의 `UpsertPullActivity` 호출 시 `state` → `event_type` 결정 (state="closed" && pr.Merged → "merged", state="closed" && !pr.Merged → "closed", state="open" → "opened", else "updated").
+   - `gitea_pull_test.go` 의 fake struct 에 `Merged` field 추가 + 테스트 1건 (`TestAdapter_StateToEventType`).
 
 ### 2.2 migration (1 file, 신규)
 
 6. `backend-core/migrations/000045_quality_snapshots_ref_name_unique.up.sql` (NEW, ~10 line)
-   - partial unique index (tool='gitea-build' 한정).
+   - `CREATE UNIQUE INDEX IF NOT EXISTS quality_snapshots_repo_ref_unique ON public.quality_snapshots (repository_id, ref_name) WHERE tool = 'gitea-build';`
+   - partial unique (tool 한정) — 다른 tool 의 동일 ref_name 허용.
+   - down.sql: `DROP INDEX IF EXISTS quality_snapshots_repo_ref_unique;`
 
 ### 2.3 test (2 file)
 
 7. `backend-core/internal/store/repository_pull_ops_integration_test.go` (NEW, ~200 line)
-   - 1 integration test (`TestIntegration_RepositoryPullState_AllMethods` + ListGiteaPullTargets filter 검증).
+   - `TestIntegration_RepositoryPullState_AllMethods` — repository seed → 9 method 모두 검증 (Upsert / Update / Increment / Reset / SetBackoff / BackoffUntil / LastPullAt + ListGiteaPullTargets + UpsertPullActivity / UpsertBuildRun / UpsertQualitySnapshot).
+   - `TestIntegration_RepositoryPullTargets_Filter` — provider_type='scm' + provider_key='gitea' + repository_status='active' + gitea_repository_id IS NOT NULL + backoff filtering 검증.
+   - DEVHUB_TEST_DB_URL 미설정 시 t.Skip.
 
 8. `backend-core/internal/integrations/adapters/gitea_pull_test.go` (MODIFY, +30 line)
-   - `TestAdapter_StateToEventType_*` 3 test.
+   - fakeStore 의 GiteaPullRequest 에 `Merged` field 추가.
+   - `TestAdapter_StateToEventType_Merged` — state="closed" + Merged=true → "merged".
+   - `TestAdapter_StateToEventType_NotMerged` — state="closed" + Merged=false → "closed".
+   - `TestAdapter_StateToEventType_Open` — state="open" → "opened".
 
 ### 2.4 docs (3 file)
 
 9. `docs/adr/0034-gitea-hourly-pull-architecture.md` (MODIFY, +30 line)
-   - §8 변경 이력 + §5 cross-tier 표.
+   - §8 변경 이력 row 추가 (X-5 follow-up production wire 정공법).
+   - §5 cross-tier 표에 `RepositoryPullStore implementation` (backend) 행 추가 (Tier: 공용).
 
 10. `docs/planning/2026-06-15-x5-gitea-pull-store-wire-sprint-plan.md` (NEW, 본 문서)
 
 11. `docs/traceability/report.md` (MODIFY, +1 row)
-    - §6 본 row 추가.
+    - §6 본 row 추가 (production wire follow-up, IMPL-GITEA-PULL-STORE-01 + IMPL-GITEA-PULL-TARGETS-01 + TC-GITEA-PULL-STORE-01).
 
 12. `CHANGELOG.md` (MODIFY, +1 row)
-    - v0.1.1-alpha X-5 follow-up status 갱신.
+    - v0.1.1-alpha 의 X-5 follow-up status `⏳ planned` → `✅ implemented (production wire)`.
 
 ### 2.5 메모리 (4 file)
 
-13-16. `ai-workflow/memory/feat/x5-gitea-pull-store-wire/{state.json,session_handoff.md,work_backlog.md,backlog/2026-06-15.md}` (NEW)
+13. `ai-workflow/memory/feat/x5-gitea-pull-store-wire/state.json` (NEW)
+14. `ai-workflow/memory/feat/x5-gitea-pull-store-wire/session_handoff.md` (NEW)
+15. `ai-workflow/memory/feat/x5-gitea-pull-store-wire/work_backlog.md` (NEW)
+16. `ai-workflow/memory/feat/x5-gitea-pull-store-wire/backlog/2026-06-15.md` (NEW)
 
 ## 3. 신규 ID 발급 (4 row)
 
@@ -177,7 +200,7 @@ repoLister := func(ctx context.Context) ([]adapters.RepositoryTarget, error) {
 
 ## 4. 검증
 
-- `go test ./internal/integrations/adapters/...` 9 unit test PASS (기존 8 + adapter state→event_type 3 신규)
+- `go test ./internal/integrations/adapters/...` 9 unit test PASS (기존 8 + adapter state→event_type 3 신규 중 1)
 - `go test ./internal/store/...` integration test 1건 (DEVHUB_TEST_DB_URL 설정 시) PASS
 - `go test ./...` 30+ packages 회귀 0
 - `go build ./...` silent PASS

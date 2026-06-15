@@ -190,3 +190,7 @@ ui-screenshots-shard-2/
 !/frontend/.env.example
 !/frontend/.env.template
 !/docs/setup/.env.example
+
+# Git worktree directories (sprint branch별 worktree)
+.worktrees/
+.worktrees/**

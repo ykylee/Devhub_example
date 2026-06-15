@@ -229,4 +229,3 @@ const systemMenu: MenuItem[] = [
 | 일자 | 변경 | sprint |
 |---|---|---|
 | 2026-06-15 | 본 컨셉 초안 — KPI/Tests 위치 정공법 (도메인 scope 별 sub-section) + sidebar 재구성 + 5 sprint 진입 hook | (TBD) |
-| 2026-06-15 | **Sprint A 진입** — Repository sub-section component 2 + 2 endpoint (kpi + test-results) 단일 PR (~800 line, Tier: 공용). §6.1 의 Sprint A status (TBD) → **in_progress** (`feat/x-repository-kpi-tests-section`). §6.1 본문 변경 0건 — 본 컨셉은 stable. | `feat/x-repository-kpi-tests-section` (Sprint A in_progress) |
