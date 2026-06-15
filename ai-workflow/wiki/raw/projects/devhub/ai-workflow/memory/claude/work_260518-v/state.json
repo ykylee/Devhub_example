@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-v",
+  "branch": "claude/work_260518-v",
+  "status": "in_progress",
+  "started_at": "2026-05-18T18:00:00Z",
+  "scope": "Design 검토 문서 작성 — 외부 Keycloak 을 Kratos 의 upstream OIDC provider 로 federation 통합 (옵션 B). 사용자 요청 '외부 keycloak 으로 sso 연결 검토'. 코드 변경 없음 — 검토 문서만, 결정 후 ADR-0019 승격은 별도 sprint.",
+  "directive_source": "사용자 요청 — '로그인을 외부 keycloak을 통해서 sso를 연결하려고 고려 중'. 직전 답변에서 옵션 B (Kratos federation) 권장 + main tradeoff 제시 후 사용자 진입 승인.",
+  "decisions": [
+    "1차 산출물 = planning 문서 (docs/planning/keycloak_sso_federation.md). 코드 변경 없음.",
+    "옵션 B 채택 (Kratos federation) — 기존 Hydra+Kratos stack 보존 + Keycloak 을 Kratos 의 OIDC provider 로 등록.",
+    "HRDB user mapping 정책 = 핵심 결정 영역. email + employee_id 기반 매칭 + auto-link 정책 + 충돌 처리.",
+    "cutover 절차 = staging 검증 + 사용자 공지 + 기존 password 사용자와 Keycloak SSO 사용자 공존 정책.",
+    "ADR-0019 후보 — Phase 2 진입 시 승격. 본 문서가 §15 에 명시."
+  ],
+  "todo": [
+    "docs/planning/keycloak_sso_federation.md 신규 — 16 section",
+    "docs/planning/README.md §5.1 index row + §6 변경 이력",
+    "docs/traceability/report.md §6 sprint -v row",
+    "commit + push + PR + self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint 그린. Mermaid sequence diagram syntax 정합."
+}

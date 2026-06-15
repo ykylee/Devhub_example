@@ -1,0 +1,73 @@
+{
+  "schema_version": "1",
+  "sprint": "mvs/work_260608-i-frontend-sign-out",
+  "branch": "mvs/work_260608-i-frontend-sign-out",
+  "status": "in_progress",
+  "started_at": "2026-06-08T21:27:00+09:00",
+  "issue": 488,
+  "carve": "P1-6 (release_v1_roadmap.md §3.2) + N-8 (§3.5) — frontend carve. backend PR #495/#496 의 frontend 부분.",
+  "scope": "frontend/domain/auth-session/service/auth.service.ts 의 logout() 함수를 backend POST /api/v1/auth/logout 응답 status 분기 정합. 204/401 (idempotent) → OIDC end_session_endpoint. 502 (Keycloak unreachable) → addToast(error) + 강제 /login (OIDC skip). 5xx/network → addToast(warning) + OIDC redirect. cleanup 순서 변경 (tokenStore.clear/clearActor 는 backend 응답 이후). vitest 6건 (UT-frontend-auth-05) + e2e 1건 (TC-E2E-LOGOUT-01) + traceability 매트릭스 cross-ref.",
+  "directive_source": "사용자 지시 (2026-06-08) — 'N-8 작업 진행하자' (PR #496 merge confirm 후 자연스러운 다음 단계). issue #488 spec §'Frontend (Gemini — 후속, sprint -i)' 의 결정 권장값 (refresh_token 별도 carve, 즉시 502) 그대로 적용. backend sprint-i 의 frontend 잔여 carve.",
+  "decisions": [
+    "singleton 내 private method 2개로 분리 (postBackendLogout / redirectToOIDCEndSession) — 단일 책임 + cleanup sequence 명시화",
+    "status 분기: 204 ok / 401 expired (idempotent) / 502 unreachable (정합 우선) / 기타 error",
+    "502 → addToast(error) + 강제 /login (OIDC 단계 skip). 정합 우선 (#488 spec 권장)",
+    "5xx/network → addToast(warning) + OIDC redirect. UX 우선 (Keycloak 단독 logout 시도)",
+    "cleanup 순서: tokenStore.clear + clearActor + setIsLoggingOut 은 backend 응답 '이후' (Bearer 헤더 보호)",
+    "singleton class 유지 (Gemini sprint-e 에서 결정된 패턴). 새 AuthService instance 생성 안 함",
+    "e2e: 기존 auth.spec.ts 의 describe block 에 TC-E2E-LOGOUT-01 추가 (별도 파일 분리 안 함 — auth context 정합)"
+  ],
+  "todo_done": [
+    "sprint scaffold (브랜치 mvs/work_260608-i-frontend-sign-out + state/handoff 파일)",
+    "frontend auth.service.ts logout 함수 status 분기 분리 (postBackendLogout + redirectToOIDCEndSession)",
+    "useStore addToast 호출 (502/5xx/network 분기)",
+    "cleanup 순서 변경 (backend 응답 이후)",
+    "vitest useStoreAddToast mock 추가 + 6 test 신규 (UT-frontend-auth-05 FE-01..06)",
+    "frontend vitest run PASS (80 files / 1030 tests)",
+    "e2e auth.spec.ts TC-E2E-LOGOUT-01 추가",
+    "traceability §2.4/§2.5/§2.6/§3.1/§4 매트릭스 cross-ref 갱신",
+    "PR body 작성 (pr_body.md)"
+  ],
+  "todo": [
+    "git add + commit + push origin mvs/work_260608-i-frontend-sign-out",
+    "gh pr create --base main --title 'feat(auth-session): N-8 frontend logout status 분기 (sprint -i)' --body-file pr_body.md",
+    "CI wait (frontend type check / lint / vitest / E2E shard 1-3)",
+    "PR review 반영 (codex 외부 review 가능성 — P1/P2 inline fix)",
+    "PR merge + sprint close",
+    "mvs/ state.json done 갱신 + handoff 마무리"
+  ],
+  "verification": {
+    "frontend_vitest": "80 files / 1030 tests PASS (기존 1024 + 신규 6)",
+    "auth_service_test": "32 tests PASS (기존 26 + 신규 6)",
+    "ci_pending": ["frontend type check", "frontend lint", "frontend unit (CI)", "E2E shard 1/3", "E2E shard 2/3", "E2E shard 3/3"]
+  },
+  "dependencies_satisfied": {
+    "backend PR #495 (POST /api/v1/auth/logout handler)": "main 머지 완료 (2026-06-08)",
+    "backend PR #496 (admin URL/issuer URL 분기 + TC-AUTH-LOGOUT-08 회귀 가드)": "main 머지 완료 (2026-06-08)"
+  },
+  "external_dependencies_remaining": [
+    "Keycloak staging env OIDC endpoint 가용성 (사내 staging 1주 monitoring 잔여)"
+  ],
+  "traceability": {
+    "REQ": "REQ-FR-107 (기존, sprint -h)",
+    "ARCH": "ARCH-19 (기존, sprint -h)",
+    "API": "API-99 (기존, sprint -h)",
+    "IMPL_new": ["IMPL-frontend-auth-07", "IMPL-frontend-service-auth-02"],
+    "IMPL_existing": ["IMPL-auth-logout-01"],
+    "UT_new": ["UT-frontend-auth-05"],
+    "UT_existing": ["UT-auth-logout-01"],
+    "TC_new": ["TC-E2E-LOGOUT-01"],
+    "TC_existing": ["TC-AUTH-LOGOUT-01..05"],
+    "domain": "domain/auth + type/feature"
+  },
+  "files_changed": [
+    "frontend/domain/auth-session/service/auth.service.ts",
+    "frontend/domain/auth-session/service/auth.service.test.ts",
+    "frontend/tests/e2e/auth.spec.ts",
+    "docs/traceability/report.md",
+    "ai-workflow/memory/mvs/work_260608-i-frontend-sign-out/state.json (신규)",
+    "ai-workflow/memory/mvs/work_260608-i-frontend-sign-out/session_handoff.md (신규)",
+    "ai-workflow/memory/mvs/work_260608-i-frontend-sign-out/work_backlog.md (신규)",
+    "ai-workflow/memory/mvs/work_260608-i-frontend-sign-out/pr_body.md (신규)"
+  ]
+}

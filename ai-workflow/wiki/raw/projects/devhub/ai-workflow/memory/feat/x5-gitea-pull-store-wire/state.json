@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/x5-gitea-pull-store-wire",
+  "milestones": {
+    "M-v0.1.1": {
+      "status": "in_progress",
+      "x5_gitea_hourly_pull_followup_production_wire": [
+        "PostgresStore 의 RepositoryPullStore 9 method implementation (repository_pull_ingest.go 3 + repository_pull_state.go 6)",
+        "PostgresStore.ListGiteaPullTargets implementation (repository_pull_targets.go, GiteaPullTarget type)",
+        "migration 000045 quality_snapshots_repo_ref_unique partial UNIQUE INDEX (tool='gitea-build' 한정)",
+        "gitea_pull.go adapter minor fix: GiteaPullRequest.Merged/MergedAt field + stateToEventType helper (event_type enum 정합)",
+        "main.go production wire: pgStore != nil 가드 + repoLister closure 가 pgStore.ListGiteaPullTargets 호출 + adapters.RepositoryTarget 매핑",
+        "Tier: 공용 (backend only, 사내 한정 정보 미포함)",
+        "잔여: staging Gitea 실 검증 SOP (사내) / frontend widget (X-1 통합) / PR/commit status mapping 정밀화 / repository_pull_state.last_alert_at alert 시각"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/feat/x5-gitea-pull-store-wire/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/feat/x5-gitea-pull-store-wire/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/feat/x5-gitea-pull-store-wire/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "x5_branch_memory": "ai-workflow/memory/feat/x5-gitea-hourly-pull/"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (X-5 follow-up done 마킹 확정)",
+      "위키 mirror 갱신: `bash scripts/wiki-sync-devhub.sh` (PR 머지 후 1회 실행)",
+      "staging Gitea 실 검증 SOP 별도 docs (사내)",
+      "frontend widget (Gitea pull 상태) follow-up (X-1 admin dashboard 통합)"
+    ]
+  }
+}

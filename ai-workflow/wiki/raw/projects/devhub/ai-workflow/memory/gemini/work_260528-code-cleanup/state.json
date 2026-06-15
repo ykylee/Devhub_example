@@ -1,0 +1,45 @@
+{
+  "branch": "gemini/work_260528-code-cleanup",
+  "status": "ready_for_pr",
+  "stage": "Recovery 후속 정리 완료 + 통합 commit 4건 + 검증 그린",
+  "last_updated": "2026-05-29T11:10:00+09:00",
+  "head_commit": "e6137f5",
+  "main_base": "bcb159a",
+  "commits_ahead_of_main": 15,
+  "completed_tasks": [
+    "Gemini Stage 1~4: 코드 리팩토링 (Shared/Backend/Frontend/Docs)",
+    "Gemini service 단위테스트 62건 신규",
+    "main rebase 정리 (PR #406 individual 2 commit 자연 drop, 충돌 0)",
+    "Backend test recovery (commit 4b4aaed) — view cross-package test 들 httpapi 로 이관, EventCursor import 갱신, Repository wrapper 도입, in-memory NewRealtimeTicketStore + realtimeTicket private type 복원, router.go shim, providerHasCapability AND→OR 회귀 정정",
+    "Frontend P0 ghost import 10 정정 (commit 896d8e7) — project.service + integration-provider-presets path 갱신",
+    "Frontend P1 type drift fix (BindingsTable/ProviderTable framer-motion children, rbac.service.test.ts Role/PermissionState/RbacPolicyMeta)",
+    "Frontend dead file 14 정리 (components/{ui,layout})",
+    "Frontend service test +369 (commit e6137f5) — audit/onboarding/dev_request/auth/realtime 신규, rbac 재작성, 9 file 보강. project/pkce/audit/onboarding/dev_request/rbac 100% coverage",
+    "CI 임시 정리 (commit 17d8459) — e2e + backend-integration job 'if: ... && false' + 복원 SOP"
+  ],
+  "verification": {
+    "backend_build": "PASS (go build ./...)",
+    "backend_vet": "PASS (go vet ./...)",
+    "backend_test_short": "PASS (21 packages, go test ./... -count=1 -short)",
+    "frontend_tsc": "PASS (npx tsc --noEmit, 0 errors)",
+    "frontend_vitest": "PASS (29 file, 431 test)",
+    "frontend_coverage_statements": "28.03% overall — service 계층 92~100%"
+  },
+  "active_issues": [],
+  "next_steps": [
+    "PR 발행 + body 작성 (main bcb159a 기준 15 commit 통합)",
+    "4단계 self-review (diff 재검토 → gh pr comment → 보강 commit → squash merge)",
+    "머지 후 main flat memory + traceability/report.md 갱신"
+  ],
+  "carve_out_followups": [
+    "view 컴포넌트 24개 100% coverage (총 5000+ LoC, 본 PR scope 외)",
+    "providerHasCapability 3 카피 → internal/shared/integrationcaps 통합 (회귀 위험 가드)",
+    "ApplicationRepository 의 cross-domain IntegrationRepository embed 분리 (review agent P1)",
+    "CI 의 e2e + backend-integration job 복원 (cleanup 종료 후)"
+  ],
+  "review_results": {
+    "backend_review": "PASS with P1 2건 (cross-domain embedding, ApplicationStore interface bloat) — 별도 carve",
+    "frontend_review": "P0 2건 + dead file 14건 — 본 PR 에서 fix 완료",
+    "gemini_62_test_review": "PASS with concerns 68% 비즈니스 룰 cover → 본 PR 에서 type drift 6건 정정 + 100% coverage 보강"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-d",
+  "status": "in_progress",
+  "last_updated": "2026-05-12T10:30:00Z",
+  "base_branch": "gemini/frontend_260510",
+  "base_head_at_close": "post-#71 squash merge (3f3a9f0 — backend go build path)",
+  "current_phase": "kratos/hydra migrate automation in dev-up",
+  "context_summary": "직전 슬롯 work_260512-c (PR #71) Planned #2 처리. dev-up.{ps1,sh} 가 backend-core migrate 직후 IdP schema 생성 (backend-core/cmd/idp-apply-schemas Go 헬퍼) + kratos migrate sql up + hydra migrate sql up 까지 자동 실행. 모두 idempotent, DEVHUB_SKIP_IDP_MIGRATE=1 로 skip 가능. infra/idp/README.md §2 머리에 자동화 안내 박스 추가. 실머신 검증: 이미 schema/migrate 가 있는 환경에서 idempotent skip 정상 동작, 5/5 서비스 ready, dev-down 도 PID-kill + frontend grandchild port-sweep 패턴 유지. fresh DB cold-start zero-touch 가능해짐 (OIDC client 등록만 별도 스크립트로 남음)."
+}

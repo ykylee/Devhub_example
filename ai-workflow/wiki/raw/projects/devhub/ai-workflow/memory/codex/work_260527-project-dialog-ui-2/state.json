@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260527-project-dialog-ui-2",
+  "status": "in_progress",
+  "updated_at": "2026-05-27T08:05:00Z",
+  "focus": "Repository draft lifecycle + SCM publish 연동 완성 및 PR #368 제출",
+  "current_scope": [
+    "repository draft 생성/조회/publish API",
+    "draft publish 시 integration provider 기반 SCM 생성 호출",
+    "Admin Catalog repository 생성/발행 UX 보강",
+    "관련 migration(000042/000043) 및 빌드/테스트 검증"
+  ],
+  "validation": {
+    "backend_tests": "pass (go test ./internal/httpapi ./internal/store)",
+    "frontend_build": "pass (npm run -s build)"
+  },
+  "changed_files": [
+    "backend-core/internal/domain/domain.go",
+    "backend-core/internal/httpapi/domain.go",
+    "backend-core/internal/httpapi/permissions.go",
+    "backend-core/internal/httpapi/router.go",
+    "backend-core/internal/store/applications.go",
+    "backend-core/internal/store/postgres.go",
+    "backend-core/migrations/000042_projects_key_unique_active_only.up.sql",
+    "backend-core/migrations/000042_projects_key_unique_active_only.down.sql",
+    "backend-core/migrations/000043_repositories_draft_status.up.sql",
+    "backend-core/migrations/000043_repositories_draft_status.down.sql",
+    "frontend/app/(dashboard)/admin/catalog/page.tsx",
+    "frontend/lib/services/repository.service.ts"
+  ],
+  "pr": {
+    "number": 368,
+    "url": "https://github.com/ykylee/Devhub_example/pull/368",
+    "state": "open"
+  }
+}

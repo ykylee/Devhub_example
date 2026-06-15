@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/issue-238-single-port-nginx-v2",
+  "status": "PR #245 OPEN — Claude 인계 진행 중 (사용자 결정 2026-05-20). codex 1차 작업 3 commit (943543d / 2dcbbee / 2876263) 위에 Claude 보강 6 commit 추가 예정.",
+  "updated_at": "2026-05-20T02:30:00Z",
+  "head_commit": "2876263 (codex 1차 마지막) → Claude 보강 6 commit 진행 중",
+  "head_summary": "test(e2e): align auth specs with /devhub basePath and runtime config (codex 1차) — Claude 인계로 healthcheck / TLS SOP / dev local mode / 404→302 / Dockerfile build args / Keycloak wildcard SOP 추가",
+  "current_focus": [
+    "본 sprint state 는 Claude 인계 후 ai-workflow/memory/claude/work_260520-o-238-augment/ 로 이동",
+    "codex 작업 1차 commit 보존 + Claude 보강 commit 추가 → 단일 PR #245 force push 머지"
+  ],
+  "next_actions": [
+    "force push → PR #245 update → CI 재검증 → squash merge",
+    "PR #244 codex P1 (POST /api/v1/users password silent drop) 별도 hotfix sprint -p"
+  ],
+  "risks": [
+    "force push 시 codex 가 다시 동일 브랜치 작업 가능성 — 사용자 결정으로 충돌 회피",
+    "PR #244 codex P1 hotfix 가 sub-carve B-frontend (Gemini) 동반 필요"
+  ],
+  "handoff_note": "본 sprint 는 ai-workflow/memory/claude/work_260520-o-238-augment/state.json 으로 인계됨. 보강 6 commit 상세는 그쪽 참조."
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-l-213-jwks-stale-expiry",
+  "branch": "claude/work_260520-l-213-jwks-stale-expiry",
+  "status": "done",
+  "started_at": "2026-05-20T23:30:00Z",
+  "ended_at": "2026-05-20T23:50:00Z",
+  "merged_pr": 242,
+  "merge_commit": "cb6646d",
+  "issue": 213,
+  "carve": "P1-2",
+  "scope": "ADR-0020 sub-carve D — JWKS stale-while-error expiry case 확장. sprint -r (PR #186) 의 kid mismatch fallback 자연 확장. Keycloak unreachable 시 stale cache 사용으로 DevHub uptime 보장. MaxStaleDuration env (default 24h) 로 보안 trade-off 제어.",
+  "directive_source": "사용자 지시 — 'sprint -l 진입' (sub-carve C done 후 자연 follow-up)",
+  "decisions": [
+    "5 commit 분리 — Commit 1 cache struct 확장 + helper. Commit 2 fetchJWKS 흐름 변경. Commit 2+3 합침 (metric package 신규). Commit 4 env wire. Commit 5 회귀 test + docs + memory",
+    "cache 구조 — cachedAt 필드 신규 + cachedUntil 기존 (semantic 정정 = fresh 만료). readStaleCachedKeys 가 MaxStaleDuration 안 stale 반환, 초과 시 nil (security 보호)",
+    "fetchJWKS 흐름 — 1차 fetch 실패 시 readStaleCachedKeys fallback. fetchAndCacheJWKS 별도 함수로 분리 (testability)",
+    "metric 2종 — devhub_jwks_stale_while_error_total{result=ok|fail} + devhub_jwks_stale_age_seconds Histogram. internal/auth/metrics.go 신규 (sync.Once + audit/metrics.go 패턴 정합)",
+    "MaxStaleDuration default 24h — Keycloak key rotation 주기 (권장 90일) 보다 짧게 (revoked key 보호 회복 한도)",
+    "log WARN — stale-while-error JWKS fallback (err + age=N秒). structured (운영 dashboard 가 식별)",
+    "errKidMismatch (sprint -r) 흐름 그대로 유지 — backward compat",
+    "backward compatible — MaxStaleDuration 0 시 default. env 미설정 시 24h 자동 적용"
+  ],
+  "todo": [
+    "Commit 1 — cache struct 확장 (cachedAt + MaxStaleDuration field + defaultJWKSMaxStale + readStaleCachedKeys helper) — 완료",
+    "Commit 2+3 — fetchJWKS 흐름 변경 + internal/auth/metrics.go 신규 — 완료",
+    "Commit 4 — Config OIDCJWKSMaxStaleDuration + main.go wire — 완료",
+    "Commit 5 — 회귀 test 4건 + docs (ADR-0020 §4.1 + design doc + traceability) + sprint -l state — 진행 중",
+    "commit + push + PR + 4단계 self-review + codex review 응답 + squash merge — 다음"
+  ],
+  "verification": "backend go build ./... + go test ./internal/auth/ PASS (1.398s). 회귀 test 4건 (StaleWhileError_KeycloakUnreachable + StaleExpired_Fails401 + FreshCache_NoStaleFallback + StaleFallback_DefaultMaxStale) 모두 그린. full test PASS 전 패키지."
+}

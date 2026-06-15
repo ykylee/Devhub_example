@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "chore/work_260611-e-wiki-resync-2026-06-11",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "wiki_resync_2026_06_11": [
+        "T-d-72-2 re-sync 완료 (2026-06-11 01:45:04Z, 83 file, 1.6M)",
+        "5 file 갭 해소: ai-workflow/memory/3 file (state.json/session_handoff.md/work_backlog.md) + docs/adr/0028 + docs/planning/release_v1_roadmap",
+        "main HEAD `837c26c8` (PR #545→#546→#547→#549→#550) 기준",
+        "main flat memory 3 file 본 sprint 의 metadata 갱신 (state.json M-v1.0 notes + work_backlog.md status line + date)"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/chore/work_260611-e-wiki-resync-2026-06-11/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/chore/work_260611-e-wiki-resync-2026-06-11/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/chore/work_260611-e-wiki-resync-2026-06-11/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "wiki_sync_script": "scripts/wiki-sync-devhub.sh",
+    "mirror_list": "docs/llm-wiki/mirror-list.md",
+    "vault_root": "/home/yklee/wiki",
+    "vault_target": "/home/yklee/wiki/raw/projects/devhub/",
+    "last_sync_timestamp": "2026-06-11T01:45:04Z"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (T-d-72-2 re-sync done 마킹 확정)"
+    ],
+    "post_merge": [
+      "PR #548 (N-13 backend foundation) 머지 결정 (E2E Internal 1 fail 해결 기대)",
+      "PR A-2 (routing/auto_route.go + voc_handler 통합 + openapi.yaml)",
+      "T-d-72-3~6 + Phase 3 (my_harness 일임)"
+    ]
+  }
+}

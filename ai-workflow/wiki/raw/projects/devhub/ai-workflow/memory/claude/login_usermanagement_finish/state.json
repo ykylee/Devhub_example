@@ -1,0 +1,85 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/login_usermanagement_finish",
+  "status": "OPEN. PR #85 에 4 commit 누적 (PR-DOCS / PR-UX / PR-M2-AUDIT / e2e specs 30 TC). 35 tests in 11 files discovery PASS, tsc clean. 실 e2e 실행은 사용자 환경 의존 (5-process stack + DEVHUB_KRATOS_WEBHOOK_TOKEN). 리뷰어 모드 1차 검토 진입.",
+  "updated_at": "2026-05-12T07:30:00Z",
+  "branched_from": {
+    "branch": "main",
+    "head_commit": "29a90bd",
+    "head_summary": "Merge pull request #83 (docs(memory): close work_260512-j slot)"
+  },
+  "goal": "로그인 / 로그아웃 / 사용자 관리 1차 완성. 잔존 UX 미구현 결함과 audit 정합 follow-up 을 정리해서 운영 진입 직전 게이트를 통과시킨다.",
+  "scope_in": [
+    "PR-UX1: /admin/settings/users SearchInput 실제 클라이언트 필터링 (DONE, commit 0e27407)",
+    "PR-UX2: /account current_password 라벨 Kratos privileged session 안내 + aria-describedby (DONE, commit 0e27407)",
+    "PR-UX3: Header Switch View 한계 안내 (DONE, commit 0e27407)",
+    "PR-M2-AUDIT: Kratos settings/password/after webhook → audit_logs (DONE, commit ead9f73)",
+    "PR-DOCS: 로드맵 3종 + sprint memory 정합 (DONE, commit a9e2e3a)",
+    "e2e specs: 30 TC across 8 신규 + 2 확장 spec (DONE, commit 712b23e)"
+  ],
+  "scope_out": [
+    "Hydra JWKS / introspection verifier 실구현 (현행 introspection 동작 안정, 별도 보안 sprint)",
+    "PR-T5 CI 도입 (사용자가 보류 결정, 2026-05-12)",
+    "M4 진입 (WebSocket UI, AI Gardener gRPC, Gitea Hourly Pull)"
+  ],
+  "candidates": {
+    "PR-UX1": {
+      "size": "S",
+      "files": ["frontend/app/(dashboard)/admin/settings/users/page.tsx"],
+      "verify": "frontend npm run build + 수동 검증 (검색어 입력 시 MemberTable 행 즉시 필터링)"
+    },
+    "PR-UX2": {
+      "size": "S",
+      "files": ["frontend/app/(dashboard)/account/page.tsx"],
+      "verify": "frontend npm run build + 수동 검증 (라벨 옆 안내 텍스트 / REAUTH 메시지 명료)"
+    },
+    "PR-UX3": {
+      "size": "S",
+      "files": ["frontend/components/layout/Header.tsx"],
+      "verify": "frontend npm run build + 수동 검증 (Switch View 드롭다운 헤더에 안내 1줄)"
+    },
+    "PR-M2-AUDIT": {
+      "size": "M",
+      "files": [
+        "backend-core/internal/httpapi/kratos_webhook_handler.go (new)",
+        "backend-core/internal/httpapi/router.go (route 추가)",
+        "backend-core/internal/audit/* (필요 시 source_type=kratos enum)",
+        "infra/idp/kratos.yaml (webhook hook 등록)",
+        "docs/setup/test-server-deployment.md (webhook 구성 안내)"
+      ],
+      "verify": "backend-core go test ./... + 수동 검증 (password 변경 → audit_logs 1행)"
+    }
+  },
+  "next_actions": {
+    "immediate": "PR #85 리뷰어 모드 1차 코멘트 작성 → 사용자 환경에서 실 e2e 실행 → fail 케이스 디버깅 → sprint close.",
+    "decisions_made_2026_05_12": [
+      "Q1: PR-UX1/2/3 은 단일 묶음 PR 로 진입 (DONE)",
+      "Q2: PR-M2-AUDIT webhook 인증은 shared secret (Authorization: Bearer $DEVHUB_KRATOS_WEBHOOK_TOKEN) (DONE)",
+      "Q3: PR-M2-AUDIT hook 범위는 최소 settings/password/after 만 (나머지는 후속 sprint) (DONE)",
+      "Q4: PR 구조는 단일 PR #85 통합 (commit 단위 리뷰)",
+      "Q5: TC 기능별 분류 (F1..F8, 30 TC, 10 spec)",
+      "Q6: alice 충돌은 양 spec 의 try/finally + globalSetup force-reset 으로 mitigated",
+      "Q7: Kratos revoke_active_sessions 미설정 / must_change_password 미구현은 후속 sprint 인계"
+    ],
+    "gates_passed": [
+      "1차 완성 (1) UX placeholder zero: PR-UX 머지 후 PASS",
+      "1차 완성 (2) Kratos audit 정합: PR-M2-AUDIT 머지 후 PASS",
+      "1차 완성 (3) frontend build / backend test / docs check: 모두 PASS",
+      "1차 완성 (4) 로드맵 3종 정합: PR-DOCS 머지 후 PASS"
+    ],
+    "gates_pending": [
+      "1차 완성 (5) 운영 진입 직전 게이트 — e2e 30 TC 실행 PASS (사용자 환경 의존)"
+    ]
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/claude/login_usermanagement_finish/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/claude/login_usermanagement_finish/work_backlog.md",
+    "sprint_plan_path": "ai-workflow/memory/claude/login_usermanagement_finish/sprint_plan.md",
+    "integrated_roadmap": "docs/development_roadmap.md (§3 M2 갱신 2026-05-12)",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md (§2 Phase 6/6.1 done 갱신 + §7 sprint 잔여 명시)",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md (§5 P0 M2 + §6 작업 큐 갱신)",
+    "main_state_snapshot": "ai-workflow/memory/state.json (HEAD 29a90bd)",
+    "main_session_handoff": "ai-workflow/memory/session_handoff.md (2026-05-12 EOD)"
+  }
+}

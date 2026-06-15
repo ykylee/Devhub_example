@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-i-cancel-signup",
+  "branch": "claude/work_260520-i-cancel-signup",
+  "status": "done",
+  "started_at": "2026-05-20T18:45:00Z",
+  "ended_at": "2026-05-20T19:00:00Z",
+  "merged_pr": 236,
+  "merge_commit": "64d37f5",
+  "scope": "P3-12 Sign Up 영구 취소 — 사용자 결정 2026-05-20. release_v1_roadmap.md 4 위치 strikethrough + §9 변경 이력 + issue #235 closed (not planned).",
+  "directive_source": "사용자 메시지 — 'sign up 기능은 취소야. keycloak 관리자가 우리가 아니라서'",
+  "decisions": [
+    "Sign Up 영구 취소 — ADR-0020 결정 A 정합 (DevHub 가 Keycloak admin 권한 없음, IdP 팀 책임)",
+    "release_v1_roadmap.md §1.2 'v1.1 carve' → 'permanently cancelled'",
+    "§3.4 P3-12 row strikethrough + §5.2 워커 분담 strikethrough + §4.2 v1.1 milestone 정정",
+    "GitHub issue #235 closed (not planned) + body 에 결정 근거 명시"
+  ],
+  "todo": [
+    "issue #235 closed — 완료",
+    "release_v1_roadmap.md 4 위치 갱신 + §9 변경 이력 — 완료",
+    "commit + push + PR #236 + 머지 — 완료"
+  ],
+  "verification": "docs only. CI Detect + Workflow Lint SUCCESS."
+}

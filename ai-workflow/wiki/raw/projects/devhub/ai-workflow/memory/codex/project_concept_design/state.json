@@ -1,0 +1,33 @@
+{
+  "status": "in_progress",
+  "branch": "codex/project_concept_design",
+  "updated_at": "2026-05-14",
+  "current_focus": "PR #104 본인 리뷰 보강 — 13개 항목 (B1~B3 / I1~I4 / Nit 6 / S1~S4) 정정 완료, 머지 대기",
+  "completed": [
+    "용어 체계 정합화 및 관련 문서 정리",
+    "AI 가드너 범위 v2 이관 반영",
+    "뷰별 메뉴/화면/API 매트릭스 문서 추가",
+    "Application 하위 데이터 설계(Repository 작업/PR/빌드/품질) 반영",
+    "권한 정책(system_admin 기본, pmo_manager 후보) 반영",
+    "원격 push 완료 (최신 커밋: 2b35d13)",
+    "Application.key 정책(10자 영문숫자 + DB 여유 길이 + 앱 검증) 요구사항 반영",
+    "Usecase/ERD/추적성 문서 정합화 (UC-APP-01..10, key 용어 통일)",
+    "backend_api_contract.md §13에 Application/Repository/Project planned API 초안 추가",
+    "Application 상태 전이별 권한/검증 가드 규칙 확정",
+    "롤업 weight_policy(equal/repo_role/custom) 및 메타(applied_weights/fallbacks) 확정",
+    "sync_error_code 표준 사전 및 retryable 정책 확정",
+    "Application API 요청/응답 JSON 스키마 예시 본문 추가",
+    "PR #104 본인 리뷰 보강 — B1 trace.md row+변경로그 동기화, B2 ERD/concept PK 정합, B3 concept §7 데이터 모델 신규 컬럼+project_integrations 명칭, I1 REQ-FR-APP 본문 순서 재배치, I2 API-41~58 placeholder 부여+trace.md §2.2 forward note, I3 weight normalize ±0.001 명문화, I4 key immutable 명시(REQ+API+에러 코드), Nit N1~N6 (Jira 비-Jira/adapter_version/visibility/DELETE archive/SoT cross-link/concept §10 close), S1 UC-APP-04 의미 정정, S3 ADR-0011 placeholder 발급, S4 sync_error_code link-scope 운영 룰"
+  ],
+  "next_actions": [
+    "보강 commit push 후 squash merge 진행",
+    "후속 sprint: planned API(API-41~58)를 정식 API ID로 활성화 + ARCH/IMPL ID 발급",
+    "Repository-Project 운영 데이터 모델 마이그레이션 초안 작성",
+    "ADR-0011 옵션 A~D 평가 및 단일 결정 (design sprint)",
+    "권한 정책(system_admin/pmo_manager) 백엔드 인가 매핑 설계"
+  ],
+  "risks": [
+    "요구사항/추적성 ID 증분 관리 시 충돌 가능성",
+    "pmo_manager 정책 확정 전 권한 범위 해석 차이 가능성"
+  ]
+}

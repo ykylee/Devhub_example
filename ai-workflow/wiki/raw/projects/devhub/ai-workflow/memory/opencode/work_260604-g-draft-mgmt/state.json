@@ -1,0 +1,56 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-g-draft-mgmt",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "completed",
+  "summary": "admin/catalog draft repository 별도 관리 (filter + delete + edit) 완료. PR #471 MERGED → main 7816299 (2026-06-04T06:42:20Z). codex P1 (link cascade) + P2 (owner_login recompute) 같은 PR 에서 fix.",
+  "started_at": "2026-06-04T05:15:00Z",
+  "completed_at": "2026-06-04T06:42:20Z",
+  "updated_at": "2026-06-04T06:42:20Z",
+  "scope": {
+    "in": [
+      "backend: *ApplicationRepository.UpdateRepositoryDraft(ctx, id, params) 추가 — key/slug/provider_key 부분 갱신 (draft 한정, codex P1+P2 fix 동봉)",
+      "backend: *ApplicationRepository.DeleteRepository(ctx, id) 추가 — draft 한정, FK reference 가드",
+      "backend: PATCH /api/v1/repositories/:repository_id handler",
+      "backend: DELETE /api/v1/repositories/:repository_id handler",
+      "backend: router.go route 등록",
+      "backend: integration test 4건 (happy + P1 cascade + P1 conflict rollback + P2 owner_login + unique violation + status guard)",
+      "backend: permission table 신규 2 route 추가",
+      "frontend: repositoryService.updateRepository / deleteRepository 메서드",
+      "frontend: RepositoryEditModal 신규",
+      "frontend: admin/catalog repositories 탭 'All / Drafts only' 토글 + Edit 버튼 (draft 한정) + 진짜 Delete handler",
+      "frontend: vitest 3건 추가"
+    ],
+    "out": [
+      "Application / Project draft 관리 — 사용자 'repository 만' 명시",
+      "SCM mirror 동기화/삭제 — 본 sprint 는 local repositories 만",
+      "E2E TC-REPO-DRAFT-LIFECYCLE — vitest 로 충분, 별도 E2E 추가 안함"
+    ]
+  },
+  "artifacts": {
+    "pr_url": "https://github.com/ykylee/Devhub_example/pull/471",
+    "pr_number": 471,
+    "pr_state": "MERGED",
+    "merge_commit_oid": "7816299f2b9d14cab65451bc9f210521f9e01ca1",
+    "merged_at": "2026-06-04T06:42:20Z",
+    "pre_merge_commits": ["e5ad1e6", "0e3553c"],
+    "files_changed_total": 14,
+    "verification": {
+      "go_build": "0 errors",
+      "go_vet": "0 errors",
+      "go_test_httpapi_unit": "ok 0.141s (TestRoutePermissionTable_CoversAllProtectedV1Routes 포함)",
+      "go_test_integration": "PASS in CI (Postgres, 4 시나리오)",
+      "tsc_changed_files": "0 errors",
+      "vitest_service": "12/12 PASS",
+      "ci_final": "8/8 jobs PASS (backend unit/integration/E2E 2/2/frontend unit/workflow lint/detect paths/migration prefix)",
+      "codex_review": "P1 (link cascade) + P2 (owner_login) — 같은 PR 에서 fix + 답글 2건"
+    }
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-g-draft-mgmt/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-g-draft-mgmt/work_backlog.md"
+  }
+}

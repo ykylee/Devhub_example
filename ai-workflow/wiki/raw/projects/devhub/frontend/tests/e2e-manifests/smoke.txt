@@ -1,0 +1,3 @@
+tests/e2e/auth.spec.ts
+tests/e2e/dogfood-onboarding-smoke.spec.ts
+tests/e2e/repositories-ui.spec.ts

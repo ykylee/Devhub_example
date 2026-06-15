@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/x4-project-scm-create",
+  "milestones": {
+    "M-v0.1.1": {
+      "status": "in_progress",
+      "x4_project_scm_create": [
+        "GiteaClient (X-4 reference minimal, X-5 PR #592 머지 시 통합) + GiteaRepo struct",
+        "GiteaClient.CreateUserRepo + CreateOrgRepo (POST /api/v1/user/repos, /api/v1/orgs/{org}/repos)",
+        "GiteaAPIError typed error (Class: validation|permission|not_found|rate_limit|server|network)",
+        "SCMCreator (post-commit + best-effort 보상) + SCMCreateRequest/Result + SCMCreateStatus 4 state",
+        "SCMCreateStore interface (UpdateSCMCreateState) — repositories 테이블 4 신규 컬럼",
+        "migration 000044: sc_create_status + sc_create_error + sc_external_id + sc_create_at + 2 partial index",
+        "4 metric: devhub_scm_create_runs_total / _duration_seconds / _repos_total / _failures_total{scm_provider}",
+        "9 unit test PASS (GiteaClient: 4 + SCMCreator: 4 + giteaErrorClass: 1)",
+        "ADR-0035 (X-4 Architecture, 9 section)",
+        "Tier: 공용 (코드 + ADR + openapi + migration 모두 사내 한정 정보 미포함)",
+        "잔여: handler post-commit wire + openapi spec 확장 + main.go env wire (다음 세션)"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/feat/x4-project-scm-create/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/feat/x4-project-scm-create/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/feat/x4-project-scm-create/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (X-4 row done 마킹 확정)",
+      "위키 mirror 갱신: `bash scripts/wiki-sync-devhub.sh` (PR 머지 후 1회 실행)",
+      "X-5 PR #592 머지 후 GiteaClient 통합 (X-4 PR 의 reference minimal client → X-5 의 rich client)",
+      "다음 sprint: handler post-commit wire + openapi spec 확장 + main.go env wire (X-4 Phase 2)",
+      "그 후: X-6 (Keycloak group staging-prod, 사내) 또는 X-8 (Keycloak SPI realm events, 사외 stub + 사내 SPI 분할)"
+    ]
+  }
+}

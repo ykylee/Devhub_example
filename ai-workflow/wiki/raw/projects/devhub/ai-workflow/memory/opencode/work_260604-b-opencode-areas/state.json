@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-b-opencode-areas",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "opencode 워커의 영역/책임/작업 스타일/인계 SOP 을 docs/governance/worker_division.md §1.4 본문으로 정의. 다른 워커(Claude backend / Codex infra+CI / Gemini frontend / Reasonix) 와의 차별 영역 명시 + 외부 contribution 정책 + Oracle/specialist 활용 정책. PR #465 (stacked on PR #464) 생성 완료.",
+  "started_at": "2026-06-04T00:15:00Z",
+  "updated_at": "2026-06-04T00:30:00Z",
+  "base_branch": "opencode/work_260604-a-opencode-workflow-bootstrap",
+  "stacked_pr": {
+    "stack_under_pr": "#464 (opencode/work_260604-a-opencode-workflow-bootstrap)",
+    "stack_under_status": "open (2026-06-04T00:08:00Z push 기준)"
+  },
+  "this_pr": {
+    "number": "#465",
+    "title": "docs(governance): opencode 워커 §1.4 본문 정의 (3-lane + 인계 SOP)",
+    "head_branch": "opencode/work_260604-b-opencode-areas",
+    "base_branch": "opencode/work_260604-a-opencode-workflow-bootstrap"
+  },
+  "scope": {
+    "in": [
+      "기존 워커 분담 + 최근 PR 패턴 분석 (다른 워커의 영역 식별)",
+      "opencode 가 가져갈 차별 영역 후보 도출 + 우선순위",
+      "docs/governance/worker_division.md §1.4 본문 초안 (주요 책임/작업 스타일/누적 이력 placeholder)",
+      "AGENTS.md OpenCode 전용 메모에 작업 도구/스킬/외부 contribution 정책 보강",
+      "docs/planning/release_v1_roadmap.md §5.1 OpenCode 행의 TBD 표기 본 sprint 결과로 갱신"
+    ],
+    "out": [
+      "opencode 첫 carve(예: N-10 Manager RBAC 검증) 실제 실행 — 후속 sprint",
+      "다른 워커의 기존 분담 변경",
+      "신규 도구/MCP 도입 — 본 sprint 는 문서 정합만"
+    ]
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-b-opencode-areas/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-b-opencode-areas/work_backlog.md"
+  }
+}

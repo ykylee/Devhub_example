@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-n-214-service-account-min-role",
+  "branch": "claude/work_260520-n-214-service-account-min-role",
+  "status": "in_progress",
+  "started_at": "2026-05-20T01:30:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": 214,
+  "carve": "P1-3",
+  "scope": "ADR-0020 sub-carve E — service account 권한 축소 (옵션 A 정공법, 사용자 결정 2026-05-20). backend Keycloak manage-users 호출처 2건 (main.go seedLocalAdmin + organization.go POST /users password 분기) + KeycloakAdminClient write methods 4건 + IdentityAdmin interface 정리. codex #238 (infra + frontend auth + setup docs) 와 100% 영역 분리 — codex 가 건드린 파일 0건. service account 가 manage-users 없이 view-users + view-events 만으로 동작.",
+  "directive_source": "사용자 지시 — 'codex의 #238 브랜치 작업 내용 확인해보고 이어서 2트랙으로 작업해보자' + '브랜치는 충돌나면 안되니까 분리해' + AskUserQuestion 답: sub-carve E (P1-3, #214) backend only / 옵션 A 전면 호출처 제거",
+  "decisions": [
+    "옵션 A 정공법 채택 — 단일 PR 에서 호출처 전면 제거. ENV gate (옵션 B) 또는 docs only (옵션 C) 거부",
+    "5 commit 분리 — (1) organization.go password 분기 (2) seedLocalAdmin (3) KeycloakAdminClient write + interface (4) docs (5) memory",
+    "FindIdentityByUserID 유지 — view-users role 만 요구. identity_resolver.go 가 idp_subject 미설정 user 의 first-login 시 사용",
+    "realm-export.json 안 건드림 — codex #238 가 동일 파일 5 line 건드린 상태. dev 부트스트랩은 (a) Keycloak admin console 수동 시드 또는 (b) codex #238 머지 후 별도 carve (test admin pre-defined)",
+    "main_test.go 전체 삭제 — seedLocalAdmin 전용 test 3건 + idpAdminFake + orgStoreFake. package main 의 유일한 test 파일이었음",
+    "MockIdentityAdmin slim 화 — write fields/methods 제거, FindIdentityByUserID + FindCalls + FindError 만 유지",
+    "keycloak_admin_client_test.go 재작성 — TestKeycloakAdminClient_CRUDFlow (write 4건 검증) → TestKeycloakAdminClient_FindAndAuthFlow (read-only + bearer)",
+    "design doc 위치 — docs/planning/keycloak_service_account_min_role.md 신규. codex가 docs/setup/keycloak_operations.md §2 1줄 수정한 상태라 같은 파일 신규 §8.5c 추가 회피"
+  ],
+  "todo_done": [
+    "Commit 1 — organization.go password 분기 제거 + createUserRequest.Password field + audit_logs.details kratos_id key (commit 70f71c1)",
+    "Commit 2 — seedLocalAdmin 함수 + seedOrgStore interface + 호출 + main_test.go 전체 삭제 (commit a467ae2)",
+    "Commit 3 — KeycloakAdminClient write methods 4건 + keycloakIDFromLocation + IdentityAdmin interface 4건 + MockIdentityAdmin slim + keycloak_admin_client_test.go 재작성 (commit 59e7844)",
+    "Commit 4 — design doc 옵션 A 채택 갱신 + ADR-0020 §4.1 sub-carve E done + traceability §6 row (commit fd0eff5)"
+  ],
+  "todo": [
+    "Commit 5 — sprint -n state + 본 commit",
+    "push + PR + 4단계 self-review + codex review 응답 + squash merge"
+  ],
+  "verification": "backend go build ./... + go vet ./... + go test ./... PASS 전 패키지 (audit 1.543s + auth 2.179s + httpapi 1.963s + store cached). manage-users 호출처 0건 (grep CreateIdentity|UpdateIdentityPassword|SetIdentityState|DeleteIdentity = 0 hits in backend-core/).",
+  "two_track_separation": {
+    "codex_track": "codex/issue-238-single-port-nginx-v2 — infra (docker-compose.deploy.yml + nginx + keycloak-realm.json) + frontend auth (app/login + app/auth/* + AuthGuard + role-routing + auth.service + .env.example) + docs/setup (docker-packaging + e2e-test-guide + keycloak_operations §2 1줄 + test-server-deployment)",
+    "claude_track": "claude/work_260520-n-214-service-account-min-role — backend-core (organization.go + main.go + main_test.go + KeycloakAdminClient + IdentityAdmin interface + MockIdentityAdmin + keycloak_admin_client_test.go) + docs/planning + docs/adr + docs/traceability",
+    "shared_files": "0건 — codex 가 건드린 파일 중 본 sprint 가 건드린 파일 없음. 100% 분리 달성"
+  }
+}

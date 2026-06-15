@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-d",
+  "branch": "claude/work_260520-d",
+  "status": "done",
+  "started_at": "2026-05-20T15:30:00Z",
+  "ended_at": "2026-05-20T18:30:00Z",
+  "merged_pr": 205,
+  "merge_commit": "f2a389a",
+  "scope": "계정/사용자 관리 리팩토링 Phase 3 진입 (sub-carve A). 4 영역: (1) ADR-0020 발급 (accepted) — Phase 2 명시 결정 6건 종합 + §4.1 sub-carve A~F 분담. (2) design doc §6 Phase 3 실행 계획 신규 — sub-carve 분담 + sub-carve A 변경 매트릭스 + Strangler Fig. (3) backend `rbac_subject_roles` 완전 제거 (결정 D, §5.8 따름) — 8 파일 변경. (4) traceability §2.2 API-30/31 strikethrough + §2.4 IMPL-rbac-01/02 + §4 ADR-0020 row + §6 변경 이력.",
+  "directive_source": "사용자 지시 — '계정/사용자 관리 리팩토링 Phase 3 진입해줘' (sprint -c housekeeping #3 후속)",
+  "decisions": [
+    "sub-carve A 만 본 sprint — ADR-0020 + design §6 + rbac_subject_roles 완전 제거 (결정 D). sub-carve B (accounts/* 제거 + lazy auto-create) 는 sprint -e 후속.",
+    "테이블 자체 없음 발견 정정 — Phase 1 매트릭스의 `rbac_subject_roles` 표기는 실제로 `users.role` 컬럼 직접 read/write. migration 불필요.",
+    "Delete-in-use 테스트 재구성 — SetSubjectRole 제거 후 CreateUser 의 `Role: domain.AppRole(roleID)` 사용 (`users.role` FK to `rbac_policies.role_id` 활용, migration 000006). 테스트 의도 보존.",
+    "fake field `subjects` 보존 — DeleteRBACRole 의 ErrRoleInUse 검증 path 가 `f.subjects` 를 사용. 테스트가 직접 set 하는 패턴.",
+    "Strangler Fig 권장 (sub-carve B 진입 시 적용) — deprecation banner → frontend cleanup → backend route 제거 → e2e spec 정리 4단계."
+  ],
+  "todo": [
+    "ADR-0020 draft + accepted — 완료",
+    "design doc §6 실행 계획 + §7.2 갱신 + §8 변경 이력 — 완료",
+    "backend rbac.go handler 2개 + interface method + audit const + wire struct 제거 — 완료",
+    "router.go 2 route 제거 — 완료",
+    "permissions.go 2 routePermissionTable entry 제거 + ADR-0020 reference 주석 — 완료",
+    "postgres_rbac.go impl 2개 제거 — 완료",
+    "postgres_rbac_test.go Get/Set test 3건 제거 + Delete-in-use 테스트 재구성 — 완료",
+    "rbac_test.go fake mock 2개 + handler test 3건 제거 — 완료",
+    "traceability §2.2/§2.4/§4/§6 갱신 — 완료",
+    "backend go build + go test PASS 검증 — 완료",
+    "memory state.json + session_handoff + work_backlog 갱신 — 완료",
+    "commit + push + PR + 4단계 self-review + squash merge — 다음"
+  ],
+  "verification": "go build ./... PASS + go test ./internal/httpapi/... ./internal/store/... PASS (httpapi 1.056s + store 0.875s). 전체 backend test 전 패키지 PASS."
+}

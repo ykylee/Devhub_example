@@ -1,0 +1,54 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/work_260611-a-n13-inbound-source-impl",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "n13_impl_foundation": [
+        "migration 000007 (platforms.inbound_source_type + inbound_source_config + CHECK + consistency constraint)",
+        "domain.Platform 2 field 추가 + IsValidPlatformInboundSourceType helper",
+        "repository: UpdatePlatformInboundSource + ListEnabledInboundSourcePlatforms + Scan/Insert/Update 정합",
+        "PlatformStore interface: 2 method 추가 (View + httpapi side)",
+        "view/handler.go: UpdatePlatform 에 inbound_source 별도 처리 + platformResponse echo",
+        "view/applications.go: PATCH /platforms inbound_source validate + ErrInvalidInboundSourceType/Config 매핑",
+        "view/applications_handler_test.go: 4 UT 추가 (GiteaOK / InvalidType400 / InvalidConfig400 / DisableEmpty)",
+        "fake store (view + httpapi) 2 method 추가 + json.Valid check 정합"
+      ]
+    }
+  },
+  "components": {
+    "domain.Platform": {
+      "InboundSourceType": "string — ''|gitea|jira|other",
+      "InboundSourceConfig": "string — JSONB-serialized config (in-memory raw text)"
+    },
+    "repository": {
+      "UpdatePlatformInboundSource": "in-place PATCH, validation + JSON parse + consistency CHECK",
+      "ListEnabledInboundSourcePlatforms": "active platforms with non-empty inbound_source_type"
+    },
+    "view.UpdatePlatform": {
+      "inboundTouched": "inbound_source 가 PATCH body 에 있을 때만 UpdatePlatform skip + UpdatePlatformInboundSource 단독 호출",
+      "isolation": "inbound_source 부분 실패가 다른 필드 변경에 영향 없도록 격리"
+    }
+  },
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/feat/work_260611-a-n13-inbound-source-impl/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/feat/work_260611-a-n13-inbound-source-impl/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/feat/work_260611-a-n13-inbound-source-impl/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "traceability_report": "docs/traceability/report.md",
+    "adr_0028": "docs/adr/0028-dev-requests-voc-external-ref.md",
+    "release_v1_roadmap": "docs/planning/release_v1_roadmap.md",
+    "sprint_plan": "docs/planning/2026-06-12-inbound-source-routing-sprint-plan.md"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR (PR A foundation) 머지 후 main flat memory 3 file finalize"
+    ],
+    "post_merge": [
+      "PR A-2: routing/auto_route.go 신규 (pattern matcher 3 case + auto route 1 case) + voc_handler 통합 + openapi.yaml 정합"
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "status": "in_progress",
+  "branch": "codex/next-step-20260516",
+  "updated_at": "2026-05-17",
+  "current_focus": "메모리 정리 완료, PR 본문/추적성 영향 정리 및 제출 준비",
+  "completed": [
+    "PR #136 (e2e/unit test 안정화) 머지 완료",
+    "main 동기화 이후 새 작업 브랜치 생성 (codex/next-step-20260516)",
+    "CI 실패 원인(auth_intake_ip_denied) 분석 및 E2E 보강 반영 완료",
+    "Integration registry/binding baseline 구현 (migration 000027, API-69~75 handler/store/router/RBAC/test)",
+    "traceability report API-69~75 activated baseline 동기화",
+    "API-73 webhook verifier 1차 구현 (hmac_sha256/shared-token)",
+    "API-73 provider별 verifier strategy 확장 (provider_sdk)",
+    "Integration role-based/resilience 테스트 보강 (binding 403, webhook duplicate 409)",
+    "Integration resilience degraded 전이 시뮬레이션 추가 (invalid signature -> target provider degraded)",
+    "HomeLab snapshot 영속화 baseline 구현 (migration 000028 + store load/save + hydrate)",
+    "HomeLab adapter 연동 범위 확정 (architecture/backend_api_contract 반영)",
+    "HomeLab adapter contract/code skeleton 구현 (internal/integrations/adapters)",
+    "HomeLab adapter 고도화 1차 구현 (pull/normalize/health policy)",
+    "HomeLab adapter를 infra_integrations handler 경로에 단계적 연결",
+    "HomeLab adapter health policy/runtime config 연동 (DEVHUB_HOMELAB_* env)",
+    "HomeLab pull source 구현체 도입 전략 문서화 (docs/planning/homelab_adapter_pull_strategy.md)",
+    "HomeLab File puller 1차 구현 (homelab_file_puller + unit tests)",
+    "HomeLab pull path scheduler/worker 연결 구현 (feature flag + interval + file pull loop)",
+    "Prometheus 1차 반영 (/metrics + HomeLab pull/ingest 지표)",
+    "HomeLab HTTP puller(P1) 구현 (DEVHUB_HOMELAB_PULL_URL/TOKEN + unit tests)",
+    "HTTP puller retry/backoff 구현 (DEVHUB_HOMELAB_PULL_HTTP_RETRY_MAX/BACKOFF + retry tests)",
+    "Prometheus HomeLab alert/dashboard 초안 문서 추가 (docs/planning/prometheus_homelab_alerts.md)",
+    "Prometheus stage/prod 임계값 프로파일 및 튜닝 체크리스트 반영",
+    "Integration 테스트 실행 보고서(report_20260516_m4_integration.md) 반영",
+    "API-76~78(HomeLab infra) handler/route/RBAC/auth baseline 구현",
+    "traceability report API-76~78 activated baseline 동기화",
+    "traceability/report API-76~78 영속화 반영 동기화",
+    "RM-INT/IMPL/UT ID 확장 점검 결과 반영 (RM-INT deferred, IMPL/UT 확장)"
+  ],
+  "next_actions": [
+    "PR 본문(추적성 영향 포함) 작성 및 제출",
+    "운영 환경 Prometheus rule 파일/Alertmanager 라우팅에 임계값 적용",
+    "Grafana 대시보드 JSON 초안 생성 및 패널별 쿼리 고정"
+  ],
+  "env_notes": {
+    "verification": "backend-core go test ./... 통과",
+    "latest_merged_pr": "https://github.com/ykylee/Devhub_example/pull/136",
+    "working_branch": "codex/next-step-20260516"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-k-v1-harden",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "deepseek-v4-flash",
+  "status": "in_progress",
+  "summary": "v1.0 마무리 sprint. N-2/N-3/P1-6 + Application→Platform 전면 리네임 완료. PR #476 CI 수정: rename 잔여 SQL 4 + test cleanup 3 + E2E locator 1 + commit a33d8b8 push. CI 재실행: Backend Integration PASS, E2E shard 1/2 PASS, shard 2/2 38/39 pass (TC-USER-SWITCH-01 P1-6 회귀 잔여). 머지 가능 상태이나 P1-6 signout handler fix는 별도 PR 권장.",
+  "started_at": "2026-06-04T08:20:00Z",
+  "updated_at": "2026-06-04T13:15:00Z",
+  "scope": {
+    "in": [
+      "N-2: Repository draft→publish HTTP handler UT 10건 + memoryApplicationStore 확장",
+      "N-3: SCM import/create/publish E2E test spec 3 TC (TC-REPO-SCM-IMPORT-01, CREATE-01, PUBLISH-02)",
+      "P1-6 (BUG-03): POST /api/v1/auth/logout — Keycloak session revocation (LogoutUserSession)",
+      "Application→Platform 전면 리네임 (DB/API/Go/Frontend/Docs 229 files)",
+      "Codex review P2 fix: revokeAttempted 분리",
+      "Conflict 해결: report.md merge with main",
+      "PR #476 CI 수정 (WK-12/13): rename 잔여 SQL 4건 (integrations.go / repository_ops.go / postgres.go) + integration test cleanup 3 파일 + E2E strict mode locator 1 건, commit a33d8b8, run 26952944002 결과 6/7 job green"
+    ],
+    "out": [
+      "Backend 기능 변경 (P0-1은 이미 완료)",
+      "E2E 테스트 병렬 실행 (CI 의존)",
+      "v1.1/v2 AI/ML prep (Lane 3)",
+      "P1-6 signout handler request context 분리 + 명시적 deadline (TC-USER-SWITCH-01 P1-6 회귀 fix, 별도 PR)",
+      "domain/application-lifecycle/repository 통합 테스트의 pre-existing 버그 2건 (TestIntegration_DeleteRepository status 체크 + key_format hyphen). rename 과 무관, CI scope 외."
+    ]
+  },
+  "artifacts": {
+    "pr_url": "https://github.com/ykylee/Devhub_example/pull/476",
+    "branch_pushed": true
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-k-v1-harden/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-k-v1-harden/work_backlog.md"
+  }
+}

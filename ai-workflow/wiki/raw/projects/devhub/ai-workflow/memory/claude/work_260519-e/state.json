@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-e",
+  "branch": "claude/work_260519-e",
+  "status": "done",
+  "started_at": "2026-05-19T04:00:00Z",
+  "ended_at": "2026-05-19T04:55:00Z",
+  "merged_pr": {"pr": 173, "merge_commit": "6245bda", "merged_at": "2026-05-19T04:55:00Z"},
+  "scope": "ADR-0019 §5.3 audit event listener / SPI → DevHub audit_logs 통합 design 1차 작성. Keycloak event 통합 옵션 3종 비교 + 권장 결정 (polling) + audit_logs 매핑 + 구현 단계 명문화. 실 backend 구현 (cron + admin client 확장) 은 별도 후속 sprint.",
+  "directive_source": "사용자 요청 'audit event listener 진행하자' — sprint -d 종료 직후 ADR-0019 §5.3 잔여 5 항목 중 코드 측면 진입 가능한 항목.",
+  "context": {
+    "current": "Hydra/Kratos 시대의 Kratos webhook 기반 audit (PR-M2-AUDIT) 는 PR #167 KC-PR-D 머지로 제거. 현재 Keycloak event → DevHub audit_logs 통합 패턴 미정. ADR-0019 §4.5 가 'Keycloak 이벤트는 별도 SOP 로 후속 통합 (carve out)' 으로 명시.",
+    "audit_logs_schema": "10 columns — audit_id / actor_login / action / target_type / target_id / command_id / payload (jsonb) / source_ip / request_id / source_type. (backend-core/internal/store/postgres.go:588 INSERT 패턴 reference)",
+    "keycloak_admin_client": "internal/httpapi/keycloak_admin_client.go (KC-PR-C, PR #167) — 본 sprint design 의 polling 옵션은 본 client 확장 시 자연스럽게 통합 가능."
+  },
+  "decisions": [
+    "design 문서 docs/planning/keycloak_event_audit_integration.md 신규 — 옵션 3종 비교 + 권장 결정 + 매핑 + 구현 단계. 실 backend 구현은 별도 후속 sprint.",
+    "권장 옵션 = B (admin event polling) — DevHub git 안에서 처리 가능 + Keycloak deploy 측 변경 없음 + Go-native cron 패턴 (ADR-0015 HomeLab pull adapter / ADR-0017 intake token cron 정합).",
+    "ADR-0019 §5.3 audit event listener carve out 분리 — design 완료 (resolved) + 실 구현 carve 유지 (carve 라벨 '실 구현').",
+    "ADR-0020 후보 명시 — design 결정 (polling 채택) 이 ADR governance 측면 결정 — Phase 2 진입 시 ADR-0020 으로 승격."
+  ],
+  "todo": [
+    "docs/planning/keycloak_event_audit_integration.md 신규",
+    "docs/adr/0019-keycloak-only-idp.md §5.3 audit event listener carve resolved (design) + §4.5 link + §6 변경 이력 sprint -e row",
+    "docs/traceability/report.md §6 변경 이력 sprint -e row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린"
+}

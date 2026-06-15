@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-g-codex-hotfix",
+  "branch": "claude/work_260520-g-codex-hotfix",
+  "status": "done",
+  "started_at": "2026-05-20T18:00:00Z",
+  "ended_at": "2026-05-20T18:30:00Z",
+  "merged_pr": 208,
+  "merge_commit": "bb4a0f4",
+  "scope": "codex review hotfix (P2) — PR #207 의 worker_division.md §4.2 ADR reversal 의 dead link (`[feedback_adr_supersession_pattern.md](#)`) 정정. per-user auto-memory 파일이라 repo 외부 → 5 step 표준 절차 본문 명시 + canonical 사례 ADR-0019 ↔ ADR-0001 supersession (sprint -a PR #169) 인용.",
+  "directive_source": "사용자 지시 — 'codex 리뷰 확인해' → PR #207 codex P2 review (discussion r3270662242) 발견",
+  "decisions": [
+    "per-user auto-memory 파일 link 회피 — 외부 readers 접근 불가, governance 문서 actionable 보장 필요",
+    "5 step 표준 절차 본문 명시 — 새 ADR 발행 / supersede 대상 갱신 / 본문 immutable / traceability §4 / 관련 문서 정합 (≥5 docs)",
+    "canonical 사례 — ADR-0019 ↔ ADR-0001 (PR #169) 가 5 step 모두 적용한 실 사례, link 안전"
+  ],
+  "todo": [
+    "§4.2 본문 정정 — 완료",
+    "§6 변경 이력 row — 완료",
+    "commit + push + PR #208 + 4단계 self-review + squash merge — 완료"
+  ],
+  "verification": "docs only. CI Detect + Workflow Lint SUCCESS. codex review 0건."
+}

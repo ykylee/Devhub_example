@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-e",
+  "branch": "claude/work_260520-e",
+  "status": "in_progress",
+  "started_at": "2026-05-20T19:00:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "scope": "housekeeping #4 — sprint -d (PR #205 `f2a389a` Phase 3 sub-carve A) + 외부 인수 PR #203 (`a294baf` Keycloak SPI webhook + theme) 2 PR 흡수. state.json + session_handoff + work_backlog + sprint -d state finalize + design doc §6.1 sprint label shift (B→-f, ..., F→-j). 본 sprint -e 가 housekeeping #4 으로 소진되므로 후속 sub-carve B 는 sprint -f 부터.",
+  "directive_source": "사용자 지시 — 'PR #203 CI 완료 확인 + squash merge. main HEAD 갱신 + memory housekeeping 필요 시 sprint -e (sub-carve B) 진입 검토.'",
+  "decisions": [
+    "sprint label shift — sprint -e 가 housekeeping #4 으로 소진. sub-carve B 진입은 sprint -f 부터. ADR-0020 §4.1 sub-carve 표 + design doc §6.1 모두 갱신.",
+    "PR #203 인수 모범 사례 명시 — 외부 contributor 작업 인수 시 (1) main rebase 먼저, (2) 차단 원인 진단 (test fail / codex review), (3) 본인 fix commit, (4) force-push (lease), (5) 본인 4단계 self-review. gemini 의 commit 1건 + 본인 commit 1건 = 2 commit 으로 squash merge.",
+    "신규 carve 등재 — Keycloak SPI provider JAR (PR #203 codex P2 응답) 가 사내 인프라 동반 carve 로 분리. sub-carve B~F 와 별도 track."
+  ],
+  "todo": [
+    "state.json (head_commit a294baf + merged_prs_2026_05_20 + sub_carve_split shift + external_carve 신규 + status) — 완료",
+    "session_handoff (header + sprint -e 표 + sprint -d finalize + PR #203 row + sub-carve B sprint -f directive) — 완료",
+    "work_backlog (header + 변경 이력 row + sprint -d row finalize) — 완료",
+    "design doc §6.1 sub-carve sprint label shift — 진행",
+    "sprint -d branch state finalize (in_progress → done) — 완료",
+    "sprint -e branch state 신규 — 완료",
+    "auto-memory project_2026_05_20_phase3_sub_carve_a_done.md + MEMORY.md entry — 진행",
+    "commit + push + PR + 4단계 self-review + squash merge — 다음"
+  ],
+  "verification": "JSON 정합 (node -e require state.json) PASS. 본 sprint merge 후 -e state.json 의 status → done 은 다음 housekeeping sprint (또는 본 sprint Stage 3) 가 처리."
+}

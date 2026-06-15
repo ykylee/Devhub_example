@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/x5-gitea-hourly-pull",
+  "milestones": {
+    "M-v0.1.1": {
+      "status": "in_progress",
+      "x5_gitea_hourly_pull": [
+        "GiteaPullAdapter + GiteaClient + RunGiteaPullLoop + Gitea metric 5종 + audit 4종 + migration 000043 + ADR-0034 + 8 unit test PASS",
+        "per-repository state 추적 (last_pull_at + consecutive_failures + backoff_until + 24h cap)",
+        "4 concurrent semaphore + partial failure 격리 + cycle timeout 30m",
+        "5 metric (devhub_gitea_pull_runs_total, _duration_seconds, _repositories_total, _consecutive_failures, _last_success_unixtime)",
+        "4 audit (gitea.pull_started, _success, _error, _partial) via PullAuditHook interface + LogPullAuditHook default",
+        "8 env var (DEVHUB_GITEA_PULL_*) — opt-in via DEVHUB_GITEA_PULL_ENABLED=false (prod-safe)",
+        "Tier: 공용 (코드 + ADR + openapi + migration 모두 사내 한정 정보 미포함)",
+        "잔여: production RepositoryPullStore wire (follow-up PR, Store: nil 상태로 본 PR ship)"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/feat/x5-gitea-hourly-pull/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/feat/x5-gitea-hourly-pull/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/feat/x5-gitea-hourly-pull/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (X-5 row done 마킹 확정)",
+      "위키 mirror 갱신: `bash scripts/wiki-sync-devhub.sh` (PR 머지 후 1회 실행)",
+      "production RepositoryPullStore wire follow-up PR (사내 store implementation 제공)",
+      "staging Gitea 실 검증 SOP 별도 docs (사내)",
+      "다음 sprint: X-4 (project ↔ SCM create) 또는 X-6 (Keycloak group staging-prod, 사내)"
+    ]
+  }
+}

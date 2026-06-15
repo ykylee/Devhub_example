@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-05T22:27:00+09:00",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/work_260605-b-debug-request-button/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/work_260605-b-debug-request-button/work_backlog.md"
+  },
+  "project": {
+    "project_name": "Devhub_example"
+  },
+  "session": {
+    "current_focus": "Add Quality Trend & Pending DREQs to Platform Dashboard",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "Switch to branch gemini/work_260605-b-debug-request-button",
+      "Add DevFallbackEnabled bypass to RequireIntakeToken middleware",
+      "Implement createDebugDreq in devRequestService",
+      "Insert [Debug DREQ] action button in Header navigation bar",
+      "Verify backend dev-request view package unit tests",
+      "Verify frontend production build and TypeScript compilation",
+      "Add Quality Score Trend (7-Day Area Chart) in Platform dashboard page.tsx",
+      "Add Pending Requests overview metric card in Platform dashboard page.tsx",
+      "Update requirements.md and dashboard_concept.md specs to align with replaced metrics",
+      "Verify frontend unit test suite (1023 test cases) and next build compilation successfully"
+    ]
+  },
+  "next_documents": [
+    "docs/planning/release_v1_roadmap.md",
+    "docs/governance/worker_division.md"
+  ]
+}

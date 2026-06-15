@@ -1,0 +1,84 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-17",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/ui_standardization_260517/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/ui_standardization_260517/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/gemini/ui_standardization_260517/backlog/2026-05-17.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/gemini/ui_standardization_260517/backlog/",
+    "handoff_path": "ai-workflow/memory/gemini/ui_standardization_260517/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "npm run lint",
+    "isolated_tests": "go test ./backend-core/... && pytest backend-ai/",
+    "runtime_checks": "docker-compose ps"
+  },
+  "session": {
+    "current_baseline": "DREQ E2E Green Pass & Next.js Build Stabilization",
+    "current_axis": "E2E Verification, Projects Refinement & Build Optimization",
+    "current_focus": "RBAC E2E 검증, 과제 상세 API 동적 연동, Next.js Turbopack/Standalone Docker 빌드 수정, DREQ SQL/RBAC 마이그레이션 수동 반영, DREQ spec 100% 합격, 개발 의뢰(dev-requests) 필터 바 표준화 및 GEMINI.md 동적 브랜치 메모리 반영",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "DASHBOARD-REBRANDING",
+      "APPLICATION-STATUS-VIEW",
+      "REPOSITORY-STATUS-VIEW",
+      "PROJECT-STATUS-VIEW",
+      "REALTIME-DATA-INTEGRATION",
+      "PROJECT-SERVICE-UNIT-TESTS",
+      "TRACEABILITY-REPORT-UPDATE",
+      "FILTERBAR-USERS-PAGE",
+      "FILTERBAR-ADMIN-APPLICATIONS-PAGE",
+      "FILTERBAR-DEV-REQUESTS-PAGE",
+      "AUDIT-LOG-REDESIGN",
+      "DETAIL-PAGE-METRIC-REFINEMENT",
+      "RBAC-E2E-VERIFICATION",
+      "PROJECT-DETAIL-REALTIME-API",
+      "NEXTJS-TURBOPACK-BUILD-FIX",
+      "NEXTJS-DOCKER-STANDALONE-FIX",
+      "DREQ-SQL-RBAC-MIGRATION",
+      "DREQ-LIFECYCLE-E2E-GREEN",
+      "GEMINI-DYNAMIC-BRANCH-MEMORY"
+    ],
+    "environment_constraints": [
+      "Docker/Docker-compose required for full system",
+      "Backend Core API on :8080 (REST + WS)",
+      "Local PostgreSQL on :5433"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/gemini/ui_standardization_260517/backlog/2026-05-17.md",
+    "task_count": 36,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-FRONTEND-PHASE6-DASHBOARD-OVERHAUL",
+      "TASK-FRONTEND-PHASE6-PROJECT-SERVICE-TESTS",
+      "TASK-FRONTEND-PHASE6-RBAC-SYNC",
+      "TASK-FRONTEND-PHASE5-ORG",
+      "TASK-FRONTEND-PHASE12-API",
+      "TASK-FRONTEND-PHASE6-FILTER-STANDARDIZATION",
+      "TASK-FRONTEND-PHASE6-DREQ-E2E-STABILIZATION",
+      "TASK-FRONTEND-PHASE6-BUILD-STABILIZATION",
+      "TASK-GOVERNANCE-DYNAMIC-BRANCH-MEMORY"
+    ]
+  },
+  "next_documents": [
+    "docs/README.md",
+    "ai-workflow/memory/gemini/ui_standardization_260517/session_handoff.md",
+    "docs/backend_api_contract.md",
+    "ai-workflow/memory/gemini/ui_standardization_260517/backlog/2026-05-17.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
+  }
+}

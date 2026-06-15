@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/test-gaps-p0-2026-05-21",
+  "branch": "claude/test-gaps-p0-2026-05-21",
+  "status": "in_progress",
+  "started_at": "2026-05-21T08:35:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": null,
+  "carve": "test-gaps-p0",
+  "scope": "직전 sprint claude/codebase-cleanup-2026-05-20 (PR #261, main `ca0b9ec`) 가 인계한 P0 test gap 2건 + 사용자 결정 DREQ 보강 시나리오. main `ca0b9ec` 기준 새 브랜치. P0-1 (DREQ intake admin E2E) 은 직접 검증 결과 dev-requests.spec.ts 에 mega-test 로 full coverage 였음 — false-positive 로 정정.",
+  "directive_source": "직전 sprint 의 P0 carve out + 사용자 선택 'P0-2 + DREQ 추가 보강 시나리오'",
+  "decisions": [
+    "P0-1 (DREQ intake admin E2E) false-positive 정정 — dev-requests.spec.ts 에 8 TC 가 이미 cover (TC-DREQ-ADMIN-TOKEN-01 issue / INTAKE-AUTH-01 Bearer / WIDGET-FLOW-01 / PROMOTE-TX-01 atomicity / REVOKE-01 / INTAKE-AUTH-NEG-03 revoked / NEG-01 invalid bearer / PATCH-01 allowed_ips). 사용자 보고 후 DREQ 보강 시나리오로 대체.",
+    "P0-2 (JWKS metric assertion) 완료 — counterVecValue + histogramSampleCount 헬퍼 추가 + 5 stale-while-error test 모두에 emission delta assertion 추가. ok 분기 (StaleWhileError/StaleCutoff/StaleFallback_DefaultMaxStale) +1+1, fail 분기 (StaleExpired_Fails401) +1+0, fresh 분기 (FreshCache_NoStaleFallback) 0+0+0.",
+    "DREQ 보강 1 — `clientIPAllowed` pure-function table test 12 케이스 (empty / exact IP match·mismatch / CIDR contains·excludes / open CIDR / multiple entries / invalid IP / malformed CIDR skip / IPv6 loopback·CIDR). 환경 의존성 (c.ClientIP() 의 TEST-NET-1 default) 회피.",
+    "DREQ 보강 2 — `TestIntakeAuth_IPDeniedWhenNotInAllowlist` middleware-level. RFC5737 TEST-NET-2/3 allowlist + req.RemoteAddr 강제 (10.99.99.99:54321) 로 mismatch 보장. 기존 empty-allowlist test 가 cover 못한 production 케이스.",
+    "DREQ 보강 3 — `TC-DREQ-ADMIN-TOKEN-REVOKE-CANCEL-01` E2E. fresh login + token 발급 → revoke 버튼 → DestructiveConfirmModal Cancel → token row 가 active 유지 (revoked badge 없음) + cleanup (page.evaluate fetch hard-revoke). 기존 mega test 가 confirm 흐름만 cover 한 갭."
+  ],
+  "todo": [
+    "Phase A (3 commit) — DONE",
+    "Phase B (sprint memory + push + PR) — IN PROGRESS"
+  ],
+  "verification": {
+    "go_test_auth": "PASS — 11 tests (6 기존 + 5 stale-while-error with new assertions)",
+    "go_test_httpapi_intake": "PASS — TestClientIPAllowed 12 subtests + TestIntakeAuth_IPDeniedWhenNotInAllowlist + 기존 5 IntakeAuth tests",
+    "go_test_all": "PASS — 14 packages",
+    "frontend_vitest": "PASS — 8 files / 34 tests",
+    "frontend_lint": "UNCHANGED — 18 problems (4 errors + 14 warnings) 모두 pre-existing feature-code, cleanup 영역 외",
+    "e2e_local": "SKIPPED — CI 의 Playwright shard 가 검증"
+  },
+  "commits": [
+    {"sha": "116d585", "subject": "test(auth): assert JWKS stale-while-error metric emission"},
+    {"sha": "6fc432f", "subject": "test(httpapi): cover DREQ intake IP-allowlist mismatch paths"},
+    {"sha": "6735e92", "subject": "test(e2e): assert DestructiveConfirmModal Cancel keeps DREQ token active"}
+  ],
+  "scope_changes_from_initial_plan": [
+    "원래 P0-1 = DREQ intake admin E2E 신규 spec 생성 → false-positive 정정 후 DREQ 보강 (IP denial UT + revoke cancel E2E) 로 전환",
+    "직전 sprint 의 cleanup gap 분석이 subagent 보고 의존이어서 dev-requests.spec.ts 의 실 내용 미검증. 이번 sprint 가 직접 spec 파일 읽어 8 TC cover 확인 → 동일 패턴 future audit 시 직접 read 권장 (subagent + spot-check)."
+  ],
+  "test_gaps_remaining": [
+    "P1 — Keycloak 실 OIDC e2e flow (login → callback → /me → dashboard)",
+    "P1 — Integration bindings PATCH/DELETE backend handler 테스트 (integration_registry_test.go)",
+    "P1 — Single-port nginx e2e (ADR-0018)",
+    "P2 — frontend service unit (auth.service / api-client / websocket.service)",
+    "P3 — backend-ai pytest (gRPC server 구현 동반)",
+    "P3 — dashboard page snapshot 테스트"
+  ],
+  "pr_status": "PR 발행 예정. 4단계 self-review 진행."
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-08",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/claude/merge_roadmap/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/claude/merge_roadmap/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/claude/merge_roadmap/backlog/2026-05-08.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/claude/merge_roadmap/backlog/",
+    "handoff_path": "ai-workflow/memory/claude/merge_roadmap/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "go test ./backend-core/... ; npm --prefix frontend run build",
+    "isolated_tests": "go test ./backend-core/internal/httpapi/...",
+    "runtime_checks": "Get-Process hydra, kratos, go, node 2>$null | Select-Object Name, Id, StartTime"
+  },
+  "session": {
+    "current_baseline": "main HEAD cf2d55f (PR #18 머지 직후). M0 sprint 의 5 PR (#15·16·17·18·19) 중 #15·16·17·18 머지 완료. PR #19 (claude/m0-marker-sweep) 가 SEC-4 fallback 코드 path 자체 제거 + 마커 정리로 sprint 마무리.",
+    "current_axis": "M0 sprint 종료. DoD #1~7,9 코드 측 resolved. DoD #8 (Phase 1 운영 검증, Hydra/Kratos PoC 가동) 만 사용자 환경에 의존.",
+    "current_focus": "PR #19 머지 후 M1 sprint 진입 검토. M1 의 DoD 는 통합 로드맵 §3.2 참조.",
+    "in_progress_items": [
+      "PR #19 (claude/m0-marker-sweep) — SEC-4 fallback path 제거 + M0 마무리 메타 갱신, 머지 대기"
+    ],
+    "blocked_items": [
+      "T-M0-10 (ADR-0001 Phase 1 운영 검증) — 사용자 환경에서 Hydra/Kratos PoC 가동 후 검증 결과 첨부 필요"
+    ],
+    "recent_done_items": [
+      "PR #15 머지 (commit 5a2fec1) — T-M0-01/02 SEC-2 부분 + SEC-4 dev-only gate",
+      "PR #16 머지 (commit a477ca3) — T-M0-03/04 SEC-3 role guard",
+      "PR #17 머지 (commit 21cd24a) — T-M0-05/06/07 SEC-2 verifier + Codex P1/P2",
+      "PR #18 머지 (commit cf2d55f) — T-M0-08 SEC-1 frontend AuthGuard + /api/v1/me",
+      "통합 개발 로드맵 작성 (PR #14, commit 427d618)"
+    ],
+    "environment_constraints": [
+      "Backend Core API on :8080 (REST), WebSocket /api/v1/realtime/ws 부분 구현",
+      "Local PostgreSQL :5432 (devhub) — native 설치, Docker 미사용 정책",
+      "infra/idp/ scaffold 존재 (hydra.yaml, kratos.yaml, identity.schema.json, scripts, sql) — Phase 13 PoC sub-step (a)~(e) 완료 가정",
+      "Hydra binary :4444/:4445, Kratos binary :4433/:4434 — 사용자 터미널에서 수동 기동 (AI 자동화 외부)",
+      "외부 자원 차단: proxy.golang.org / fonts.gstatic.com 등 사내 SSL inspection — 사내 GoProxy mirror 가용 환경에서 go test PASS 확인됨 (PR #12)",
+      "컨테이너 자산(docker-compose.yml, Dockerfile) git 추적 외부 (BLK-1)"
+    ]
+  },
+  "next_documents": [
+    "docs/development_roadmap.md",
+    "docs/adr/0001-idp-selection.md",
+    "ai-workflow/memory/PR-12-security-review.md",
+    "ai-workflow/memory/codebase-security-review-2026-05-08.md",
+    "ai-workflow/memory/claude/merge_roadmap/backlog/2026-05-08.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
+  },
+  "branch_lineage": {
+    "branched_from": "main",
+    "branched_at_commit": "71233e6",
+    "branched_at_date": "2026-05-08",
+    "open_pr_from_parent": null
+  }
+}

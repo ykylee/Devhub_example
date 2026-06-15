@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "chore/x3-envelope-status-align",
+  "milestones": {
+    "M-v0.1.1": {
+      "status": "in_progress",
+      "x3_envelope_status_align": [
+        "release_v0-1_roadmap.md §3.5 X-3 row status `✅ resolved (accepted + impl, 2026-05-29 sprint gemini/work_260529-a-envelope-encryption PR #447)` 명시",
+        "ADR-0025 헤더 메타 수정일 `2026-05-29` → `2026-06-14` + 결정 근거 sprint 보강",
+        "ADR-0025 §5 변경 이력 1 row 추가",
+        "docs/traceability/report.md §6 본 row 추가",
+        "main flat memory 3 file (state.json / session_handoff.md / work_backlog.md) 정합",
+        "Tier: 공용 (docs only, 코드 0줄, 사내 한정 정보 미포함)"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/chore/x3-envelope-status-align/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/chore/x3-envelope-status-align/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/chore/x3-envelope-status-align/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 main flat memory 3 file finalize (X-3 row done 마킹 확정)",
+      "위키 mirror 갱신: `bash scripts/wiki-sync-devhub.sh` (PR 머지 후 1회 실행)",
+      "다음 sprint 진입: X-7 (ADR-0016 §6 alert 임계 확정) 또는 X-5 (Gitea Hourly Pull 정밀화)"
+    ]
+  }
+}

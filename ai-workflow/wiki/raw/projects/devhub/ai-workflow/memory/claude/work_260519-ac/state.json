@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-ac",
+  "branch": "claude/work_260519-ac",
+  "status": "in_progress",
+  "started_at": "2026-05-20T03:30:00Z",
+  "scope": "main flat memory housekeeping #2 — sprint -z (#194) + -aa (#195) + -ab (#196) 3 PR 누적 흡수. state.json head_commit + merged_prs + status header 갱신. session_handoff Phase 4 표 확장. work_backlog header + 변경 이력 row. sprint -ab 본인 finalize. JSON 검증.",
+  "directive_source": "사용자 요청 'codex 리뷰 확인 한번 더 하고 메모리 갱신하고 반영하자' — codex hotfix #11/#12 처리 직후 main flat 통합 housekeeping.",
+  "decisions": [
+    "main flat housekeeping 패턴 정합 (sprint -b / -i / -n / -x / -z 정합) — header status + head_commit + merged_prs + session_handoff Phase 표 + work_backlog row + 본인 finalize.",
+    "sprint -z 시 누락된 -n~-t finalize 는 sprint -ab (PR #196 codex hotfix #12) 가 정정 완료 — 본 -ac 는 head_commit 갱신 + -z/-aa/-ab 3 PR 누적 흡수.",
+    "Phase 4 표에 sprint -aa (codex hotfix #11) + -ab (codex hotfix #12) row 추가 — Phase 4 = 5 PR (-u~-y) + 4 PR (-z~-ac housekeeping/hotfix cluster).",
+    "다음 진입 directive 변경 없음 — 잔여 5 carve 모두 사내 동반 필요."
+  ],
+  "todo": [
+    "ai-workflow/memory/state.json header + head_commit + merged_prs (완료)",
+    "ai-workflow/memory/session_handoff.md Phase 4 표 + header (완료)",
+    "ai-workflow/memory/work_backlog.md header + 변경 이력 row (완료)",
+    "sprint -ab 본인 finalize (완료)",
+    "sprint -ac state.json 신규 (완료)",
+    "JSON 검증 (완료)",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "node JSON.parse — main flat state.json + sprint -z/-aa/-ab/-ac state.json 모두 OK. main HEAD `86e5b0d` (sprint -ab PR #196) 반영."
+}

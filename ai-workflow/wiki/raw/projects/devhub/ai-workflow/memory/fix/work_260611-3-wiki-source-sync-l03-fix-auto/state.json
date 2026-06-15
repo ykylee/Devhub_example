@@ -1,0 +1,34 @@
+{
+  "branch": "fix/work_260611-3-wiki-source-sync-l03-fix-auto",
+  "created": "2026-06-12",
+  "status": "in_progress",
+  "current_sprint": "wiki-source-sync L03 fix 자동화 follow-up (PR #569 후속)",
+  "last_touched": "2026-06-12",
+  "context": "PR #569 (lint phase 2 chunk 2 0/0/0) 머지 후 follow-up. 본 follow-up 의 본질 = wiki-source-sync skill 의 L03 fix 자동화 확장 + memory finalize.",
+  "scope": {
+    "in_scope": [
+      "본 저장소 의 memory finalize (state.json + work_backlog.md + branch memory 4 file)",
+      "PR 발행 (본 저장소)"
+    ],
+    "out_of_scope": [
+      "vault spec 갱신 (~/wiki/skills/wiki-source-sync/SKILL.md + wiki-source-sync.py) — my_harness 측 out-of-repo 별도 sprint",
+      "lint-config.toml 의 L03 면제 정책 (이미 PR #569 에서 적용) — 변경 X (defense in depth 유지)"
+    ]
+  },
+  "follow_up_1": {
+    "name": "lint SSOT (my_harness) L02 schema 정합",
+    "status": "done (my_harness 측 2026-06-12 완료 처리)",
+    "note": "사용자 2026-06-12 directive: my_harness 측에서 완료된 것으로 처리. 본 저장소 scope 외."
+  },
+  "follow_up_2": {
+    "name": "wiki-source-sync L03 fix 자동화 확장",
+    "status": "in_progress (본 follow-up PR)",
+    "spec": "vault 측 §4.4 L03 fix 추가 (frontmatter scan + body scan + natural parent 결정 + body 1줄 append, idempotent). 본 저장소 측 PR scope 외 (my_harness out-of-repo).",
+    "lint_config_decision": "lint-config.toml L03 면제 정책 유지 (PR #569). wiki-source-sync L03 fix 와 defense in depth. 면제 제거 시 86 page 의 L03 fix 가 자동화되지 않은 동안 warning 86 부활 위험."
+  },
+  "next_actions": [
+    "PR 발행 (사용자 confirm 시점)",
+    "vault spec 갱신 (my_harness 측, 사용자 trigger 시점)",
+    "main flat memory finalize (PR merge 시점)"
+  ]
+}

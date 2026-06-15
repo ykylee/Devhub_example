@@ -1,0 +1,52 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-i-n4-frontend-tests",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "completed",
+  "summary": "release_v1_roadmap §3.5 N-4 (프론트 단위테스트 보강) 완료. PR #473 MERGED → main c887c0a (2026-06-04T07:39:14Z). baseline 980 tests → 1007 tests (+27), 74 → 78 files, statements 82% (gap 진단 후 4 high-value 영역 보강).",
+  "started_at": "2026-06-04T07:05:00Z",
+  "completed_at": "2026-06-04T07:39:14Z",
+  "updated_at": "2026-06-04T07:39:14Z",
+  "scope": {
+    "in": [
+      "components/project/RepositoryEditModal.test.tsx (8 tests, PR #471 신규 컴포넌트)",
+      "components/project/RepositoryCreationModal.test.tsx (6 tests, PR #470 수정 컴포넌트)",
+      "app/(dashboard)/projects/page.test.tsx (7 tests, PR #472 수정 page)",
+      "vitest.config.ts — include 패턴에 app/**/*.test.tsx 추가 (page-level 테스트 지원)"
+    ],
+    "out": [
+      "admin/catalog/page.test.tsx — Toast hook + 3 tab + 다중 modal mock 비용 큼. 별도 sprint carry-over.",
+      "Backend 테스트 (Claude 영역)",
+      "E2E Playwright spec (별도)",
+      "shared/ui-foundation 컴포넌트 보강 (별도)"
+    ]
+  },
+  "artifacts": {
+    "pr_url": "https://github.com/ykylee/Devhub_example/pull/473",
+    "pr_number": 473,
+    "pr_state": "MERGED",
+    "merge_commit_oid": "c887c0afde0ecf23182500f7c9a52dd30396e1e4",
+    "merged_at": "2026-06-04T07:39:14Z",
+    "files_changed_total": 8,
+    "verification": {
+      "tsc_changed_files": "0 errors",
+      "vitest_local": "1007/1007 PASS (10.99s)",
+      "vitest_baseline": "980 → 1007 (+27 tests, 74 → 78 files)",
+      "eslint_changed_files": "0 new errors (ESM import 로 교체, require(\"react\") 제거)",
+      "ci_final": "Detect Changed Paths + Migration Prefix + Workflow Lint + Frontend Unit + E2E 1/2 + E2E 2/2 PASS (8/8 jobs)",
+      "ci_backend_skipped": "backend unit/integration — frontend only PR (vitest config 변경만)"
+    }
+  },
+  "carry_over": {
+    "next_sprint_admin_catalog_test": "admin/catalog/page.test.tsx — Toast hook + useRouter + 3 tab + 다중 modal + filter 통합. useToast 모킹 + 공유 컴포넌트 stubbing 필요. 본 sprint 에서 작성 시도 → useToast throw 로 6/7 fail. carry-over 로 후속 sprint.",
+    "from_sprint_h": "Application progress_percent (backend data_gap) — story-point 기반 가중치 별도 backend sprint",
+    "global_roadmap": "#1 Gitea issue sync, Codex P2 잔여 (scm_providers ↔ integration_providers), v1.0 N-6/P1-6/P2 carry-over"
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-i-n4-frontend-tests/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-i-n4-frontend-tests/work_backlog.md"
+  }
+}
