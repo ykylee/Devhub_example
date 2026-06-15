@@ -291,10 +291,28 @@ $QUERY_RESULTS
 - L0 Home: \`ai-workflow/wiki/index.md\`
 EOF
 
-  # log.md append
-  mkdir -p "$(dirname "$LOG_TARGET")"
+  # log.md append (atomic, v0.7.15 follow-up D)
+  # 기존 echo >> 는 partial write 시 원본 손실 위험. atomic_write_text 로 read+append+os.replace.
+  # POSIX 전용 (macOS/Linux). Windows fallback 으로 echo >> 유지.
   LOG_LINE="[$QUERY_DATE] query | $QUERY | project=$PROJECT | file=$QUERY_PAGE | results=$(echo "$QUERY_RESULTS" | grep -c "path" 2>/dev/null || echo 0)"
-  echo "$LOG_LINE" >> "$LOG_TARGET"
+  mkdir -p "$(dirname "$LOG_TARGET")"
+  _SCRIPT_DIR_LOG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if LOG_LINE="$LOG_LINE" LOG_TARGET="$LOG_TARGET" _SCRIPT_DIR_LOG="$_SCRIPT_DIR_LOG" python3 <<'PYEOF_LOG' 2>/dev/null
+import os, sys
+from pathlib import Path
+sys.path.insert(0, os.environ['_SCRIPT_DIR_LOG'])
+from atomic_write import atomic_write_text
+target = Path(os.environ['LOG_TARGET'])
+line = os.environ['LOG_LINE'] + '\n'
+existing = target.read_text(encoding='utf-8') if target.exists() else ''
+atomic_write_text(target, existing + line)
+PYEOF_LOG
+  then
+    :
+  else
+    # fallback: atomic_write_text 실패 시 (Windows 등) 기존 echo >> 로 graceful degrade
+    echo "$LOG_LINE" >> "$LOG_TARGET"
+  fi
 
   log "[wiki-query]   query/ page: $QUERY_PAGE (1 file created)"
   log "[wiki-query]   log.md: $LOG_TARGET (1 line appended)"
