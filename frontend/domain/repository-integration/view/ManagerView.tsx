@@ -15,21 +15,23 @@ import {
   AreaChart, 
   Area 
 } from "recharts";
-import { 
-  Users, 
-  Layers, 
-  Clock, 
-  Eye, 
-  EyeOff, 
-  CheckCircle, 
-  GitFork, 
-  AlertTriangle, 
-  Cpu, 
-  FileText 
+import {
+  Users,
+  Layers,
+  Clock,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  GitFork,
+  AlertTriangle,
+  Cpu,
+  FileText,
 } from "lucide-react";
 import { Repository, RepositoryActivity, RepositoryDashboardData } from "@/domain/repository-integration/service/repository.service";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 
+import { RepositoryKPISection } from "./RepositoryKPISection";
+import { RepositoryTestsSection } from "./RepositoryTestsSection";
 interface ManagerViewProps {
   repo: Repository;
   activity: RepositoryActivity | null;
@@ -323,7 +325,12 @@ export function ManagerView({ repo, activity, dashboardData }: ManagerViewProps)
           </div>
         </section>
 
+        {/* Sprint A — Repository KPI / Tests sub-section (kpi-tests-per-domain-scope.md §2.1) */}
+        <RepositoryKPISection repoId={repo.id} />
+        <RepositoryTestsSection repoId={repo.id} />
+
       </div>
     </div>
+
   );
 }

@@ -26,7 +26,8 @@ main HEAD: `356d08b7` (v0.1.0-alpha release 정합) + tag `v0.1.1-alpha` (re-tag
 | **X-2** | inbound webhook 정규화 깊이 (multi-provider sync 일반화) | T-d-79-2/T-d-80-2 | ⏳ planned (v0.1.1-alpha) |
 | **X-3** | 평문 secret envelope 암호화 (DEK + 키관리 ADR) | ADR | ⏳ planned (v0.1.1-alpha) |
 | **X-4** | Phase D — project 생성 flow ↔ SCM create 연계 | T-d-72-5/6 | ⏳ planned (v0.1.1-alpha) |
-| **X-5** | Gitea Hourly Pull 정밀화 (RM-M4-06 잔여, issue #231) | — | ✅ implemented (production wire, 2026-06-15 sprint `feat/x5-gitea-pull-store-wire`) — 1차 PR #592 + a49a5660 fix (cron worker + interface + metric + audit) + 본 follow-up PR (RepositoryPullStore 9 method + ListGiteaPullTargets + migration 000045 + adapter stateToEventType + main.go production wire) | 
+| **X-5** | Gitea Hourly Pull 정밀화 (RM-M4-06 잔여, issue #231) | — | ✅ implemented (production wire, 2026-06-15 sprint `feat/x5-gitea-pull-store-wire`) — 1차 PR #592 + a49a5660 fix (cron worker + interface + metric + audit) + 본 follow-up PR (RepositoryPullStore 9 method + ListGiteaPullTargets + migration 000045 + adapter stateToEventType + main.go production wire) |
+| **KPI/Tests 위치 정공법 (Sprint A)** | Repository 상세에 KPI/Tests sub-section 통합 — kpi-tests-per-domain-scope.md 의 1차 진입 | — | ⏳ in_progress (sprint `feat/x-repository-kpi-tests-section`, 2026-06-15) — 2 endpoint (GET /kpi + /test-results) + 2 frontend component (RepositoryKPISection + RepositoryTestsSection) + ManagerView 통합. Tier: 공용 |
 | **X-6** | Keycloak group staging-prod 적용 (P1-3, issue #214) | ADR-0019 | ⏳ planned (v0.1.1-alpha) |
 | **X-7** | ADR-0016 §6 alert 임계 확정 (P2-2) | — | ⏳ planned (v0.1.1-alpha) |
 | **X-8** | Keycloak SPI realm events push 전환 (P2-6/P3-5) | ADR-0019 | ⏳ planned (v0.1.1-alpha) |
