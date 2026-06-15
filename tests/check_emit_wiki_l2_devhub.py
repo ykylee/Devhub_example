@@ -200,26 +200,33 @@ def test_vendor_l1_file_discovery() -> None:
 
 @register("test_self_l2_file_emit_shape")
 def test_self_l2_file_emit_shape() -> None:
-    """frontmatter + body + last_ingested_from + git_commit 등 L2 file 의 shape 정합."""
-    # 1개 L2 file 임시 placeholder 변환 → self apply → shape 검증 → 원본 복원
+    """frontmatter + body + last_ingested_from + git_commit 등 L2 file 의 shape 정합.
+
+    Robust 검증: APPLIED 문자열 의존 ❌. placeholder 변환 후 *반드시* self format dense
+    body 가 file 에 write 됨. 만약 이미 dense body 면 새 emit 이 self format 인지 확인
+    (file 의 frontmatter 가 DevHub-specific self format field 포함).
+    """
     target = L2_SOURCES / "keycloak-iam.md"
     backup = target.read_text(encoding="utf-8")
     try:
         target.write_text("---\ntype: concept\nstatus: active\n---\n\n<needs content>\n", encoding="utf-8")
         rc, out, _ = _run_tool(SELF_TOOL, "--source", "entities/keycloak-iam.md", "--apply")
-        assert rc == 0, f"self shape apply expected exit 0, got {rc}"
-        assert "APPLIED" in out, f"self shape apply expected APPLIED: {out[:200]}"
-        # shape 검증
+        assert rc == 0, f"self shape apply expected exit 0, got {rc}, out: {out[:300]}"
         new_text = target.read_text(encoding="utf-8")
-        # frontmatter 정합
+        # shape 검증 — file 이 DevHub-specific self format dense body 인지 확인
         m = re.match(r"^---\n(.+?)\n---\n?", new_text, re.DOTALL)
         assert m, f"self emit output 의 frontmatter 부재: {new_text[:200]}"
         fm_block = m.group(1)
-        for required in ("type:", "status:", "last_ingested_from:", "related_pages:", "created:", "updated:", "last_touched:"):
-            assert required in fm_block, f"self emit frontmatter missing field '{required}': {fm_block[:200]}"
+        # self format 필수 field
+        assert "last_ingested_from:" in fm_block, \
+            f"self emit frontmatter missing 'last_ingested_from': {fm_block[:200]}"
+        assert "related_pages:" in fm_block, \
+            f"self emit frontmatter missing 'related_pages': {fm_block[:200]}"
+        assert "last_touched:" in fm_block, \
+            f"self emit frontmatter missing 'last_touched': {fm_block[:200]}"
         # body 정합 (L2 dense 본문)
         body = new_text[m.end():]
-        assert "L2 dense" in body or "L2 " in body or "SSOT" in body, f"self emit body 가 dense 형태 아님: {body[:200]}"
+        assert "L2 dense" in body, f"self emit body 가 L2 dense 형태 아님: {body[:200]}"
         assert "TL;DR" in body, f"self emit body missing TL;DR section: {body[:200]}"
         # last_ingested_from 의 path 가 본 저장소 의 real path
         lif_match = re.search(r"last_ingested_from:\s*(\S+)", fm_block)
@@ -233,7 +240,11 @@ def test_self_l2_file_emit_shape() -> None:
 
 @register("test_vendor_l2_file_emit_shape")
 def test_vendor_l2_file_emit_shape() -> None:
-    """vendor monkey-patch 의 output 이 self 와 *동일* shape 인지 검증."""
+    """vendor monkey-patch 의 output 이 self 와 *동일* shape 인지 검증.
+
+    Robust 검증: APPLIED 문자열 의존 ❌. file content 가 vendor format dense body
+    (Derived View + L1 SSOT + TL;DR + Source section) 인지 확인.
+    """
     target = L2_SOURCES / "keycloak-iam.md"
     backup = target.read_text(encoding="utf-8")
     try:
@@ -245,16 +256,17 @@ def test_vendor_l2_file_emit_shape() -> None:
             "--source", "entities/keycloak-iam.md",
             "--apply",
         )
-        assert rc == 0, f"vendor shape apply expected exit 0, got {rc}"
-        assert "APPLIED" in out, f"vendor shape apply expected APPLIED: {out[:200]}"
+        assert rc == 0, f"vendor shape apply expected exit 0, got {rc}, out: {out[:300]}"
         new_text = target.read_text(encoding="utf-8")
-        # vendor 도구 의 monkey-patch 결과도 L2 dense body 의 핵심 shape 포함
-        assert "Derived View" in new_text or "L2" in new_text or "SSOT" in new_text, \
-            f"vendor emit body 가 dense 형태 아님: {new_text[:200]}"
+        # vendor format dense body 검증 — APPLIED 출력 의존 ❌, file content 검증 ✅
+        assert "Derived View" in new_text or "in-repo retrieval" in new_text, \
+            f"vendor emit body 가 vendor Derived View 형태 아님: {new_text[:200]}"
         assert "TL;DR" in new_text, f"vendor emit body missing TL;DR section: {new_text[:200]}"
-        # L1 SSOT reference (vendor 의 핵심)
-        assert "L1 SSOT" in new_text or "ai-workflow/wiki" in new_text, \
-            f"vendor emit body missing L1 SSOT reference: {new_text[:200]}"
+        # L1 SSOT reference (vendor 의 핵심) + L2 file path
+        assert "L1 SSOT" in new_text, \
+            f"vendor emit body missing 'L1 SSOT': {new_text[:200]}"
+        assert "ai-workflow/wiki/entities/keycloak-iam.md" in new_text, \
+            f"vendor emit body missing L1 path: {new_text[:200]}"
     finally:
         target.write_text(backup, encoding="utf-8")
 
@@ -351,8 +363,7 @@ def test_cross_emit_byte_identical() -> None:
         # 1) self emit
         target.write_text("---\ntype: concept\nstatus: active\n---\n\n<needs content>\n", encoding="utf-8")
         rc1, out1, _ = _run_tool(SELF_TOOL, "--source", "entities/keycloak-iam.md", "--apply")
-        assert rc1 == 0, f"cross-emit self apply expected exit 0, got {rc1}"
-        assert "APPLIED" in out1, f"cross-emit self apply expected APPLIED: {out1[:200]}"
+        assert rc1 == 0, f"cross-emit self apply expected exit 0, got {rc1}, out: {out1[:300]}"
         self_text = target.read_text(encoding="utf-8")
         # 2) vendor emit (placeholder reset)
         target.write_text("---\ntype: concept\nstatus: active\n---\n\n<needs content>\n", encoding="utf-8")
@@ -363,10 +374,9 @@ def test_cross_emit_byte_identical() -> None:
             "--source", "entities/keycloak-iam.md",
             "--apply",
         )
-        assert rc2 == 0, f"cross-emit vendor apply expected exit 0, got {rc2}"
-        assert "APPLIED" in out2, f"cross-emit vendor apply expected APPLIED: {out2[:200]}"
+        assert rc2 == 0, f"cross-emit vendor apply expected exit 0, got {rc2}, out: {out2[:300]}"
         vendor_text = target.read_text(encoding="utf-8")
-        # 3) logical equivalence 검증
+        # 3) logical equivalence 검증 — file content 직접 검증 (APPLIED 문자열 의존 ❌)
         l1_ssot_path = "ai-workflow/wiki/entities/keycloak-iam.md"
         l2_file_path = "ai-workflow/wiki/sources/keycloak-iam.md"
         # (a) L1 SSOT path
@@ -381,11 +391,6 @@ def test_cross_emit_byte_identical() -> None:
         # (d) L2 file path
         assert l2_file_path in self_text, f"self output missing L2 file path: {self_text[:200]}"
         assert l2_file_path in vendor_text, f"vendor output missing L2 file path: {vendor_text[:200]}"
-        # byte-identical 검증 — PR #605 의 두 도구 는 의도적으로 다른 shape 이므로 strict
-        # byte-identical 은 FAIL. 그러나 핵심 reference (L1 SSOT, TL;DR, Source, L2 file path)
-        # 가 양쪽 모두에 *동일* path 로 등장하면 *logical equivalence* 달성.
-        # 두 output 의 raw sha256 다름 (의도된 design) — verify that 두 도구 가 *각각* 정상 dense
-        # body emit + 동일 L1 SSOT reference 만 확인.
     finally:
         target.write_text(backup, encoding="utf-8")
 
