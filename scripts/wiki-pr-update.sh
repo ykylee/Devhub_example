@@ -18,7 +18,7 @@
 # vendor 의 core/ 에 wiki-pr-update 동등 도구 미존재 → 자체 inline python 으로 대체.
 #
 # 결정적 단순: 3 단계.
-#   1. PR metadata + touched files 추출 (`gh pr view <num> --json ...` + `gh pr diff --name-only`)
+#   1. PR metadata + touched files 추출 (`gh pr view <num> --json ...` + `gh pr view --json files --jq .files[].path`)
 #   2. (--reingest) touched file 마다 `wiki-ingest-from-raw --source <file> --apply` re-run (idempotent)
 #   3. vault side effects (자체 inline python) — prs/<num>.md 신규 + log.md 1 line + index.md 갱신
 #
@@ -153,8 +153,10 @@ log "[wiki-pr-update]   title: $PR_TITLE"
 log "[wiki-pr-update]   head.sha: $PR_HEAD_SHA"
 [[ -n "$PR_MERGED_AT" ]] && log "[wiki-pr-update]   mergedAt: $PR_MERGED_AT"
 
-# touched files: PR diff (gh pr diff --name-only)
-TOUCHED_FILES=$(gh pr diff "$PR_NUM" --name-only 2>/dev/null || true)
+# touched files: PR 의 전체 commit/squash diff (REST API — squash 머지 PR 의 *all files*)
+# 2026-06-15 결정: `gh pr diff --name-only` 가 *squash 1 commit* 머지 PR 에서 empty 반환 (PR #600/601/602 모두 해당)
+# → `gh pr view --json files` 의 REST API 가 *PR 의 모든 touched file* 정확히 반환.
+TOUCHED_FILES=$(gh pr view "$PR_NUM" --json files --jq '.files[].path' 2>/dev/null || true)
 TOUCHED_COUNT=$(echo "$TOUCHED_FILES" | grep -c . 2>/dev/null || echo 0)
 log "[wiki-pr-update]   touched files: $TOUCHED_COUNT"
 
