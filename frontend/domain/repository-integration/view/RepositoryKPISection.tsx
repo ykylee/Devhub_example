@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { Loader2, AlertCircle, RefreshCcw, TrendingUp, GitPullRequest, Users, Activity } from "lucide-react";
 import { fetchRepositoryKPI } from "../service/repository-kpi.service";
-import { DEFAULT_KPI_WINDOW_DAYS, RepositoryKPI } from "../schema/repository-kpi.types";
+import {
+  DEFAULT_KPI_WINDOW_DAYS,
+  KPIWindowDays,
+  RepositoryKPI,
+} from "../schema/repository-kpi.types";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
 
 // RepositoryKPISection — Sprint A (kpi-tests-per-domain-scope.md §2.1)
@@ -18,7 +22,7 @@ interface RepositoryKPISectionProps {
   repoId: number;
 }
 
-const WINDOW_OPTIONS: { label: string; days: 7 | 30 | 90 | 365 }[] = [
+const WINDOW_OPTIONS: { label: string; days: KPIWindowDays }[] = [
   { label: "7d", days: 7 },
   { label: "30d", days: 30 },
   { label: "90d", days: 90 },
@@ -29,9 +33,9 @@ export function RepositoryKPISection({ repoId }: RepositoryKPISectionProps) {
   const [kpi, setKpi] = useState<RepositoryKPI | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [windowDays, setWindowDays] = useState<7 | 30 | 90 | 365>(DEFAULT_KPI_WINDOW_DAYS);
+  const [windowDays, setWindowDays] = useState<KPIWindowDays>(DEFAULT_KPI_WINDOW_DAYS);
 
-  const loadKpi = async (days: number) => {
+  const loadKpi = async (days: KPIWindowDays) => {
     setLoading(true);
     setError(null);
     try {
@@ -110,7 +114,7 @@ export function RepositoryKPISection({ repoId }: RepositoryKPISectionProps) {
           <select
             aria-label="Window"
             value={windowDays}
-            onChange={(e) => setWindowDays(Number(e.target.value) as 7 | 30 | 90 | 365)}
+            onChange={(e) => setWindowDays(Number(e.target.value) as KPIWindowDays)}
             className="text-sm bg-muted/30 border border-border rounded-md px-2 py-1"
           >
             {WINDOW_OPTIONS.map((opt) => (

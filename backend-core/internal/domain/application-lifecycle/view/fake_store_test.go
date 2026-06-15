@@ -643,6 +643,10 @@ func (s *fakeViewPlatformStore) ListRepositoryQualitySnapshots(_ context.Context
 	return []domain.QualitySnapshot{}, 0, nil
 }
 
+func (s *fakeViewPlatformStore) CountOpenAndMergedPRs(_ context.Context, _ int64, _, _ time.Time) (int, int, error) {
+	return 0, 0, nil
+}
+
 func (s *fakeViewPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {
 	if s.errComputePlatformRollup != nil {
 		return domain.PlatformRollup{}, s.errComputePlatformRollup

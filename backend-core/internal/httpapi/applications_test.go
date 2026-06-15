@@ -26,6 +26,7 @@ type memoryPlatformStore struct {
 	integrations         map[string]domain.ProjectIntegration
 	integrationProviders map[string]domain.IntegrationProvider
 	integrationBindings  map[string]domain.IntegrationBinding
+	integrationSyncJobs  map[string]domain.IntegrationSyncJob
 	criticalCounts       map[string]int // override for CountPlatformCriticalWarnings tests
 	infraSnapshot        memoryInfraSnapshot
 	repositoryIDs        map[string]int64
@@ -59,6 +60,7 @@ func newMemoryPlatformStore() *memoryPlatformStore {
 		integrations:         make(map[string]domain.ProjectIntegration),
 		integrationProviders: make(map[string]domain.IntegrationProvider),
 		integrationBindings:  make(map[string]domain.IntegrationBinding),
+		integrationSyncJobs:  make(map[string]domain.IntegrationSyncJob),
 		criticalCounts:       make(map[string]int),
 		repositoryIDs:        make(map[string]int64),
 		repositories:         make(map[string]domain.Repository),
@@ -968,7 +970,56 @@ func (s *memoryPlatformStore) CreateIntegrationSyncJob(_ context.Context, provid
 	if _, ok := s.integrationProviders[providerID]; !ok {
 		return "", store.ErrNotFound
 	}
-	return "job-" + providerID, nil
+	jobID := "job-" + providerID
+	s.integrationSyncJobs[jobID] = domain.IntegrationSyncJob{
+		JobID:      jobID,
+		ProviderID: providerID,
+		Status:     domain.IntegrationSyncJobStatusQueued,
+		CreatedAt:  time.Now().UTC(),
+	}
+	return jobID, nil
+}
+
+func (s *memoryPlatformStore) ListIntegrationSyncJobs(_ context.Context, opts store.IntegrationSyncJobListOptions) ([]domain.IntegrationSyncJob, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]domain.IntegrationSyncJob, 0, len(s.integrationSyncJobs))
+	for _, job := range s.integrationSyncJobs {
+		if opts.Status != "" && job.Status != opts.Status {
+			continue
+		}
+		out = append(out, job)
+	}
+	return out, len(out), nil
+}
+
+func (s *memoryPlatformStore) GetIntegrationSyncJob(_ context.Context, jobID string) (domain.IntegrationSyncJob, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.integrationSyncJobs[jobID]
+	if !ok {
+		return domain.IntegrationSyncJob{}, store.ErrNotFound
+	}
+	return job, nil
+}
+
+func (s *memoryPlatformStore) GetIntegrationSyncJobStatusCounts(_ context.Context) (domain.IntegrationSyncJobStatusCounts, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var counts domain.IntegrationSyncJobStatusCounts
+	for _, job := range s.integrationSyncJobs {
+		switch job.Status {
+		case domain.IntegrationSyncJobStatusQueued:
+			counts.Queued++
+		case domain.IntegrationSyncJobStatusRunning:
+			counts.Running++
+		case domain.IntegrationSyncJobStatusSucceeded:
+			counts.Succeeded++
+		case domain.IntegrationSyncJobStatusFailed:
+			counts.Failed++
+		}
+	}
+	return counts, nil
 }
 
 func (s *memoryPlatformStore) ListIntegrationBindings(_ context.Context, opts store.IntegrationBindingListOptions) ([]domain.IntegrationBinding, int, error) {
@@ -1251,8 +1302,13 @@ func (s *memoryPlatformStore) MarkRepositoryDraftPublishRequested(_ context.Cont
 // --- handler tests ---
 
 func newPlatformsRouter(platformStore PlatformStore) http.Handler {
+	var integrationStore IntegrationStore
+	if store, ok := any(platformStore).(IntegrationStore); ok {
+		integrationStore = store
+	}
 	return NewRouter(RouterConfig{
-		PlatformStore: platformStore,
+		PlatformStore:    platformStore,
+		IntegrationStore: integrationStore,
 		AuthDevFallback:  true, // bypass bearer auth
 	})
 }
@@ -1607,6 +1663,7 @@ func TestStoreErrNotImplementedRemovedFromHandlerPath(t *testing.T) {
 // 단계에서 즉시 검출된다. 테스트가 직접 호출하지 않더라도 인터페이스 계약을
 // 보호하는 안전망이다.
 var _ PlatformStore = (*memoryPlatformStore)(nil)
+var _ IntegrationStore = (*memoryPlatformStore)(nil)
 
 // 도메인 import / store sentinel error 의 외부 노출이 유지되는지 확인한다. domain
 // 의 `IsRetryableSyncError` 가 사라지거나 store 의 `Err*` 가 unexported 로 바뀌면

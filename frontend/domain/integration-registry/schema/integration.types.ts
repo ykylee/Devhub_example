@@ -6,7 +6,14 @@
  * ADR-INT-* + ARCH-INT-01..06.
  */
 
-export type IntegrationProviderType = "alm" | "scm" | "ci_cd" | "doc" | "infra";
+export type IntegrationProviderType =
+  | "alm"
+  | "scm"
+  | "ci_cd"
+  | "doc"
+  | "infra"
+  | "task_tracker"
+  | "other";
 
 export type IntegrationAuthMode = "token" | "basic" | "oauth2" | "app_password" | "agent";
 
@@ -178,16 +185,6 @@ export interface IntegrationSyncJobStatusSummaryResponse {
 // X-2 inbound webhook multi-provider 정공법 (release_v0-1_roadmap.md §3.5 X-2,
 // sprint `feat/work_260614-x2-frontend-e2e`).
 // ============================================================================
-
-/** IntegrationProviderType — integration-registry 의 6종 provider type. */
-export type IntegrationProviderType =
-  | "alm"
-  | "scm"
-  | "ci_cd"
-  | "doc"
-  | "infra"
-  | "task_tracker"
-  | "other";
 
 /** InboundSourceType — N-13 backend foundation (migration 000007). */
 export type InboundSourceType = "gitea" | "jira" | "other" | "";

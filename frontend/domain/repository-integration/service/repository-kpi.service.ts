@@ -41,6 +41,6 @@ export async function fetchRepositoryKPI(
     );
   }
   const url = `${BASE_PATH(repositoryId)}?${params.toString()}`;
-  const res = await apiClient.get<RepositoryKPIResponse>(url);
+  const res = await apiClient<RepositoryKPIResponse>("GET", url);
   return res.data ?? null;
 }
