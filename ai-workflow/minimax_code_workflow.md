@@ -6,7 +6,7 @@
 - 상태: **active** (v0.7.17 vendor 동기화 완료, 2026-06-15)
 - 최종 수정일: 2026-06-15 (v0.7.17 vendor SSOT 동기화 — §1.1 언어 원칙 + §1.2 컨텍스트 절약 + §1.3 작업 모드 6종 + §4 SSOT (maturity_matrix) + §5 sub-agent contract v1 + §7 day-1 baseline 의 vendor global_workflow_standard §1-§9 매핑)
 - 결정 근거 sprint: `feat/sync-minimax-workflow-v0.7.17` (본 갱신)
-- 1차 출처: [`vendor/standard_ai_workflow/harnesses/minimax-code/README.md`](../../vendor/standard_ai_workflow/harnesses/minimax-code/README.md), [`vendor/standard_ai_workflow/core/global_workflow_standard.md`](../../vendor/standard_ai_workflow/core/global_workflow_standard.md), [`vendor/standard_ai_workflow/core/orchestrator_subagent_contract_v1.md`](../../vendor/standard_ai_workflow/core/orchestrator_subagent_contract_v1.md), [`vendor/standard_ai_workflow/core/workflow_task_modes.md`](../../vendor/standard_ai_workflow/core/workflow_task_modes.md).
+- 1차 출처: [`vendor/standard_ai_workflow/harnesses/minimax-code/README.md`](../vendor/standard_ai_workflow/harnesses/minimax-code/README.md), [`vendor/standard_ai_workflow/core/global_workflow_standard.md`](../vendor/standard_ai_workflow/core/global_workflow_standard.md), [`vendor/standard_ai_workflow/core/orchestrator_subagent_contract_v1.md`](../vendor/standard_ai_workflow/core/orchestrator_subagent_contract_v1.md), [`vendor/standard_ai_workflow/core/workflow_task_modes.md`](../vendor/standard_ai_workflow/core/workflow_task_modes.md).
 - 관련 문서: [`README.md`](./README.md), [`MEMORY_GOVERNANCE.md`](./MEMORY_GOVERNANCE.md), [`memory/PROJECT_PROFILE.md`](./memory/PROJECT_PROFILE.md), [`../AGENTS.md`](../AGENTS.md), [`../docs/governance/worker_division.md`](../docs/governance/worker_division.md).
 
 ## 0. 핵심 정의
@@ -60,7 +60,7 @@ Mavis 는 **root session ↔ branch session** 트리로 동작한다.
 
 ## 1.3 작업 모드 (Task Modes, vendor §1.3, 6종)
 
-작업의 성격에 따라 최적화된 워크플로우를 제공한다. 모드별 에이전트 토폴로지 + 추천 skill 은 vendor [`workflow_task_modes.md`](../../vendor/standard_ai_workflow/core/workflow_task_modes.md) §3 의 SSOT.
+작업의 성격에 따라 최적화된 워크플로우를 제공한다. 모드별 에이전트 토폴로지 + 추천 skill 은 vendor [`workflow_task_modes.md`](../vendor/standard_ai_workflow/core/workflow_task_modes.md) §3 의 SSOT.
 
 | 모드 | 목적 | 주요 산출물 | 핵심 sub-agent | 본 저장소 매핑 |
 | --- | --- | --- | --- | --- |
