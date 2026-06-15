@@ -94,3 +94,8 @@ L1 raw mirror mtime vs L2 last_touched 비교. 7일 임계값.
 - **MEMORY.md §12**: "Vendor side-by-side 격리 정공법" (commit 44f47baf)
 - **MEMORY.md §13**: "Vendor SSOT → 본 저장소 운영 문서 동기화 정공법" (commit b8eb55d5)
 - **MEMORY.md §14** (예정): "Wiki L0/L1/L2 self-bootstrap 정공법" (commit TBD)
+
+
+## PRs
+
+- [#600: feat(vendor): standard_ai_workflow v0.7.17 import + wiki in-repo redirect](prs/devhub/prs/600.md) (state=MERGED, head=f813493)
