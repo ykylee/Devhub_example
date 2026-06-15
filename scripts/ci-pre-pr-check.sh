@@ -34,7 +34,22 @@ set -euo pipefail
 
 SCRIPT_NAME="ci-pre-pr-check"
 SCRIPT_VERSION="1.0.0"
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# REPO_ROOT resolution (4-priority cascade, memory #21 pattern):
+#   1. cwd's git toplevel (default — works inside any git worktree/checkout)
+#   2. script's own directory (fallback — works in a non-git directory tree,
+#      e.g. a synthetic test repo in /tmp)
+# Priority 2 lets the script be used in any directory for ad-hoc checks
+# (e.g. running smoke-test fixtures in a temp dir). Both are read-only.
+if REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+  : # cwd's git toplevel — use as-is
+elif REPO_ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"; then
+  : # script's enclosing repo (2 levels up from scripts/ci-pre-pr-check.sh)
+else
+  REPO_ROOT="$(pwd)"
+fi
+# also fetch the head + origin/main once for output (silently fail in non-git trees)
+HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo none)"
+ORIGIN_MAIN_SHA="$(git rev-parse origin/main 2>/dev/null || echo none)"
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -125,12 +140,35 @@ check_workflow_cache_path() {
     if ! grep -q "actions/setup-go" "$wf"; then
       continue
     fi
-    # detect setup-go block — heuristic: look for "with:" under setup-go
+    # detect setup-go step block — strict scoping: cache: must appear
+    # inside the SAME step (between the setup-go uses: line and the next
+    # list-item dash at the same indent or shallower). A later step's
+    # `cache:` (e.g. setup-node's `cache: 'npm'`) must NOT satisfy this.
+    # Portable POSIX awk (no gensub; works on macOS BSD awk + GNU awk).
+    # Heuristic: track the most recent list-item indent; a `cache:` line
+    # only counts if its indent is strictly greater than the most recent
+    # list-item indent (i.e. it lives inside a step), AND that step's
+    # `uses:` is setup-go.
     if awk '
-      /uses:[[:space:]]+actions\/setup-go@/ { in_block=1; next }
-      in_block && /^[[:space:]]+with:/ { in_with=1; next }
-      in_with && /^[[:space:]]+cache:/ { cache_set=1 }
-      in_block && /^[[:space:]]*[^[:space:]].*:[[:space:]]*$/ && !/^[[:space:]]+(with|with:|with[^a-z])/ { in_block=0; in_with=0 }
+      BEGIN { list_indent = -1; saw_setupgo = 0; cache_set = 0 }
+      function get_indent(s) {
+        match(s, /^[[:space:]]*/)
+        return RLENGTH
+      }
+      /^[[:space:]]*-[[:space:]]/ {
+        # new list item — close any open setup-go step
+        list_indent = get_indent($0)
+        saw_setupgo = 0
+        next
+      }
+      list_indent >= 0 && /uses:[[:space:]]+actions\/setup-go@/ {
+        saw_setupgo = 1
+        next
+      }
+      saw_setupgo && /^[[:space:]]+cache:[[:space:]]*/ {
+        ci = get_indent($0)
+        if (ci > list_indent) { cache_set = 1 }
+      }
       END { exit (cache_set ? 0 : 1) }
     ' "$wf"; then
       continue
@@ -153,9 +191,13 @@ check_base_freshness() {
   fi
 
   local head_sha origin_main_sha merge_base
-  head_sha="$(git rev-parse HEAD)"
-  origin_main_sha="$(git rev-parse origin/main)"
-  merge_base="$(git merge-base HEAD origin/main)"
+  head_sha="$HEAD_SHA"
+  origin_main_sha="$ORIGIN_MAIN_SHA"
+  # in non-git trees, skip base freshness entirely
+  if [ "$head_sha" = "none" ] || [ "$origin_main_sha" = "none" ]; then
+    return 0
+  fi
+  merge_base="$(git merge-base HEAD origin/main 2>/dev/null || echo none)"
 
   if [ "$head_sha" = "$origin_main_sha" ]; then
     add_finding "LOW" "base-freshness" "HEAD is at origin/main (${head_sha:0:7}) — branch is empty or already merged"
@@ -283,8 +325,8 @@ if [ "$JSON_OUTPUT" = "1" ]; then
   printf '  "version": "%s",\n' "$SCRIPT_VERSION"
   printf '  "mode": "%s",\n' "$MODE"
   printf '  "repo_root": "%s",\n' "$REPO_ROOT"
-  printf '  "head_sha": "%s",\n' "$(git rev-parse HEAD)"
-  printf '  "origin_main_sha": "%s",\n' "$(git rev-parse origin/main 2>/dev/null || echo none)"
+  printf '  "head_sha": "%s",\n' "$HEAD_SHA"
+  printf '  "origin_main_sha": "%s",\n' "$ORIGIN_MAIN_SHA"
   printf '  "findings": [\n'
   json_first=1
   while IFS='|' read -r sev check msg; do
@@ -297,8 +339,16 @@ if [ "$JSON_OUTPUT" = "1" ]; then
 else
   echo "==> $SCRIPT_NAME v$SCRIPT_VERSION (mode=$MODE, strict=$STRICT)"
   echo "    repo: $REPO_ROOT"
-  echo "    head: $(git rev-parse --short HEAD)"
-  echo "    origin/main: $(git rev-parse --short origin/main 2>/dev/null || echo none)"
+  if [ "$HEAD_SHA" != "none" ]; then
+    echo "    head: ${HEAD_SHA:0:7}"
+  else
+    echo "    head: (non-git tree)"
+  fi
+  if [ "$ORIGIN_MAIN_SHA" != "none" ]; then
+    echo "    origin/main: ${ORIGIN_MAIN_SHA:0:7}"
+  else
+    echo "    origin/main: (non-git tree)"
+  fi
   echo
 
   if [ -z "$FINDINGS" ]; then
