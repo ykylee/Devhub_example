@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -53,27 +54,35 @@ func (s *PostgresStore) UpsertPullActivity(
 	if eventType == "" {
 		eventType = "updated" // defensive fallback, CHECK constraint 통과
 	}
+	// pr_activities schema (migration 000001 L402) column list 1:1 매핑.
+	// number / title / body / head_sha 는 별도 column 미존재 → payload jsonb 에 묶어 저장
+	// (ingest pipeline 별도 sprint 의 정규화 단계 전 임시 정공법 — 후속에서 컬럼 분리 가능).
 	const query = `
 INSERT INTO pr_activities (
-    repository_id, external_pr_id, number, event_type, actor_login,
-    title, body, head_sha, occurred_at
-) VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, NULLIF($8, ''), $9)
+    repository_id, external_pr_id, event_type, actor_login, occurred_at, payload
+) VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6::jsonb)
 ON CONFLICT (repository_id, external_pr_id, event_type, occurred_at) DO UPDATE SET
-    number = EXCLUDED.number,
     actor_login = EXCLUDED.actor_login,
-    title = EXCLUDED.title,
-    body = EXCLUDED.body,
-    head_sha = EXCLUDED.head_sha`
+    payload = EXCLUDED.payload`
+	// payload jsonb — number/title/body/head_sha 묶음 (ingest pipeline 별도 sprint
+	// 에서 컬럼 분리 가능; 현재는 Sprint A 의 minimum viable storage).
+	payload := map[string]any{
+		"number":   number,
+		"title":    title,
+		"body":     body,
+		"head_sha": headSHA,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal pr_activities payload: %w", err)
+	}
 	_, err = s.pool.Exec(ctx, query,
 		repoIDInt,
 		strconv.FormatInt(giteaPRID, 10),
-		number,
 		eventType,
 		authorLogin,
-		title,
-		body,
-		headSHA,
 		updatedAt.UTC(),
+		string(payloadJSON),
 	)
 	if err != nil {
 		return fmt.Errorf("upsert pr_activities: %w", err)
@@ -102,7 +111,6 @@ func (s *PostgresStore) UpsertBuildRun(
 	commitSHA, event, status, conclusion string,
 	createdAt time.Time,
 ) error {
-	_ = conclusion // accepted for interface stability; encoded via status
 	repoIDInt, err := strconv.ParseInt(repositoryID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("parse repository id %q: %w", repositoryID, err)
@@ -113,6 +121,13 @@ func (s *PostgresStore) UpsertBuildRun(
 		// rather than failing the upsert (NOT NULL constraint; X-5 §1.4 결정 — operationally
 		// the Gitea event field is always present, so this branch is defensive).
 		branch = "main"
+	}
+	// normalize Gitea Actions completed runs: status="completed" + conclusion=success/failure
+	// → store.status = conclusion (CHECK constraint `build_runs_status_check` 정합).
+	// 미 normalize 시 Postgres reject; 정상 빌드도 ingest 안 됨 (codex P1).
+	normalized := status
+	if status == "completed" && conclusion != "" {
+		normalized = conclusion
 	}
 	const query = `
 INSERT INTO build_runs (
@@ -129,7 +144,7 @@ ON CONFLICT (run_external_id) DO UPDATE SET
 		strconv.FormatInt(giteaBuildID, 10),
 		branch,
 		commitSHA,
-		status,
+		normalized,
 		createdAt.UTC(),
 	)
 	if err != nil {

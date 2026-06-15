@@ -112,13 +112,22 @@ func (c *GiteaClient) ListPullRequestsSince(ctx context.Context, owner, repo str
 	return out, true, nil
 }
 
-// ListBuilds fetches recent builds for a repo.
+
+// Gitea version 별로 다름 (1.21+ = { "workflow_runs": [...] } wrapper, 그 이전 / 일부 fork
+// = bare array). 양쪽 shape 모두 decode 시도 — `workflow_runs` 가 있으면 그걸, 없으면
+// bare array 로 취급. (codex P1 — production wire 의 per-repo 호출에서 JSON decode fail 방지)
 func (c *GiteaClient) ListBuilds(ctx context.Context, owner, repo string, since time.Time) ([]GiteaBuild, error) {
 	u := fmt.Sprintf("%s/api/v1/repos/%s/%s/actions/runs?page=1&limit=50", c.BaseURL, owner, repo)
 	if !since.IsZero() {
 		q := url.Values{}
 		q.Set("since", since.UTC().Format(time.RFC3339))
 		u += "&" + q.Encode()
+	}
+	var wrapped struct {
+		WorkflowRuns []GiteaBuild `json:"workflow_runs"`
+	}
+	if err := c.doJSON(ctx, "GET", u, &wrapped); err == nil && len(wrapped.WorkflowRuns) > 0 {
+		return wrapped.WorkflowRuns, nil
 	}
 	var out []GiteaBuild
 	if err := c.doJSON(ctx, "GET", u, &out); err != nil {
