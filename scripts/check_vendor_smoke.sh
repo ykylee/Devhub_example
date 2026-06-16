@@ -10,7 +10,7 @@
 #   - vendor/standard_ai_workflow/.upstream-url (vendor metadata)
 #   - ai-workflow/wiki/RAW_MIRROR_MANIFEST.md (raw mirror 운영 가이드)
 #
-# 본 script 가 호출하는 4종 smoke:
+# 본 script 가 호출하는 5종 smoke:
 #   1. tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py (DevHub invariant 5/5)
 #      - 본 저장소 의 in-repo path 정합 + 6 dir + memory/log.md + WIKI_SOURCES flat
 #   2. vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py (vendor smoke 11/11)
@@ -23,12 +23,16 @@
 #      - wiki-ingest-from-raw.sh 의 wrapper smoke (dry-run self/vendor 분기, --apply vendor
 #      의 false-positive byte-identical 검출 — 3 scenario: full body / 일부 placeholder /
 #      single-file mode. runtime ~60s)
+#   5. tests/check_l1_format_devhub.py (L1 format SSOT edge case 10/10, PR #615 follow-up)
+#      - DevHub 의 5 L1 dir 의 frontmatter 검증 (SSOT: docs/governance/l1-format.md).
+#      10 scenario: valid page, missing frontmatter, missing required, invalid type/status/date,
+#      multi-issue, skip non-L1 dirs (sources/, raw/), skip index/manifest, real main repo smoke.
 #
-# 합 34/34 PASS 가 본 script 의 정공법.
+# 합 45/45 PASS 가 본 script 의 정공법.
 # vendor release (v0.7.17 → v0.7.18+) 동기화 시 본 script 로 회귀 0 확인 필수.
 #
 # Exit code:
-#   0 — 4종 smoke 모두 PASS (34/34)
+#   0 — 5종 smoke 모두 PASS (45/45)
 #   1 — 1종 이상 FAIL
 #   2 — python3 부재 또는 script 부재
 
@@ -95,6 +99,18 @@ if [[ ! -f "$SMOKE4" ]]; then
   exit 2
 fi
 
+# ----- smoke 5: L1 format SSOT edge case (10/10, PR #615 follow-up) -----
+# tests/check_l1_format_devhub.py — DevHub 의 5 L1 dir 의 frontmatter 검증 (SSOT:
+# docs/governance/l1-format.md). 10 scenario: valid page, missing frontmatter, missing
+# required, invalid type/status/date, multi-issue, skip non-L1 dirs (sources/, raw/),
+# skip index/manifest, real main repo smoke. PR #605 P1 fix 와 동일 category (silent
+# format drift 의 smoke gate).
+SMOKE5="$REPO_ROOT/tests/check_l1_format_devhub.py"
+if [[ ! -f "$SMOKE5" ]]; then
+  echo "[check-vendor-smoke] error: smoke 5 not found: $SMOKE5" >&2
+  exit 2
+fi
+
 # ----- run -----
 PASS1=0
 FAIL1=0
@@ -104,34 +120,43 @@ PASS3=0
 FAIL3=0
 PASS4=0
 FAIL4=0
+PASS5=0
+FAIL5=0
+
 
 if [[ $QUIET -eq 1 ]]; then
-  echo "[check-vendor-smoke] smoke 1/4: tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py"
+  echo "[check-vendor-smoke] smoke 1/5: tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py"
   if python3 "$SMOKE1" --quiet 2>/dev/null || python3 "$SMOKE1" >/dev/null 2>&1; then
     PASS1=1
   else
     FAIL1=1
   fi
-  echo "[check-vendor-smoke] smoke 2/4: vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py"
+  echo "[check-vendor-smoke] smoke 2/5: vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py"
   if python3 "$SMOKE2" >/dev/null 2>&1; then
     PASS2=1
   else
     FAIL2=1
   fi
-  echo "[check-vendor-smoke] smoke 3/4: tests/check_emit_wiki_l2_devhub.py"
+  echo "[check-vendor-smoke] smoke 3/5: tests/check_emit_wiki_l2_devhub.py"
   if python3 "$SMOKE3" >/dev/null 2>&1; then
     PASS3=1
   else
     FAIL3=1
   fi
-  echo "[check-vendor-smoke] smoke 4/4: tests/check_wiki_ingest_devhub.py"
+  echo "[check-vendor-smoke] smoke 4/5: tests/check_wiki_ingest_devhub.py"
   if python3 "$SMOKE4" >/dev/null 2>&1; then
     PASS4=1
   else
     FAIL4=1
   fi
+  echo "[check-vendor-smoke] smoke 5/5: tests/check_l1_format_devhub.py"
+  if python3 "$SMOKE5" >/dev/null 2>&1; then
+    PASS5=1
+  else
+    FAIL5=1
+  fi
 else
-  echo "[check-vendor-smoke] === smoke 1/4: DevHub invariant (5/5 expected) ==="
+  echo "[check-vendor-smoke] === smoke 1/5: DevHub invariant (5/5 expected) ==="
   echo ""
   if python3 "$SMOKE1"; then
     PASS1=1
@@ -139,7 +164,7 @@ else
     FAIL1=1
   fi
   echo ""
-  echo "[check-vendor-smoke] === smoke 2/4: vendor in-repo isolation (11/11 expected) ==="
+  echo "[check-vendor-smoke] === smoke 2/5: vendor in-repo isolation (11/11 expected) ==="
   echo ""
   if python3 "$SMOKE2"; then
     PASS2=1
@@ -147,7 +172,7 @@ else
     FAIL2=1
   fi
   echo ""
-  echo "[check-vendor-smoke] === smoke 3/4: emit 도구 (self + vendor) smoke (16/16 expected) ==="
+  echo "[check-vendor-smoke] === smoke 3/5: emit 도구 (self + vendor) smoke (16/16 expected) ==="
   echo ""
   if python3 "$SMOKE3"; then
     PASS3=1
@@ -155,12 +180,20 @@ else
     FAIL3=1
   fi
   echo ""
-  echo "[check-vendor-smoke] === smoke 4/4: wiki-ingest wrapper smoke (3/3 expected) ==="
+  echo "[check-vendor-smoke] === smoke 4/5: wiki-ingest wrapper smoke (3/3 expected) ==="
   echo ""
   if python3 "$SMOKE4"; then
     PASS4=1
   else
     FAIL4=1
+  fi
+  echo ""
+  echo "[check-vendor-smoke] === smoke 5/5: L1 format SSOT edge case (10/10 expected) ==="
+  echo ""
+  if python3 "$SMOKE5"; then
+    PASS5=1
+  else
+    FAIL5=1
   fi
 fi
 
@@ -171,9 +204,10 @@ echo "  smoke 1 (DevHub invariant):    $([[ $PASS1 -eq 1 ]] && echo 'PASS' || ec
 echo "  smoke 2 (vendor in-repo):      $([[ $PASS2 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 11/11)"
 echo "  smoke 3 (emit 도구 self+vendor): $([[ $PASS3 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 16/16)"
 echo "  smoke 4 (wiki-ingest wrapper):   $([[ $PASS4 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 3/3)"
-echo "  total: $([[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 && $PASS4 -eq 1 ]] && echo '34/34 PASS' || echo 'FAIL')"
+echo "  smoke 5 (L1 format SSOT):        $([[ $PASS5 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 10/10)"
+echo "  total: $([[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 && $PASS4 -eq 1 && $PASS5 -eq 1 ]] && echo '45/45 PASS' || echo 'FAIL')"
 
-if [[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 && $PASS4 -eq 1 ]]; then
+if [[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 && $PASS4 -eq 1 && $PASS5 -eq 1 ]]; then
   exit 0
 else
   exit 1

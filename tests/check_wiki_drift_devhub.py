@@ -64,6 +64,69 @@ def _import_vendor_test():
     return module
 
 
+# ----- L1 format SSOT (docs/governance/l1-format.md) -----
+# DevHub 의 5 L1 dir (concepts/decisions/entities/patterns/topics) 의 *.md file 의
+# frontmatter 검증. 본 function 은 module-level (import 가능) — tests/check_l1_format_devhub.py
+# 의 edge case test 에서 직접 import + 호출.
+#
+# 검증 항목 (SSOT 와 1:1):
+#   1. frontmatter delimiter (\`---\` ... \`---\`) 존재
+#   2. required field 4개: type, status, created, updated
+#   3. type enum: {concept, decision, entity, pattern, topic}
+#   4. status enum: {active, draft}
+#   5. created / updated date format: YYYY-MM-DD (ISO 8601)
+#
+# Page 분류: 5 L1 dir 만 검증 대상. index.md, RAW_MIRROR_MANIFEST.md, sources/, raw/ 는 skip.
+#
+# Returns: (issue_count, issues_list). issue_count == 0 면 PASS.
+def validate_l1_pages(inrepo_wiki: Path) -> tuple[int, list[str]]:
+    import re
+    VALID_TYPES = {"concept", "decision", "entity", "pattern", "topic"}
+    VALID_STATUS = {"active", "draft"}
+    REQUIRED_FIELDS = ("type", "status", "created", "updated")
+    DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    L1_DIRS = ("concepts", "decisions", "entities", "patterns", "topics")
+    issues: list[str] = []
+    for md in inrepo_wiki.rglob("*.md"):
+        if md.name in ("index.md", "RAW_MIRROR_MANIFEST.md"):
+            continue
+        rel = md.relative_to(inrepo_wiki)
+        if rel.parts[0] not in L1_DIRS:
+            continue
+        text = md.read_text(encoding="utf-8")
+        m = re.match(r"^---\n(.+?)\n---", text, re.DOTALL)
+        if not m:
+            issues.append(f"{md.name}: missing frontmatter")
+            continue
+        fm = m.group(1)
+        field_map: dict[str, str] = {}
+        for line in fm.split("\n"):
+            if ":" in line:
+                k, _, v = line.partition(":")
+                field_map[k.strip()] = v.strip()
+        for required in REQUIRED_FIELDS:
+            if required not in field_map:
+                issues.append(f"{md.name}: missing {required}")
+        if field_map.get("type") not in VALID_TYPES:
+            issues.append(
+                f"{md.name}: invalid type: {field_map.get('type')!r} "
+                f"(valid: {sorted(VALID_TYPES)})"
+            )
+        if field_map.get("status") not in VALID_STATUS:
+            issues.append(
+                f"{md.name}: invalid status: {field_map.get('status')!r} "
+                f"(valid: {sorted(VALID_STATUS)})"
+            )
+        for date_field in ("created", "updated"):
+            v = field_map.get(date_field)
+            if v is not None and not DATE_RE.match(v):
+                issues.append(
+                    f"{md.name}: invalid {date_field} date format: {v!r} "
+                    f"(expected YYYY-MM-DD)"
+                )
+    return (len(issues), issues)
+
+
 def main() -> int:
     if not VENDOR_TEST.is_file():
         print(f"[check-wiki-drift-devhub] error: vendor test not found: {VENDOR_TEST}")
@@ -86,47 +149,6 @@ def main() -> int:
         # test_v070_concept_pages_indexed 는 *vendor 자체 repo 의 self-test* → DevHub 에서는 skip
     ]
 
-    def _devhub_self_validate_l1_pages(inrepo_wiki: Path) -> int:
-        """DevHub 자체 frontmatter 검증: 5종 type + status (active/draft) + dates.
-
-        vendor 의 test_l1_wiki_pages_format 가 *ADR-format* (status: accepted|proposed|deprecated + adr_id)
-        를 기대하지만, DevHub 의 wiki 는 *운영 문서* 형식 (type 5종 + status: active/draft + created/updated
-        + active_since/active_reason). 자체 검증.
-        """
-        import re as re_mod
-        VALID_TYPES = {"concept", "decision", "entity", "pattern", "topic"}
-        VALID_STATUS = {"active", "draft"}
-        REQUIRED_FIELDS = {"type", "status", "created", "updated"}
-        issues = 0
-        for md in inrepo_wiki.rglob("*.md"):
-            if md.name == "index.md" or md.name == "RAW_MIRROR_MANIFEST.md":
-                continue
-            rel = md.relative_to(inrepo_wiki)
-            if rel.parts[0] not in ("concepts", "decisions", "entities", "patterns", "topics"):
-                continue
-            text = md.read_text(encoding="utf-8")
-            m = re_mod.match(r"^---\n(.+?)\n---", text, re_mod.DOTALL)
-            if not m:
-                print(f"    {md.name}: missing frontmatter")
-                issues += 1
-                continue
-            fm = m.group(1)
-            field_map = {}
-            for line in fm.split("\n"):
-                if ":" in line:
-                    k, _, v = line.partition(":")
-                    field_map[k.strip()] = v.strip()
-            for required in REQUIRED_FIELDS:
-                if required not in field_map:
-                    print(f"    {md.name}: missing {required}")
-                    issues += 1
-            if field_map.get("type") not in VALID_TYPES:
-                print(f"    {md.name}: invalid type: {field_map.get('type')}")
-                issues += 1
-            if field_map.get("status") not in VALID_STATUS:
-                print(f"    {md.name}: invalid status: {field_map.get('status')}")
-                issues += 1
-        return issues
 
     passed = 0
     failed = 0
@@ -139,13 +161,15 @@ def main() -> int:
         # → test_l1_wiki_pages_format 는 DevHub 자체 검증으로 대체 (vendor 의 test skip)
         if name == "test_l1_wiki_pages_format":
             print(f"  SKIP  {name} (DevHub 자체 format 검증 — vendor ADR-format 과 의미 다름)")
-            # DevHub 자체 frontmatter 검증
-            self_validate_count = _devhub_self_validate_l1_pages(module.INREPO_WIKI)
+            # DevHub 자체 frontmatter 검증 (module-level SSOT 함수)
+            self_validate_count, self_validate_issues = validate_l1_pages(module.INREPO_WIKI)
             if self_validate_count == 0:
                 print(f"  PASS  _devhub_self_validate_l1_pages (DevHub 자체 format)")
                 passed += 1
             else:
                 print(f"  FAIL  _devhub_self_validate_l1_pages: {self_validate_count} issue")
+                for issue in self_validate_issues:
+                    print(f"    {issue}")
                 failed += 1
             continue
         try:
