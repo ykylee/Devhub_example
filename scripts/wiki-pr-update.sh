@@ -238,7 +238,7 @@ from pathlib import Path
 
 # atomic_write helper (v0.7.15 follow-up D) — partial write 시 원본 보존
 sys.path.insert(0, os.environ["SCRIPT_DIR"])
-from atomic_write import atomic_write_text  # noqa: E402
+from atomic_write import atomic_append_text  # noqa: E402
 
 pr_num = os.environ["PR_NUM"]
 project = os.environ["PROJECT"]
@@ -301,15 +301,16 @@ last_ingested_from: gh pr view {pr_num}
 """
 pr_page.write_text(content, encoding="utf-8")
 
-# log.md append (atomic, v0.7.15 follow-up D)
+# log.md append (atomic, v0.7.15 follow-up D + #607 follow-up, P1 race fix)
+# 기존 atomic_write_text(read+append+os.replace) 는 동시 실행 시 lost update.
+# atomic_append_text (O_APPEND + fsync) 로 교체.
 log_target.parent.mkdir(parents=True, exist_ok=True)
 ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 log_line = f"[{ts}] pr-update | PR #{pr_num} | {pr.get('headRefOid', 'unknown')[:7]} | state={pr.get('state', 'unknown')} | files={len(touched)} | idem={idem}"
 try:
-    _existing = log_target.read_text(encoding="utf-8") if log_target.exists() else ""
-    atomic_write_text(log_target, _existing + log_line + "\n")
+    atomic_append_text(log_target, log_line + "\n")
 except OSError:
-    # fallback (Windows 등): atomic_write_text 미동작 시
+    # fallback (Windows 등): atomic_append_text 미동작 시
     with open(log_target, "a", encoding="utf-8") as f:
         f.write(log_line + "\n")
 

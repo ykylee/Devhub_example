@@ -4,7 +4,7 @@
 scripts/atomic_write.py 자체 검증 (POSIX only, macOS/Linux). 12-15 test 로
 atomic_write 의 핵심 invariant + DevHub 적용 시나리오를 cover.
 
-Test 구성 (15 test):
+Test 구성 (16 test):
 1.  test_normal_text_write              — 기본 text write
 2.  test_normal_json_write              — JSON write (indent=2)
 3.  test_json_round_trip                — write → load 동일
@@ -20,6 +20,7 @@ Test 구성 (15 test):
 13. test_log_md_append_pattern          — DevHub log.md append 패턴 (read+append+write)
 14. test_state_json_round_trip          — state.json 패턴 (JSON dict 큰 케이스)
 15. test_trailing_newline_convention    — JSON trailing newline 보장
+16. test_atomic_append_text_concurrent  — P1 race regression (PR #607, 8 thread × 25 line)
 
 Reference:
 - scripts/atomic_write.py (v0.7.15 follow-up D)
@@ -35,6 +36,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import uuid
 from pathlib import Path
 
@@ -338,7 +340,7 @@ def test_state_json_round_trip():
         _fail(name, f"exception: {e}")
 
 
-# ----- 15. trailing newline convention -----
+# ----- 16. trailing newline convention -----
 def test_trailing_newline_convention():
     name = "test_trailing_newline_convention"
     try:
@@ -354,6 +356,60 @@ def test_trailing_newline_convention():
     except Exception as e:
         _fail(name, f"exception: {e}")
 
+
+# ----- 16. atomic_append_text — concurrent append (P1 race regression, PR #607) -----
+def test_atomic_append_text_concurrent():
+    name = "test_atomic_append_text_concurrent"
+    try:
+        aw = _import_atomic_write()
+        if not hasattr(aw, "atomic_append_text"):
+            return _fail(name, "atomic_append_text helper missing")
+        with tempfile.TemporaryDirectory() as d:
+            log = Path(d) / "concurrent.log"
+            n_threads = 8
+            n_lines_per_thread = 25
+
+            errors: list[str] = []
+
+            def worker(thread_id: int) -> None:
+                try:
+                    for i in range(n_lines_per_thread):
+                        aw.atomic_append_text(
+                            log, f"t{thread_id:02d}-i{i:02d}\n"
+                        )
+                except Exception as e:  # noqa: BLE001
+                    errors.append(f"t{thread_id}: {e}")
+
+            threads = [threading.Thread(target=worker, args=(i,)) for i in range(n_threads)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+            if errors:
+                return _fail(name, f"thread errors: {errors}")
+
+            content = log.read_text(encoding="utf-8")
+            lines = [l for l in content.split("\n") if l]
+            expected = n_threads * n_lines_per_thread
+            if len(lines) != expected:
+                return _fail(
+                    name,
+                    f"expected {expected} lines, got {len(lines)} (lost updates: {expected - len(lines)})",
+                )
+            seen: set[str] = set()
+            for line in lines:
+                if line in seen:
+                    return _fail(name, f"duplicate line: {line}")
+                seen.add(line)
+            for t in range(n_threads):
+                for i in range(n_lines_per_thread):
+                    tag = f"t{t:02d}-i{i:02d}"
+                    if tag not in seen:
+                        return _fail(name, f"missing line: {tag}")
+        _ok(name)
+    except Exception as e:
+        _fail(name, f"exception: {e}")
 
 # ----- main -----
 def main() -> int:
@@ -383,6 +439,7 @@ def main() -> int:
     test_log_md_append_pattern()
     test_state_json_round_trip()
     test_trailing_newline_convention()
+    test_atomic_append_text_concurrent()
 
     print("")
     print(f"[check-atomic-write] === summary ===")

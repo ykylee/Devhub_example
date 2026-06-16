@@ -110,6 +110,48 @@ def atomic_write_text(path: Path, text: str, encoding: str = "utf-8") -> None:
             pass
         raise
 
+def atomic_append_text(path: Path, text: str, encoding: str = "utf-8") -> None:
+    """Atomic text append (POSIX only).
+
+    O_APPEND 로 file 을 열어 단일 write(2) call 로 끝까지 append.
+    read-modify-write race 가 본질적으로 없음 (kernel 이 write 위치 결정).
+    fsync 후 닫아 power-loss safety.
+
+    기존 `atomic_write_text(existing + line)` 패턴은 race 가 있어 (두 process 가
+    같은 existing 을 read → 한 쪽 lost update). log.md 같은 append-only 파일은
+    본 helper 로 교체 필수.
+
+    Sequence:
+    1. parent dir mkdir (parents=True, exist_ok=True)
+    2. O_WRONLY | O_CREAT | O_APPEND 로 open
+    3. text write (UTF-8 default)
+    4. fsync (durable)
+    5. close (fd 가 high-level wrapper 에서 관리될 경우 명시)
+
+    Args:
+        path: 대상 file path. 없으면 생성.
+        text: append 할 content.
+        encoding: file encoding. default utf-8.
+
+    Raises:
+        OSError: write 실패 시. partial write 가능 (write 가 atomic 이지만
+        fsync 실패 시 durability 미보장).
+    """
+    path = Path(path)
+    parent = path.parent
+    parent.mkdir(parents=True, exist_ok=True)
+
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    try:
+        with os.fdopen(fd, "a", encoding=encoding, closefd=True) as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+    except BaseException:
+        # append 실패 시: 이미 write 된 byte 는 남고 fsync 만 실패할 수 있음.
+        # file 자체를 지우지 않음 (이미 다른 line 이 들어있을 수 있음).
+        raise
+
 
 def atomic_write_json(
     path: Path,
