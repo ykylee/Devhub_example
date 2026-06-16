@@ -20,6 +20,8 @@ Reference:
 
 from __future__ import annotations
 
+import fnmatch
+import os
 import re
 import sys
 from datetime import datetime
@@ -180,14 +182,18 @@ def test_inrepo_wiki_l1_drift() -> None:
         msg = "drift detected (updated > 7일 stale vs last_ingested_from code mtime):\n"
         for page, days in drift_pages:
             msg += f"  {page}: {days}일 stale\n"
-        # 본 v0.7.0 follow-up 의 5 신규 page 는 모두 updated=2026-06-13 이고 code 도 v0.7.0 시점 → drift 0
-        # 기존 page (concepts/question-file-format, etc) 는 v0.6.4 시점 updated=2026-06-12 — *drift 정상*
-        # NOTE: 기존 v0.6.4 page 들의 updated 가 v0.7.0 code 와 비교 시 *drift* 가 발생 가능
-        # 이는 *expected* drift — wiki 가 v0.6.4 의 spec 을 v0.7.0 변경과 무관하게 *명시적으로* 보존
-        # 따라서 본 test 는 *drift page* 가 있음을 *report* 만 (FAIL 아님)
-        print(msg)
-        # report only — assert 안 함 (drift 가 expected 일 수 있음)
-    # assert 안 함 — drift report 만
+        # v0.7.17+ 20/20 gate (PR #608 follow-up): drift 검출 시 FAIL.
+        # v0.6.4 page 등 *expected* drift 가 있어 escape 가 필요하면
+        # WIKI_DRIFT_ALLOWLIST env var (comma-separated path glob, 예: "concepts/legacy-*,decisions/old-*") 설정.
+        allow = [g.strip() for g in os.environ.get("WIKI_DRIFT_ALLOWLIST", "").split(",") if g.strip()]
+        if allow:
+            drift_pages = [
+                (p, d) for p, d in drift_pages
+                if not any(fnmatch.fnmatch(p, g) for g in allow)
+            ]
+        if drift_pages:
+            allowed_msg = "" if not allow else f" (allowlist={allow})"
+            raise AssertionError(msg.rstrip() + allowed_msg)
 
 
 # --- Test 2: vault L2 sources/ 의 last_touched drift 검출 ---
@@ -229,8 +235,17 @@ def test_vault_l2_drift() -> None:
         msg = "vault L2 drift detected (last_touched > 7일 stale vs raw mirror mtime):\n"
         for page, days in drift_pages:
             msg += f"  {page}: {days}일 stale\n"
-        print(msg)
-    # report only — assert 안 함
+        # v0.7.17+ 20/20 gate (PR #608 follow-up): drift 검출 시 FAIL.
+        # escape 가 필요하면 WIKI_DRIFT_ALLOWLIST env var (comma-separated path glob) 설정.
+        allow = [g.strip() for g in os.environ.get("WIKI_DRIFT_ALLOWLIST", "").split(",") if g.strip()]
+        if allow:
+            drift_pages = [
+                (p, d) for p, d in drift_pages
+                if not any(fnmatch.fnmatch(p, g) for g in allow)
+            ]
+        if drift_pages:
+            allowed_msg = "" if not allow else f" (allowlist={allow})"
+            raise AssertionError(msg.rstrip() + allowed_msg)
 
 
 # --- Test 3: L1 wiki 의 last_ingested_from 의 code path 모두 존재 ---
