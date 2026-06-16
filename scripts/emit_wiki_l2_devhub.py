@@ -40,15 +40,6 @@ L2_SOURCES = L1_BASE / "sources"
 
 # 우리 DevHub 의 L1 dir 5종 (in-repo 운영 위치)
 L1_DIRS = ["concepts", "decisions", "entities", "patterns", "topics"]
-L1_DIR_TO_TYPE = {
-    "concepts": "concept",
-    "decisions": "decision",
-    "entities": "entity",
-    "patterns": "pattern",
-    "topics": "topic",
-}
-# alias (module-level + reusable from vendor adapter)
-_l1_dir_to_type = L1_DIR_TO_TYPE
 
 
 def _read(path: Path) -> str:
@@ -201,16 +192,8 @@ def main() -> int:
             print(f"  [DRY] L1={rel_l1} → L2={rel_l2}")
         else:
             L2_SOURCES.mkdir(parents=True, exist_ok=True)
-            # type: derive from L1 parent dir (decisions → decision, entities → entity, …).
-            # fallback: 기존 L2 의 type 보존, 없으면 concept (legacy default).
-            l1_dir = rel_l1.parts[0] if rel_l1.parts else ""
-            existing_type = ""
-            if l2.is_file():
-                _efm, _ = _parse_frontmatter(l2.read_text(encoding="utf-8"))
-                existing_type = _efm.get("type", "")
-            l2_type = L1_DIR_TO_TYPE.get(l1_dir) or existing_type or "concept"
             frontmatter = f"""---
-type: {l2_type}
+type: concept
 status: active
 last_ingested_from: ai-workflow/wiki/{rel_l1}
 related_pages: [sources/{_stem_from_l1(l1)}]

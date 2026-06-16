@@ -59,15 +59,6 @@ L2_SOURCES_REAL = L1_BASE_REAL / "sources"
 
 # 우리 DevHub 의 L1 dir 5종 (in-repo 운영 위치)
 L1_DIRS = ["concepts", "decisions", "entities", "patterns", "topics"]
-L1_DIR_TO_TYPE = {
-    "concepts": "concept",
-    "decisions": "decision",
-    "entities": "entity",
-    "patterns": "pattern",
-    "topics": "topic",
-}
-# local alias (devhub.py 와 동일 — monkey-patch isolation 위해 inline)
-_l1_dir_to_type = L1_DIR_TO_TYPE
 
 VENDOR_TOOL = REPO_ROOT / "vendor" / "standard_ai_workflow" / "tools" / "emit_wiki_l2_body.py"
 
@@ -140,30 +131,11 @@ def _patched_extract_l1_body(l1_path: Path, max_chars: int = 2000) -> str:
     return body[:max_chars] + "\n\n…(truncated)"
 
 
-def _patched_build_emit_body(l1_path: Path | None, today: str, max_chars: int = 2000, mode: str = "l1") -> str:
+def _patched_build_emit_body(l1_path: Path, today: str, max_chars: int = 2000, mode: str = "l1") -> str:
     """vendor 의 build_emit_body 의 closure* (RAW_MIRROR) 가 우리 DevHub 의 L1_BASE_REAL 이 되도록
     *RAW_MIRROR 의 closure capture* 의 우리 wrapper 가 monkey-patch 후의 *RAW_MIRROR* (= 우리
     L1_BASE_REAL) 의 relative_to 가 정합.
-
-    l1_path 가 None 인 경우 (metadata-only / orphan L2) 는 body 만 metadata-only 양식으로
-    반환 — frontmatter 는 호출자 (_patched_main apply loop) 가 별도 preserve.
     """
-    if l1_path is None:
-        # metadata-only body: L1 SSOT 부재 / orphan. 본문 placeholder 만.
-        return (
-            f"# (metadata-only, {today})\n"
-            "\n"
-            "> **L1 SSOT**: (no matching L1 page — metadata-only candidate)\n"
-            "> 본 L2 는 L1 SSOT 부재 / orphan. L1 작성 후 `--apply --mode l1` 로 본문 emit.\n"
-            "\n"
-            "## TL;DR\n"
-            "\n"
-            "(no TL;DR — L1 SSOT 부재)\n"
-            "\n"
-            "## Source\n"
-            "\n"
-            "- 본 wrapper: `scripts/emit_wiki_l2_devhub_vendor.py`\n"
-        )
     title = l1_path.stem.replace("-", " ").title()
     l1_line_count = sum(1 for _ in l1_path.open(encoding="utf-8"))
     # vendor 의 build_emit_body 의 line 154 의 RAW_MIRROR.parts.index("raw") + 2 — 우리
@@ -271,39 +243,8 @@ def _patched_main(orig_main: Any, module: Any) -> int:
         if dry_run:
             print(f"  [DRY ({mode})] {rel_l2}")
         else:
-            new_body = _patched_build_emit_body(l1, today, max_chars=args.max_chars, mode=mode)
-            # 기존 L2 frontmatter 보존 (type, status, last_ingested_from, dates 등).
-            # 새 frontmatter 는 기존 보존 + 빌드 결과 body 결합.
-            existing_fm: dict[str, str] = {}
-            if l2.is_file():
-                _etext = l2.read_text(encoding="utf-8")
-                _em = re.match(r"^---\n(.+?)\n---\n?", _etext, re.DOTALL)
-                if _em:
-                    for _line in _em.group(1).split("\n"):
-                        if ":" in _line:
-                            _k, _, _v = _line.partition(":")
-                            existing_fm[_k.strip()] = _v.strip()
-            # 새 frontmatter: 기존 보존 + update last_touched (apply 시점)
-            if "last_touched" not in existing_fm:
-                existing_fm["last_touched"] = today
-            else:
-                existing_fm["last_touched"] = today
-            if "updated" not in existing_fm:
-                existing_fm["updated"] = today
-            if "type" not in existing_fm:
-                # derive from L1 dir when possible, else metadata-only
-                if l1 is not None:
-                    try:
-                        _r = l1.relative_to(L1_BASE_REAL)
-                        _d = _r.parts[0] if _r.parts else ""
-                    except ValueError:
-                        _d = ""
-                    existing_fm["type"] = _l1_dir_to_type.get(_d, "concept")
-                else:
-                    existing_fm["type"] = "concept"
-            fm_lines = [f"{k}: {v}" for k, v in existing_fm.items()]
-            fm_block = "---\n" + "\n".join(fm_lines) + "\n---\n\n"
-            l2.write_text(fm_block + new_body, encoding="utf-8")
+            new_content = _patched_build_emit_body(l1, today, max_chars=args.max_chars, mode=mode)
+            l2.write_text(new_content, encoding="utf-8")
             print(f"  [APPLIED ({mode})] {rel_l2}")
             emitted += 1
 
