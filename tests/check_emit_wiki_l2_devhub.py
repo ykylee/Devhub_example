@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""check_emit_wiki_l2_devhub.py — emit 도구 (self + vendor) 의 자체 smoke 15 test.
+"""check_emit_wiki_l2_devhub.py — emit 도구 (self + vendor) 의 자체 smoke 16 test.
 
 PR #605 의 *emit 도구* (self = `scripts/emit_wiki_l2_devhub.py` + vendor =
 `scripts/emit_wiki_l2_devhub_vendor.py`) 의 *자체 smoke*. vendor 의 `check_*.py` 패턴
 참고 (V-1 wiki location, V-4 index structure 등 umbrella-style).
 
-Test 구성 (15 test, DevHub-specific smoke for emit 도구):
+Test 구성 (16 test, DevHub-specific smoke for emit 도구):
 1.  test_self_help_message        — argparse 의 --help
 2.  test_vendor_help_message      — argparse 의 --help (vendor wrapper)
 3.  test_self_dry_run_default     — --apply 없이 dry-run, 0 page emit
@@ -21,6 +21,7 @@ Test 구성 (15 test, DevHub-specific smoke for emit 도구):
 13. test_self_max_chars           — --max-chars 2000 default + 1000 override
 14. test_self_limit               — --limit N
 15. test_cross_emit_byte_identical — self + vendor 의 sources/ 가 byte-identical (sha256 match)
+16. test_vendor_l1_none_metadata_only — P1 orphan crash regression (PR #605 l1_path: Path | None signature)
 
 Reference:
 - scripts/emit_wiki_l2_devhub.py (self 도구, vendor 미사용)
@@ -30,7 +31,7 @@ Reference:
 
 Usage:
     python3 tests/check_emit_wiki_l2_devhub.py
-    # exit 0 = PASS (15/15), exit 1 = FAIL
+    # exit 0 = PASS (16/16), exit 1 = FAIL
 
 본 smoke 의 정공법:
 - 모든 test 는 *self-contained* — 외부 state 에 의존 ❌.
@@ -43,6 +44,7 @@ Usage:
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import re
 import shutil
 import subprocess
@@ -393,6 +395,41 @@ def test_cross_emit_byte_identical() -> None:
         assert l2_file_path in vendor_text, f"vendor output missing L2 file path: {vendor_text[:200]}"
     finally:
         target.write_text(backup, encoding="utf-8")
+
+# ----- 16. vendor._patched_build_emit_body(l1=None) — P1 orphan crash regression -----
+@register("test_vendor_l1_none_metadata_only")
+def test_vendor_l1_none_metadata_only() -> None:
+    """PR #605 P1 fix 회귀: vendor._patched_build_emit_body(l1=None) 가 crash 안 함.
+
+    Background: PR #605 의 fix 가 l1_path: Path | None 으로 signature 변경 + early
+    return metadata-only body. 15 test 가 이 path 를 cover 하지 않아, fix 가 silent
+    broken 되어도 15 test pass. main 의 P1 fix 가 #609 의 squash 시 byte 가 reset
+    되어 사라진 사건의 회귀 검출.
+
+    Signature 가 다시 l1_path: Path (no Optional) 으로 바뀌고 deref l1_path.stem 이
+    None 에서 AttributeError raise 하면 P1 fix broken.
+    """
+    if not VENDOR_TOOL.exists():
+        raise AssertionError(f"vendor tool not found: {VENDOR_TOOL}")
+    spec = importlib.util.spec_from_file_location("vendor_emit_under_test", str(VENDOR_TOOL))
+    assert spec is not None and spec.loader is not None, "vendor module spec invalid"
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    # 직접 호출: l1=None, today=2026-06-16
+    try:
+        result = m._patched_build_emit_body(None, "2026-06-16")
+    except AttributeError as e:
+        raise AssertionError(
+            f"P1 fix broken: l1_path deref crash. PR #605 의 l1_path: Path | None signature + early return 누락. AttributeError: {e}"
+        )
+    except TypeError as e:
+        raise AssertionError(
+            f"P1 fix broken: signature mismatch. PR #605 의 l1_path: Path | None 변경 누락. TypeError: {e}"
+        )
+    assert isinstance(result, str), f"expected str, got {type(result).__name__}"
+    assert "(metadata-only" in result, f"metadata-only marker missing: {result[:200]!r}"
+    assert "no matching L1 page" in result, f"L1 SSOT 부재 안내 missing: {result[:200]!r}"
+    assert "L1 작성 후" in result, f"해결 hint missing: {result[:200]!r}"
 
 
 # ----- main -----
