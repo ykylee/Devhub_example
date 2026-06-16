@@ -21,10 +21,17 @@ const baseMenu: MenuItem[] = [
   { href: "/platforms", icon: Zap, label: "Platforms", color: "text-violet-700 dark:text-violet-300" },
   { href: "/repositories", icon: Server, label: "Repositories", color: "text-cyan-700 dark:text-cyan-300" },
   { href: "/projects", icon: Settings, label: "Projects", color: "text-rose-700 dark:text-rose-300" },
-  { href: "/kpis", icon: LayoutDashboard, label: "KPIs", color: "text-emerald-700 dark:text-emerald-300" },
-  { href: "/tests", icon: ShieldCheck, label: "Tests", color: "text-amber-700 dark:text-amber-300" },
 ];
- 
+
+// Analytics menu (Sprint D — kpi-tests-per-domain-scope.md §3, §6.4):
+// KPIs / Tests 는 운영 entity (Platform/Project/Repository) 의 sub-section 이 1차
+// 진입점. 글로벌 /kpis /tests 는 도메인 picker 가 있는 cross-reference 페이지로
+// 격하. 일반 사용자도 접근 가능 (KPI 와 Tests 는 운영의 핵심 정보).
+const analyticsMenu: MenuItem[] = [
+  { href: "/kpis", icon: LayoutDashboard, label: "KPI Analytics", color: "text-emerald-700 dark:text-emerald-300" },
+  { href: "/tests", icon: ShieldCheck, label: "Test Analytics", color: "text-amber-700 dark:text-amber-300" },
+];
+
 const systemMenu: MenuItem[] = [
   { href: "/admin/catalog", icon: Boxes, label: "Admin Catalog", color: "text-emerald-700 dark:text-emerald-300" },
   { href: "/admin/reception-test", icon: TestTube, label: "Reception Test", color: "text-orange-700 dark:text-orange-300" },
@@ -111,7 +118,17 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
               </p>
             )}
             {baseMenu.map((item) => renderMenuItem(item, pathname, collapsed, () => setSidebarOpen(false)))}
- 
+
+            {collapsed ? (
+              <div className="border-t border-border/30 my-4" />
+            ) : (
+              <p className="px-4 pt-4 text-[10px] font-bold text-foreground/60 dark:text-muted-foreground uppercase tracking-[0.2em] mb-2 opacity-80 dark:opacity-50 flex items-center gap-2">
+                <LayoutDashboard className="w-3 h-3 text-accent" aria-hidden="true" />
+                Analytics
+              </p>
+            )}
+            {analyticsMenu.map((item) => renderMenuItem(item, pathname, collapsed, () => setSidebarOpen(false)))}
+
             {showSystem && (
               <>
                 {collapsed ? (
