@@ -19,6 +19,7 @@ import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHead
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { DomainPicker, type DomainEntity } from "@/shared/ui-foundation/components/DomainPicker";
 import { repositoryService } from "@/domain/repository-integration/service/repository.service";
+import { projectService } from "@/domain/platform-lifecycle/service/project.service";
 
 interface KPIItem {
   id: string;
@@ -109,8 +110,9 @@ export default function KPIDashboardPage() {
   const [pythonCode, setPythonCode] = useState("");
 
   // Sprint D — DomainPicker entity fetch (kpi-tests-per-domain-scope.md §6.4).
-  // Repository scope + Project scope (Sprint B 1차) fetch. Platform 은 Sprint C 와
-  // 함께 추가. 실패 시 picker 가 에러 표시.
+  // Repository scope + Project scope (Sprint B 1차) + Project scope 활성화
+  // (Sprint B follow-up — projectService.listAllProjects 통합). Platform 은
+  // Sprint C 와 함께 추가. 실패 시 picker 가 에러 표시.
   const [repositories, setRepositories] = useState<DomainEntity[]>([]);
   const [projects, setProjects] = useState<DomainEntity[]>([]);
   const [reposLoading, setReposLoading] = useState(true);
@@ -120,19 +122,29 @@ export default function KPIDashboardPage() {
     let cancelled = false;
     setReposLoading(true);
     setReposError(null);
+    // Sprint B follow-up — listAllProjects (standalone + per-platform 통합) 으로
+    // Project scope 활성화. PR #626 (Sprint D) 에서 placeholder 였던 부분 실 fetch.
     Promise.all([
       repositoryService.listRepositories(),
-      // 전체 project list 가 별도 endpoint 없음 — Sprint B 1차에서는 빈 list
-      // (Project sub-section 진입은 project detail page 직접 또는 entity list 페이지
-      // 경유). Sprint B follow-up 에서 projectService.getAllProjects() 추가 시
-      // 활성화. 일단 placeholder.
+      projectService.listAllProjects().catch((err) => {
+        // listAllProjects 자체가 try/catch 로 sub-fetch 실패를 warn 으로
+        // 떨어뜨리지만, 최상위 reject 도 있을 수 있어 console.warn 으로 격리.
+        console.warn("[kpis] listAllProjects failed:", err);
+        return [];
+      }),
     ])
-      .then(([repos]) => {
+      .then(([repos, projList]) => {
         if (cancelled) return;
         setRepositories(
           repos.map((r) => ({ id: String(r.id), name: r.full_name, description: r.clone_url })),
         );
-        setProjects([]); // Sprint B 1차 placeholder
+        setProjects(
+          projList.map((p) => ({
+            id: p.id,
+            name: p.name,
+            description: p.key,
+          })),
+        );
       })
       .catch((err: unknown) => {
         if (cancelled) return;
