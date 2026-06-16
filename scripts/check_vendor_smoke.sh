@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check_vendor_smoke.sh — vendor (standard_ai_workflow) 동기화 시 2종 smoke 회귀.
+# check_vendor_smoke.sh — vendor (standard_ai_workflow) 동기화 시 3종 smoke 회귀.
 #
 # 사용:
 #   bash scripts/check_vendor_smoke.sh          # real check (default)
@@ -10,17 +10,19 @@
 #   - vendor/standard_ai_workflow/.upstream-url (vendor metadata)
 #   - ai-workflow/wiki/RAW_MIRROR_MANIFEST.md (raw mirror 운영 가이드)
 #
-# 본 script 가 호출하는 2종 smoke:
+# 본 script 가 호출하는 3종 smoke:
 #   1. tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py (DevHub invariant 5/5)
 #      - 본 저장소 의 in-repo path 정합 + 6 dir + memory/log.md + WIKI_SOURCES flat
 #   2. vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py (vendor smoke 11/11)
 #      - vendor 의 5 file 의 in-repo path + REPO_ROOT auto-detect + legacy 0
+#   3. tests/check_wiki_drift_devhub.py (drift check 4/4)
+#      - in-repo wiki L1/L2 drift + ingested-from paths + DevHub 자체 L1 format 검증
 #
-# 합 16/16 PASS 가 본 script 의 정공법.
+# 합 20/20 PASS 가 본 script 의 정공법.
 # vendor release (v0.7.17 → v0.7.18+) 동기화 시 본 script 로 회귀 0 확인 필수.
 #
 # Exit code:
-#   0 — 2종 smoke 모두 PASS (16/16)
+#   0 — 3종 smoke 모두 PASS (20/20)
 #   1 — 1종 이상 FAIL
 #   2 — python3 부재 또는 script 부재
 
@@ -69,27 +71,42 @@ if [[ ! -f "$SMOKE2" ]]; then
   exit 2
 fi
 
+# ----- smoke 3: drift check (4/4) -----
+SMOKE3="$REPO_ROOT/tests/check_wiki_drift_devhub.py"
+if [[ ! -f "$SMOKE3" ]]; then
+  echo "[check-vendor-smoke] error: smoke 3 not found: $SMOKE3" >&2
+  exit 2
+fi
+
 # ----- run -----
 PASS1=0
 FAIL1=0
 PASS2=0
 FAIL2=0
+PASS3=0
+FAIL3=0
 
 if [[ $QUIET -eq 1 ]]; then
-  echo "[check-vendor-smoke] smoke 1/2: tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py"
+  echo "[check-vendor-smoke] smoke 1/3: tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py"
   if python3 "$SMOKE1" --quiet 2>/dev/null || python3 "$SMOKE1" >/dev/null 2>&1; then
     PASS1=1
   else
     FAIL1=1
   fi
-  echo "[check-vendor-smoke] smoke 2/2: vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py"
+  echo "[check-vendor-smoke] smoke 2/3: vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py"
   if python3 "$SMOKE2" >/dev/null 2>&1; then
     PASS2=1
   else
     FAIL2=1
   fi
+  echo "[check-vendor-smoke] smoke 3/3: tests/check_wiki_drift_devhub.py"
+  if python3 "$SMOKE3" >/dev/null 2>&1; then
+    PASS3=1
+  else
+    FAIL3=1
+  fi
 else
-  echo "[check-vendor-smoke] === smoke 1/2: DevHub invariant (5/5 expected) ==="
+  echo "[check-vendor-smoke] === smoke 1/3: DevHub invariant (5/5 expected) ==="
   echo ""
   if python3 "$SMOKE1"; then
     PASS1=1
@@ -97,12 +114,20 @@ else
     FAIL1=1
   fi
   echo ""
-  echo "[check-vendor-smoke] === smoke 2/2: vendor in-repo isolation (11/11 expected) ==="
+  echo "[check-vendor-smoke] === smoke 2/3: vendor in-repo isolation (11/11 expected) ==="
   echo ""
   if python3 "$SMOKE2"; then
     PASS2=1
   else
     FAIL2=1
+  fi
+  echo ""
+  echo "[check-vendor-smoke] === smoke 3/3: drift check (4/4 expected) ==="
+  echo ""
+  if python3 "$SMOKE3"; then
+    PASS3=1
+  else
+    FAIL3=1
   fi
 fi
 
@@ -111,9 +136,10 @@ echo ""
 echo "[check-vendor-smoke] === summary ==="
 echo "  smoke 1 (DevHub invariant):    $([[ $PASS1 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 5/5)"
 echo "  smoke 2 (vendor in-repo):      $([[ $PASS2 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 11/11)"
-echo "  total: $([[ $PASS1 -eq 1 && $PASS2 -eq 1 ]] && echo '16/16 PASS' || echo 'FAIL')"
+echo "  smoke 3 (drift check):         $([[ $PASS3 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 4/4)"
+echo "  total: $([[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 ]] && echo '20/20 PASS' || echo 'FAIL')"
 
-if [[ $PASS1 -eq 1 && $PASS2 -eq 1 ]]; then
+if [[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 ]]; then
   exit 0
 else
   exit 1
