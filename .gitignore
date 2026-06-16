@@ -205,5 +205,9 @@ ui-screenshots-shard-2/
 # 외부 `~/wiki/` vault 미사용 결정 (v0.7.17+, 2026-06-15) 으로 in-repo.
 # commit 부담 회피를 위해 ignore, 운영은 bash scripts/wiki-sync-devhub.sh 로 local regenerate.
 # Mirror provenance 는 ai-workflow/wiki/RAW_MIRROR_MANIFEST.md (raw/ 바깥 위치) 에 별도 commit.
-# 후속 결정: wiki raw mirror 의 full commit vs ignore (SSoT out-of-raw vs in-raw) — 미정, follow-up PR.
-/ai-workflow/wiki/raw/
+# 2026-06-15 결정 (PR #604): wiki raw mirror = *full commit* (in-raw SSOT).
+# 8M / 964 file byte-identical mirror 가 git tracked → L1/L2 page 의 last_ingested_from path
+# 가 raw mirror 와 1:1 정합 (위반 가능성 0). 운영: bash scripts/wiki-sync-devhub.sh 1회
+# 실행 후 git add ai-workflow/wiki/raw/ + commit.
+/ai-workflow/wiki/raw/projects/devhub/_manifest.md.tmp  # sibling manifest 의 untracked file (없음, 정합성용)
+/ai-workflow/wiki/raw/.tmp/  # script 의 임시 디렉터리 (없음, 정합성용)

@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-k-212-event-listener-users-sync",
+  "branch": "claude/work_260520-k-212-event-listener-users-sync",
+  "status": "done",
+  "started_at": "2026-05-20T22:30:00Z",
+  "ended_at": "2026-05-20T23:25:00Z",
+  "merged_pr": 241,
+  "merge_commit": "9ea7e1c",
+  "issue": 212,
+  "carve": "P1-1",
+  "scope": "ADR-0020 sub-carve C — Keycloak event listener 확장. USER:UPDATE / GROUP_MEMBERSHIP CREATE/DELETE / USER:DELETE event 처리 시 DevHub users 컬럼 자동 sync. 기존 sprint -u~-y 의 audit_logs 만 emit 동작을 본 sprint 가 확장 — admin event 발생 시 Keycloak admin REST 로 user state fetch + DevHub UPDATE.",
+  "directive_source": "사용자 지시 — 'memory housekeeping 진행해' 직후 sprint -k 진입 plan (P1-1 sub-carve C event listener 확장, sub-carve B backend 자연 follow-up)",
+  "decisions": [
+    "5 commit 분리 — Commit 1 admin client 확장 / Commit 2 user_sync.go 신규 / Commit 3 puller 분기 + GROUP_MEMBERSHIP 매핑 / Commit 4 metric 3종 + 회귀 test / Commit 5 main.go wire + docs + memory",
+    "UserSync callback pattern — KeycloakEventPullerOptions.UserSync nil-safe. nil 인 경우 audit emit 만 (sprint -u~-y 동작 동등, backward compatible). main.go 가 organizationStore 가 있을 때만 wire",
+    "narrow interface — UserSyncOrgStore (GetUser + UpdateUser + GetUserByIdPSubject) + UserSyncAdminClient (GetUserDetails + GetUserGroups). audit package import graph 최소화. *store.PostgresStore + *httpapi.KeycloakAdminClient 가 각각 satisfies (compile-time check)",
+    "group composite role priority filter — system_admin > pmo_manager > manager > developer. sprint -j PR #185 의 extractKeycloakRole 정합 (token claim 과 동일 로직). keycloak_groups_rbac_mapping.md sprint -f 권장 B 의 devhub-{role}s 컨벤션 적용",
+    "soft delete — USER:DELETE → users.status=deactivated (ADR-0020 §5.3.1 P1-2 결정). DB row 보존 → audit_logs.actor_login historical reference 유지",
+    "audit emit 그대로 + sync callback 추가 — backward compatible. 이전 sprint -u~-y 의 audit_logs row 는 그대로 emit, 본 sprint 가 'users 컬럼 sync' 만 추가",
+    "GROUP_MEMBERSHIP 매핑 추가 — mapAdminEventToAudit 표 8 row → 10 row (CREATE → keycloak.user.group.joined / DELETE → keycloak.user.group.left)",
+    "metric 3종 신규 — devhub_keycloak_user_sync_total{action} + _errors_total{action} + _lag_seconds Histogram (1s~1024s exponential buckets)",
+    "Stage 3 codex P1×2 hotfix — (P1-1) MarkUserDeactivated 가 identity UUID 를 user_id 로 사용 → silent noop. GetUserByIdPSubject(ctx, identityID) UNIQUE idp_subject O(1) lookup interface 추가 + 사용. (P1-2) GetUser error all swallowed as noop → ErrNotFound 만 noop, 기타 error propagate."
+  ],
+  "todo_done": [
+    "Commit 1 — KeycloakAdminClient.GetUserDetails + GetUserGroups + KeycloakUserDetails + KeycloakGroup struct",
+    "Commit 2 — audit/user_sync.go 신규 (SyncUserProfile + SyncUserMembership + MarkUserDeactivated + helpers)",
+    "Commit 3 — puller UserSync callback 분기 + GROUP_MEMBERSHIP 매핑 + classifyAdminEventForSync helper",
+    "Commit 4 — audit/metrics.go 3종 신규 + 회귀 test 4건",
+    "Commit 5 — main.go wire dispatcher + docs (ADR-0020 §4.1 sub-carve C done + §7 변경 이력 + design doc §6.1 + §8 + traceability §6) + sprint -k state",
+    "Stage 3 codex P1×2 hotfix — GetUserByIdPSubject 추가 + ErrNotFound 만 noop + 회귀 test"
+  ],
+  "verification": "backend go build ./... + go test ./... PASS 전 패키지. 회귀 test 4건 + Stage 3 회귀 test 모두 그린. CI PR #241 모두 그린 후 squash merge.",
+  "codex_review": {
+    "iteration_1": {
+      "p1_findings": [
+        "MarkUserDeactivated identity UUID → user_id 사용으로 silent noop. GetUserByIdPSubject UNIQUE lookup 추가로 해소",
+        "GetUser ErrNotFound 외 error 도 swallow. ErrNotFound 만 noop, 기타 propagate 로 정정"
+      ],
+      "p2_findings": []
+    }
+  }
+}

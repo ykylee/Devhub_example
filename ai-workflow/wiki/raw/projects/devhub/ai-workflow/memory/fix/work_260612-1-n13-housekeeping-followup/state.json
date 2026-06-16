@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "fix/work_260612-1-n13-housekeeping-followup",
+  "based_on": "main @ 8616ac59 (PR #572 머지 후)",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "phase": "N-13 housekeeping follow-up",
+      "notes": "PR #548 (`feat/work_260611-a-n13-inbound-source-impl`, 2026-06-11 05:40 UTC CLOSED) 의 E2E Internal 1 fail 2건 (Test 1: e2e seed 중복 strict mode violation + Test 2: Sign-out timeout N-8 race 유사) + 자동 재실행 미적용 정공법. status `⏳ planned` 유지. 본 sprint = docs only housekeeping follow-up (코드 0줄), 구현 follow-up = v1.1 milestone 진입 시점 별도 sprint."
+    }
+  },
+  "scope": {
+    "files_changed": 5,
+    "tier": "공용",
+    "new_ids_issued": 0,
+    "rationale": "PR #548 close 결과 + 3 branch follow-up 결정 정공법. housekeeping follow-up only, no code change."
+  },
+  "files": [
+    "docs/planning/release_v1_roadmap.md",
+    "docs/adr/0028-dev-requests-voc-external-ref.md",
+    "docs/planning/2026-06-12-inbound-source-routing-sprint-plan.md",
+    "docs/traceability/report.md",
+    "ai-workflow/memory/state.json + work_backlog.md + session_handoff.md"
+  ],
+  "followup_3_branches": {
+    "test1_e2e_seed_duplicate": "spec/e2e seed 정합 fix 별도 sprint (mock data 유일성 보장)",
+    "test2_signout_timeout": "main rebase + 자동 재실행 검증 별도 (PR #550 spec timing fix 가 해결 가능성 ↑)",
+    "implementation_followup": "v1.1 milestone 진입 시점 별도 sprint (rebase main + PR #550 fix + e2e seed 정합 fix + 자동 재실행 종합)"
+  },
+  "head_commit": "TBD (PR 발행 시점)",
+  "pr_number": "TBD"
+}

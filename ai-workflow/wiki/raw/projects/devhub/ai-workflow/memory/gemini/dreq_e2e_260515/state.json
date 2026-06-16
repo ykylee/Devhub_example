@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "gemini/dreq_e2e_260515",
+  "status": "done",
+  "updated_at": "2026-05-16T21:00:00Z",
+  "milestones": {
+    "DREQ-E2E": {
+      "status": "done",
+      "ended_at": "2026-05-16",
+      "notes": "PR #136 stabilized E2E flows. Merged into main."
+    },
+    "DREQ-HARDENING": {
+      "status": "done",
+      "ended_at": "2026-05-16",
+      "notes": "P2 items (expires_at + allowed_ips mutation) implemented and verified via unit tests."
+    }
+  },
+  "next_actions": [
+    "PR: DREQ hardening 내역 main 병합 검토",
+    "QA: 운영 환경 배포 후 intake token 만료 동작 실검증"
+  ]
+}

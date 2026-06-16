@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-k",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "f551e6a",
+  "scope": "M3/M4 drift 정합 — source-of-truth = development_roadmap.md §3. 매트릭스 + state.json + handoff/backlog + backend_roadmap 의 RM-M3/M4 인용 일관화.",
+  "updated_at": "2026-05-13T13:00:00Z"
+}

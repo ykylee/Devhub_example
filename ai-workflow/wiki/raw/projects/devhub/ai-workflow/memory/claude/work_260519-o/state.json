@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-o",
+  "branch": "claude/work_260519-o",
+  "status": "done",
+  "started_at": "2026-05-19T14:00:00Z",
+  "ended_at": "2026-05-19T14:30:00Z",
+  "merged_pr": 183,
+  "merge_commit": "1de2253",
+  "scope": "잔여 사항 순서대로 진행 #1 — CI lint migration prefix 회피 검사. sprint -l (PR #180) §6 carve 구현. golang-migrate 의 동일 version prefix 충돌 회귀 차단.",
+  "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -n housekeeping 종료 직후. 가장 가벼운 작업부터 진입.",
+  "decisions": [
+    ".github/workflows/ci.yml 에 migration-prefix-lint job 추가 — workflow-lint 다음 위치.",
+    "ls backend-core/migrations/*.up.sql + awk -F'_' '{print $1}' + sort + uniq -d 패턴 — 동일 prefix 발견 시 error.",
+    "needs/if condition — changed-paths 의 backend 또는 workflow 변경 시만 실행 (다른 PR 영향 최소화).",
+    "fail 시 안내 — migration_000021_conflict_resolution.md SOP link."
+  ],
+  "todo": [
+    ".github/workflows/ci.yml migration-prefix-lint job 추가 (완료)",
+    "docs/traceability/report.md §6 변경 이력 sprint -o row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "actionlint 통과 + clean repo 에서 lint job 통과 검증 (현재 000021_rbac_pmo_manager + 000030_rename_kratos_identity 정합 — 중복 없음)."
+}

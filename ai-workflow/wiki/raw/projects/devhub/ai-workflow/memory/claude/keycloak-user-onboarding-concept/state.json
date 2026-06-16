@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/keycloak-user-onboarding-concept",
+  "status": "done",
+  "base_branch": "main",
+  "base_commit": "63e0157",
+  "scope": "Keycloak 사용자 초기 등록(onboarding) 컨셉 문서 리뷰/의사결정 정리 및 정책 확정",
+  "updated_at": "2026-05-20T11:30:00Z",
+  "summary": [
+    "onboarding 완료 기준: onboarding_completed_at 채택",
+    "lazy auto-create 폐기, DB 등록은 onboarding 완료 시점",
+    "권한(role)은 onboarding 입력 제외 (Keycloak claim 매핑 또는 기본값)",
+    "gating: Backend 강제 + Frontend UX 보조",
+    "조직 선택 UX: hybrid(typeahead+tree), 2글자/20개/조직명 표시",
+    "데이터 정확성: onboarding 완료 후 관리자 검토 단계(pending_review/reviewed)",
+    "pending_review는 무소속 제한 접근(할당 리소스 + 공통 메뉴)",
+    "소속 self-service 변경 허용, 변경 시 pending_review 재진입",
+    "i18n: 한국어 UI 고정, display_name 단일 필드(영문 필드 확장 여지 명시)",
+    "모바일 반응형 범위 제외, a11y/검증 UX 필수",
+    "테스트 시드 6종(test_* + org_fixture_bulk) 확정"
+  ]
+}

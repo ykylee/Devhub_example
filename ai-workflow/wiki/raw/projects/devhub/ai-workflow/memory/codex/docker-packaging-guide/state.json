@@ -1,0 +1,74 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-17",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/codex/docker-packaging-guide/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/codex/docker-packaging-guide/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/docker-packaging-guide/backlog/2026-05-17.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/codex/docker-packaging-guide/backlog/",
+    "handoff_path": "ai-workflow/memory/codex/docker-packaging-guide/session_handoff.md",
+    "environment_path": "ai-workflow/memory/environments/"
+  },
+  "commands": {
+    "quick_tests": "docker compose -f docker-compose.deploy.yml config -q",
+    "isolated_tests": "docker compose -f docker-compose.deploy.yml --profile local-db config -q",
+    "runtime_checks": "curl http://<host>:<nginx-port>/api/runtime-config && curl http://<hydra-public>/.well-known/openid-configuration"
+  },
+  "session": {
+    "current_baseline": "deploy package 보안 기본값 강화 + DB 모드 강제 검증(외부/번들) 완료",
+    "current_axis": "deploy consistency hardening (security defaults + required env + runtime origin trust boundary)",
+    "current_focus": "packaging 변경분 커밋/PR 준비",
+    "in_progress_items": [
+      "TASK-PACKAGING-PR-PREP"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-DEPLOY-SECURE-DEFAULTS",
+      "TASK-DEPLOY-DB-MODE-VALIDATION",
+      "TASK-MAIN-SYNC-CHECK"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/codex/docker-packaging-guide/backlog/2026-05-17.md",
+    "task_count": 9,
+    "in_progress_items": [
+      "TASK-PACKAGING-PR-PREP"
+    ],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-DOCKER-PACKAGING-STRATEGY",
+      "TASK-DOCKER-DEPLOY-COMPOSE-TEMPLATE",
+      "TASK-CI-DOCKER-IMAGE-PUBLISH",
+      "TASK-ENV-SCHEMA-PUBLIC-INTERNAL-DB",
+      "TASK-DEPLOY-COMPOSE-LOCALDB-PROFILE",
+      "TASK-E2E-PERMISSIONS-FLAKY-FIX",
+      "TASK-DEPLOY-SECURE-DEFAULTS",
+      "TASK-DEPLOY-DB-MODE-VALIDATION",
+      "TASK-MAIN-SYNC-CHECK"
+    ]
+  },
+  "next_documents": [
+    "ai-workflow/MEMORY_GOVERNANCE.md",
+    "ai-workflow/memory/codex/docker-packaging-guide/session_handoff.md",
+    "ai-workflow/memory/codex/docker-packaging-guide/work_backlog.md",
+    "ai-workflow/memory/codex/docker-packaging-guide/backlog/2026-05-17.md",
+    "docs/setup/docker-packaging-deployment-guide.md"
+  ],
+  "repository_assessment": {
+    "path": "ai-workflow/memory/repository_assessment.md",
+    "present": true
+  },
+  "branch_memory": {
+    "agent": "codex",
+    "branch": "codex/docker-packaging-guide",
+    "path": "ai-workflow/memory/codex/docker-packaging-guide/",
+    "flat_memory_policy": "legacy_fallback_and_shared_index_only"
+  }
+}

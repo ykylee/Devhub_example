@@ -1,0 +1,58 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-f-catalog-fixes",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "completed",
+  "summary": "admin/catalog 3건 결함 수정 완료 (PR #470 MERGED → main 3713ac3). Bug A: ProjectCreationModal.tsx:49 의 hardcoded 'github' fallback 제거 — Repository.provider_key (backend integration_providers JOIN derive) 로 대체. Bug B: RepositoryCreationModal + ProjectCreationModal sub-form 의 SCM dropdown source 를 legacy 'scm_providers' 에서 integration registry 의 'integration_providers' 로 교체 (codex P2). E2E + unit test 동시 갱신.",
+  "started_at": "2026-06-04T04:30:00Z",
+  "completed_at": "2026-06-04T05:12:07Z",
+  "updated_at": "2026-06-04T05:12:07Z",
+  "scope": {
+    "in": [
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx:49 의 repo_provider 하드코딩 제거 (Repository.provider_key 사용)",
+      "frontend/components/project/RepositoryCreationModal.tsx SCM Provider Key free-text input → select dropdown (integrationService.listProviders 사용)",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx sub-form 의 동일 dropdown source 교체",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.test.tsx mock 갱신 (getSCMProviders → listProviders, 34/34 PASS)",
+      "frontend/tests/e2e/repositories-publish.spec.ts:33 fill() → selectOption() (E2E shard 2/2 PASS)",
+      "memory 4종 set up"
+    ],
+    "out": [
+      "Gitea issue sync (backend) — 별도 sprint, backend codex/Claude 영역",
+      "Draft 관리 기능 (admin/catalog 의 'Drafts' 탭 + repository delete/edit) — 별도 sprint, 기능 변경 작업량 큼",
+      "admin/catalog repositories 테이블 line 433 SCM 표시 (provider_key raw → display_name) — 본 PR 의 Bug A fix 로 backend join derive 가 정확해지면 표시도 자동 정상화. 별도 변경 없음.",
+      "scm_providers (legacy 4종) ↔ integration_providers (신규) catalog 정합 — 별도 governance 결정 후 backend migration"
+    ]
+  },
+  "artifacts": {
+    "pr_url": "https://github.com/ykylee/Devhub_example/pull/470",
+    "pr_number": 470,
+    "pr_state": "MERGED",
+    "merge_commit_oid": "3713ac387f195239185814a946c3a51d624b2ab0",
+    "merged_at": "2026-06-04T05:12:07Z",
+    "pre_merge_commits": ["ed991c4", "b459490", "d3accd9", "a593f49"],
+    "files_changed_total": 8,
+    "files_changed": [
+      "frontend/components/project/RepositoryCreationModal.tsx",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.tsx",
+      "frontend/domain/platform-lifecycle/view/ProjectCreationModal.test.tsx",
+      "frontend/tests/e2e/repositories-publish.spec.ts",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/state.json",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/session_handoff.md",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/work_backlog.md",
+      "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/backlog/2026-06-04.md"
+    ],
+    "verification": {
+      "tsc_changed_files": "0 errors (변경 3개 파일)",
+      "vitest_local": "34/34 PASS (1.79s)",
+      "ci_final": "frontend-unit PASS, E2E shard 1/2 PASS, E2E shard 2/2 PASS, workflow-lint PASS, detect paths PASS, migration prefix PASS (backend 2종 skip — frontend only)",
+      "codex_review": "1 P2 review (SCM dropdown source catalog mismatch) → 같은 PR 에서 fix + 답글 (comment 3353580984)"
+    }
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-f-catalog-fixes/work_backlog.md"
+  }
+}

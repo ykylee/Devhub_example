@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260526-main-sync-new-task",
+  "status": "in_progress",
+  "updated_at": "2026-05-26T07:31:08Z",
+  "head_commit": "(pending)",
+  "head_summary": "mock UI 정리 + 운영 UI 전환 준비 + 운영 API 연결 1차 반영",
+  "current_focus": [
+    "목업 UI 비노출/아카이브",
+    "운영 API 서비스 레이어 및 화면 연결",
+    "에러 메시지 표준화"
+  ],
+  "next_actions": [
+    "PR 생성 및 리뷰",
+    "백엔드 응답 스키마 최종 정합",
+    "E2E retry/empty-state 시나리오 추가"
+  ],
+  "risks": [
+    "대시보드/프로젝트 신규 endpoint의 실제 응답 스키마 확정 전 필드 alias 매핑 필요",
+    "운영 환경에서 일부 endpoint 미구현 시 empty-state만 표시될 수 있음"
+  ],
+  "handoff_note": "운영 전환 문서/아카이브/프런트 1차 연결 완료. PR에서 백엔드 스키마 확인 후 2차 정합 예정"
+}

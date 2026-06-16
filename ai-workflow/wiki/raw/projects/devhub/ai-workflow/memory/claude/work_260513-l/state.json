@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-l",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "3d7d5a2",
+  "scope": "M3 진입 1차 — RM-M3-01 (Sign Up 정합화) + RM-M3-02/ADR-0008 (production HRDB 어댑터 결정) + RM-M3-03 (조직 polish §10.4 보강 1차)",
+  "updated_at": "2026-05-13T14:00:00Z"
+}

@@ -1,0 +1,11 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-g",
+  "status": "done",
+  "last_updated": "2026-05-12T02:30:00Z",
+  "base_branch": "main",
+  "base_head_at_open": "354609b",
+  "base_head_at_close": "6d2274c (PR #78 squash merge)",
+  "current_phase": "closed — PR-T3.5 follow-up #2 머지 완료",
+  "context_summary": "PR-T3.5 hardening (PR #76) 후속. password-change.spec 의 finally rollback 을 try-catch 로 감싸 best-effort 화 (PR #78 → squash hash 6d2274c). 같은 run 안 signout.spec 영향은 본 PR 전·후 동일, 진짜 원인이 cleanup 실패로 가려지는 것 방지가 본 PR 의 이득. spec 코드 코멘트로 의도 명시. tsc PASS."
+}

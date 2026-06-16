@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-g",
+  "branch": "claude/work_260519-g",
+  "status": "done",
+  "started_at": "2026-05-19T06:00:00Z",
+  "ended_at": "2026-05-19T06:55:00Z",
+  "merged_pr": {"pr": 175, "merge_commit": "aa0c029", "merged_at": "2026-05-19T06:55:00Z"},
+  "scope": "ADR-0019 §5.3 (7) off-boarding 즉시성 design — HR ETL ↔ Keycloak ↔ DevHub propagation chain. ADR-0008 §6 의 '실시간 sync 요구' 항목과 묶음. 즉시성 향상 옵션 비교 + 권장 + cutover.",
+  "directive_source": "사용자 요청 'off-boarding 즉시성 design 진행' — sprint -f 종료 직후 §5.3 잔여 3 항목 (MFA 제외 / failover / off-boarding) 중 가장 critical 한 운영 영역.",
+  "context": {
+    "adr_0008_etl": "ADR-0008 §6 의 '실시간 sync 요구 (퇴사자 즉시 차단) 시 별도 ADR' 항목이 본 design 의 source-of-truth. 1차 daily ETL cron + 운영 cron 은 별도 sprint 위임 결정 (sprint -n).",
+    "keycloak_token_ttl": "keycloak_operations.md §6.2 권장 5분 access TTL + 12h refresh. ADR-0019 §5.3 carve out 의 'access 1h / refresh 24h' worst case 24h+ 표기는 default 값 가정. 권장 5분 access TTL 적용 시 worst case 더 짧음.",
+    "worst_case_propagation": "HR 시스템에서 사용자 비활성화 → daily HR ETL cron (24h) → Keycloak admin 의 user disable 별도 작업 → access_token TTL 5분 동안 잔여 → 새 token 발급 차단. **현재 worst case = ETL cron 주기 (24h) + Keycloak admin 작업 시간 + access_token TTL (5분).**"
+  },
+  "decisions": [
+    "design 문서 docs/planning/keycloak_offboarding_immediacy.md 신규 — HR ETL ↔ Keycloak ↔ DevHub propagation chain + 옵션 비교 + 권장 + cutover Phase 1..4.",
+    "권장 = 단기 Phase 1: 옵션 C (HR ETL → Keycloak Admin API push) + access_token TTL 단축 (keycloak_operations.md §6 권장 5분) — DevHub backend 변경 0, ETL script 변경만 + Keycloak admin lookup",
+    "권장 = 중기 Phase 2: 옵션 E LDAP/AD federation (사내 LDAP/AD 운영 중일 때 자동 sync, Keycloak User Federation 표준 기능)",
+    "장기 = SCIM bridge + 실시간 webhook (carve out, 사내 IdP 인프라 결정 동반)",
+    "ADR-0019 §5.3 (7) off-boarding 즉시성 carve resolved (design) 마킹 + ADR-0008 §6 '실시간 sync' 항목에 design link 추가",
+    "keycloak_operations.md §8.2 user 회수 SOP 의 step 3 'HR ETL → users.status sync' 항목 갱신 — Keycloak admin API push + audit log + force logout 통합"
+  ],
+  "todo": [
+    "docs/planning/keycloak_offboarding_immediacy.md 신규",
+    "docs/adr/0019-keycloak-only-idp.md §5.3 (7) off-boarding 즉시성 carve resolved (design) 마킹 + §6 변경 이력",
+    "docs/adr/0008-hrdb-production-adapter.md §6 '실시간 sync' 항목에 design link 추가 + §7 변경 이력 row",
+    "docs/setup/keycloak_operations.md §8.2 user 회수 SOP 보강 (HR ETL push + force logout 통합)",
+    "docs/traceability/report.md §6 변경 이력 sprint -g row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린. backend / migration 변경 없음 (Phase 2 LDAP federation 시점 carve)."
+}

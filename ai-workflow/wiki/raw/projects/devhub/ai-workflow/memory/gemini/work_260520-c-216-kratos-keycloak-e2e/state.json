@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "gemini/work_260520-c-216-kratos-keycloak-e2e",
+  "status": "2026-05-20 sprint gemini/work_260520-c — P1-5 e2e transition done",
+  "last_update": "2026-05-20T12:00:00Z",
+  "completed_tasks": [
+    "Delete scripts/ci-setup.sh (legacy Ory setup)",
+    "Delete infra/idp/scripts/register-devhub-client.* (Hydra legacy)",
+    "Delete infra/idp/sql/001_create_idp_schemas.sql (Hydra/Kratos legacy)",
+    "Delete infra/idp/sql/002_seed_e2e_users.sql (replaced by dynamic setup)",
+    "Update dev-up.sh/ps1 & dev-down.sh/ps1 (remove Ory services)",
+    "Update docker-compose.local.yml (Keycloak instead of Ory)",
+    "Update idp-apply-schemas/main.go (remove schema check)",
+    "Update global-setup.ts (dynamic idp_subject UPSERT sync)",
+    "Update roadmap P1-5 status"
+  ],
+  "next_actions": [
+    "Commit and push",
+    "Open PR"
+  ]
+}

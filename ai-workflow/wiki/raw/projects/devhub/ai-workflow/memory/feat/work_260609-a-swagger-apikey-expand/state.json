@@ -1,0 +1,49 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-09T08:50:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/feat/work_260609-a-swagger-apikey-expand/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/feat/work_260609-a-swagger-apikey-expand/work_backlog.md"
+  },
+  "project": {
+    "project_name": "DevHub Example"
+  },
+  "session": {
+    "current_focus": "feat/work_260609-a-swagger-apikey-expand — API key auth + openapi scope 1차 확장",
+    "sprint_branch": "feat/work_260609-a-swagger-apikey-expand",
+    "in_progress_items": [
+      "T-8a2d9651-9d28-4a92-89a7-0ba0267dcb09"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "T-cb09e16a-ed5f-4569-a7ff-0d98fbf7b154 (api_key 미들웨어 + env wire)",
+      "T-7f1cb4cf-d59e-4581-b979-fe09c952be01 (admin-only 마킹 의사결정)",
+      "T-98120cdf-7a14-4de9-9d7b-b045cbf7a7e0 (ADR-0029)"
+    ],
+    "background_tasks": {
+      "bg_a3fe74e2": {
+        "description": "openapi.yaml components/schemas 확장 (~30 schema)",
+        "status": "pending",
+        "session_id": "ses_1547380f4ffer8jO9fdJuq02rh",
+        "file": "backend-core/internal/httpapi/swaggerui/asset/openapi.yaml"
+      }
+    },
+    "deliverables": [
+      "backend-core/internal/shared/config/config.go (APIKey, APIKeyAdminOnly 필드)",
+      "backend-core/internal/domain/auth-session/view/handler.go (AuthConfig 확장)",
+      "backend-core/internal/domain/auth-session/view/auth.go (API key 분기 + looksLikeJWT + subtleEqual)",
+      "backend-core/internal/httpapi/router.go (RouterConfig + NewAuthHandler wire)",
+      "backend-core/main.go (env wire)",
+      "backend-core/internal/httpapi/auth_test.go (5 신규 테스트)",
+      "docs/adr/0029-api-key-auth-and-swagger-scope.md (신규)",
+      "ai-workflow/memory/feat/work_260609-a-swagger-apikey-expand/{session_handoff,work_backlog}.md"
+    ]
+  },
+  "next_documents": [
+    "AGENTS.md",
+    "docs/planning/release_v1_roadmap.md",
+    "docs/adr/0029-api-key-auth-and-swagger-scope.md",
+    "docs/openapi.yaml (진행 중)"
+  ]
+}

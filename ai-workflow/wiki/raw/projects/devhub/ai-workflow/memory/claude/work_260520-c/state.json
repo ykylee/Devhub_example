@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260520-c",
+  "branch": "claude/work_260520-c",
+  "status": "done",
+  "started_at": "2026-05-20T14:00:00Z",
+  "ended_at": "2026-05-20T15:15:00Z",
+  "merged_pr": 204,
+  "merge_commit": "12bb557",
+  "scope": "main flat memory housekeeping #3 — PR #198~#202 5 PR 일괄 흡수. sprint -ad finalize (직전 handoff TBD) + 2026-05-20 sprint -a (PR #199 계정/사용자 관리 리팩토링 Phase 1 매트릭스) + sprint -b (PR #200 Phase 2 책임 분리 design + 명시 결정 6건) + 외부 PR #201 (codex/keycloak-only-refactor-plan post-#200 + Keycloak E2E CI 정합) + 외부 PR #202 (ci-fix signout flake) 흡수.",
+  "directive_source": "사용자 지시 — 'housekeeping 진입해서 PR #198~#202 흡수해줘'",
+  "decisions": [
+    "main flat memory 3종 모두 갱신 — state.json (head_commit abc8cc9 + merged_prs_2026_05_19 PR #197/#198 finalize + merged_prs_2026_05_20 신규 4 PR + account_user_management_redesign_2026_05_20 객체 신규 + external_pr_2026_05_20_ci_e2e_keycloak 객체 신규 + status header) + session_handoff (header + 2026-05-20 housekeeping 표 6 row + 계정/사용자 리팩토링 Phase 3 carve 8건 + 다음 directive 4 순위 재산정) + work_backlog (header + 변경 이력 6 row + 사전 row PR #197 finalize)",
+    "auto-memory entry 1건 신규 — project_2026_05_20_post_198_housekeeping.md + MEMORY.md 인덱스",
+    "sprint -ad / 2026-05-20 -a / -b / -c 4 branch state.json finalize — codex hotfix #12 패턴 (sprint -n~-t finalize 누락) 회피",
+    "다음 세션 1순위 directive 재산정 — 계정/사용자 관리 리팩토링 Phase 3 (실 구현 8 carve). 2순위 = ADR-0019 §5.3 잔여 5 사내 동반 carve. 3순위 = 기존 ADR carve. 4순위 = M4 본격 진입."
+  ],
+  "todo": [
+    "PR #198~#202 메타데이터 수집 (gh pr view) — 완료",
+    "기존 메모리 3종 전체 읽기 + stale 영역 식별 — 완료",
+    "state.json 갱신 — 완료",
+    "session_handoff.md 갱신 — 완료",
+    "work_backlog.md 갱신 — 완료",
+    "auto-memory entry 신규 — 완료",
+    "sprint -ad / -a / -b / -c branch state.json finalize — 완료 (단, -c 본 sprint 은 merge 후 finalize)",
+    "commit + push + PR 생성 + 4단계 self-review + squash merge — 다음"
+  ],
+  "verification": "JSON 정합 (node -e require state.json) PASS. 본 sprint merge 후 -c state.json 의 status: in_progress → done + ended_at + merged_pr + merge_commit 후속 finalize 는 다음 housekeeping sprint 가 처리 (codex hotfix #12 패턴 정합)."
+}

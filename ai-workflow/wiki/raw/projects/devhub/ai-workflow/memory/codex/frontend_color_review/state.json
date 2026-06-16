@@ -1,0 +1,54 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-14",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/codex/frontend_color_review/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/codex/frontend_color_review/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/frontend_color_review/backlog/2026-05-14.md",
+    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+  },
+  "project": {
+    "project_name": "DevHub Example",
+    "document_home": "README.md",
+    "backlog_path": "ai-workflow/memory/codex/frontend_color_review/backlog/",
+    "handoff_path": "ai-workflow/memory/codex/frontend_color_review/session_handoff.md"
+  },
+  "commands": {
+    "quick_tests": "cd backend-core && go test ./...",
+    "isolated_tests": "cd frontend && npm run lint",
+    "runtime_checks": "make build"
+  },
+  "session": {
+    "current_axis": "프론트엔드 색상 가독성/인터랙션 안정화 + OIDC 로그인 흐름 보정",
+    "current_focus": "organization member 저장 반영/소속 표기 정확도 보정 및 iPad 액션메뉴 터치 이벤트 안정화, 백엔드 트랜잭션 정합성 강화",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-BACKEND-UNIT-TX-SYNC",
+      "TASK-FRONTEND-THEME-COLOR-REVIEW",
+      "TASK-ORG-USERS-ACTION-UNIFICATION",
+      "TASK-OIDC-PKCE-CONSENT-FIX",
+      "TASK-ORG-MEMBER-SYNC-FIX"
+    ]
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/codex/frontend_color_review/backlog/2026-05-14.md",
+    "task_count": 5,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-BACKEND-UNIT-TX-SYNC",
+      "TASK-FRONTEND-THEME-COLOR-REVIEW",
+      "TASK-ORG-USERS-ACTION-UNIFICATION",
+      "TASK-OIDC-PKCE-CONSENT-FIX",
+      "TASK-ORG-MEMBER-SYNC-FIX"
+    ]
+  },
+  "branch_memory": {
+    "agent": "codex",
+    "branch": "codex/frontend_color_review",
+    "path": "ai-workflow/memory/codex/frontend_color_review/",
+    "flat_memory_policy": "legacy_fallback_and_shared_index_only"
+  }
+}

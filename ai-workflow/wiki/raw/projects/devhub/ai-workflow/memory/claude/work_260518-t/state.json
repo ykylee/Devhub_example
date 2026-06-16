@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-t",
+  "branch": "claude/work_260518-t",
+  "status": "in_progress",
+  "started_at": "2026-05-18T16:30:00Z",
+  "scope": "ADR-0017 §6 잔여 carve outs 부분 처리 — (a) 자동 cron revoke + (c) 만료 알림 metric + (d) staleness alert metric. (b) PATCH expires_at 갱신은 frontend UI 영향 + ADR 정책 변경 필요로 carve out 유지.",
+  "directive_source": "main flat state.json '다음 세션 directive (2)' — ADR-0017 §6 잔여 4 carve out 중 backend 단독 처리 가능 3개 1차 활성화.",
+  "decisions": [
+    "(a) cron revoke = main.go 의 새 goroutine (HomeLab pull loop 패턴 정합). interval 마다 store.HardRevokeExpiredIntakeTokens(NOW()) + audit emit per revoked + metric.",
+    "(c) 만료 metric = devhub_intake_token_expiring_soon (gauge) — expires_at <= NOW()+threshold AND > NOW() AND revoked_at IS NULL 의 count. threshold env 기본 24h.",
+    "(d) staleness metric = devhub_intake_token_stale (gauge) — last_used_at <= NOW()-threshold OR (last_used_at IS NULL AND created_at <= NOW()-threshold) AND revoked_at IS NULL. threshold env 기본 30d, 0 = disable.",
+    "신규 metric package = internal/devrequest/metrics.go (HomeLab adapters/metrics.go 패턴 정합 — sync.Once init + registerCollector).",
+    "(b) PATCH expires_at 은 carve out 유지 — ADR-0017 §4.2 'allowed_ips only' 정책 변경 + admin UI 의 expires_at 편집 modal 추가 필요. 별도 sprint.",
+    "Alertmanager rule reference 는 ADR-0016 가이드 §4 끝부분에 첨부 (운영자가 새 metric 위에 alert 부착)."
+  ],
+  "todo": [
+    "backend-core/internal/store/dev_request_intake_tokens.go — HardRevokeExpiredIntakeTokens + CountExpiringSoonIntakeTokens + CountStaleIntakeTokens 신규",
+    "backend-core/internal/httpapi/dev_request_intake_auth.go — IntakeTokenStore interface 확장 (3 메서드)",
+    "backend-core/internal/devrequest/metrics.go 신규 — Prometheus emit (gauge 2 + counter 1)",
+    "backend-core/internal/config/config.go — DREQTokenCron* env 4개 + Config 필드",
+    "backend-core/main.go — cron loop goroutine (env 기반 + ctx cancellation)",
+    "store integration test — HardRevoke / CountExpiringSoon / CountStale 각 happy + edge case",
+    "cron loop / metric unit test — pure logic (DB 의존 없는 부분)",
+    "docs/adr/0017-dreq-intake-token-operational-hardening.md §5 + §6 (a)/(c)/(d) → resolved + §7",
+    "docs/setup/prometheus_alertmanager_setup.md — 만료/staleness alert rule reference 추가",
+    "docs/adr/0016-prometheus-alerts-policy.md §6 (3) latency p95 carve out 명시 갱신 (본 sprint 와 무관, 추가 metric 명시만)",
+    "docs/traceability/report.md §6 sprint -t row",
+    "PR + self-review + 머지"
+  ],
+  "verification": "go vet store + devrequest PASS + CI backend-unit + backend-integration job 그린 (race test 패턴 정합)"
+}

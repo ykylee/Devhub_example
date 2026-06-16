@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "feat/work_260612-7-v1-1-inbound-source-impl",
+  "based_on": "main @ 0d2dd89 (chore(memory): main flat memory finalize, PR #578 e2e-internal job 폐기 + ADR partial supersession + session end)",
+  "milestones": {
+    "M-v1.1": {
+      "status": "in_progress",
+      "phase": "inbound_source 자동 routing 구현 (ADR-0028 §6 carve a) — v1.1 sprint -a 진입",
+      "notes": "본 sprint = N-13 follow-up 결정 3 branch 종합 (A: e2e seed 정합 fix [PR #574 MERGED], B: Test 2 spec timing fix [PR #575 MERGED], C: 구현 follow-up = 본 sprint). PR #548 (1차 구현, E2E Internal 1 fail 2건 CLOSED) 의 rebase + 종합 fix + 자동 재실행. backend foundation (PR A-1: migration 000007 + domain.Platform + UpdatePlatformInboundSource + view.UpdatePlatform + 4 UT) 은 이미 main 에 byte-identical 로 포함 (PR #549 T-d-72-2 wiki mirror 통해). 본 sprint 의 scope = PR A-2 만: routing/auto_route.go + voc_handler 통합 + openapi.yaml 정합 + e2e TC-INBOUND-SRC-01 + ADR-0028 §6 (a) amendment + 9 ID row status `planned` → `implemented` 정합. 9 ID row: REQ-FR-113 / UC-DEV-REQ-15 / ARCH-23 / API-103 / RM-DEV-REQ-15 / IMPL-inbound-source-01 / IMPL-platform-patch-02 / UT-inbound-source-01 / TC-INBOUND-SRC-01."
+    }
+  },
+  "scope": {
+    "files_planned": "5-7 file 신규 + 2-3 file 수정",
+    "lines_estimate": "+600~800 lines",
+    "tier": "공용",
+    "new_ids_issued": 0,
+    "rationale": "PR #547 (N-13 housekeeping, ID slot 9 row 발급, 2026-06-11 MERGED) 의 ID 정합 구현. PR #548 (1차 구현) 의 backend foundation 부분은 main 에 이미 포함. PR A-2 (routing + voc_handler + openapi + e2e) 만 본 sprint 의 신규 구현. 신규 ID 발급 0건 (ID row status `planned` → `implemented` 정합만)."
+  },
+  "files_planned": [
+    "backend-core/internal/domain/application-lifecycle/routing/auto_route.go (NEW)",
+    "backend-core/internal/domain/application-lifecycle/routing/auto_route_test.go (NEW)",
+    "backend-core/internal/domain/dev-request/view/voc_handler.go (MODIFY — AutoRouter.Route() 통합)",
+    "backend-core/internal/domain/dev-request/view/voc_handler_integration_test.go (NEW)",
+    "docs/openapi.yaml (MODIFY — PATCH /platforms inbound_source + POST /dev-requests/{id} auto_routed 응답 + DevRequestVoc schema)",
+    "frontend/tests/e2e/voc-auto-routing.spec.ts (NEW — TC-INBOUND-SRC-01, seed platform 사용)",
+    "docs/adr/0028-dev-requests-voc-external-ref.md (MODIFY — §6 (a) amendment)",
+    "docs/planning/release_v1_roadmap.md (MODIFY — §3.5 N-13 row status + §4.2 v1.1 milestone + §9)",
+    "docs/traceability/report.md (MODIFY — §2.1~§2.6 9 ID row status)"
+  ],
+  "followup_synthesis": {
+    "test1_e2e_seed_duplicate": "PR #574 MERGED (2026-06-12, sprint `fix/work_260612-2-e2e-seed-strict-mode-fix`) — frontend e2e spec 의 strict mode violation fix. 본 sprint 의 e2e spec 은 이 fix 의 영향 없음 (별도 spec).",
+    "test2_signout_timeout": "PR #575 MERGED (2026-06-12, sprint `fix/work_260612-3-n13-followup-b-test2-rebase`) + CI Run #1227 SUCCESS — PR #550 spec timing fix 가 main 에 머지 후 자동 검증. 본 sprint 의 e2e spec 은 signout 영향 없음 (logout flow 무관).",
+    "implementation_followup": "본 sprint (sprint `feat/work_260612-7-v1-1-inbound-source-impl`). main rebase + PR #550 fix + PR #574 fix + 종합 + 자동 재실행. PR #548 CLOSED → 본 sprint 가 정식 1차 구현 정공법."
+  },
+  "head_commit": "TBD (PR 발행 시점)",
+  "pr_number": "TBD"
+}

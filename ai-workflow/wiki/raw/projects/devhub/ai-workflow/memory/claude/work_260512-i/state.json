@@ -1,0 +1,11 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-i",
+  "status": "done",
+  "last_updated": "2026-05-12T04:00:00Z",
+  "base_branch": "main",
+  "base_head_at_open": "9549395",
+  "base_head_at_close": "ffcaec6 (PR #80 squash merge)",
+  "current_phase": "closed — PR-D follow-up 3 항목 + self-review fix 머지 완료",
+  "context_summary": "PR-D 의 남은 3 항목 (commands enrichment / log request_id / TRUSTED_PROXIES) 단일 PR #80 squash. self-review 패스에서 logRequest format-safety 회귀 (caller-supplied X-Request-ID 의 percent 가 printf verb 로 해석) 발견 → 보강 commit. 19 파일 변경, 전 모듈 go test PASS. Sprint B (kratos_identity_id) 는 진입 즉시 PR-L4 머지 확인되어 폐기."
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-10T07:00:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/feat/work_260610-v1-1-sprint-a-real-adapter/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/feat/work_260610-v1-1-sprint-a-real-adapter/work_backlog.md"
+  },
+  "project": {
+    "project_name": "DevHub Example"
+  },
+  "session": {
+    "current_focus": "feat/work_260610-v1-1-sprint-a-real-adapter — v1.1 sprint -a follow-up PR (C-a~C-f 풀번들) 코드 작성 + 검증 완료. commit + push + PR 발행 대기 (사용자 confirm 후).",
+    "sprint_branch": "feat/work_260610-v1-1-sprint-a-real-adapter (코드 작업 완료, commit + PR 발행 대기)",
+    "in_progress_items": [
+      "T-c8a1b5d7 (commit + push + PR 발행 — 사용자 confirm 대기)"
+    ],
+    "blocked_items": [],
+    "recent_done_items": [
+      "T-c7e9d3f1 (검증: go build + go test ./... + go vet — 전 패키지 PASS)",
+      "T-c6f7a1d2 (C-f: infra/idp/_archive_2026-06-10/ archive)",
+      "T-c5e8b6c3 (C-e: audit-ops mirror 통합)",
+      "T-c4d2f8a1 (C-d: v1.0 mirror struct 제거)",
+      "T-c3a9e4d2 (C-c: _ = keycloakEventPort placeholder 제거)",
+      "T-c2f1a7b3 (C-b: main.go event listener type assertion 정리)",
+      "T-c1a02e8c (C-a: real adapter 작성 — verifier + admin_client + metrics + 4 test files)",
+      "T-7e4d2f8a (PR #539 머지 — sprint -a follow-up 본 PR, 5 file +238 -97, main 87e6c1f5)"
+    ],
+    "background_tasks": {},
+    "deliverables_completed": [
+      "backend-core/internal/sso-integrations/keycloak/verifier.go (NEW, real KeycloakJWKSVerifier)",
+      "backend-core/internal/sso-integrations/keycloak/admin_client.go (NEW, real KeycloakAdminClient + raw wire struct → flat canonical struct 매핑)",
+      "backend-core/internal/sso-integrations/keycloak/metrics.go (NEW, JWKS stale-while-error metrics)",
+      "backend-core/internal/sso-integrations/keycloak/{verifier,admin_client,admin_client_oidc}_test.go (moved from httpapi/ + service/ + 3 OIDC logout test from auth_test.go)",
+      "backend-core/internal/domain/auth-session/integration/ports.go (KeycloakUserEvent/KeycloakAdminEvent struct 직접 정의, httpapi alias 제거)",
+      "backend-core/main.go (KeycloakJWKSVerifier/KeycloakAdminClient instance 를 sso-integrations/keycloak/ 로 이전 + type assertion 제거 + placeholder 제거 + keycloakAdminEventLister adapter 제거)",
+      "backend-core/internal/domain/audit-ops/service/keycloak_event_puller.go (KeycloakUserEvent/KeycloakAdminEvent mirror struct → integration/ alias, KeycloakEventLister interface 제거, RunKeycloakEventPuller 가 integration.KeycloakEventPort 직접 받음)",
+      "backend-core/internal/domain/audit-ops/service/keycloak_admin_adapter.go (HTTPAPIUserEvent/AdminEvent mirror + NewHTTPAPIEventListerAdapter — 삭제)",
+      "backend-core/internal/domain/audit-ops/service/keycloak_event_integration_test.go (mockHTTPAPILister → mockKeycloakEventPort canonical port 직접 충족)",
+      "backend-core/internal/httpapi/identity_resolver_test.go (httphelp.ErrIdentityNotFound 사용으로 마이그레이션)",
+      "backend-core/internal/httpapi/auth_test.go (3 OIDC logout test 제거 — 새 패키지로 이동)",
+      "infra/idp/_archive_2026-06-10/identity.schema.json (immutable archive)",
+      "infra/idp/README.md (구성 파일 표 갱신 + archive directory 추가)"
+    ],
+    "deliverables_pending": [
+      "git add . + commit (squash) + push",
+      "gh pr create (PR body 에 Tier 분류 + 추적성 영향 명시)"
+    ]
+  },
+  "verification": {
+    "go_build": "PASS (backend-core ./...)",
+    "go_test": "PASS (backend-core ./... — 40+ packages)",
+    "go_vet_affected": "PASS (sso-integrations, audit-ops, auth-session)",
+    "saovae_build": "PASS (DEVHUB_BUILD_TIER unset — saovae_stub 경로)",
+    "internal_build": "PASS (DEVHUB_BUILD_TIER=internal — real adapter 경로)",
+    "diff_stat": "+145 / -2418 across 14 files + 8 new files in sso-integrations/keycloak/"
+  },
+  "next_documents": [
+    "AGENTS.md",
+    "docs/adr/0030-sso-integrations-and-auth-session-port.md (참조만, 갱신 없음 — §5 timeline 갱신은 PR2 carry-over C-h)",
+    "docs/planning/external-integrations-agentic-rag-roadmap.md (참조만)",
+    "docs/planning/release_v1_roadmap.md (PR2 시 §3.5 N-13 row + §9 갱신, 본 PR1 은 house-keeping only)"
+  ]
+}
+

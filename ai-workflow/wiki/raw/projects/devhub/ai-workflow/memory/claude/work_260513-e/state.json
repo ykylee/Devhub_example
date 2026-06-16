@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-e",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "ea8df91",
+  "scope": "A bundle (PR-D follow-up): writeRBACServerError 통합 + caller-supplied X-Request-ID validation + ctx 표준 request_id 전파",
+  "updated_at": "2026-05-13T05:00:00Z",
+  "steps": [
+    {"id": "0", "title": "branch + sprint memory 초기화", "status": "done"},
+    {"id": "A3", "title": "writeRBACServerError → writeServerError 통합", "status": "in_progress"},
+    {"id": "A1", "title": "caller-supplied X-Request-ID validation", "status": "planned"},
+    {"id": "A2", "title": "ctx 표준 request_id 전파", "status": "planned"},
+    {"id": "verify", "title": "go test ./backend-core/... PASS", "status": "planned"},
+    {"id": "pr", "title": "PR open + 2-pass + squash merge", "status": "planned"}
+  ],
+  "files_in_scope": [
+    "backend-core/internal/httpapi/rbac.go",
+    "backend-core/internal/httpapi/errors.go",
+    "backend-core/internal/httpapi/request_context.go",
+    "backend-core/internal/httpapi/request_context_test.go",
+    "backend-core/internal/httpapi/kratos_login_client.go",
+    "backend-core/internal/httpapi/kratos_identity_resolver.go"
+  ]
+}

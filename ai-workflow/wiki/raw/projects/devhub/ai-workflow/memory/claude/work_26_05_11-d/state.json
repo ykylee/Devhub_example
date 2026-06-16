@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_26_05_11-d",
+  "status": "CLOSED — TDD foundation merged via PR #58 squash. E2E baseline 5 PASS / 1 SKIPPED (password-change pending PR-L4).",
+  "updated_at": "2026-05-11T06:55:00Z",
+  "merge_commit": "adce7ec70905464a0c3387f5c21a0d6bb5f15b63",
+  "pr": 58,
+  "merged_at": "2026-05-11T06:51:25Z",
+  "head_commit": "acc3020357b71faf21eb1838763a7f31d55c020b",
+  "head_summary": "Final follow-up: PoC test/test admin seed + test-server-deployment §4.3 + §10 hygiene",
+  "session_pointers": {
+    "sprint_plan": "ai-workflow/memory/claude/work_26_05_11-d/backlog/2026-05-11.md",
+    "session_handoff_path": "ai-workflow/memory/claude/work_26_05_11-d/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/claude/work_26_05_11-d/work_backlog.md",
+    "previous_sprint": "ai-workflow/memory/claude/work_26_05_11-c/ (CLOSED, PR #57)",
+    "main_state": "ai-workflow/memory/state.json",
+    "integrated_roadmap": "docs/development_roadmap.md",
+    "backend_roadmap": "ai-workflow/memory/backend_development_roadmap.md",
+    "frontend_roadmap": "docs/frontend_development_roadmap.md",
+    "deploy_guide": "docs/setup/test-server-deployment.md",
+    "e2e_guide": "docs/setup/e2e-test-guide.md",
+    "api_contract": "docs/backend_api_contract.md"
+  },
+  "decisions_made": [
+    {"id": "DEC-1", "topic": "frontend unit test runner", "chosen": "Vitest", "decided_on": "2026-05-11"},
+    {"id": "DEC-2", "topic": "E2E runner", "chosen": "Playwright", "decided_on": "2026-05-11"},
+    {"id": "DEC-3", "topic": "E2E execution env", "chosen": "A user native (Hydra/Kratos)", "decided_on": "2026-05-11"},
+    {"id": "DEC-4", "topic": "CI introduction timing", "chosen": "B separate sprint", "decided_on": "2026-05-11"}
+  ],
+  "tracks": {
+    "TDD_foundation": {
+      "status": "done",
+      "prs": [
+        {"id": "PR-T1", "subject": "Makefile test targets + sprint baseline", "status": "done"},
+        {"id": "PR-T2", "subject": "Frontend Vitest infra + first utility unit tests", "status": "done"},
+        {"id": "PR-T3", "subject": "Playwright E2E infra + first scenarios", "status": "done", "result": "5 PASS / 1 SKIPPED (password-change deferred to PR-L4)"}
+      ]
+    }
+  },
+  "follow_up_candidates": [
+    {"id": "PR-L4", "subject": "Kratos session 정합 — backend settings proxy OR browser-mode login redirect", "blocks": "password-change.spec unskip", "priority": "M2 이전 hygiene"},
+    {"id": "PR-T3.5", "subject": "e2e seed 자동화 (Playwright globalSetup)", "priority": "low"},
+    {"id": "PR-T5", "subject": "GitHub Actions CI (DEC-4)", "priority": "별도 sprint"},
+    {"id": "hygiene-test-admin", "subject": "PoC test/test 시드 제거 (운영 진입 전)", "priority": "운영 진입 직전"}
+  ]
+}

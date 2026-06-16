@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-m",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "b1268ce",
+  "scope": "M3 후속 1-4 일괄: ADR-0008 PostgresClient + hrdb migration + cycle 검증 + primary_dept + 파견/겸임 schema + frontend Sign Up form",
+  "updated_at": "2026-05-13T15:30:00Z"
+}

@@ -1,0 +1,11 @@
+{
+  "project": "DevHub",
+  "branch": "claude/work_260512-j",
+  "status": "done",
+  "last_updated": "2026-05-12T05:00:00Z",
+  "base_branch": "main",
+  "base_head_at_open": "d40b73a",
+  "base_head_at_close": "6121828 (PR #82 squash merge)",
+  "current_phase": "closed — second-pass review fix 머지 완료",
+  "context_summary": "PR #80 second-pass review 에서 발견. router.go 의 SetTrustedProxies err 무시 → DEVHUB_TRUSTED_PROXIES 의 invalid 토큰이 silent partial-trust 회귀 유발. err 검출 시 log.Printf 경고 + nil 폴백으로 attribution-grade default 보장. 통합 테스트 1건 추가. PR #82 squash → main HEAD 6121828."
+}

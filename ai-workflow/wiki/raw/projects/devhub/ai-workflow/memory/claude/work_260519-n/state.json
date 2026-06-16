@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-n",
+  "branch": "claude/work_260519-n",
+  "status": "done",
+  "started_at": "2026-05-19T13:00:00Z",
+  "ended_at": "2026-05-19T13:30:00Z",
+  "merged_pr": 182,
+  "merge_commit": "871d6f0",
+  "scope": "main flat memory housekeeping — sprint -j (codex hotfix #9) + -k (infra Keycloak 정합) + -l (migration 000021 충돌 정정) + -m (e2e Kratos → Keycloak design) 4 PR 누적 흡수 + §5.3 design 10/10 = 100% milestone 명문화.",
+  "directive_source": "사용자 요청 'main flat memory housekeeping 진행' — sprint -m (e2e migration design) 종료 직후 4 PR 누적 housekeeping.",
+  "decisions": [
+    "main flat state.json — head_commit 12cdf81 + merged_prs_2026_05_19 4 PR 추가 (#178-#181) + adr_0019_section_53_design_completion_milestone 갱신 (9/9 → 10/10) + next_actions.carve_out_for_next_session 갱신.",
+    "main flat session_handoff.md — header 갱신 + sprint -j~-m 표 추가 + §5.3 design 10/10 100% milestone + 다음 directive 재산정.",
+    "main flat work_backlog.md — milestone + 변경 이력 4 row 추가.",
+    "sprint -j/-k/-l/-m state.json finalize 4개 (status: in_progress → done + ended_at + merged_pr).",
+    "auto-memory MEMORY.md + project_2026_05_19_phase3_critical_fixes.md 신규."
+  ],
+  "todo": [
+    "ai-workflow/memory/state.json + session_handoff.md + work_backlog.md 갱신",
+    "sprint -j/-k/-l/-m state.json finalize 4개",
+    "auto-memory MEMORY.md + project memory 신규",
+    "commit + push + PR + 4단계 self-review + 머지"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린"
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "deepseek/construct_workflow_for_deepseek",
+  "status": "in_progress",
+  "updated_at": "2026-06-01T10:00:00Z",
+  "agent": "reasonix",
+  "agent_model": "deepseek-v4-flash",
+  "focus": "Reasonix(deepseek-v4) 에이전트를 위한 AI 워크플로우 구성 — 브랜치별 memory 디렉토리, AGENTS.md 전용 메모, 초기 backlog",
+  "current_scope": [
+    "ai-workflow/memory/deepseek/construct_workflow_for_deepseek/ 디렉토리 생성 및 초기 문서(state.json, session_handoff.md, work_backlog.md, backlog/) 작성",
+    "AGENTS.md에 Reasonix 전용 메모 섹션 추가 (에이전트 식별, 전용 메모, 실행 명령 참조)",
+    "브랜치 최초 커밋"
+  ],
+  "next_actions": [
+    "Reasonix 브랜치 생성 규칙 — worker_division.md §2.5 deepseek 추가 + AGENTS.md 명시",
+    "Reasonix 전용 global_workflow_standard.md 적용성 검토 (다음 세션)",
+    "워크플로우 문서 갱신 절차 문서화 (다음 세션)"
+  ]
+}

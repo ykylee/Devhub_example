@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-x",
+  "branch": "claude/work_260519-x",
+  "status": "done",
+  "started_at": "2026-05-19T23:00:00Z",
+  "ended_at": "2026-05-19T23:30:00Z",
+  "merged_pr": 192,
+  "merge_commit": "a72bde4",
+  "scope": "ADR-0019 §5.3 (9) audit event listener Phase 2 PR-E — keycloak_operations.md §8.6 운영 SOP. docs-only. 9 sub-section (사전 조건 / Keycloak admin console 설정 / backend env / Prometheus dashboard panel + PromQL / 알람 / dedup 확인 SQL / 트러블슈팅 / disable·rollback / sub-carve). §5.3 (9) Phase 2 모든 carve (PR-B~PR-E) 종결.",
+  "directive_source": "사용자 요청 'PR-E 진행하자' — sprint -w closing 직후 5단계 중 마지막.",
+  "decisions": [
+    "§8.6 위치 = §8 운영 SOP 묶음 끝 (§8.5 SSO logout chain 다음) — 운영자가 §8 일괄 참조 시 자연 순서.",
+    "Keycloak admin console 의 Include representation = OFF 권장 — privacy 측면, user password / secret 등이 admin event payload 에 노출 회피.",
+    "metric 알람 임계치 — cursor_lag_high 600s for 5m (interval default 30s 의 20배), cursor_lag_critical 3600s for 10m (1h 이상은 무조건 escalation). pull_error_rate 5건/5분 (client_secret 만료 같은 systemic issue 식별).",
+    "disable·rollback 절차 — env false 만으로 충분, migration 자체 rollback 은 audit_logs 운영 데이터 손실 우려라 진짜 schema rollback 필요할 때만.",
+    "§9.2 audit log 통합 carve → resolved 표기로 갱신 + §10 잔여 carve out 표의 audit 항목 strikethrough — 본 SOP 가 carve 해결 source-of-truth 임을 명시.",
+    "추적성 영향 N/A — docs-only PR, code/schema 변경 없음 (ID 발급 불필요)."
+  ],
+  "todo": [
+    "docs/setup/keycloak_operations.md §8.6 신규 9 sub-section (완료)",
+    "docs/setup/keycloak_operations.md §9.2 + §10 정합 갱신 (완료)",
+    "docs/setup/keycloak_operations.md §11 변경 이력 row (완료)",
+    "docs/adr/0019-keycloak-only-idp.md §5.3 (9) row + 변경 이력 row 갱신 (완료)",
+    "docs/traceability/report.md §6 sprint -x row (완료)",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs-only PR — code/test 영향 없음. Markdown lint 등 자동 검증 가능하지만 본 SOP 는 운영자 가독성 우선. ADR-0019 §5.3 (9) row + §6 변경 이력 row + traceability §6 row + keycloak_operations §11 변경 이력 row 모두 정합. **Stage 3 보강** — P2 #1 §8.6.7 cursor 수동 advance row 에 'advance 구간 event 영구 누락 위험' 명시 + 우선 시도 대안 (Keycloak Events Expiration 연장 + backend 재기동) 추가. P2 #2 §8.6.9 sub-carve 에 'alertmanager rule YAML 정식 등록' 항목 추가."
+}

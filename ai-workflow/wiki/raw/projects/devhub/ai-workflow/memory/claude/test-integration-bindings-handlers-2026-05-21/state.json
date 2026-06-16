@@ -1,0 +1,61 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/test-integration-bindings-handlers-2026-05-21",
+  "branch": "claude/test-integration-bindings-handlers-2026-05-21",
+  "status": "in_progress",
+  "started_at": "2026-05-21T09:50:00Z",
+  "ended_at": null,
+  "merged_pr": null,
+  "merge_commit": null,
+  "issue": null,
+  "carve": "test-gap-p1-integration-bindings",
+  "scope": "직전 sprint claude/test-gaps-p0-2026-05-21 (PR #262, main `ddb5591`) 이 인계한 P1 carve 중 1번 — Integration bindings PATCH/DELETE backend handler 테스트. integration_registry_test.go 의 binding 영역 coverage 가 TestCreateIntegrationBinding_Happy + Forbidden 2건만 있어 PATCH/DELETE handler 의 happy/404/422/409/RBAC 분기가 모두 미가드.",
+  "directive_source": "직전 sprint work_backlog §3 항목 2 + 사용자 'Integration bindings PATCH/DELETE handler 테스트 (P1, Recommended)' 선택",
+  "decisions": [
+    "memoryApplicationStore.UpdateIntegrationBinding fake 보강 — 기존 fake 가 ScopeID + ExternalKey 만 갱신 + conflict 가드 없음. ProviderID FK 가드 + (scope_type, scope_id, provider_id, external_key) 4-tuple unique 가드 + Policy/Enabled 갱신 추가. production *store.PostgresStore 의 unique index + FK 동작 mirror.",
+    "PATCH 5 test 추가 — Happy (external_key + policy + enabled 동시 갱신 응답 검증) / NotFound (404) / InvalidPolicy (422) / ConflictDuplicate (409) / ForbiddenForDeveloperRole (403)",
+    "DELETE 3 test 추가 — Happy (list 에서 사라짐 + idempotency 두 번째 DELETE 404) / NotFound (404) / ForbiddenForDeveloperRole (403)",
+    "seedBindingFixture helper 도입 — provider+binding seed 패턴 5+ test 에서 재사용. fake 의 ID convention `bind-<scope_id>-<external_key>` 활용 (production 은 UUID 라 다르지만 test 는 fake convention 으로 충분)",
+    "ConflictDuplicate test 의 시뮬레이션 — fake 의 4-tuple 가드를 트리거하려면 같은 scope_id 의 dup-candidate binding 사전 생성 후 PATCH 의 external_key 를 그 candidate 와 맞춤. production 의 unique index 위반 시나리오 (서로 다른 binding 끼리 4-tuple 중복) 재현."
+  ],
+  "todo": [
+    "Phase A (fake 보강 + PATCH 5 + DELETE 3) — DONE",
+    "Phase B (sprint memory + commit + push + PR) — IN PROGRESS"
+  ],
+  "verification": {
+    "go_test_binding": "PASS — TestUpdateIntegrationBinding 5 (Happy/NotFound/InvalidPolicy/ConflictDuplicate/ForbiddenForDeveloperRole) + TestDeleteIntegrationBinding 3 (Happy/NotFound/ForbiddenForDeveloperRole) = 8 신규",
+    "go_test_httpapi": "PASS — 모든 기존 test 회귀 zero (fake 보강이 기존 test 정합)",
+    "go_test_all": "PASS — 14 packages",
+    "frontend": "변경 없음 (backend test 전용)"
+  },
+  "commits_planned": [
+    "test(httpapi): cover PATCH/DELETE integration binding handlers"
+  ],
+  "test_coverage_added": {
+    "PATCH /api/v1/integration/bindings/:binding_id": [
+      "Happy — ProviderID/ExternalKey/Policy/Enabled 동시 갱신 응답 검증",
+      "404 NotFound — binding_id 미존재",
+      "422 InvalidPolicy — unsupported policy 값",
+      "409 Conflict — 4-tuple (scope_type, scope_id, provider_id, external_key) 중복",
+      "403 Forbidden — developer role"
+    ],
+    "DELETE /api/v1/integration/bindings/:binding_id": [
+      "Happy — 200 + list 에서 사라짐 + 두 번째 DELETE 404 (idempotency)",
+      "404 NotFound — binding_id 미존재",
+      "403 Forbidden — developer role"
+    ]
+  },
+  "fake_store_changes": {
+    "memoryApplicationStore.UpdateIntegrationBinding": "ProviderID FK 가드 + (scope_type, scope_id, provider_id, external_key) 4-tuple unique 가드 + Policy/Enabled 갱신 추가 (production *store.PostgresStore mirror)"
+  },
+  "test_gaps_remaining": [
+    "P1 — Keycloak 실 OIDC e2e flow (login → callback → /me → dashboard)",
+    "P1 — Single-port nginx e2e (ADR-0018)",
+    "P2 — frontend service unit (auth.service / api-client / websocket.service)",
+    "P2 — main flat memory housekeeping (PR #261, #262, 본 PR 머지 후)",
+    "P2 — pre-existing ESLint 4 errors refactor",
+    "P3 — backend-ai pytest (gRPC server 구현 동반)",
+    "P3 — dashboard page snapshot 테스트"
+  ],
+  "pr_status": "PR 발행 예정"
+}

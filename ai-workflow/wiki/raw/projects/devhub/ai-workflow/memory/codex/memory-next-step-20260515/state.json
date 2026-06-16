@@ -1,0 +1,27 @@
+{
+  "status": "in_progress",
+  "branch": "codex/memory-next-step-20260515",
+  "updated_at": "2026-05-15",
+  "current_focus": "외부 시스템 연동 도메인 문서화/추적성/테스트 초안/IMPL 분해 완료, PR 생성 및 구현 1차 진입 준비",
+  "completed": [
+    "외부 시스템 연동 컨셉 문서 신규 작성 (docs/planning/external_system_integration_concept.md)",
+    "요구사항에 Integration 도메인 REQ 추가 (REQ-FR-INT-001..012, REQ-NFR-INT-001..008)",
+    "유스케이스에 Integration 시나리오 추가 (UC-INT-01..14)",
+    "아키텍처/백엔드 API 초안 추가 (ARCH-INT-01..06, API-69..78)",
+    "ERD에 Integration/HomeLab 엔터티 및 관계 추가",
+    "추적성 매트릭스(report.md) REQ/UC/ARCH/API 매핑 반영",
+    "외부 연동 capability matrix 문서 추가",
+    "Integration 테스트 전략/TC 초안 추가",
+    "traceability(report.md)에 M4 Integration TC 및 IMPL-int-XX planned 매핑 반영"
+  ],
+  "next_actions": [
+    "PR 리뷰/머지",
+    "Integration backend 구현 1차 착수 (migration + API-69~75 handler)",
+    "HomeLab 운영 관점(서버/앱 현황) 수집/표준화 모델 상세화"
+  ],
+  "env_notes": {
+    "context": "docs 중심 기획/설계 작업",
+    "verification": "문서 키워드 연결(REQ/UC/ARCH/API/traceability) rg 기반 점검 완료",
+    "open_pr": "https://github.com/ykylee/Devhub_example/pull/135"
+  }
+}

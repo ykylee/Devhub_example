@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "branch": "opencode/work_260604-d-fix-projects-list-aggregation",
+  "agent": "opencode",
+  "agent_label": "Sisyphus",
+  "model": "MiniMax-M3",
+  "status": "in_progress",
+  "summary": "frontend /projects 페이지에서 신규 생성 project 가 list 에 안 나타나는 결함 fix. listAllProjects 가 repos 만 순회하여 standalone + application-linked project 누락 + ListProjects 410 GONE silent fail. 재작성하여 standalone + per-application 통합 + dedup.",
+  "started_at": "2026-06-04T00:55:00Z",
+  "updated_at": "2026-06-04T00:55:00Z",
+  "scope": {
+    "in": [
+      "project.service.ts listAllProjects 재작성 (listStandaloneProjects + per-application 통합 + dedup)",
+      "projects/page.tsx:36-37 listRepositories 호출 제거 (불필요)",
+      "project.service.test.ts:742-787 listAllProjects 테스트 4건 재작성",
+      "memory 4종 set up"
+    ],
+    "out": [
+      "ApplicationCreationModal.tsx 의 'listAllProjects([])' 코멘트 갱신 (정확한 fix 의 scope out — housekeeping)",
+      "repository-centric list 의 deprecated 경고 표시",
+      "backend ListProjects 410 자체 변경 (의도된 deprecated)"
+    ]
+  },
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/opencode/work_260604-d-fix-projects-list-aggregation/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/opencode/work_260604-d-fix-projects-list-aggregation/work_backlog.md"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-06-01T01:21:40Z",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/gemini/work_260601-b-bug-fixes/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/gemini/work_260601-b-bug-fixes/work_backlog.md"
+  },
+  "project": {
+    "project_name": "Devhub_example"
+  },
+  "session": {
+    "current_focus": "Edit Project Member Save & Read Bug Fixed with Tests",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "Edit Project Member save issue fixed (BE projects.go view mapping)",
+      "Edit Project Member read issue fixed (FE ProjectCreationModal.tsx projectMembers state initialization from initialData)",
+      "Edit Project Member save payload integration fixed (FE ProjectCreationModal.tsx patchPayload project_members integration)",
+      "Add repository integration tests for project member CRUD and sync (applications_integration_test.go)",
+      "Add frontend unit test for project member initialization and sync on update (ProjectCreationModal.test.tsx)",
+      "Add E2E test case for project member list addition UI interaction (admin-projects.spec.ts)",
+      "Fix CI E2E Playwright tests failure by adding hardcoded simulation app/project seeds to global-setup.ts",
+      "Address Codex Review (FE observer role preservation & BE transactional legacy CreateProject members saving)",
+      "Fix negative E2E spec regression failure by updating TC-PROJ-DETAIL-WARN-01 to match mild activity fallback",
+      "Relax E2E 'Add' button selector in admin-projects.spec.ts to bypass nested SVG/space matching issue"
+    ]
+  },
+  "next_documents": [
+    "docs/planning/release_v1_roadmap.md",
+    "docs/governance/worker_division.md"
+  ]
+}

@@ -1,0 +1,139 @@
+# Planning Documentation
+
+- 문서 목적: `docs/planning/` 디렉터리의 진입점. 마일스톤·로드맵·sprint plan·작업 트래커를 종류별로 안내한다.
+- 범위: 통합 로드맵, 트랙별 세부 로드맵, 마일스톤별 backlog 위치, PR 별 트래커, 보안 리뷰 트래커, 향후 sprint plan
+- 대상 독자: 프로젝트 리드, 백엔드/프론트엔드/Auth/AI/운영 트랙 담당자, 후속 작업자
+- 상태: accepted
+- 최종 수정일: 2026-06-15
+- 관련 문서: [../README.md](../README.md), [../development_roadmap.md](../development_roadmap.md), [../DOCUMENT_INDEX.md](../DOCUMENT_INDEX.md)
+
+## 0. 진입점 — 무엇부터 읽는가
+
+| 1차 (모든 트랙 공통) | 2차 (본인 트랙) | 3차 (sprint 진입 시) |
+| --- | --- | --- |
+| [통합 개발 로드맵](../development_roadmap.md) | 트랙별 세부 로드맵 (§2) | 마일스톤별 backlog (§3) |
+
+본 README 는 그 진입점의 *지도* 다.
+
+## 1. 로드맵 / 마일스톤 / 우선순위 체계
+
+> [통합 개발 로드맵](../development_roadmap.md) 이 source-of-truth.
+
+### 1.1 마일스톤
+
+| 마일스톤 | 목표 | 우선순위 | 진입 조건 |
+| --- | --- | --- | --- |
+| **M0** | 보안 게이트 통과 (인증·권한 정상화) | P0 | PR #12 머지 직후 즉시 |
+| **M1** | 핵심 기능 contract 정합성 | P0~P1 | M0 의 인증·권한 동작 확인 |
+| **M2** | 사용자 경험 정합 (Phase 4·5 잔여 + Phase 6/6.1) | P1~P2 | M0 종료, M1 일부 병렬 가능 |
+| **M3** | Realtime 확장 + 외부 연동 1차 (Gitea Hourly Pull, AI gRPC) | P2~P3 | M1·M2 종료 |
+| **M4** | 운영 / SSO / MFA / 후속 ADR | P3 | M3 이후, capacity 확보 시 |
+
+### 1.2 우선순위
+
+| Priority | 의미 |
+| --- | --- |
+| P0 | 머지된 코드의 보안/통합 결함, 다음 모든 작업의 전제 |
+| P1 | 핵심 기능의 contract·실행 경계 정합성 |
+| P2 | 실시간 확장, RBAC UI 고도화, 운영 강화 |
+| P3 | 외부 연동(Gitea REST, AI gRPC, SSO), 후속 phase |
+
+## 2. 트랙별 세부 로드맵
+
+| 트랙 | 세부 로드맵 | 책임 영역 |
+| --- | --- | --- |
+| **B — Backend** | [`../../docs/backend_development_roadmap.md`](../../docs/backend_development_roadmap.md) | Go Core API, store, normalize, command worker, realtime hub |
+| **F — Frontend** | [`../frontend_development_roadmap.md`](../frontend_development_roadmap.md) | Next.js (역할별 기본 진입 우선순위 대시보드, 조직, 인증 UI, 실시간 통합, RBAC UI) |
+| **A — Auth & IdP** | [`../adr/0019-keycloak-only-idp.md`](../adr/0019-keycloak-only-idp.md) (current) / [`../adr/0001-idp-selection.md`](../adr/0001-idp-selection.md) (superseded) | Keycloak (단일 IdP), 토큰 검증, 권한 가드 |
+| **X — Cross / Contract** | [`../backend_api_contract.md`](../backend_api_contract.md), [`../architecture.md`](../architecture.md) | API 계약, 메시지 envelope, role wire format, 데이터 모델 |
+| **O — Operations** | [`../setup/environment-setup.md`](../setup/environment-setup.md) | 환경 셋업, 배포, 운영 모니터링 |
+| **AI** | [`../backend/requirements_review.md`](../backend/requirements_review.md) §3-P3 | Python AI service (gRPC), Gardener, weekly report |
+
+## 3. 마일스톤별 backlog 위치
+
+backlog 는 *브랜치별 메모리* 에서 관리한다 (CLAUDE.md 정책). 작업이 진행되는 브랜치에 따라 위치가 결정된다.
+
+| 환경 | 위치 패턴 |
+| --- | --- |
+| Claude Code 사용 | `ai-workflow/memory/claude/<branch>/backlog/<date>.md` |
+| Codex CLI 사용 | `ai-workflow/memory/codex/<branch>/backlog/<date>.md` |
+| Gemini CLI 사용 | `ai-workflow/memory/gemini/<branch>/backlog/<date>.md` |
+| Antigravity 사용 | `ai-workflow/memory/antigravity/<branch>/backlog/<date>.md` |
+| Reasonix (deepseek-v4) 사용 | `ai-workflow/memory/deepseek/<branch>/backlog/<date>.md` |
+| OpenCode (Sisyphus / MiniMax-M3) 사용 | `ai-workflow/memory/opencode/<branch>/backlog/<date>.md` (2026-06-04 신설) |
+| Agent prefix 없는 브랜치 | `ai-workflow/memory/branches/<branch>/backlog/<date>.md` |
+| flat (legacy fallback) | `ai-workflow/memory/backlog/<date>.md` (현재는 `_archive/legacy-flat-backlog/` 로 이전) |
+
+마일스톤 진입 시점에 backlog 항목을 분해한다 — 각 항목은 (위치, 우선순위, DoD, 의존, 책임자) 를 포함.
+
+## 4. PR · 보안 리뷰 트래커 (영구 보존)
+
+PR 단위의 의사결정과 보안 리뷰 결과는 *통합 로드맵 산출물* 로 영구 보존한다.
+
+| 트래커 | 위치 | 메모 |
+| --- | --- | --- |
+| PR #12 액션 트래커 | [`../../ai-workflow/memory/PR-12-review-actions.md`](../../ai-workflow/memory/PR-12-review-actions.md) | BLK/SEC/HYG/INF/FU 분류와 처리 결과. M0 에 SEC-1~5 가 흡수됨. |
+| PR #12 보안 리뷰 (PR diff 한정) | [`../../ai-workflow/memory/PR-12-security-review.md`](../../ai-workflow/memory/PR-12-security-review.md) | Auth 통합 결함 1건 High. M0 의 입력 자료. |
+| 코드베이스 전체 보안 리뷰 (2026-05-08) | [`../../ai-workflow/memory/codebase-security-review-2026-05-08.md`](../../ai-workflow/memory/codebase-security-review-2026-05-08.md) | 신규 0건, 기존 1건 재확인 + DB 에러 노출(SEC-5) 권고. M0~M1 입력 자료. |
+
+향후 PR 별 트래커도 같은 디렉터리에 `PR-N-review-actions.md`, 보안 리뷰는 `PR-N-security-review.md` 또는 `codebase-security-review-<date>.md` 로 일관되게 둔다.
+
+## 5. 향후 추가될 자료
+
+본 디렉터리에 추가될 가능성이 있는 자료 (현재 미작성):
+
+- **Sprint plan**: 마일스톤별 sprint 단위 분해 (예: `sprint-2026-Q3-W3.md`).
+- **Quarter / 분기 OKR**: 분기별 핵심 결과 정의.
+- **Release plan**: 릴리즈 단위 묶음 (M0+M1 → v0.4.0, M2 → v0.5.0 등).
+- **Capacity / 일정 시각화**: 마일스톤별 인력·기간 추정.
+- **회의록**: 트랙 간 sync 결정 (대안: 각 트랙 backlog 에 분산).
+
+## 5.1 운영 회고 / 레슨런
+
+CI, rollout, 복구 패턴처럼 후속 작업자가 반복해서 참고해야 하는 운영 회고는 본 디렉터리에 timestamped 문서로 남긴다.
+
+| 문서 | 범위 | 메모 |
+| --- | --- | --- |
+| [`2026-06-13-ci-rearchitecture-retrospective.md`](./2026-06-13-ci-rearchitecture-retrospective.md) | CI 재구성 결과 + PR #579 재평가 | required/regression/quarantine lane 분리, old PR 재평가 패턴 |
+| [`2026-06-15-pr-598-ci-recovery-retrospective.md`](./2026-06-15-pr-598-ci-recovery-retrospective.md) | PR #598 CI 복구 | `setup-go` cache restore failure + 최신 `main` 리베이스 후 regression 정리 |
+
+## 5.2 도메인 컨셉 (Concept stage)
+
+| 문서 | 단계 | 메모 |
+| --- | --- | --- |
+| [`project_management_concept.md`](./project_management_concept.md) | concept (1차) | Application > Repository > Project 운영 모델 — 총괄/실행/기간성 운영 단위 분리. 후속 sprint 에서 REQ-FR/ARCH/API 발급. |
+| [`development_request_concept.md`](./development_request_concept.md) | concept + REQ + UC + ARCH + API spec staged (sprint `claude/work_260515-f`) | Dev Request (DREQ) 도메인 — 외부 시스템 API 로 의뢰 수신 → 담당자 dashboard → application/project 등록(promote). REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..65 spec staged. 구현은 carve out (DREQ-AuthADR 머지 후 DREQ-Backend sprint). |
+| [`external_system_integration_concept.md`](./external_system_integration_concept.md) | concept (1차) | 외부 시스템 연동 도메인(ALM/SCM/CI-CD/문서/홈랩) — SoT 경계, 공통 어댑터 모델, 후보 시스템군(Jira/Confluence/Bitbucket/Bamboo/Jenkins/Gitea/Forgejo), 홈랩 Node/Service 관리 범위 정의. 후속 sprint 에서 REQ-FR-INT/UC-INT/ARCH-INT/API-INT 발급. |
+| [`external_integration_capability_matrix.md`](./external_integration_capability_matrix.md) | design support (draft) | 외부 연동 provider capability matrix — provider별 수집 방식/인증 모드/capability/MVP 우선순위 정리. |
+| [`project_operating_model_template.md`](./project_operating_model_template.md) | template | Application > Repository > Project 운영 템플릿. 역할/연결/Jira 정책/로드맵/마일스톤/cadence/KPI 체크리스트 제공. |
+| [`project_operating_model_example_2026.md`](./project_operating_model_example_2026.md) | example | 하이브리드 운영 모델 샘플 (Project 1건 + Repo 3건 + Jira/Confluence + 상/하위 마일스톤 매핑). |
+| [`system_usecases.md`](./system_usecases.md) | usecase | 코드베이스 전체 모듈 기준 Usecase 카탈로그 (`UC-*`, REQ↔DESIGN 중간 단계). |
+| [`system_erd.md`](./system_erd.md) | erd | 코드베이스 전체 모듈 ERD 카탈로그 + 통합 ERD (현행 + Project 확장). |
+| [`view_menu_screen_api_matrix.md`](./view_menu_screen_api_matrix.md) | ux+api matrix | 역할별(Developer/Manager/System Admin) 메뉴/화면 구성과 API 목록 매트릭스. M4/v2 범위 분리 포함. |
+| [`single_port_reverse_proxy.md`](./single_port_reverse_proxy.md) | design 검토 (draft 1차) | 외부 단일 포트로 frontend 가 `/devhub` 대표 path 로 모든 트래픽을 받고 backend/Hydra/Kratos 를 `/devhub/{backend}` sub-path 로 reverse proxy. nginx 권장 + 경로 매핑 + OIDC URL 정합 + cookie scope + Mermaid 토폴로지 + cutover 절차 + carve out. 결정 후 ADR-0018 후보 승격. sprint `claude/work_260518-u`. |
+| [`keycloak_sso_federation.md`](./keycloak_sso_federation.md) | design 검토 (draft 1차) | 외부 Keycloak 을 Kratos 의 upstream OIDC provider 로 federation. 옵션 3종 비교 (전체 대체 / **Kratos federation** / Hydra brokering) + Kratos config + claim mapping + HRDB user mapping 4 옵션 (**employee_id strict link** 권장) + cutover 절차 + 단일 포트 design 정합 + 보안 점검 + carve out. RM-M4-09 의 구체화. 결정 후 ADR-0019 후보 승격. sprint `claude/work_260518-v`. |
+| [`external-integrations-agentic-rag-roadmap.md`](./external-integrations-agentic-rag-roadmap.md) | planned (draft, 2026-06-10) | 외부 시스템 연동 (`infrastructure/` + `integrations/adapters/`) 의 **`agentic-integrations/` 통합** + **adapter pattern** + **agentic RAG + agentic plan + tool invocation** long-term 진화. Phase 1 (v1.1) = 디렉터리 통합 + port interface, Phase 2 (v1.2) = RAG retrieve + agentic planner + tool invoker. 사용자 2026-06-10 결정. PR #531 §6.7 명명 재검토 결정의 구체화. |
+
+## 6. 변경 이력
+
+| 일자 | 변경 |
+| --- | --- |
+| 2026-04-30 | 초기 TBD 스텁 생성 |
+| 2026-05-08 | TBD 스텁 → 디렉터리 진입점 + 마일스톤·트랙·트래커 인덱스 (claude/merge_roadmap 브랜치) |
+| 2026-05-13 | §5.1 도메인 컨셉 (Concept stage) 인덱스 신설 — `project_management_concept.md` 1행 추가. sprint `claude/work_260513-p`. |
+| 2026-05-13 | §5.1 운영 모델 템플릿/예시 2종 추가 — `project_operating_model_template.md`, `project_operating_model_example_2026.md`. |
+| 2026-05-13 | §5.1 usecase/erd 분리 문서 추가 — `system_usecases.md`, `system_erd.md` (REQ→UC→DESIGN 및 모듈별 ERD 관리). |
+| 2026-05-13 | §5.1 역할별 메뉴/화면/API 매트릭스 문서 추가 — `view_menu_screen_api_matrix.md` (M4/v2 범위 분리 반영). |
+| 2026-05-15 | §5.1 Dev Request (DREQ) 도메인 컨셉 + 요구사항 + Usecase + 설계 + API spec 신규 — `development_request_concept.md`. REQ-FR-DREQ-001..011 + UC-DREQ-01..10 + ARCH-DREQ-01..06 + API-59..65 staged. sprint `claude/work_260515-f`. |
+| 2026-05-15 | §5.1 외부 시스템 연동 도메인 컨셉 신규 — `external_system_integration_concept.md`. ALM/SCM/CI-CD/문서/홈랩 연동의 SoT 경계, 공통 어댑터 모델, MVP 범위 정의. |
+| 2026-05-15 | §5.1 외부 연동 capability matrix 추가 — `external_integration_capability_matrix.md`. provider별 capability/수집 방식/인증 모드/MVP 우선순위 정리. |
+| 2026-05-18 | §5.1 단일 외부 포트 reverse proxy design 검토 신규 — `single_port_reverse_proxy.md`. 외부 단일 포트 + `/devhub` prefix + backend/Hydra/Kratos sub-path 매핑 + nginx 권장 + OIDC URL 정합 + cookie scope + cutover 절차. 결정 후 ADR-0018 후보 승격. sprint `claude/work_260518-u`. |
+| 2026-05-18 | §5.1 외부 Keycloak SSO federation design 검토 신규 — `keycloak_sso_federation.md`. 옵션 3종 비교 (전체 대체/**Kratos federation**/Hydra brokering) + Kratos config + claim mapping + HRDB user mapping 4 옵션 (**employee_id strict link** 권장) + cutover 절차 + 단일 포트 design 정합 + 보안 점검 + carve out. RM-M4-09 의 구체화. 결정 후 ADR-0019 후보 승격. sprint `claude/work_260518-v`. |
+| 2026-06-15 | §5.1 운영 회고 / 레슨런 섹션 신설 — `2026-06-13-ci-rearchitecture-retrospective.md`, `2026-06-15-pr-598-ci-recovery-retrospective.md` 링크 추가. PR #598 CI 복구 기록 진입점 보강. |
+
+## 7. 신규 자료 작성 규칙
+
+1. 파일명은 영문 소문자 + `_` 또는 `-`. 일자가 들어가면 `YYYY-MM-DD` 형식.
+2. 본문 시작에 표준 frontmatter (목적/범위/대상/상태/최종 수정일/관련 문서) 를 포함한다.
+3. 새 자료가 마일스톤·트랙·트래커 중 어디에 속하는지 본 README 에 1줄 추가.
+4. *영구 결정* 은 [`../adr/`](../adr/) 에 ADR 로, *마일스톤 산출물* 은 본 디렉터리에, *작업 트래커* 는 브랜치별 메모리에 둔다 (§3 표).

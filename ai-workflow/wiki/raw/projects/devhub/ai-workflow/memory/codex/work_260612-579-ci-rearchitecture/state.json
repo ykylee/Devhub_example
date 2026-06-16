@@ -1,0 +1,24 @@
+{
+  "branch": "codex/work_260612-579-ci-rearchitecture",
+  "status": "complete",
+  "phase": "CI 재구성 설계 + flaky 복구 구현 + 운영 검증 완료",
+  "scope": {
+    "design_doc": "docs/planning/2026-06-12-ci-rearchitecture-design.md",
+    "workflows": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/e2e-regression.yml",
+      ".github/workflows/e2e-quarantine.yml"
+    ],
+    "e2e_selection": [
+      "frontend/tests/e2e-manifests/smoke.txt",
+      "frontend/tests/e2e-manifests/quarantine.txt",
+      "scripts/select-playwright-specs.sh"
+    ],
+    "flaky_recovery": [
+      "frontend/tests/e2e/fixtures.ts",
+      "frontend/tests/e2e/signout.spec.ts"
+    ]
+  },
+  "last_update": "2026-06-13",
+  "notes": "Fast required / E2E regression / E2E quarantine 3계층 구조를 도입했고, signout/login flaky 복구를 위해 OIDC restart helper, login loop 회복, CI timeout 완화를 반영했다. PR #580은 merge commit `b1fa5c27698403620b63ef09d7e32e2235592d59` 로 main에 머지되었고, old CI에서 실패하던 PR #579도 최신 main 반영 후 새 구조의 CI / E2E Regression / E2E Quarantine 에서 재평가 통과했다."
+}

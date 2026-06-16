@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260518-n",
+  "branch": "claude/work_260518-n",
+  "status": "in_progress",
+  "started_at": "2026-05-18T13:30:00Z",
+  "scope": "Infra topology v2 시각화 — /admin/topology-v2 페이지 (React Flow) + infra.service.ts v2 wrapper + TC-INT-HOMELAB-03 활성화. 다음 세션 directive 2순위 (PR #154 머지 후 후속).",
+  "directive_source": "main flat state.json '다음 세션 directive (2)' + session_handoff.md '다음 세션 directive (2)' — Infra topology v2 시각화 (API-76, 78, React Flow). backend `/api/v1/infra/services` + `/infra/topology/v2` 는 이미 hydrate 됨.",
+  "decisions": [
+    "별도 페이지 /admin/topology-v2 (기존 /admin v1 dashboard 와 분리). AuthGuard + isSystemAdmin 가드 (route gate 가 /admin/* 적용).",
+    "기존 /admin/page.tsx 헤더에 'Topology v2 →' nav 링크 추가 — 두 view 비교 가능 + v2 진입점 노출.",
+    "React Flow 의 nodes 는 infra node 매핑 (hostname/environment/status 시각화). child services 는 node 의 expandable 아래 sub-node 또는 sidebar list — 첫 진입은 sidebar list 로 단순 시작 (React Flow group sub-node 는 후속 carve out).",
+    "degraded_providers 는 페이지 상단 banner 로 노출 — empty 면 banner 숨김.",
+    "snapshot_at 메타는 헤더 옆에 'Last snapshot: <time>' tag."
+  ],
+  "todo": [
+    "frontend/lib/services/infra.service.ts — getTopologyV2() + ApiInfraNodeV2 / ApiInfraServiceV2 / InfraTopologyV2 / InfraTopologyV2Meta 타입",
+    "frontend/app/(dashboard)/admin/topology-v2/page.tsx — React Flow + node click modal + services sidebar + degraded banner + snapshot meta",
+    "frontend/app/(dashboard)/admin/page.tsx — 헤더에 Link2 'Topology v2 →' nav",
+    "frontend/tests/e2e/admin-topology-v2.spec.ts — TC-INT-HOMELAB-03 active + RBAC negative",
+    "docs/tests/test_cases_m4_integration.md §3 — TC-INT-HOMELAB-03 status active 갱신",
+    "docs/traceability/report.md §5.1 — 외부 통합 row 갱신 + §6 변경 이력 sprint -n row",
+    "npm run build PASS + Vitest PASS + go test (network 제한 시 CI 검증)",
+    "PR + self-review 4단계 + squash merge"
+  ],
+  "verification": "frontend build + vitest + admin-topology-v2.spec.ts CI 그린"
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-c",
+  "branch": "claude/work_260519-c",
+  "status": "done",
+  "started_at": "2026-05-19T02:00:00Z",
+  "ended_at": "2026-05-19T02:55:00Z",
+  "merged_pr": {"pr": 171, "merge_commit": "23602f5", "merged_at": "2026-05-19T02:55:00Z"},
+  "scope": "ADR-0019 §5.3 Keycloak realm SOP carve out 진입 — 단일 통합 SOP 문서 (docs/setup/keycloak_operations.md) 로 realm/client/role + JWKS rotation + admin user attribute 매핑 3 항목 처리.",
+  "directive_source": "사용자 요청 'ADR-0019 §5.3 Keycloak realm SOP 카브 진입하자' — sprint -b housekeeping 종료 직후 1순위 directive 진입.",
+  "decisions": [
+    "단일 통합 SOP 문서 (docs/setup/keycloak_operations.md) 채택 — realm/client/role + JWKS rotation + admin user attribute 매핑 3 항목 묶음. 운영 시작 시 가장 critical 한 항목 묶음으로 진입.",
+    "잔여 §5.3 carve (SSO logout chain / MFA / failover / off-boarding / groups → RBAC) 는 별도 후속 sprint — 사내 정책 + 보안팀 검토 동반 필요.",
+    "execution plan keycloak_only_refactor_execution_plan.md §6 의 local embedded vs external 분기 + ADR-0019 §4.2 환경설정 계약을 source-of-truth 로 정합.",
+    "ADR-0019 §5.3 carve out 표 갱신 — 3 항목 resolved 마킹 + 본문 SOP link. 잔여 5 항목 carve 유지.",
+    "traceability §6 변경 이력 sprint -c row. ADR-0019 §5.3 grouped row 의 resolved 갱신은 다음 sprint (-d housekeeping) 에서 통합 처리."
+  ],
+  "todo": [
+    "docs/setup/keycloak_operations.md 신규",
+    "docs/adr/0019-keycloak-only-idp.md §5.3 carve out 3 항목 resolved 갱신",
+    "docs/traceability/report.md §6 변경 이력 sprint -c row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린"
+}

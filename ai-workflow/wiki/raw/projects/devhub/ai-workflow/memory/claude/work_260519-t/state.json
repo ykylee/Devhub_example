@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-t",
+  "branch": "claude/work_260519-t",
+  "status": "done",
+  "started_at": "2026-05-19T19:00:00Z",
+  "ended_at": "2026-05-19T19:30:00Z",
+  "merged_pr": 188,
+  "merge_commit": "cebf255",
+  "scope": "잔여 사항 순서대로 진행 #6 — backend 확장 #4: 자동 idp_subject sync (authenticateActor). sprint -j codex review #9 #2 backend 확장 carve 4건 중 4번째 (마지막).",
+  "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -s (basePath logout) 종료 직후 #6 항목.",
+  "decisions": [
+    "옵션 A 채택 (간단) — authenticateActor 의 GetUser 성공 분기에서 user.IdPSubject == '' 이고 actor.Subject != '' 일 때 SetIdPSubject lazy backfill 호출. best-effort (실패 시 log only, 다음 요청 재시도 idempotent).",
+    "옵션 B (HRDB lookup + users INSERT) 는 carve out — hrdb.Lookup 의 strict 3-key (systemID/employeeID/name) signature 가 자동 sync 측면 부담. 별도 sprint 에서 LookupByKeycloak helper 또는 design.",
+    "user.IdPSubject 가 이미 있으면 SetIdPSubject 호출 안 함 — overwrite 회피 + DB write 최소화."
+  ],
+  "todo": [
+    "backend-core/internal/httpapi/auth.go authenticateActor GetUser 성공 분기 정합 (완료)",
+    "backend-core/internal/httpapi/auth_test.go unit test 2건 (완료 + PASS 검증)",
+    "ADR-0019 §5.3 (8) row 갱신",
+    "docs/traceability/report.md §6 sprint -t row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "go test PASS — TestAuthenticateActor_BackfillsIdPSubjectOnFirstLogin + TestAuthenticateActor_DoesNotResetIdPSubjectIfAlreadySet 2건 PASS. 전체 httpapi test 회귀 없음."
+}

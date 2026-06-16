@@ -1,0 +1,32 @@
+{
+  "schema_version": "1",
+  "branch": "claude/work_260515-p",
+  "base": "main @ 0bdf299 (PR #130 머지 직후)",
+  "updated_at": "2026-05-15T09:55:00Z",
+  "status": "done (merged into main as PR #131 / commit 2147d6d)",
+  "purpose": "DREQ carve out 2/4 part 2 — Admin-UI frontend. /admin/settings/dev-request-tokens 페이지 + IssueIntakeTokenModal (plain-1회 reveal phase) + IntakeTokenTable + service/types.",
+  "carve_out_position": "2/4 part 2 — Admin-UI frontend",
+  "deliverables": {
+    "services_and_types": {
+      "service": "frontend/lib/services/dev_request_token.service.ts — list / issue / revoke (thin wrapper)",
+      "types": "frontend/lib/services/dev_request_token.types.ts — DevRequestIntakeToken / IssuedDevRequestIntakeToken (plain_token) / IssueDevRequestIntakeTokenInput"
+    },
+    "components": {
+      "IntakeTokenTable": "frontend/components/dev-request/IntakeTokenTable.tsx — client/source, allowed_ips chips, status badge (active/revoked), revoke action button. empty state + busy guard.",
+      "IssueIntakeTokenModal": "frontend/components/dev-request/IssueIntakeTokenModal.tsx — 2 phase (form → reveal). form: client_label / source_system / allowed_ips (dynamic list 추가/삭제). reveal: plain_token code box + copy button (clipboard API) + 경고 (1회 노출, vault 저장 권고). ESC 는 form phase 만 닫힘 — reveal phase 는 명시적 close 만."
+    },
+    "page": "frontend/app/(dashboard)/admin/settings/dev-request-tokens/page.tsx — header (Key icon + title) + Issue Token 버튼 + table + loading spinner + revoke confirm (window.confirm).",
+    "nav": "frontend/app/(dashboard)/admin/settings/layout.tsx 의 subTabs 에 Intake Tokens (Key icon) 추가. /admin/settings/* 는 AuthGuard 가 system_admin 보호.",
+    "docs": "traceability §3 DREQ row IMPL 컬럼에 frontend intake_admin IMPL 추가 + development_roadmap §3 M5 entry — Admin-UI frontend ✅"
+  },
+  "verification": "npm run build PASS (26 static pages, /admin/settings/dev-request-tokens 포함). vitest 41 tests PASS.",
+  "next_carve": {
+    "3_4": "DREQ-E2E (sprint q) — Playwright spec (intake auth → admin issue → revoke; dashboard widget; promote-tx) + Vitest unit (IntakeTokenTable / IssueIntakeTokenModal 두 phase) + TC-DREQ-* 발급. promote-tx P2 carve out (race 가드 / failPromote dead field) 도 흡수 후보."
+  },
+  "decisions_log": [
+    "modal 2 phase 분리 — form / reveal. reveal phase 의 outside-click + ESC 는 닫히지 않게 (실수로 plain token 분실 차단).",
+    "allowed_ips 의 frontend 검증은 backend 신뢰 (clean + non-empty 체크 정도만). CIDR 정확성은 backend invalid_allowed_ips 응답으로 surface.",
+    "Badge variant='glass' 사용 — 기존 union type 의 한정 (default 없음).",
+    "page header 와 modal 의 색상은 orange (intake / DREQ 도메인 시그니처) 일관."
+  ]
+}

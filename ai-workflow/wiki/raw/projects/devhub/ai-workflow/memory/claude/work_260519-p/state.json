@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-p",
+  "branch": "claude/work_260519-p",
+  "status": "done",
+  "started_at": "2026-05-19T15:00:00Z",
+  "ended_at": "2026-05-19T15:30:00Z",
+  "merged_pr": 184,
+  "merge_commit": "4cc6f2a",
+  "scope": "잔여 사항 순서대로 진행 #2 — off-boarding Phase 1 운영 cron script (scripts/hrdb_etl_sync.sh) 신규. sprint -g design 의 옵션 C HR ETL → Keycloak Admin API push 구현. sprint -j codex review #9 정정 정합 (hrdb.persons no active / admin REST path /admin/realms/).",
+  "directive_source": "사용자 요청 '잔여 사항 진행하자. 순서대로 진행해' — sprint -o (CI lint) 종료 직후 #2 항목.",
+  "decisions": [
+    "scripts/hrdb_etl_sync.sh 신규 bash script — sprint -g design §3.1 + sprint -j codex review #9 정정 정합 (#7 admin REST /admin/realms/{realm}/ + #8 users.status UPDATE 직접).",
+    "필수 env 7개: HR_EXPORT_CMD / DEVHUB_DB_URL / KC_ISSUER_URL / KC_ADMIN_URL / KC_ADMIN_REALM (default devhub) / KC_ADMIN_CLIENT_ID (default devhub-backend) / KC_ADMIN_CLIENT_SECRET.",
+    "Step 1: client_credentials grant 으로 Keycloak admin token 획득.",
+    "Step 2: HR_EXPORT_CMD stdout 의 system_id list 순회 — psql users.status UPDATE + Keycloak user lookup + user disable + force logout 4단계.",
+    "error handling — failed count + exit 1 (cron 자동 재시도) + WARN/ERROR 분리.",
+    "Phase 2 carve = LDAP/AD federation 도입 시 본 script 폐기."
+  ],
+  "todo": [
+    "scripts/hrdb_etl_sync.sh 신규 (완료)",
+    "ADR-0019 §5.3 (7) off-boarding carve out 갱신 — Phase 1 운영 cron 실 구현 resolved 마킹",
+    "docs/planning/keycloak_offboarding_immediacy.md §3.1 — 본 script reference 추가",
+    "docs/traceability/report.md §6 sprint -p row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "bash syntax check (bash -n) + design reference 정합 + ADR-0019 carve out 정합."
+}

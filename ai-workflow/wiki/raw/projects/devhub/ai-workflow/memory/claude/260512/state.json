@@ -1,0 +1,10 @@
+{
+  "project": "DevHub",
+  "branch": "claude/260512",
+  "status": "done",
+  "last_updated": "2026-05-12T03:01:19Z",
+  "base_branch": "gemini/frontend_260510",
+  "base_head_at_close": "post-#67 squash merge",
+  "current_phase": "closed",
+  "context_summary": "PR #67 머지로 슬롯 종료. Post-hotfix follow-up 4 항목 (PS scripts + dual-shell hardening, M2 audit consumer UI, Kratos credentials_identifier O(1) fast path, 회귀 e2e 재검증) 모두 완료. gemini/frontend_260510 위에 PR #63-67 다섯 건이 머지된 상태. 다음 슬롯은 별도 브랜치에서 시작."
+}

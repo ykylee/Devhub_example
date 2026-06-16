@@ -1,0 +1,10 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-i",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "ceb0f6f",
+  "scope": "대형 묶음: B1 (account/org/command/audit/infra) + B2 (deprecated 마킹) + C1 (frontend Vitest) + C2 (TC 카탈로그, spec ts carve) + D5 (actionlint + ADR-0005)",
+  "updated_at": "2026-05-13T09:00:00Z"
+}

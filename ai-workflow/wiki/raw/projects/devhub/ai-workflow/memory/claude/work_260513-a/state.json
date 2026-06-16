@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-a",
+  "status": "IN PROGRESS. PR #86 (E2E CI 그린) 머지 직후 후속 sprint — A) main flat memory sync (#85/#86 반영), B) FU-CI-2/3/4 (playwright install scope, GHA cache, frontend readiness timeout).",
+  "updated_at": "2026-05-13T00:55:00Z",
+  "branched_from": {
+    "branch": "main",
+    "head_commit": "450cc24",
+    "head_summary": "ci: E2E 테스트 안정화 및 GitHub Actions CI 파이프라인 구축 (#86)"
+  },
+  "goal": "PR #86 머지 직후 main flat memory 를 두 머지 (#85, #86) 반영으로 sync + PR #86 의 work_backlog 에서 인계된 FU-CI-2/3/4 처리.",
+  "scope_in": [
+    "ai-workflow/memory/{state.json, session_handoff.md, work_backlog.md}: PR #85/#86 반영 + FU-CI-1 (no-docker 정책 결정) 후속 후보로 등재",
+    ".github/workflows/ci.yml: FU-CI-2 playwright install 범위 chromium 축소, FU-CI-3 actions/cache@v4 (Go mod + playwright browsers), FU-CI-4 Wait for App Readiness frontend timeout 120s 상향"
+  ],
+  "scope_out": [
+    "FU-CI-1 (no-docker policy 정합) — 정책 결정 필요, 별도 sprint",
+    "다른 next_actions 후보 (M4 진입, X-Request-ID validation 등) — 본 sprint 와 직교"
+  ],
+  "follow_ups_in_play": [
+    {"id": "FU-CI-2", "summary": "playwright install --with-deps chromium (bundled 다운로드 축소)"},
+    {"id": "FU-CI-3", "summary": "actions/cache@v4 — go-build, go-mod, ms-playwright"},
+    {"id": "FU-CI-4", "summary": "Wait for App Readiness frontend timeout 60s → 120s 분리 상향"}
+  ],
+  "next_actions": {
+    "immediate": "ci.yml 수정 + main flat memory sync → 단일 PR 생성 → 리뷰어 모드 2-pass → squash merge."
+  }
+}

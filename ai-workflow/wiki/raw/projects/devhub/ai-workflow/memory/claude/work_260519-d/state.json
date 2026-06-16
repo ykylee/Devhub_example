@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-d",
+  "branch": "claude/work_260519-d",
+  "status": "done",
+  "started_at": "2026-05-19T03:00:00Z",
+  "ended_at": "2026-05-19T03:55:00Z",
+  "merged_pr": {"pr": 172, "merge_commit": "d11917b", "merged_at": "2026-05-19T03:55:00Z"},
+  "scope": "ADR-0019 §5.3 SSO logout chain (RP-initiated logout) carve out 진입 — 현재 frontend 의 RP-initiated logout 표준 구현 (auth.service.ts:100-125) 의 운영 SOP 측면 명문화 + Keycloak admin console 의 post-logout redirect URI 등록 SOP.",
+  "directive_source": "사용자 요청 'ADR 19 진행하자' + carve 선택 'SSO logout chain (RP-initiated logout)' — sprint -c 종료 직후 §5.3 잔여 6 항목 중 코드 측면 진입 가능한 가장 자연스러운 다음 항목.",
+  "context": {
+    "frontend_current": "auth.service.ts:100-125 의 logout() 함수가 이미 RP-initiated 표준 패턴 구현 — Keycloak end_session_endpoint + client_id + post_logout_redirect_uri + id_token_hint + window.location.assign() 패턴.",
+    "backend_current": "Hydra/Kratos 흐름 모두 제거됨 (PR #167 KC-PR-D). backend 는 logout chain 에 직접 관여하지 않음 (Keycloak ↔ frontend 직접 chain).",
+    "scope_decision": "코드 측면은 이미 정합. 본 sprint = 운영 SOP 측면 명문화 (Keycloak admin console post_logout_redirect_uri 등록 SOP + chain order + tokenStore clear + admin force logout + 보안 점검)."
+  },
+  "decisions": [
+    "keycloak_operations.md §8 운영 SOP 의 sub-section 으로 §8.5 SSO logout chain 추가 — § 번호 shift 없는 reader-friendly 위치.",
+    "ADR-0019 §5.3 SSO logout chain carve out 항목 resolved 마킹 + SOP link. 잔여 §5.3 carve = 5 항목 (MFA / failover / off-boarding / groups → RBAC / audit event SPI).",
+    "PR #163 design 문서 keycloak_sso_federation.md §14 의 carve out 중 logout chain 부분이 옵션 A 환경에서도 유효한 reference 였음을 명시 — 본 작업이 그 reference 의 옵션 A 정합 적용."
+  ],
+  "todo": [
+    "docs/setup/keycloak_operations.md §8.5 SSO logout chain (RP-initiated logout) sub-section 신규",
+    "docs/adr/0019-keycloak-only-idp.md §5.3 logout chain carve 항목 resolved 갱신 + §6 변경 이력 sprint -d row",
+    "docs/traceability/report.md §6 변경 이력 sprint -d row",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "docs-only — workflow-lint + check_docs 그린. frontend 의 auth.service.ts:100-125 의 RP-initiated 구현은 PR #167 KC-PR-D 시점에 이미 정착됨 — 본 sprint 는 코드 변경 없음."
+}

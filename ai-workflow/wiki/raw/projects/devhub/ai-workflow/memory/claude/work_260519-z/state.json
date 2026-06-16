@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "sprint": "claude/work_260519-z",
+  "branch": "claude/work_260519-z",
+  "status": "done",
+  "started_at": "2026-05-20T01:00:00Z",
+  "ended_at": "2026-05-20T01:45:00Z",
+  "merged_pr": 194,
+  "merge_commit": "61dcbb4",
+  "scope": "main flat memory housekeeping — sprint -u~-y 5 PR (#189~#193) 누적 흡수 + ADR-0019 §5.3 (9) audit event listener Phase 2 종결 milestone 명문화. main flat state.json + session_handoff + work_backlog 갱신. sprint -u/-v/-w/-x/-y state finalize 5개. auto-memory entry 신규 + MEMORY.md.",
+  "directive_source": "사용자 요청 'main flat memory housekeeping 진행' — sprint -y closing 직후.",
+  "decisions": [
+    "main flat memory housekeeping pattern 정합 — sprint -b / -i / -n / -x 패턴 정합 (head_commit + merged_prs 추가 + milestone block 신규 + carve_out 표 갱신 + branch state finalize + auto-memory entry + MEMORY.md).",
+    "Phase 4 (sprint -u~-y) 5 PR 모두 같은 §5.3 (9) audit event listener 도메인이라 별도 milestone block (adr_0019_section_53_9_phase2_complete_milestone_2026_05_19) 신규로 응집 표현.",
+    "session_handoff 의 Phase 표 — Phase 4 (audit event listener Phase 2) + Phase 3 (critical fixes + backend 확장) 두 phase 표 병기로 시간순 정합.",
+    "work_backlog 변경 이력 row — sprint -o~-y 12 row 추가 (이전 sprint -n housekeeping 이후 누적).",
+    "branch state.json finalize — status: in_progress → done + ended_at + merged_pr + merge_commit 4 필드 추가."
+  ],
+  "todo": [
+    "ai-workflow/memory/state.json header + head_commit + merged_prs + milestone block + carve_out 표 갱신 (완료)",
+    "ai-workflow/memory/session_handoff.md header + Phase 4 표 + Phase 3 표 + 잔여 carve 갱신 (완료)",
+    "ai-workflow/memory/work_backlog.md milestone + 변경 이력 12 row (완료)",
+    "5 branch state.json finalize (완료)",
+    "auto-memory project_2026_05_19_phase4_section_53_9_complete.md 신규 + MEMORY.md entry (완료)",
+    "JSON 정합 검증 (완료 PASS)",
+    "commit + push + PR + 4단계 self-review"
+  ],
+  "verification": "node JSON.parse — main flat state.json + 5 branch state.json + sprint -z state.json 모두 OK. main HEAD `f3f640b` (sprint -y PR #193) 반영. Phase 4 milestone block 응집 표현 + Phase 3 critical fixes 표 + 잔여 5 carve (모두 사내 동반)."
+}

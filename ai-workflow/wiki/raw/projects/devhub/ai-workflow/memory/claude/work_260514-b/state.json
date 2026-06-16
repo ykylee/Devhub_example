@@ -1,0 +1,48 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260514-b",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "642d976",
+  "scope": "Application Design 2차 — A1+A2+A3 묶음. (A1) postgres_applications.go 의 16 store 메서드 본체 구현 + (A2) API-41~50 handler body + 요청 validation + 상태 전이 가드 (concept §13.2.1) + immutable key + audit emit + (A3) UT-application-store-XX + UT-application-handler-XX 1차. 직전 sprint claude/work_260514-a 의 carve_in (scaffolded) → 본 sprint 의 activation (body + 검증 + 테스트).",
+  "started_at": "2026-05-14T01:30:00Z",
+  "updated_at": "2026-05-14T02:30:00Z",
+  "status_detail": "A1+A2+A3 carve_in 완료. backend go test -count=1 ./... 12 패키지 PASS. PR open 대기.",
+  "traceability_impact": {
+    "REQ": "변경 없음 (REQ-FR-APP-001..012 / REQ-FR-PROJ-000..010 / REQ-NFR-PROJ-001..006 이미 발급)",
+    "ARCH": "신규 ARCH-18 후보 (Application Design Backend, body 도입 시점) — 본 sprint 에서 발급 검토",
+    "API": "API-41~50 scaffolded → activated (501 stub → 정식 응답 + 422/409 분기 + audit emit). API-51~58 planned 유지.",
+    "RM": "신규 RM 발급 검토 — Application Design body 도입을 별도 RM 코드로 등록할지",
+    "IMPL": "기존 IMPL-application-store-01 / handler-01 의 책임 확장 + 신규 sub-IMPL (예: IMPL-application-handler-status-transition-01)",
+    "UT": "신규 UT-application-store-XX (16+) + UT-application-handler-XX (10+) 발급",
+    "TC": "e2e 후속 carve out (다음 sprint)"
+  },
+  "carve_in": [
+    "postgres_applications.go body 16 메서드 (CRUD + UpdateSync + Archive)",
+    "API-41..50 handler body — body binding + 검증 + 상태 전이 가드 + immutable key + provider 검증 + audit emit",
+    "단위테스트 UT-application-store-XX + UT-application-handler-XX (1차, happy + edge)",
+    "RBAC denial 테스트 (developer/manager → 403, system_admin → 정상 + 422)",
+    "추적성 매트릭스 §2.2 (planned/scaffolded → activated) + §2.4 IMPL 갱신 + §6 변경 이력"
+  ],
+  "carve_out": [
+    "API-51..58 (Repository 운영 지표 + Project CRUD + 롤업 + Integration) 활성화",
+    "active → closed 의 critical 롤업 0건 가드 — 본 sprint 의 가드 미흡수 (롤업 store 의존, API-57 활성화 sprint 에서 함께 흡수). 현재 handler 는 active → closed 무조건 허용 → 운영자 수동 검증 필요. self-review I3 보강에서 backend_api_contract §13.2 PATCH 의 carve out 항목으로 prominent 표기.",
+    "e2e TC 작성",
+    "frontend `/admin/settings/applications` UI",
+    "실 SCM 어댑터 구현 (별도 Integration sprint)",
+    "ADR-0011 §4.2 enforceRowOwnership helper 1차 구현 (pmo_manager 활성화 sprint)",
+    "quality_snapshots idempotency 결정 — (a) UNIQUE 추가 vs (b) history retention (PR #105 self-review I1 인계 유지)"
+  ],
+  "next_actions": [
+    "T33 postgres_applications.go 16 메서드 구현",
+    "T34 handler body — listApplications/createApplication/getApplication/updateApplication/archiveApplication + Repo link + SCM provider + audit emit",
+    "T35 UT 작성 — store + handler",
+    "T36 매트릭스 동기 + commit + push + PR"
+  ],
+  "risks": [
+    "PR 크기 (~1500 lines) — 리뷰 부담. 분할 가능성 평가 후 결정.",
+    "상태 전이 가드의 검증 가드 (active→closed: critical 롤업 0건) 가 store body 의 sub-query 의존 — 1차 단순화 (전이 권한만, 가드 일부 carve out) 또는 본 sprint 흡수 결정 필요",
+    "audit emit 의 action 명명 (`application.list.requested` 등) — 기존 audit 매트릭스 (auth.* / account.* / command.*) 와 정합 + naming convention 확인"
+  ]
+}

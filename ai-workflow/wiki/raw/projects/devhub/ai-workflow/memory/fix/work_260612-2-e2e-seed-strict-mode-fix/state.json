@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "fix/work_260612-2-e2e-seed-strict-mode-fix",
+  "based_on": "main @ 5fb9ae75 (PR #573 머지 후)",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "phase": "N-13 follow-up A — Test 1 e2e seed 중복 strict mode violation fix",
+      "notes": "PR #548 (CLOSED) 의 E2E Internal 1 fail 2건 중 Test 1 e2e seed 중복 strict mode violation 정공법. `frontend/tests/e2e/repositories-ui.spec.ts:5, 7` 의 `repoALink` / `repoBLink` matcher 에 `.first()` 추가 (PR #573 의 N-13 follow-up A 결정)."
+    }
+  },
+  "scope": {
+    "files_changed": 1,
+    "tier": "사외 (frontend e2e spec, 사내 한정 정보 미포함)",
+    "new_ids_issued": 0,
+    "rationale": "e2e spec strict mode violation bypass via .first(). deterministic match. PR #548 close follow-up 3 branch 중 A 결정."
+  },
+  "files": [
+    "frontend/tests/e2e/repositories-ui.spec.ts"
+  ],
+  "root_cause_analysis": {
+    "test_1_symptom": "getByText('e2e-repo-a') 2 elements (strict mode violation)",
+    "root_cause": "repositories-ui.spec.ts:5 의 repoALink helper 가 `getByRole('link', { name: 'e2e-repo-a', exact: true })` 이고 `.first()` 미적용. E2E shard 실행 중 다른 spec 잔재 (예: e2e-repo-a3xd7) 가 동일 이름 link 를 2+ 개 만들면 strict mode violation.",
+    "fix": "repoALink 와 repoBLink 정의 자체에 `.first()` 추가. 기존 `repository-dashboard.spec.ts:71, 117` 의 동일 패턴 정합."
+  },
+  "followup_remaining": {
+    "test_2_signout_timeout": "Test 2 Sign-out timeout (N-8 race 유사) — main rebase + 자동 재실행 검증 별도 (PR #550 spec timing fix 가 해결 가능성 ↑) — 미해결 (별도 sprint 가능)",
+    "implementation_followup": "구현 follow-up = v1.1 milestone 진입 시점 별도 sprint (rebase main + PR #550 fix + 본 fix 종합 + 자동 재실행) — 미해결"
+  },
+  "head_commit": "TBD (PR 발행 시점)",
+  "pr_number": "TBD"
+}

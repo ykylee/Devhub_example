@@ -1,0 +1,42 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "fix/work_260612-3-n13-followup-b-test2-rebase",
+  "based_on": "main @ 896d9018 (PR #574 머지 후)",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "phase": "N-13 follow-up B — Test 2 Sign-out timeout rebase + 자동 재실행 검증",
+      "notes": "PR #548 (CLOSED) 의 E2E Internal 1 fail 2건 중 Test 2 정공법. main 의 PR #550 spec timing fix + PR #574 e2e seed fix 적용 후 main 의 e2e CI 가 자동 재실행 시 e2e shard 1/2/3 모두 PASS 하는지 검증. 검증 PR 의 본질 = main 의 e2e CI 안정성 evidence."
+    }
+  },
+  "scope": {
+    "files_changed": 5,
+    "tier": "공용 (docs only, 사내 한정 정보 미포함)",
+    "new_ids_issued": 0,
+    "rationale": "verification report + 메모리 동기화. 본 PR 의 e2e CI 결과 = main 의 e2e CI 자동 재실행 결과 (Test 2 자동 해결 검증)."
+  },
+  "files": [
+    "docs/validation/2026-06-12-n13-test2-rebase-verification.md (NEW)",
+    "docs/validation/N-10-manager-rbac.md (optional, follow-up cross-ref)",
+    "ai-workflow/memory/state.json (main HEAD 정합 + phase2_7th_chunk 추가)",
+    "ai-workflow/memory/fix/work_260612-3-n13-followup-b-test2-rebase/{state.json, session_handoff.md, work_backlog.md, backlog/2026-06-12.md} (NEW)"
+  ],
+  "verification_procedure": {
+    "test_2_symptom": "Test timeout of 30000ms exceeded (Sign-out flow, N-8 race 유사)",
+    "root_cause_candidates": [
+      "screenshots.spec.ts:66 의 30s default timeout",
+      "logout flow 의 network race (backend 204/401/502 분기 + frontend window.location.assign('/login') 강제 redirect)"
+    ],
+    "expected_fix_sources": [
+      "PR #550 (E2E spec timing fix, MERGED 2026-06-11) — spec waitForURL / waitForSelector timeout 30s → buffer 추가",
+      "PR #574 (N-13 follow-up A, MERGED 2026-06-12) — strict mode violation bypass"
+    ],
+    "expected_ci_result": "e2e shard 1/2/3 모두 PASS (main 의 e2e CI 가 자동 재실행 시)"
+  },
+  "followup_remaining": {
+    "implementation_followup": "구현 follow-up = v1.1 milestone 진입 시점 별도 sprint (rebase main + PR #550 fix + 본 verification 종합 + 자동 재실행)"
+  },
+  "head_commit": "TBD (PR 발행 시점)",
+  "pr_number": "TBD"
+}

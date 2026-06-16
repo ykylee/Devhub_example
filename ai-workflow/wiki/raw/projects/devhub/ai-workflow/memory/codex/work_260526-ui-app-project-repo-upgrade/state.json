@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "codex/work_260526-ui-app-project-repo-upgrade",
+  "status": "in_progress",
+  "updated_at": "2026-05-26T14:20:00Z",
+  "focus": "UI 운영 고도화 (Application/Project/Repository)",
+  "current_scope": [
+    "2.1 상세 페이지 mock 제거 완료",
+    "2.2 관리 액션 no-op 제거 완료",
+    "2.3 공통 상태 UI(loading/error/empty/retry) 목록+상세 페이지 적용 완료",
+    "상세 카드 하드코딩 텍스트 일부를 실데이터 기반으로 치환 (build success/quality/tasks/due date)",
+    "/devhub basePath 도커 E2E 환경 구성 및 검증"
+  ],
+  "validation": {
+    "frontend_lint": "pass",
+    "frontend_build": "pass",
+    "frontend_e2e": "pass (docker /devhub stack: admin-applications, admin-projects, project-model-modes, repositories-ui, repositories-ui-negative, repositories-detail-negative, applications-projects-detail-negative)"
+  },
+  "changed_files": [
+    "docs/planning/ui_app_project_repo_upgrade_plan.md",
+    "frontend/components/ui/PageState.tsx",
+    "frontend/app/(dashboard)/applications/page.tsx",
+    "frontend/app/(dashboard)/repositories/page.tsx",
+    "frontend/app/(dashboard)/projects/page.tsx",
+    "frontend/app/(dashboard)/applications/[id]/page.tsx",
+    "frontend/app/(dashboard)/repositories/[id]/page.tsx",
+    "frontend/app/(dashboard)/projects/[id]/page.tsx",
+    "frontend/components/project/ProjectTable.tsx",
+    "frontend/components/project/RepositoryTable.tsx",
+    "frontend/app/(dashboard)/admin/settings/applications/page.tsx",
+    "frontend/tests/e2e/repositories-ui.spec.ts",
+    "frontend/tests/e2e/repositories-ui-negative.spec.ts",
+    "frontend/tests/e2e/repositories-detail-negative.spec.ts",
+    "frontend/tests/e2e/applications-projects-detail-negative.spec.ts"
+  ]
+}

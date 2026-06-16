@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "claude/work_260513-h",
+  "status": "in_progress",
+  "base_branch": "main",
+  "base_commit": "594be74",
+  "scope": "B4: X-Devhub-Actor 폐기 ADR-0004 발급 + 문서 잔재 정리 + 매트릭스 §5.3 closing",
+  "updated_at": "2026-05-13T08:00:00Z",
+  "files_in_scope": [
+    "docs/adr/0004-x-devhub-actor-removal.md",
+    "docs/adr/0001-idp-selection.md",
+    "docs/architecture.md",
+    "backend-core/internal/httpapi/me.go",
+    "docs/traceability/report.md",
+    "ai-workflow/memory/state.json",
+    "ai-workflow/memory/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md"
+  ]
+}

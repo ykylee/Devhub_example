@@ -1,0 +1,565 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changed-paths:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+      workflow: ${{ steps.filter.outputs.workflow }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect file changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend-core/**'
+              - 'backend-ai/**'
+              - 'proto/**'
+              - 'Makefile'
+            frontend:
+              - 'frontend/**'
+              - 'proto/**'
+              - 'Makefile'
+            e2e:
+              - 'backend-core/**'
+              - 'backend-ai/**'
+              - 'frontend/**'
+              - 'infra/idp/**'
+              - 'tests/**'
+              - 'Makefile'
+            workflow:
+              - '.github/workflows/**'
+
+  workflow-lint:
+    # ADR-0005: CI workflow YAML 의 정합성을 actionlint 로 머지 직전에 강제한다.
+    # 별도 잡으로 분리해 다른 잡의 실패가 lint 결과를 가리지 않도록 한다.
+    name: Workflow Lint (actionlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run actionlint
+        uses: raven-actions/actionlint@v2
+
+  migration-prefix-lint:
+    name: Migration Prefix Uniqueness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration prefixes are unique
+        run: bash ./scripts/check-migration-uniqueness.sh
+
+  openapi-yaml-lint:
+    # ADR-0029 §6 (d) P2 — openapi.yaml CI lint gate. 4 항목:
+    # yaml safe_load + semver + paths count + contract.md cross-link.
+    # migration-prefix-lint 와 동일 패턴 (별도 잡 + bash script + workflow
+    # 변경 시만). backend-core 변경 시 + docs/openapi.yaml 변경 시 모두
+    # 트리거 — backend 변경 시 openapi.yaml 같이 갱신된다는 ADR-0029 §3.2
+    # 결정 정합. frontend 변경 시엔 skip (openapi 영향 없음).
+    name: OpenAPI YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PyYAML (system python lacks the module on ubuntu-latest)
+        # FU-CI-3: ubuntu-24.04 runners ship without PyYAML by default. pip
+        # install --user avoids touching system packages (PEP 668 restrict).
+        # Pin to PyYAML 6.0.x (last release supporting py3.8+; safe_load /
+        # safe_dump semantics unchanged from 5.x).
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --quiet "PyYAML>=6.0,<7"
+          echo "PyYAML version:"
+          python3 -c "import yaml; print(yaml.__version__)"
+      - name: Check openapi.yaml lint
+        run: bash ./scripts/check-openapi-yaml-lint.sh
+
+  backend-unit:
+    name: Backend Unit Tests
+    runs-on: ubuntu-latest
+    needs: [changed-paths]
+    if: needs.changed-paths.outputs.backend == 'true' || needs.changed-paths.outputs.workflow == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false
+      # FU-CI-3: go-build / module cache. setup-go@v5 caches modules when a
+      # go.sum is at the repo root, but here the module lives in backend-core/.
+      # Explicit cache keys make the cache work for both jobs.
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Test
+        run: make test
+
+  backend-integration:
+    name: Backend Integration Tests
+    runs-on: ubuntu-latest
+    needs: [changed-paths]
+    # sprint gemini/work_260528-code-cleanup — 3대 레이어 / 4대 계층 디렉터리 이관
+    # 중 integration test 컴파일 회귀 다수 발생. 리팩토링 정리가 끝날 때까지
+    # integration job 일시 비활성화. 복원 시 본 `&& false` 만 제거하면 됨.
+    if: (needs.changed-paths.outputs.backend == 'true' || needs.changed-paths.outputs.workflow == 'true')
+    # PR #109 의 23 integration test (DEVHUB_TEST_DB_URL gate) 를 native PG 15
+    # 환경에서 실 실행 — backend-unit job 은 skip 만 하므로 회귀 가드가 무효였음.
+    # PR #110 (sprint claude/work_260514-f) 신설.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Setup PostgreSQL (native, PG 15)
+        # ADR-0003: no-docker policy — e2e job 의 동일 step 패턴 (pgdg apt repo +
+        # 5432 cluster reset) 재사용. trust auth on loopback 은 CI 전용.
+        run: |
+          set -euo pipefail
+          sudo systemctl stop postgresql 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          codename=$(lsb_release -cs)
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${codename}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-15
+          sudo pg_dropcluster --stop 15 main 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          sudo pg_createcluster --start --port=5432 15 main
+          sudo -u postgres psql -c "CREATE USER runner SUPERUSER;"
+          sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;"
+          conf=/etc/postgresql/15/main/pg_hba.conf
+          sudo sed -i -E 's|^(host\s+all\s+all\s+127\.0\.0\.1/32)\s+\S+|\1 trust|' "$conf"
+          sudo sed -i -E 's|^(host\s+all\s+all\s+::1/128)\s+\S+|\1 trust|' "$conf"
+          sudo pg_ctlcluster 15 main restart
+          timeout 30s bash -c 'until pg_isready -h 127.0.0.1 -p 5432; do sleep 1; done'
+
+      - name: Apply migrations
+        # PR #110 codex P1 — /usr/local/bin 는 GitHub-hosted Linux runner 에서 보통
+        # 일반 user 가 쓰기 가능한 환경이지만, sudo + 명시적 GOBIN env 로 권한
+        # 의존을 제거. backend-integration job 의 동일 패턴과 정합.
+        run: |
+          set -euo pipefail
+          sudo GOBIN=/usr/local/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+          migrate -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
+
+      - name: Run integration tests
+        env:
+          DEVHUB_TEST_DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
+        # -v 로 verbose 출력. tee 로 분기해서 GITHUB_STEP_SUMMARY 에도 적재 —
+        # raw log endpoint 가 일부 위치에서 접근 timeout 인 경우에도 PR 페이지
+        # 의 Summary 탭에서 fail 메시지를 즉시 확인 (PR #110 sprint 진단에서
+        # 발견한 endpoint 차단 우회).
+        run: |
+          set +e
+          cd backend-core
+          go test -count=1 -v -run 'TestIntegration_' ./internal/store/... | tee /tmp/integration-test.log
+          exit_code=${PIPESTATUS[0]}
+          {
+            echo "## Backend Integration Test Results"
+            echo ""
+            echo '<details><summary>Click to expand full log (last 300 lines)</summary>'
+            echo ""
+            echo '```'
+            tail -300 /tmp/integration-test.log
+            echo '```'
+            echo ""
+            echo '</details>'
+            echo ""
+            if [ "$exit_code" -ne 0 ]; then
+              echo "**Failures (FAIL lines):**"
+              echo '```'
+              grep -E "^--- FAIL|FAIL\b" /tmp/integration-test.log || echo "(grep returned non-zero — see full log)"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$exit_code"
+
+  frontend-unit:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    needs: [changed-paths]
+    if: needs.changed-paths.outputs.frontend == 'true' || needs.changed-paths.outputs.workflow == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: cd frontend && npm ci
+      - name: Test
+        run: make test-frontend
+
+  e2e-smoke-build:
+    name: E2E Smoke Build Artifacts
+    runs-on: ubuntu-latest
+    needs: [changed-paths]
+    if: needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Node dependencies
+        run: cd frontend && npm ci
+      - name: Build backend + frontend
+        run: |
+          set -euo pipefail
+          (cd backend-core && CGO_ENABLED=0 go build -o ../devhub-backend ./)
+          (cd frontend && npm run build)
+      - name: Build migrate tool
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/e2e-tools/bin
+          GOBIN=/tmp/e2e-tools/bin go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+      - name: Package E2E artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/e2e-artifacts
+          tar -C "$GITHUB_WORKSPACE" -czf /tmp/e2e-artifacts/devhub-backend.tgz devhub-backend
+          tar -C "$GITHUB_WORKSPACE/frontend" -czf /tmp/e2e-artifacts/frontend-next.tgz .next
+          tar -C /tmp/e2e-tools -czf /tmp/e2e-artifacts/e2e-tools.tgz bin
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-backend-${{ github.sha }}
+          path: /tmp/e2e-artifacts/devhub-backend.tgz
+          retention-days: 1
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-frontend-next-${{ github.sha }}
+          path: /tmp/e2e-artifacts/frontend-next.tgz
+          retention-days: 1
+      - name: Upload E2E tools artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-tools-${{ github.sha }}
+          path: /tmp/e2e-artifacts/e2e-tools.tgz
+          retention-days: 1
+
+  e2e-smoke:
+    name: E2E Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [changed-paths, e2e-smoke-build]
+    if: (needs.changed-paths.outputs.e2e == 'true' || needs.changed-paths.outputs.workflow == 'true')
+    # ADR-0003: no-docker policy. Native postgresql-15 is installed below in
+    # the "Setup PostgreSQL (native)" step so this job stays consistent with
+    # the prod deployment shape (test-server-deployment.md §1.2). The earlier
+    # `services: postgres:15` sidecar container was removed.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PostgreSQL (native)
+        # ADR-0003: install postgresql-15 from the official pgdg apt repo so
+        # the CI postgres matches prod (PG 15) and the no-docker policy holds
+        # at the CI layer. trust auth on localhost is CI-only (loopback never
+        # leaves the runner). `runner` matches the user the rest of the job
+        # uses in DB_URL strings (set in Start Backend env).
+        run: |
+          set -euo pipefail
+          # ubuntu-24.04 runners ship with a preinstalled PostgreSQL 14
+          # cluster occupying port 5432. postgresql-common's postinst skips
+          # auto-creating the new pg-15 cluster when 5432 is taken, which
+          # leaves us with "cluster '15 main' does not exist" and a missing
+          # socket. Drop the pg-14 cluster first so pg-15 owns 5432.
+          sudo systemctl stop postgresql 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          # pgdg apt repo + signing key.
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          codename=$(lsb_release -cs)
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${codename}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-15
+          # postgres-common 의 postinst 가 자동 생성한 15/main 이 다른 cluster /
+          # 잔여 socket 의 5432 점유로 5433 으로 만들어진 사례 관찰 (run
+          # 25774911487 의 pg_lsclusters 출력). 명시적으로 drop + 5432 재생성.
+          # drop 은 cluster 부재 시 silently no-op.
+          sudo pg_dropcluster --stop 15 main 2>/dev/null || true
+          sudo pg_dropcluster --stop 14 main 2>/dev/null || true
+          sudo pg_createcluster --start --port=5432 15 main
+          pg_lsclusters
+          sudo -u postgres psql -c "CREATE USER runner SUPERUSER;"
+          sudo -u postgres psql -c "CREATE DATABASE devhub OWNER runner;"
+          # CI-only trust auth on localhost so DB_URL (no password) connects.
+          conf=/etc/postgresql/15/main/pg_hba.conf
+          sudo sed -i -E 's|^(host\s+all\s+all\s+127\.0\.0\.1/32)\s+\S+|\1 trust|' "$conf"
+          sudo sed -i -E 's|^(host\s+all\s+all\s+::1/128)\s+\S+|\1 trust|' "$conf"
+          sudo pg_ctlcluster 15 main restart
+          timeout 30s bash -c 'until pg_isready -h 127.0.0.1 -p 5432; do sleep 1; done'
+      
+      # FU-CI-3: cache the same paths as backend-unit so reused.
+      - name: Cache Go build + module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('backend-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install Node dependencies
+        run: cd frontend && npm ci
+
+      # FU-CI-3: cache the Playwright browser bundles. Keyed on the lockfile
+      # because the @playwright/test version drives the bundle revision.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # FU-CI-2 + FU-CI-3: split system deps (apt) from browser bundle so the
+      # cache actually saves time. apt always runs (~5-10 s, no fresh runner
+      # has the libs). The browser install step is skipped on cache hit, which
+      # avoids the ~100 MB download. Browsers are scoped to `chromium`
+      # because playwright.config.ts only declares the chromium project (with
+      # channel="chrome").
+      - name: Install Playwright system deps
+        run: cd frontend && npx playwright install-deps chromium
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: cd frontend && npx playwright install chromium
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-backend-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Download frontend build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-frontend-next-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Download E2E tools artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-tools-${{ github.sha }}
+          path: /tmp/e2e-artifacts
+
+      - name: Restore E2E build artifacts
+        run: |
+          set -euo pipefail
+          tar -C "$GITHUB_WORKSPACE" -xzf /tmp/e2e-artifacts/devhub-backend.tgz
+          chmod +x "$GITHUB_WORKSPACE/devhub-backend"
+          rm -rf "$GITHUB_WORKSPACE/frontend/.next"
+          tar -C "$GITHUB_WORKSPACE/frontend" -xzf /tmp/e2e-artifacts/frontend-next.tgz
+          sudo tar -C /usr/local -xzf /tmp/e2e-artifacts/e2e-tools.tgz
+      
+      - name: Start Keycloak (container)
+        run: |
+          set -euo pipefail
+          image="quay.io/keycloak/keycloak:26.0"
+          realm_import="$GITHUB_WORKSPACE/infra/idp/keycloak-realm.ci.json"
+          # Keycloak 25.0 호환: KC_BOOTSTRAP_ADMIN_* (26+ 표준) + legacy
+          # KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD (25.x 표준) 동시 주입.
+          # docker-compose.deploy.yml:117-121 의 양쪽 env 패턴과 정합.
+          # ADR-0022 의 26.0 → 25.0 retreat 후속 — 25.0 컨테이너가 legacy env
+          # 만 admin user bootstrap 인식하므로 KC_BOOTSTRAP_* 만으로는 admin
+          # 미생성 → 이후 admin-cli token 401 → realm setup step fail.
+          for attempt in 1 2 3; do
+            if docker pull "$image"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "failed to pull $image after $attempt attempts"
+              exit 1
+            fi
+            echo "docker pull retry $attempt/3 for $image"
+            sleep $((attempt * 5))
+          done
+          docker run -d --name devhub-keycloak \
+            -p 8180:8080 \
+            -v "${realm_import}:/opt/keycloak/data/import/devhub-realm.json:ro" \
+            --add-host=host.docker.internal:host-gateway \
+            -e DEVHUB_BACKEND_SPI_WEBHOOK_URL=http://host.docker.internal:8080/api/v1/internal/keycloak-events \
+            -e DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET=test-spi-webhook-token-12345 \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+            -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            -e KEYCLOAK_ADMIN=admin \
+            -e KEYCLOAK_ADMIN_PASSWORD=admin \
+            -e KC_HTTP_RELATIVE_PATH=/devhub/auth/keycloak \
+            "$image" start-dev --import-realm --http-enabled=true --hostname-strict=false > /tmp/keycloak-container-id
+
+      - name: Wait for imported Keycloak realm
+        # PR #579 (sprint `feat/work_260612-7-v1-1-inbound-source-impl`) 7-step 정공법:
+        # 7회 연속 shard 3/3 fail 의 chronic flake 정공법 — Keycloak startup race 가
+        # shard 시작 시 120s 를 초과할 수 있어 timeout 300s + retry 5회 (5*30s) 로 늘림.
+        # GitHub Actions runner 의 transient network issue (curl: (56) Recv failure)
+        # 가 shard 3/3 에서 일관되게 fail. Keycloak container 가 결국 5-10분 ready
+        # 가능성 있어 충분한 buffer 확보.
+        run: |
+          set -euo pipefail
+          base="http://localhost:8180/devhub/auth/keycloak"
+          for attempt in 1 2 3 4 5; do
+            if timeout 60s bash -c "until curl -fsS \"$base/realms/devhub/.well-known/openid-configuration\" >/dev/null; do sleep 2; done"; then
+              echo "Keycloak realm ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "Keycloak realm not ready (attempt $attempt/5), retrying in 30s..."
+            sleep 30
+          done
+          echo "Keycloak realm never became ready after 5 attempts"
+          exit 1
+      
+      - name: Apply app migrations
+        run: |
+          set -euo pipefail
+          migrate -path backend-core/migrations -database "postgres://runner@localhost:5432/devhub?sslmode=disable" up
+
+      - name: Validate E2E-CI Sync Contract
+        run: bash ./scripts/ci-e2e-sync-check.sh .github/workflows/ci.yml
+      
+      - name: Start Backend
+        env:
+          # backend-core reads DB_URL (see internal/config/config.go), not DSN.
+          DB_URL: postgres://runner@localhost:5432/devhub?sslmode=disable
+          DEVHUB_IDP_PROVIDER: keycloak
+          DEVHUB_OIDC_ISSUER_URL: http://localhost:8180/devhub/auth/keycloak/realms/devhub
+          DEVHUB_OIDC_CLIENT_ID: devhub-frontend
+          DEVHUB_OIDC_AUDIENCE: devhub-frontend
+          DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
+          DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: secret-change-me-backend
+        run: |
+          ./devhub-backend > backend.log 2>&1 &
+      
+      - name: Start Frontend
+        env:
+          NEXT_PUBLIC_OIDC_ISSUER_URL: http://localhost:8180/devhub/auth/keycloak/realms/devhub
+          NEXT_PUBLIC_OIDC_CLIENT_ID: devhub-frontend
+        run: |
+          cd frontend
+          npm run start > ../frontend.log 2>&1 &
+      
+      - name: Wait for App Readiness
+        # FU-CI-4: split the backend/frontend waits. Backend keeps 60s (fast).
+        # Frontend uses Next.js 16 `next start` which cold-boots in 30-50s on
+        # ubuntu-latest, so 60s was tight and prone to flake; 120s buys a
+        # comfortable margin without blowing up the overall job time.
+        run: |
+          timeout 60s bash -c 'until curl -s http://localhost:8080/health; do sleep 1; done'
+          timeout 120s bash -c 'until curl -s http://localhost:3000/; do sleep 1; done'
+      
+      - name: Run E2E Tests
+        run: |
+          cd frontend
+          mapfile -t smoke_specs < <(../scripts/select-playwright-specs.sh smoke)
+          if [ "${#smoke_specs[@]}" -eq 0 ]; then
+            echo "No smoke specs selected."
+            exit 0
+          fi
+          npx playwright test \
+            --reporter=github,html \
+            "${smoke_specs[@]}"
+        env:
+          DSN: postgres://runner@localhost:5432/devhub?sslmode=disable
+          DEVHUB_KEYCLOAK_ADMIN_URL: http://localhost:8180/devhub/auth/keycloak
+          DEVHUB_KEYCLOAK_ADMIN_REALM: devhub
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_ID: devhub-backend
+          DEVHUB_KEYCLOAK_ADMIN_CLIENT_SECRET: secret-change-me-backend
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke
+          path: frontend/playwright-report/
+          retention-days: 30
+
+      # P0-3 (sprint -h, issue #211): UI screenshot 자산을 디자인 review
+      # source 로 업로드. screenshots.spec.ts 가 캡처한 18 페이지 png 를
+      # CI artifact 로 노출하여 Gemini (UI polish) 와 사용자가 디자인 issue
+      # 발견에 사용. release_v1_roadmap.md §8.2 참조.
+      - name: Upload UI Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots-smoke
+          path: frontend/test-results/screenshots/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-logs-smoke
+          path: "*.log"

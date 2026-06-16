@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "project": "DevHub Example",
+  "branch": "fix/work_260611-e-e2e-spec-timing-stabilize",
+  "milestones": {
+    "M-v1.0": {
+      "status": "in_progress",
+      "e2e_spec_timing_stabilize": [
+        "PR #548 (N-13 backend foundation) 의 E2E Internal 3 spec fail 보완 — frontend only spec timing 안정화 (repositories-ui + repository-dashboard + signout)",
+        "fixtures.ts: waitForSignInForm 옵션에 timeoutMs 추가 (default 30s, opt-in 45_000)",
+        "repositories-ui.spec.ts:41: getByText(\"devhub/e2e-repo-a\") timeout 15s→20s + regex selector robust",
+        "repository-dashboard.spec.ts:115: getByText(\"e2e-repo-a\") timeout 20s 유지 + regex selector robust",
+        "signout.spec.ts:59, 80, 109: 3 call site 에 timeoutMs 45_000 추가 (CI race 환경에서 30s 도 fail 가능 → 45s)"
+      ]
+    }
+  },
+  "components": {},
+  "session_pointers": {
+    "session_handoff_path": "ai-workflow/memory/fix/work_260611-e-e2e-spec-timing-stabilize/session_handoff.md",
+    "work_backlog_path": "ai-workflow/memory/fix/work_260611-e-e2e-spec-timing-stabilize/work_backlog.md",
+    "backlog_dir": "ai-workflow/memory/fix/work_260611-e-e2e-spec-timing-stabilize/backlog/",
+    "main_state": "ai-workflow/memory/state.json",
+    "main_handoff": "ai-workflow/memory/session_handoff.md",
+    "main_backlog": "ai-workflow/memory/work_backlog.md",
+    "pr_548": "feat/work_260611-a-n13-inbound-source-impl (OPEN, E2E Internal 1 fail)"
+  },
+  "next_actions": {
+    "merge_pr": [
+      "본 PR 머지 후 PR #548 (N-13 backend foundation) 의 E2E Internal 3 spec fail 안정화 — main flat memory 3 file finalize"
+    ],
+    "post_merge": [
+      "PR #548 머지 결정 (사용자 confirm)",
+      "PR A-2 (routing/auto_route.go + voc_handler 통합 + openapi.yaml)",
+      "T-d-72-3~6 + Phase 3 (my_harness 일임)"
+    ]
+  }
+}
