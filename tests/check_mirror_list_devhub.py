@@ -177,7 +177,7 @@ def test_mirror_scope_compliance():
         _fail(name, f"exception: {e}")
 
 
-# ----- 4. mirror-list.md doc consistency (15 pattern claim) -----
+# ----- 4. mirror-list.md doc consistency (15 pattern claim + Phase breakdown) -----
 def test_mirror_list_doc_consistency():
     name = "test_mirror_list_doc_consistency"
     try:
@@ -190,6 +190,24 @@ def test_mirror_list_doc_consistency():
                 name,
                 '"15 패턴" claim missing from mirror-list.md header. '
                 "Phase 1+1.5+3 의 7+6+2 = 15 가 문서와 정합해야.",
+            )
+        # Phase 1 / 1.5 / 3 breakdown 추출 — single line regex (L186 area)
+        breakdown = re.search(
+            r"Phase 1\s*=\s*(\d+)\s*\*?\*?\s*패턴\s*\+\s*Phase 1\.5\s*=\s*(\d+)\s*\*?\*?\s*패턴\s*\+\s*Phase 3\s*=\s*(\d+)\s*\*?\*?\s*패턴:?",
+            text,
+        )
+        if not breakdown:
+            return _fail(
+                name,
+                "Phase 1+1.5+3 breakdown line missing in mirror-list.md. "
+                'expected "Phase 1 = N 패턴 + Phase 1.5 = M 패턴 + Phase 3 = K 패턴" format.',
+            )
+        p1, p15, p3 = int(breakdown.group(1)), int(breakdown.group(2)), int(breakdown.group(3))
+        if (p1, p15, p3) != (7, 6, 2):
+            return _fail(
+                name,
+                f"Phase breakdown drift: Phase 1 = {p1} + Phase 1.5 = {p15} + Phase 3 = {p3} "
+                f"≠ (7, 6, 2). list_sources 의 source-of-truth 와 doc breakdown mismatch.",
             )
         # wiki-sync-devhub.sh 의 L90 docstring "15 패턴" claim 도 verify
         if WIKI_SYNC.is_file():

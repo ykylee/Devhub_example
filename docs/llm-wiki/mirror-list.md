@@ -183,7 +183,7 @@
 
 ## 2. mirror 실행 정책 (script 의 source list, Phase 1.5+3 추가)
 
-`scripts/wiki-sync-devhub.sh` 의 mirror 실행 시 다음 15 패턴으로 file 매칭 (Phase 1 = 7 패턴 + Phase 1.5 = 5 패턴 + Phase 3 = 3 패턴):
+`scripts/wiki-sync-devhub.sh` 의 mirror 실행 시 다음 15 패턴으로 file 매칭 (Phase 1 = 7 패턴 + Phase 1.5 = 6 패턴 + Phase 3 = 2 패턴)
 
 | # | 패턴 | mirror source | mirror target |
 |---|---|---|---|
