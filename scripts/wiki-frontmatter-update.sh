@@ -31,6 +31,9 @@ VAULT_ROOT="${SRC}/ai-workflow/wiki"
 RAW_DIR="$VAULT_ROOT/raw/projects/devhub"
 WIKI_SOURCES="$VAULT_ROOT/sources"
 MANIFEST="$RAW_DIR/_manifest.md"
+# L1 5 dir: sources/ 외 in-repo L1 page 5 dir 도 provenance 자동 반영 대상.
+# (PR #622 follow-up: L1 page 의 provenance 6 field 부재 해소)
+L1_DIRS_BASH="concepts decisions entities patterns topics"
 
 # ----- validation -----
 if [[ ! -f "$MANIFEST" ]]; then
@@ -53,7 +56,10 @@ import glob
 RAW_DIR = "$RAW_DIR"
 WIKI_SOURCES = "$WIKI_SOURCES"
 MANIFEST = "$MANIFEST"
-
+VAULT_ROOT = "$VAULT_ROOT"
+# L1_DIRS_BASH: space-separated L1 dir name list (bash → Python).
+# (PR #622 follow-up: L1 page 의 provenance 6 field 부재 해소)
+L1_DIRS = "$L1_DIRS_BASH".split()
 # ----- extract provenance from manifest -----
 with open(MANIFEST) as f:
     content = f.read()
@@ -78,10 +84,17 @@ print(f"  commit: {COMMIT_SHORT} ({BRANCH}) {DIRTY}")
 print(f"  version: system={VERSION_SYSTEM} workflow={VERSION_WORKFLOW}")
 print(f"  sync: {SYNC_TS}")
 
-# ----- update each wiki sources/ page's frontmatter -----
+# ----- collect target pages: L2 sources/ (recursive) + L1 5 dir (flat) -----
+# (PR #622 follow-up: L1 page 의 provenance 6 field 부재 해소)
+TARGETS: list[str] = []
+TARGETS += glob.glob(f"{WIKI_SOURCES}/**/*.md", recursive=True)
+for l1_dir in L1_DIRS:
+    TARGETS += glob.glob(f"{VAULT_ROOT}/{l1_dir}/*.md")
+
+# ----- update each target page's frontmatter -----
 UPDATED = 0
 SKIPPED = 0
-for page_path in sorted(glob.glob(f"{WIKI_SOURCES}/**/*.md", recursive=True)):
+for page_path in sorted(TARGETS):
     fname = os.path.basename(page_path)
     if fname == "_manifest.md":
         continue

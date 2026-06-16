@@ -7,6 +7,12 @@ created: 2026-06-15
 updated: 2026-06-15
 active_since: 2026-06-15
 active_reason: "DevHub v0.1.0 의 1차 IdP. v0.7.17 vendor import 후에도 본 저장소 의 *in-repo* 운영 정합"
+git_commit: cac63f35
+git_branch: main
+version_system: v0.1.1-alpha
+version_workflow: v0.5.11-beta
+last_touched: 2026-06-16T04:49:13Z
+mirror_dirty: |
 ---
 
 # Keycloak IAM (L1 entity, in-repo)

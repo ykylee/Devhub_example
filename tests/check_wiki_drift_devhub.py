@@ -86,7 +86,23 @@ def validate_l1_pages(inrepo_wiki: Path) -> tuple[int, list[str]]:
     REQUIRED_FIELDS = ("type", "status", "created", "updated")
     DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
     L1_DIRS = ("concepts", "decisions", "entities", "patterns", "topics")
+    # Provenance 6 field (PR #622 follow-up): mirror manifest 의 commit/version/timestamp
+    # 정보를 L1 page 도 보유. 형식 검증은 soft (존재만 권장, 형식 위반은 warn).
+    PROVENANCE_FIELDS = (
+        "git_commit",
+        "git_branch",
+        "version_system",
+        "version_workflow",
+        "last_touched",
+        "mirror_dirty",
+    )
+    PROVENANCE_GIT_COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
+    PROVENANCE_VERSION_RE = re.compile(r"^v?\d+\.\d+\.\d+(-[a-z0-9.]+)?$")
+    PROVENANCE_LAST_TOUCHED_RE = re.compile(
+        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$"
+    )
     issues: list[str] = []
+    warns: list[str] = []
     for md in inrepo_wiki.rglob("*.md"):
         if md.name in ("index.md", "RAW_MIRROR_MANIFEST.md"):
             continue
@@ -124,8 +140,36 @@ def validate_l1_pages(inrepo_wiki: Path) -> tuple[int, list[str]]:
                     f"{md.name}: invalid {date_field} date format: {v!r} "
                     f"(expected YYYY-MM-DD)"
                 )
+        # Provenance 6 field: 형식 검증은 soft (존재 시 format 만 확인, fail 안 함).
+        # wiki-frontmatter-update.sh 가 자동 갱신하므로 정상 운영 시 모두 존재.
+        # 수동 작성 / vendor import / 이전 PR 의 page 에 누락 시 warn 으로 안내.
+        for prov_field in PROVENANCE_FIELDS:
+            v = field_map.get(prov_field)
+            if v is None:
+                warns.append(
+                    f"{md.name}: missing provenance {prov_field} "
+                    "(run scripts/wiki-frontmatter-update.sh)"
+                )
+                continue
+            # 형식 검증 (soft — 위반 시 warn)
+            if prov_field == "git_commit" and not PROVENANCE_GIT_COMMIT_RE.match(v):
+                warns.append(
+                    f"{md.name}: provenance {prov_field}={v!r} not 7-40 char hex"
+                )
+            elif prov_field in ("version_system", "version_workflow") and not PROVENANCE_VERSION_RE.match(v):
+                warns.append(
+                    f"{md.name}: provenance {prov_field}={v!r} not semver-ish"
+                )
+            elif prov_field == "last_touched" and not PROVENANCE_LAST_TOUCHED_RE.match(v):
+                warns.append(
+                    f"{md.name}: provenance {prov_field}={v!r} "
+                    "not ISO 8601 UTC (YYYY-MM-DDTHH:MM:SSZ)"
+                )
+            # git_branch / mirror_dirty: 자유 형식, 형식 검증 skip
+    # warn 은 issue 가 아니므로 issue_count 는 0 유지. 호출자가 warn 별도 처리 가능.
+    # (현재 main() 의 호출자는 issue_count 만 검사하므로 warn 은 silent.)
+    # 향후 별도 channel (stderr 또는 별도 반환) 필요 시 확장.
     return (len(issues), issues)
-
 
 
 def test_wiki_cross_reference_consistency() -> None:
