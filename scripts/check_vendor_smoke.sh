@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check_vendor_smoke.sh — vendor (standard_ai_workflow) 동기화 시 2종 smoke 회귀.
+# check_vendor_smoke.sh — vendor (standard_ai_workflow) 동기화 시 4종 smoke 회귀.
 #
 # 사용:
 #   bash scripts/check_vendor_smoke.sh          # real check (default)
@@ -10,7 +10,7 @@
 #   - vendor/standard_ai_workflow/.upstream-url (vendor metadata)
 #   - ai-workflow/wiki/RAW_MIRROR_MANIFEST.md (raw mirror 운영 가이드)
 #
-# 본 script 가 호출하는 3종 smoke:
+# 본 script 가 호출하는 4종 smoke:
 #   1. tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py (DevHub invariant 5/5)
 #      - 본 저장소 의 in-repo path 정합 + 6 dir + memory/log.md + WIKI_SOURCES flat
 #   2. vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py (vendor smoke 11/11)
@@ -19,12 +19,16 @@
 #      - emit_wiki_l2_devhub.py (self) + emit_wiki_l2_devhub_vendor.py (vendor monkey-patch)
 #      의 자체 smoke 15 test (help, dry-run, apply, idempotent, L1 discovery, L2 shape,
 #      source arg, max-chars, limit, cross-emit logical equivalence)
+#   4. tests/check_wiki_ingest_devhub.py (wiki-ingest wrapper smoke 3/3, PR #606 follow-up)
+#      - wiki-ingest-from-raw.sh 의 wrapper smoke (dry-run self/vendor 분기, --apply vendor
+#      의 false-positive byte-identical 검출 — 3 scenario: full body / 일부 placeholder /
+#      single-file mode. runtime ~60s)
 #
-# 합 31/31 PASS 가 본 script 의 정공법.
+# 합 34/34 PASS 가 본 script 의 정공법.
 # vendor release (v0.7.17 → v0.7.18+) 동기화 시 본 script 로 회귀 0 확인 필수.
 #
 # Exit code:
-#   0 — 3종 smoke 모두 PASS (31/31)
+#   0 — 4종 smoke 모두 PASS (34/34)
 #   1 — 1종 이상 FAIL
 #   2 — python3 부재 또는 script 부재
 
@@ -80,6 +84,17 @@ if [[ ! -f "$SMOKE3" ]]; then
   exit 2
 fi
 
+# ----- smoke 4: wiki-ingest wrapper smoke (3/3, PR #606 P1 follow-up) -----
+# wiki-ingest-from-raw.sh 의 wrapper smoke. --apply --emit-tool vendor 의 false-positive
+# byte-identical 검출 (PR #606 P1 fix) + dry-run 의 self/vendor 분기 (PR #606 P2 fix) 검증.
+# 3 scenario (full body / 일부 placeholder / single-file mode) 모두 exit 1 + false-positive
+# message raise. runtime ~60s.
+SMOKE4="$REPO_ROOT/tests/check_wiki_ingest_devhub.py"
+if [[ ! -f "$SMOKE4" ]]; then
+  echo "[check-vendor-smoke] error: smoke 4 not found: $SMOKE4" >&2
+  exit 2
+fi
+
 # ----- run -----
 PASS1=0
 FAIL1=0
@@ -87,6 +102,8 @@ PASS2=0
 FAIL2=0
 PASS3=0
 FAIL3=0
+PASS4=0
+FAIL4=0
 
 if [[ $QUIET -eq 1 ]]; then
   echo "[check-vendor-smoke] smoke 1/3: tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py"
@@ -106,6 +123,12 @@ if [[ $QUIET -eq 1 ]]; then
     PASS3=1
   else
     FAIL3=1
+  fi
+  echo "[check-vendor-smoke] smoke 4/4: tests/check_wiki_ingest_devhub.py"
+  if python3 "$SMOKE4" >/dev/null 2>&1; then
+    PASS4=1
+  else
+    FAIL4=1
   fi
 else
   echo "[check-vendor-smoke] === smoke 1/3: DevHub invariant (5/5 expected) ==="
@@ -131,6 +154,14 @@ else
   else
     FAIL3=1
   fi
+  echo ""
+  echo "[check-vendor-smoke] === smoke 4/4: wiki-ingest wrapper smoke (3/3 expected) ==="
+  echo ""
+  if python3 "$SMOKE4"; then
+    PASS4=1
+  else
+    FAIL4=1
+  fi
 fi
 
 # ----- summary -----
@@ -139,9 +170,10 @@ echo "[check-vendor-smoke] === summary ==="
 echo "  smoke 1 (DevHub invariant):    $([[ $PASS1 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 5/5)"
 echo "  smoke 2 (vendor in-repo):      $([[ $PASS2 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 11/11)"
 echo "  smoke 3 (emit 도구 self+vendor): $([[ $PASS3 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 15/15)"
-echo "  total: $([[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 ]] && echo '31/31 PASS' || echo 'FAIL')"
+echo "  smoke 4 (wiki-ingest wrapper):   $([[ $PASS4 -eq 1 ]] && echo 'PASS' || echo 'FAIL') (expected 3/3)"
+echo "  total: $([[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 && $PASS4 -eq 1 ]] && echo '34/34 PASS' || echo 'FAIL')"
 
-if [[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 ]]; then
+if [[ $PASS1 -eq 1 && $PASS2 -eq 1 && $PASS3 -eq 1 && $PASS4 -eq 1 ]]; then
   exit 0
 else
   exit 1
