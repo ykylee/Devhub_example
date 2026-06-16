@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { DomainPicker, type DomainEntity } from "@/shared/ui-foundation/components/DomainPicker";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { projectService } from "@/domain/platform-lifecycle/service/project.service";
 import type { Project } from "@/domain/platform-lifecycle/schema/project.types";
@@ -116,6 +117,13 @@ export default function TestManagementPage() {
   // CI/Automation states
   const [ciRepos, setCiRepos] = useState<any[]>([]);
   const [ciLoading, setCiLoading] = useState(false);
+
+  // Sprint D — DomainPicker entity fetch (kpi-tests-per-domain-scope.md §6.4).
+  // Repository scope 만 실제 fetch (Sprint A 활성화). Platform/Project 는
+  // Sprint B/C 와 함께 fetch 추가. 실패 시 picker 가 에러 표시.
+  const [repositories, setRepositories] = useState<DomainEntity[]>([]);
+  const [reposLoading, setReposLoading] = useState(true);
+  const [reposError, setReposError] = useState<string | null>(null);
 
   // Filter & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -229,6 +237,31 @@ export default function TestManagementPage() {
         .finally(() => setCiLoading(false));
     }
   }, [selectedProjectId]);
+
+  // Sprint D — DomainPicker repositories fetch. 1차 mount 시 1회만.
+  useEffect(() => {
+    let cancelled = false;
+    setReposLoading(true);
+    setReposError(null);
+    repositoryService.listRepositories()
+      .then((repos) => {
+        if (cancelled) return;
+        setRepositories(
+          repos.map((r) => ({ id: String(r.id), name: r.full_name, description: r.clone_url })),
+        );
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setReposError(err instanceof Error ? err.message : "Failed to load repositories");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setReposLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const saveSchedules = (updated: TestSchedule[]) => {
     setSchedules(updated);
@@ -356,8 +389,18 @@ export default function TestManagementPage() {
 
   return (
     <div className="space-y-10 pb-20 px-4 md:px-8">
+      {/* Sprint D — kpi-tests-per-domain-scope.md §6.4 Domain picker. Repository
+          scope 만 실제 entity list fetch (Sprint A 활성화). Platform/Project 는
+          Sprint B/C 와 함께 fetch 추가. */}
+      <DomainPicker
+        defaultScope="repository"
+        repositories={repositories}
+        loading={reposLoading}
+        error={reposError}
+      />
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <DashboardHeader 
+        <DashboardHeader
           titlePrefix="Test"
           titleGradient="Management Suite"
           subtitle="테스트 케이스 설계, 실행 주기 수립, 그리고 결과 분석 일정을 조율합니다."

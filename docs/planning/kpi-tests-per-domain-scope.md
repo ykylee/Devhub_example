@@ -206,6 +206,8 @@ const systemMenu: MenuItem[] = [
 - `frontend/app/(dashboard)/kpis/page.tsx` 에 도메인 picker (Repository/Project/Platform select) 추가
 - `frontend/app/(dashboard)/tests/page.tsx` 동일
 
+**Sprint D status (2026-06-16)**: **in_progress** (branch `chore/260616-sprint-d-sidebar-picker`, PR TBD). Sprint A 정합법 + 1차 진입 완료. 후속 (Sprint B/C sub-section + Sprint E legacy 결정) 는 follow-up PR.
+
 ### 6.5 Sprint E: 글로벌 페이지 옵션 B/C 결정 + legacy 정리
 
 - 옵션 A (deprecated) vs B (cross-reference picker) vs C (legacy) 결정 후 처리
@@ -228,3 +230,5 @@ const systemMenu: MenuItem[] = [
 |---|---|---|
 | 2026-06-15 | 본 컨셉 초안 — KPI/Tests 위치 정공법 (도메인 scope 별 sub-section) + sidebar 재구성 + 5 sprint 진입 hook | (TBD) |
 | 2026-06-15 | **Sprint A (Repository sub-section) implemented** — PR #597 (squash `25f2262e`) 머지 완료. 24 file, +1946/-23 line. Backend 2 endpoint (`GET /api/v1/repositories/:id/kpi` + `/test-results`) + `routePermissionTable` 등록 + parseWindowShort helper + `BuildRunListOptions.WindowFrom/To` filter + frontend 2 component (RepositoryKPISection + RepositoryTestsSection) + `ManagerView.tsx` inline 배치 + openapi.yaml +86 path (84 → 86) + test_cases.md (예정) + memory 4 file. 4 follow-up P1/P2 (lucide-react import 닫기, routePermissionTable 등록, ?window=Nd parsing, build-runs window filter) 동시 squash. | `feat/x-repository-kpi-tests-section` (PR #597) |
+| 2026-06-16 | **Sprint A follow-up 회귀 가드** — PR #625 (squash `71a227b6`) 머지 완료. 6 file, +755/-10 line. 4 unit test (fetchRepositoryKPI/fetchRepositoryTestResults + RepositoryKPISection/RepositoryTestsSection) + 1 e2e (`repository-kpi-tests-section.spec.ts`, `TC-REPO-KPI-TESTS-01`) + test_cases.md 4 row `[x]` + 변경 이력 row. | `chore/260616-sprint-a-tests-followup` (PR #625) |
+| 2026-06-16 | **Sprint D 1차 진입 — Sidebar `analyticsMenu` 분리 + 글로벌 페이지 도메인 picker** — branch `chore/260616-sprint-d-sidebar-picker` 작업 중. (1) `frontend/shared/ui-foundation/layout/Sidebar.tsx` — `baseMenu` 에서 KPIs/Tests 제거 + `analyticsMenu` 별도 그룹 (Analytics 섹션 헤더 + 모든 사용자 접근). (2) `frontend/shared/ui-foundation/components/DomainPicker.tsx` (NEW) — scope tab (Platform/Project/Repository) + entity list + 미준비 scope 'sub-section 예정' 배지. Repository scope 만 ready=true (Sprint A 활성화), Project/Platform 은 Sprint B/C 와 함께 fetch 추가. (3) `/kpis` + `/tests` 페이지 상단에 picker 통합 (legacy 본문은 그대로 유지, 회귀 0). (4) DomainPicker unit test 8 case. (5) Sprint D status row 추가. 본 Sprint D 는 picker + Sidebar 의 1차 진입. Sprint B (Project sub-section) + Sprint C (Platform sub-section) + Sprint E (legacy 결정) 는 follow-up. | `chore/260616-sprint-d-sidebar-picker` (TBD) |

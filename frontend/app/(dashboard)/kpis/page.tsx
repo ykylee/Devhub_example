@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
+import { DomainPicker, type DomainEntity } from "@/shared/ui-foundation/components/DomainPicker";
+import { repositoryService } from "@/domain/repository-integration/service/repository.service";
 
 interface KPIItem {
   id: string;
@@ -105,6 +107,37 @@ export default function KPIDashboardPage() {
   const [denominator, setDenominator] = useState<keyof typeof DATA_SOURCES>("total_platforms");
   const [singleSource, setSingleSource] = useState<keyof typeof DATA_SOURCES>("open_pull_requests");
   const [pythonCode, setPythonCode] = useState("");
+
+  // Sprint D — DomainPicker entity fetch (kpi-tests-per-domain-scope.md §6.4).
+  // Repository scope 만 실제 fetch (Sprint A 활성화). Platform/Project 는 Sprint
+  // B/C 와 함께 fetch 추가. 실패 시 picker 가 에러 표시.
+  const [repositories, setRepositories] = useState<DomainEntity[]>([]);
+  const [reposLoading, setReposLoading] = useState(true);
+  const [reposError, setReposError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setReposLoading(true);
+    setReposError(null);
+    repositoryService.listRepositories()
+      .then((repos) => {
+        if (cancelled) return;
+        setRepositories(
+          repos.map((r) => ({ id: String(r.id), name: r.full_name, description: r.clone_url })),
+        );
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setReposError(err instanceof Error ? err.message : "Failed to load repositories");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setReposLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("devhub-custom-kpis");
@@ -263,8 +296,18 @@ export default function KPIDashboardPage() {
 
   return (
     <div className="space-y-10 pb-20 px-4 md:px-8">
+      {/* Sprint D — kpi-tests-per-domain-scope.md §6.4 Domain picker. Repository
+          scope 만 실제 entity list fetch (Sprint A 활성화). Platform/Project 는
+          Sprint B/C 와 함께 fetch 추가. */}
+      <DomainPicker
+        defaultScope="repository"
+        repositories={repositories}
+        loading={reposLoading}
+        error={reposError}
+      />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <DashboardHeader 
+        <DashboardHeader
           titlePrefix="KPI"
           titleGradient="Performance Dashboard"
           subtitle="실시간 품질 및 생산성 핵심 성과 지표(KPI)를 정의하고 자유롭게 배치합니다."
