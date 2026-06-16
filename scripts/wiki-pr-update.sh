@@ -227,13 +227,18 @@ fi
 
 if [[ $DRY_RUN -eq 0 ]]; then
   # apply: prs/<num>.md + log.md + index.md 갱신
-  PR_NUM="$PR_NUM" PROJECT="$PROJECT" PR_JSON_TMP="$PR_JSON_TMP" TOUCHED_FILES_TMP="$TOUCHED_FILES_TMP" VAULT_ROOT="$VAULT_ROOT" LOG_TARGET="$LOG_TARGET" IDEMPOTENCY_KEY="$IDEMPOTENCY_KEY" python3 <<'PYEOF'
+  PR_NUM="$PR_NUM" PROJECT="$PROJECT" PR_JSON_TMP="$PR_JSON_TMP" TOUCHED_FILES_TMP="$TOUCHED_FILES_TMP" VAULT_ROOT="$VAULT_ROOT" LOG_TARGET="$LOG_TARGET" IDEMPOTENCY_KEY="$IDEMPOTENCY_KEY" SCRIPT_DIR="$SCRIPT_DIR" python3 <<'PYEOF'
 """wiki-pr-update in-repo: prs/<num>.md + log.md + index.md 갱신."""
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+# atomic_write helper (v0.7.15 follow-up D) — partial write 시 원본 보존
+sys.path.insert(0, os.environ["SCRIPT_DIR"])
+from atomic_write import atomic_append_text  # noqa: E402
 
 pr_num = os.environ["PR_NUM"]
 project = os.environ["PROJECT"]
@@ -296,12 +301,18 @@ last_ingested_from: gh pr view {pr_num}
 """
 pr_page.write_text(content, encoding="utf-8")
 
-# log.md append
+# log.md append (atomic, v0.7.15 follow-up D + #607 follow-up, P1 race fix)
+# 기존 atomic_write_text(read+append+os.replace) 는 동시 실행 시 lost update.
+# atomic_append_text (O_APPEND + fsync) 로 교체.
 log_target.parent.mkdir(parents=True, exist_ok=True)
 ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 log_line = f"[{ts}] pr-update | PR #{pr_num} | {pr.get('headRefOid', 'unknown')[:7]} | state={pr.get('state', 'unknown')} | files={len(touched)} | idem={idem}"
-with open(log_target, "a", encoding="utf-8") as f:
-    f.write(log_line + "\n")
+try:
+    atomic_append_text(log_target, log_line + "\n")
+except OSError:
+    # fallback (Windows 등): atomic_append_text 미동작 시
+    with open(log_target, "a", encoding="utf-8") as f:
+        f.write(log_line + "\n")
 
 # index.md 갱신 (prs 섹션)
 index_path = vault / "index.md"
