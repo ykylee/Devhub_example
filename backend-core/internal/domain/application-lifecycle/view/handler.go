@@ -89,6 +89,13 @@ type PlatformStore interface {
 	// 측에서 JSON 직렬화 시 window/limit 정규화.
 	ListProjectTestResults(context.Context, string, store.BuildRunListOptions) (domain.ProjectWeightedTestResults, int, error)
 
+	// Platform sub-project rollup — Sprint C (kpi-tests-per-domain-scope.md §6.3).
+	// platform 의 N개 sub-project 의 가중치 적용 metric 종합 (sub-project equal
+	// average) + multi-project recent. projectKPI/projectTestResults 와 정공법
+	// 분리 (weight 정공법이 다름 — sub-project 균등 vs sub-repo 가중치).
+	ComputePlatformWeightedKPI(context.Context, string, store.BuildRunListOptions) (domain.PlatformWeightedKPI, error)
+	ListPlatformTestResults(context.Context, string, store.BuildRunListOptions) (domain.PlatformWeightedTestResults, int, error)
+
 	// Application 롤업
 	ComputePlatformRollup(context.Context, string, domain.PlatformRollupOptions) (domain.PlatformRollup, error)
 	CountPlatformCriticalWarnings(context.Context, string) (int, error)

@@ -20,6 +20,7 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { DomainPicker, type DomainEntity } from "@/shared/ui-foundation/components/DomainPicker";
 import { repositoryService } from "@/domain/repository-integration/service/repository.service";
 import { projectService } from "@/domain/platform-lifecycle/service/project.service";
+import { platformService } from "@/domain/platform-lifecycle/service/platform.service";
 
 interface KPIItem {
   id: string;
@@ -111,10 +112,12 @@ export default function KPIDashboardPage() {
 
   // Sprint D — DomainPicker entity fetch (kpi-tests-per-domain-scope.md §6.4).
   // Repository scope + Project scope (Sprint B 1차) + Project scope 활성화
-  // (Sprint B follow-up — projectService.listAllProjects 통합). Platform 은
-  // Sprint C 와 함께 추가. 실패 시 picker 가 에러 표시.
+  // (Sprint B follow-up — projectService.listAllProjects 통합) + **Platform
+  // scope 활성화 (Sprint C, platformService.listPlatforms 통합)**. 실패 시
+  // picker 가 에러 표시.
   const [repositories, setRepositories] = useState<DomainEntity[]>([]);
   const [projects, setProjects] = useState<DomainEntity[]>([]);
+  const [platforms, setPlatforms] = useState<DomainEntity[]>([]);
   const [reposLoading, setReposLoading] = useState(true);
   const [reposError, setReposError] = useState<string | null>(null);
 
@@ -124,6 +127,7 @@ export default function KPIDashboardPage() {
     setReposError(null);
     // Sprint B follow-up — listAllProjects (standalone + per-platform 통합) 으로
     // Project scope 활성화. PR #626 (Sprint D) 에서 placeholder 였던 부분 실 fetch.
+    // Sprint C — listPlatforms 추가, DomainPicker 의 Platform scope 활성화.
     Promise.all([
       repositoryService.listRepositories(),
       projectService.listAllProjects().catch((err) => {
@@ -132,14 +136,25 @@ export default function KPIDashboardPage() {
         console.warn("[kpis] listAllProjects failed:", err);
         return [];
       }),
+      platformService.listPlatforms().catch((err) => {
+        console.warn("[kpis] listPlatforms failed:", err);
+        return [];
+      }),
     ])
-      .then(([repos, projList]) => {
+      .then(([repos, projList, platList]) => {
         if (cancelled) return;
         setRepositories(
           repos.map((r) => ({ id: String(r.id), name: r.full_name, description: r.clone_url })),
         );
         setProjects(
           projList.map((p) => ({
+            id: p.id,
+            name: p.name,
+            description: p.key,
+          })),
+        );
+        setPlatforms(
+          platList.map((p) => ({
             id: p.id,
             name: p.name,
             description: p.key,
@@ -323,6 +338,7 @@ export default function KPIDashboardPage() {
         defaultScope="repository"
         repositories={repositories}
         projects={projects}
+        platforms={platforms}
         loading={reposLoading}
         error={reposError}
       />

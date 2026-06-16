@@ -253,6 +253,12 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// §6.2 follow-up). projectKPI 와 동일 Resource/Action (projects:view). 신규
 	// route 의 row 미등록 시 deny-by-default 회귀 가드 정합.
 	{http.MethodGet, "/api/v1/projects/:project_id/test-results"}: {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	// Platform sub-project rollup (Sprint C — kpi-tests-per-domain-scope.md §6.3).
+	// platformKPI + platformTestResults 동일 Resource/Action (platforms:view,
+	// 기존 /platforms/:id/rollup 와 정합). 신규 route 의 row 미등록 시 deny-by-default
+	// 회귀 가드 정합.
+	{http.MethodGet, "/api/v1/platforms/:platform_id/kpi"}:           {Resource: domain.ResourcePlatforms, Action: domain.ActionView},
+	{http.MethodGet, "/api/v1/platforms/:platform_id/test-results"}: {Resource: domain.ResourcePlatforms, Action: domain.ActionView},
 
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},

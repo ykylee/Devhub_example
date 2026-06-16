@@ -2693,6 +2693,205 @@ paths:
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
 
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms/{platform_id}/kpi — Platform sub-project rollup KPI (Sprint C)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}/kpi:
+    get:
+      tags:
+        - Platform
+      summary: "Platform sub-project rollup KPI (sub-project equal average)"
+      operationId: getPlatformKPI
+      description: |
+        단일 platform 의 N개 sub-project 의 raw metric 을 sub-project 단위 **equal**
+        average 로 종합. kpi-tests-per-domain-scope.md §2.3 (Platform sub-section) +
+        §6.3 (Sprint C). 데이터 소스: projects.platform_id + 각 sub-project 의
+        linked repository 의 quality_snapshots + build_runs + pr_activities.
+
+        정공법 (Sprint B 의 ProjectWeightedKPI 와 정공법 분리 — sub-project 단위):
+          - per_project_X = sub-project 의 N개 linked repository 의 raw metric 종합
+            (각 sub-project 별 contribution_weight 가중평균).
+          - platform weighted_X = AVG(per_project_X) (sub-project 균등).
+          - total_build_run_count / open_pr_count / merged_pr_count / active_contributor_count
+            = Σ (sub-project 무관, 단순 합산).
+          - linked_project_count = 0 인 경우 모든 weighted metric 0.0 + weighted_at
+            = now (sub-project 0 시 가중치 계산 회피).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID (UUID)"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window start (RFC3339). default 30d ago"
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window end (RFC3339). default now"
+      responses:
+        "200":
+          description: "Platform sub-project rollup KPI"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  platform_id: "pl-1"
+                  window_from: "2026-05-16T00:00:00Z"
+                  window_to: "2026-06-15T00:00:00Z"
+                  weighted_quality_score: 85.0
+                  weighted_build_success_rate: 0.9
+                  total_build_run_count: 100
+                  open_pr_count: 5
+                  merged_pr_count: 15
+                  active_contributor_count: 8
+                  linked_project_count: 3
+                  weighted_at: "2026-06-15T00:00:00Z"
+                request_id: "req_pl_kpi"
+                trace_id: "trace_pl_kpi"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/platforms/{platform_id}/test-results — Platform sub-project rollup Tests (Sprint C)
+  # ---------------------------------------------------------------------------
+  /api/v1/platforms/{platform_id}/test-results:
+    get:
+      tags:
+        - Platform
+      summary: "Platform sub-project rollup Test Results (sub-project equal average pass rate + multi-project recent)"
+      operationId: getPlatformTestResults
+      description: |
+        단일 platform 의 N개 sub-project 의 build_runs status 를 종합 + equal
+        average pass rate + multi-project recent. kpi-tests-per-domain-scope.md
+        §2.3 follow-up + §6.3 (Sprint C). 데이터 소스: projects.platform_id +
+        각 sub-project 의 project_repositories + build_runs (ci_runs table).
+
+        정공법 (Sprint B-Tests 의 projectTestResults 와 정합 — sub-project 단위만 다름):
+          - weighted_pass_rate = AVG(per_project_weighted_pass_rate) (sub-project 균등).
+            각 sub-project 별 denom=0 → null (sub-project 의 linked repo 0 또는 모든 build 가
+            queued/running/cancelled/skipped/unknown).
+          - totals = N개 sub-project 의 build_runs status 합산 (sub-project 무관, 단순 count).
+          - recent = 모든 sub-project 의 build_runs 최신순 limit (multi-project, project_full_name
+            + repository_full_name 표시 — ProjectBuildRun 의 상위 확장).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: platform_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Platform ID (UUID)"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window start (RFC3339). default 30d ago"
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window end (RFC3339). default now"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: "Recent runs limit (default 20, max 50)"
+      responses:
+        "200":
+          description: "Platform sub-project rollup Test Results"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  platform_id: "pl-1"
+                  window_from: "2026-05-16T00:00:00Z"
+                  window_to: "2026-06-15T00:00:00Z"
+                  weighted_pass_rate: 0.93
+                  totals:
+                    success: 145
+                    failed: 8
+                    running: 1
+                    cancelled: 2
+                    skipped: 0
+                    queued: 0
+                    unknown: 0
+                  recent:
+                    - id: 100
+                      project_id: "p-001"
+                      project_full_name: "API Modernization"
+                      repository_id: 1
+                      repository_full_name: "org/repo-a"
+                      run_external_id: "ext-100"
+                      branch: "main"
+                      commit_sha: "feedface"
+                      status: "success"
+                      started_at: "2026-06-15T01:00:00Z"
+                      finished_at: "2026-06-15T01:02:00Z"
+                    - id: 99
+                      project_id: "p-002"
+                      project_full_name: "UI Refresh"
+                      repository_id: 2
+                      repository_full_name: "org/repo-b"
+                      run_external_id: "ext-99"
+                      branch: "feat/x"
+                      commit_sha: "badfeed"
+                      status: "failed"
+                      started_at: "2026-06-15T00:30:00Z"
+                      finished_at: "2026-06-15T00:31:00Z"
+                meta:
+                  total: 156
+                  limit: 20
+                request_id: "req_pl_tests"
+                trace_id: "trace_pl_tests"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
 # =============================================================================
 # P1 — SCM Provider
 # =============================================================================
