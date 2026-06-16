@@ -131,11 +131,30 @@ def _patched_extract_l1_body(l1_path: Path, max_chars: int = 2000) -> str:
     return body[:max_chars] + "\n\n…(truncated)"
 
 
-def _patched_build_emit_body(l1_path: Path, today: str, max_chars: int = 2000, mode: str = "l1") -> str:
+def _patched_build_emit_body(l1_path: Path | None, today: str, max_chars: int = 2000, mode: str = "l1") -> str:
     """vendor 의 build_emit_body 의 closure* (RAW_MIRROR) 가 우리 DevHub 의 L1_BASE_REAL 이 되도록
     *RAW_MIRROR 의 closure capture* 의 우리 wrapper 가 monkey-patch 후의 *RAW_MIRROR* (= 우리
     L1_BASE_REAL) 의 relative_to 가 정합.
+
+    l1_path 가 None 인 경우 (metadata-only / orphan L2) 는 body 만 metadata-only 양식으로
+    반환 — frontmatter 는 호출자 (_patched_main apply loop) 가 별도 preserve.
     """
+    if l1_path is None:
+        # metadata-only body: L1 SSOT 부재 / orphan. 본문 placeholder 만.
+        return (
+            f"# (metadata-only, {today})\n"
+            "\n"
+            "> **L1 SSOT**: (no matching L1 page — metadata-only candidate)\n"
+            "> 본 L2 는 L1 SSOT 부재 / orphan. L1 작성 후 `--apply --mode l1` 로 본문 emit.\n"
+            "\n"
+            "## TL;DR\n"
+            "\n"
+            "(no TL;DR — L1 SSOT 부재)\n"
+            "\n"
+            "## Source\n"
+            "\n"
+            "- 본 wrapper: `scripts/emit_wiki_l2_devhub_vendor.py`\n"
+        )
     title = l1_path.stem.replace("-", " ").title()
     l1_line_count = sum(1 for _ in l1_path.open(encoding="utf-8"))
     # vendor 의 build_emit_body 의 line 154 의 RAW_MIRROR.parts.index("raw") + 2 — 우리
