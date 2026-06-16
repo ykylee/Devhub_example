@@ -289,6 +289,108 @@ WHERE repository_id = $1 AND occurred_at >= $2 AND occurred_at < $3`
 	return open, merged, nil
 }
 
+// --- Project 가중치 rollup (Sprint B — kpi-tests-per-domain-scope.md §2.2 + §6.2) ---
+
+// ComputeProjectWeightedKPI 는 project 의 N개 linked repository 의 raw metric 을
+// contribution_weight 로 가중평균한 ProjectWeightedKPI 를 반환.
+//
+// 가중치 정공법:
+//   - WeightedQualityScore = Σ(quality_score_i × weight_i) / Σ(weight_i)
+//   - WeightedBuildSuccess = Σ(build_success_rate_i × weight_i) / Σ(weight_i)
+//   - TotalBuildRunCount = Σ(build_run_count_i) — 단순 합산
+//   - ActiveContributorCount = Σ(distinct contributors_i) — 단순 합산
+//
+// linked_repository_count = 0 인 경우: 모든 가중치 metric = 0 (NULLIF → division by 0 회피).
+// quality_snapshot 없거나 build_run 없는 repo 는 해당 metric 만 NULL → 0 으로 COALESCE.
+func (s *PostgresStore) ComputeProjectWeightedKPI(ctx context.Context, projectID string, opts RepositoryActivityOptions) (domain.ProjectWeightedKPI, error) {
+	if opts.WindowFrom.IsZero() {
+		opts.WindowFrom = time.Now().UTC().AddDate(0, 0, -30)
+	}
+	if opts.WindowTo.IsZero() {
+		opts.WindowTo = time.Now().UTC()
+	}
+	const query = `
+SELECT
+  COUNT(*)::int AS linked_repo_count,
+  COALESCE(SUM(latest_quality.score * pr.contribution_weight) / NULLIF(SUM(pr.contribution_weight), 0), 0)::float8 AS weighted_quality_score,
+  COALESCE(SUM(activity.build_success_rate * pr.contribution_weight) / NULLIF(SUM(pr.contribution_weight), 0), 0)::float8 AS weighted_build_success_rate,
+  COALESCE(SUM(activity.build_run_count), 0)::int AS total_build_run_count,
+  COALESCE(SUM(activity.active_contributor_count), 0)::int AS total_active_contributors
+FROM project_repositories pr
+JOIN repositories r ON r.id = pr.repository_id
+LEFT JOIN LATERAL (
+  SELECT score FROM quality_snapshots qs
+  WHERE qs.repository_id = r.id
+  ORDER BY measured_at DESC LIMIT 1
+) latest_quality ON true
+LEFT JOIN LATERAL (
+  SELECT
+    COALESCE(SUM(CASE WHEN br.status = 'success' THEN 1 ELSE 0 END)::float / NULLIF(COUNT(*), 0), 0) AS build_success_rate,
+    COUNT(*)::int AS build_run_count,
+    COUNT(DISTINCT br.commit_author)::int AS active_contributor_count
+  FROM build_runs br
+  WHERE br.repository_id = r.id
+    AND COALESCE(br.started_at, br.created_at) >= $2
+    AND COALESCE(br.started_at, br.created_at) < $3
+) activity ON true
+WHERE pr.project_id = $1::uuid`
+
+	var (
+		linkedRepoCount   int
+		weightedQuality   float64
+		weightedBSR       float64
+		totalBuildRuns    int
+		totalContributors int
+	)
+	if err := s.pool.QueryRow(ctx, query, projectID, opts.WindowFrom, opts.WindowTo).Scan(
+		&linkedRepoCount, &weightedQuality, &weightedBSR, &totalBuildRuns, &totalContributors,
+	); err != nil {
+		return domain.ProjectWeightedKPI{}, fmt.Errorf("compute project weighted kpi: %w", err)
+	}
+
+	return domain.ProjectWeightedKPI{
+		ProjectID:              projectID,
+		WindowFrom:             opts.WindowFrom.UTC(),
+		WindowTo:               opts.WindowTo.UTC(),
+		WeightedQualityScore:   weightedQuality,
+		WeightedBuildSuccess:   weightedBSR,
+		TotalBuildRunCount:     totalBuildRuns,
+		ActiveContributorCount: totalContributors,
+		LinkedRepositoryCount:  linkedRepoCount,
+		WeightedAt:             time.Now().UTC(),
+	}, nil
+}
+
+// CountProjectOpenAndMergedPRs 는 project 의 N개 linked repository 의 open/merged
+// PR 을 contribution_weight 로 가중평균. Sprint B §2.2.
+//
+// 정공법: 각 repo 의 (open_i, merged_i) × weight_i → Σ(weighted). 단순 카운트가 아닌
+// 가중치 적용 (정수 반올림). linked_repo 0 → (0, 0).
+func (s *PostgresStore) CountProjectOpenAndMergedPRs(ctx context.Context, projectID string, from, to time.Time) (int, int, error) {
+	const query = `
+SELECT
+  COALESCE(SUM(pr_stats.open_count * pr.contribution_weight), 0)::float8 AS weighted_open,
+  COALESCE(SUM(pr_stats.merged_count * pr.contribution_weight), 0)::float8 AS weighted_merged
+FROM project_repositories pr
+LEFT JOIN LATERAL (
+  SELECT
+    COUNT(DISTINCT number) FILTER (WHERE event_type = 'opened')::float8 AS open_count,
+    COUNT(DISTINCT number) FILTER (WHERE event_type = 'merged')::float8 AS merged_count
+  FROM pr_activities pa
+  WHERE pa.repository_id = pr.repository_id
+    AND pa.occurred_at >= $2 AND pa.occurred_at < $3
+) pr_stats ON true
+WHERE pr.project_id = $1::uuid`
+
+	var weightedOpen, weightedMerged float64
+	if err := s.pool.QueryRow(ctx, query, projectID, from, to).Scan(&weightedOpen, &weightedMerged); err != nil {
+		return 0, 0, fmt.Errorf("count project open/merged prs: %w", err)
+	}
+	// 가중치 적용 결과는 소수점 (Σ(count × weight) 의 정확한 가중치값). 정수 반올림은
+	// handler 에서 (UI 표시용). store 는 raw value 반환.
+	return int(weightedOpen + 0.5), int(weightedMerged + 0.5), nil
+}
+
 // --- Application 롤업 (API-57, concept §13.4) ---
 
 // ComputePlatformRollup aggregates connected repos' metrics into Application-level

@@ -2508,6 +2508,80 @@ paths:
         "503":
           $ref: "#/components/responses/ServerErrorEnvelope"
 
+  # ---------------------------------------------------------------------------
+  # GET /api/v1/projects/{project_id}/kpi — Project KPI 가중치 rollup (Sprint B)
+  # ---------------------------------------------------------------------------
+  /api/v1/projects/{project_id}/kpi:
+    get:
+      tags:
+        - Project
+      summary: "Project KPI 가중치 종합 (Σ(metric × contribution_weight))"
+      operationId: getProjectKPI
+      description: |
+        단일 project 의 N개 linked repository 의 raw metric 을 contribution_weight
+        로 가중평균. kpi-tests-per-domain-scope.md §2.2 (Project sub-section) +
+        §6.2 (Sprint B). 데이터 소스: project_repositories + quality_snapshots +
+        build_runs + pr_activities.
+        projectTestResults 는 follow-up PR (Sprint B-Tests).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Project ID (UUID)"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window start (RFC3339). default 30d ago"
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "Window end (RFC3339). default now"
+      responses:
+        "200":
+          description: "KPI 가중치 종합"
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+              example:
+                schema_version: "1.0"
+                data:
+                  project_id: "proj_001"
+                  window_from: "2026-05-16T00:00:00Z"
+                  window_to: "2026-06-15T00:00:00Z"
+                  weighted_quality_score: 87.3
+                  weighted_build_success_rate: 0.94
+                  total_build_run_count: 156
+                  weighted_open_pr_count: 7
+                  weighted_merged_pr_count: 23
+                  active_contributor_count: 12
+                  linked_repository_count: 3
+                  weighted_at: "2026-06-15T00:00:00Z"
+                request_id: "req_proj_kpi"
+                trace_id: "trace_proj_kpi"
+        "400":
+          $ref: "#/components/responses/BadRequestEnvelope"
+        "401":
+          $ref: "#/components/responses/UnauthorizedEnvelope"
+        "403":
+          $ref: "#/components/responses/ForbiddenEnvelope"
+        "503":
+          $ref: "#/components/responses/ServerErrorEnvelope"
+
 # =============================================================================
 # P1 — SCM Provider
 # =============================================================================

@@ -515,3 +515,21 @@ type PlatformRollup struct {
 	TargetBranchBuildStatus string                `json:"target_branch_build_status"`
 	Meta                    PlatformRollupMeta `json:"-"` // 별도 meta 필드로 serialize
 }
+
+// ProjectWeightedKPI is the Sprint B (kpi-tests-per-domain-scope.md §2.2) 의
+// 가중치 적용 rollup payload — project 의 N개 linked repository 의 raw metric
+// 을 Σ(metric_i × contribution_weight_i) / Σ(contribution_weight_i) 으로 종합.
+// linked_repository_count = 0 인 경우 모든 가중치 metric 0.0 (정합).
+type ProjectWeightedKPI struct {
+	ProjectID            string    `json:"project_id"`
+	WindowFrom           time.Time `json:"window_from"`
+	WindowTo             time.Time `json:"window_to"`
+	WeightedQualityScore float64   `json:"weighted_quality_score"`     // 0~100, 가중평균
+	WeightedBuildSuccess float64   `json:"weighted_build_success_rate"` // 0.0~1.0, 가중평균
+	TotalBuildRunCount   int       `json:"total_build_run_count"`     // Σ(개별 repo 의 build_run_count) — 가중치 무관 (단순 합산)
+	WeightedOpenPRCount  int       `json:"weighted_open_pr_count"`    // Σ(open × weight) (소수점 반올림, JSON 정수)
+	WeightedMergedPRCount int      `json:"weighted_merged_pr_count"`  // Σ(merged × weight) (소수점 반올림, JSON 정수)
+	ActiveContributorCount int     `json:"active_contributor_count"`  // Σ(distinct contributors) — 가중치 무관 (단순 합산)
+	LinkedRepositoryCount int      `json:"linked_repository_count"`   // project_repositories 의 link 수
+	WeightedAt           time.Time `json:"weighted_at"`
+}

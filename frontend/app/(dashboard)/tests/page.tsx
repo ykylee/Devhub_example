@@ -119,9 +119,10 @@ export default function TestManagementPage() {
   const [ciLoading, setCiLoading] = useState(false);
 
   // Sprint D — DomainPicker entity fetch (kpi-tests-per-domain-scope.md §6.4).
-  // Repository scope 만 실제 fetch (Sprint A 활성화). Platform/Project 는
-  // Sprint B/C 와 함께 fetch 추가. 실패 시 picker 가 에러 표시.
+  // Repository scope + Project scope (Sprint B 1차) fetch. Platform 은 Sprint C 와
+  // 함께 추가. 실패 시 picker 가 에러 표시.
   const [repositories, setRepositories] = useState<DomainEntity[]>([]);
+  const [pickerProjects, setPickerProjects] = useState<DomainEntity[]>([]);
   const [reposLoading, setReposLoading] = useState(true);
   const [reposError, setReposError] = useState<string | null>(null);
 
@@ -249,6 +250,7 @@ export default function TestManagementPage() {
         setRepositories(
           repos.map((r) => ({ id: String(r.id), name: r.full_name, description: r.clone_url })),
         );
+        setPickerProjects([]); // Sprint B 1차 placeholder (Sprint B follow-up 에서 활성화)
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -390,11 +392,12 @@ export default function TestManagementPage() {
   return (
     <div className="space-y-10 pb-20 px-4 md:px-8">
       {/* Sprint D — kpi-tests-per-domain-scope.md §6.4 Domain picker. Repository
-          scope 만 실제 entity list fetch (Sprint A 활성화). Platform/Project 는
-          Sprint B/C 와 함께 fetch 추가. */}
+          scope + Project scope (Sprint B 1차) fetch. Platform 은 Sprint C 와
+          함께 추가. */}
       <DomainPicker
         defaultScope="repository"
         repositories={repositories}
+        projects={pickerProjects}
         loading={reposLoading}
         error={reposError}
       />

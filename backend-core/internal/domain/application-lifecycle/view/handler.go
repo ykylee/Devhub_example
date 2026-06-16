@@ -77,6 +77,12 @@ type PlatformStore interface {
 	// distinct number count. state="closed"+merged_at IS NOT NULL 도 "merged" 로 합산.
 	CountOpenAndMergedPRs(context.Context, int64, time.Time, time.Time) (int, int, error)
 
+	// Project 가중치 rollup — Sprint B (kpi-tests-per-domain-scope.md §6.2) 의
+	// project KPI 종합 정공법. project 의 N개 linked repository 의 raw metric 을
+	// contribution_weight 로 가중평균.
+	ComputeProjectWeightedKPI(context.Context, string, store.RepositoryActivityOptions) (domain.ProjectWeightedKPI, error)
+	CountProjectOpenAndMergedPRs(context.Context, string, time.Time, time.Time) (int, int, error)
+
 	// Application 롤업
 	ComputePlatformRollup(context.Context, string, domain.PlatformRollupOptions) (domain.PlatformRollup, error)
 	CountPlatformCriticalWarnings(context.Context, string) (int, error)
