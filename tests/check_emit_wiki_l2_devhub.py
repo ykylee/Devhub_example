@@ -39,6 +39,10 @@ Usage:
   emit 하는지 검증. 원본 복원.
 - subprocess.run 으로 emit 도구 호출, stdout/stderr capture, exit code 검증.
 - vendor 도구 import 시 vendor 디렉터리 의 *도구 자체* 가 우리 DevHub 위치 와 정합.
+
+Wiki: ai-workflow/wiki/concepts/devhub-overview.md
+      ai-workflow/wiki/decisions/v0.7.37-import.md
+      ai-workflow/wiki/decisions/v0.7.17-import.md
 """
 
 from __future__ import annotations

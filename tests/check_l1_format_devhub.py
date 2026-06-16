@@ -11,6 +11,10 @@ Validation rules (SSOT — docs/governance/l1-format.md):
 3. type enum: {concept, decision, entity, pattern, topic}
 4. status enum: {active, draft}
 5. created / updated date format: YYYY-MM-DD
+
+Wiki: ai-workflow/wiki/concepts/devhub-overview.md
+      ai-workflow/wiki/decisions/v0.7.37-import.md
+      ai-workflow/wiki/decisions/v0.7.17-import.md
 """
 
 from __future__ import annotations

@@ -18,6 +18,10 @@
 #
 # Phase 1 (7 패턴) + Phase 1.5 (6 패턴) + Phase 3 (2 패턴) = 15 패턴. Phase 1+1.5+3 의
 # 정확한 정합은 docs/llm-wiki/mirror-list.md §1.7.1~§1.7.2 + §2 (Phase 1+1.5+3 패턴 표) 참조.
+#
+# Wiki: ai-workflow/wiki/topics/standard-ai-workflow-vendor.md
+#      ai-workflow/wiki/decisions/v0.7.37-import.md
+#      ai-workflow/wiki/decisions/v0.7.17-import.md
 
 # ----- guard: prevent direct execution -----
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

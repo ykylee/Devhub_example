@@ -15,6 +15,9 @@ Reference:
 - vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py (11/11 PASS)
 - docs/llm-wiki/README.md (D-72 Phase 1+1.5+3 → in-repo redirect, 2026-06-15 갱신)
 - ai-workflow/wiki/ (v0.7.17+ in-repo wiki, 외부 vault 미사용)
+
+Wiki: ai-workflow/wiki/decisions/v0.7.17-import.md
+      ai-workflow/wiki/decisions/v0.7.37-import.md
 """
 
 from __future__ import annotations

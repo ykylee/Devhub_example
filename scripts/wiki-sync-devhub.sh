@@ -12,6 +12,9 @@
 #   - lint config: docs/llm-wiki/lint-config.toml
 #   - operation SOP: docs/llm-wiki/operation-sop.md
 #
+# Wiki: ai-workflow/wiki/topics/standard-ai-workflow-vendor.md
+#      ai-workflow/wiki/decisions/v0.7.37-import.md
+#      ai-workflow/wiki/decisions/v0.7.17-import.md
 # 결정적이고 단순: find + mkdir -p + cp. rsync 의 include/exclude 충돌 회피 (my_harness 의
 # wiki-sync-ai-workflow.sh 와 동일 pattern).
 #

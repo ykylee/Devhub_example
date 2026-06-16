@@ -42,6 +42,9 @@ Reference:
 - vendor/standard_ai_workflow/tools/emit_wiki_l2_body.py (v0.7.17 vendor 도구, mini structure)
 - scripts/emit_wiki_l2_devhub.py (자체 도구, vendor 미사용)
 - tests/check_wiki_drift_devhub.py (DevHub adapter 패턴, monkey-patch)
+
+Wiki: ai-workflow/wiki/decisions/v0.7.37-import.md
+      ai-workflow/wiki/concepts/devhub-overview.md
 """
 
 from __future__ import annotations

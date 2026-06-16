@@ -8,7 +8,10 @@
 # 본 script 의 source-of-truth:
 #   - ai-workflow/minimax_code_workflow.md §4.4 (vendor smoke 회귀 표)
 #   - vendor/standard_ai_workflow/.upstream-url (vendor metadata)
-#   - ai-workflow/wiki/RAW_MIRROR_MANIFEST.md (raw mirror 운영 가이드)
+#   - ai-workflow/wiki/RAW_MIRROR MANIFEST.md (raw mirror 운영 가이드)
+#
+# Wiki: ai-workflow/wiki/topics/standard-ai-workflow-vendor.md
+#      ai-workflow/wiki/decisions/v0.7.37-import.md
 #
 # 본 script 가 호출하는 6종 smoke:
 #   1. tests/check_v0_7_17_devhub_wiki_in_repo_invariant.py (DevHub invariant 5/5)
