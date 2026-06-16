@@ -385,7 +385,11 @@ VERSION_SYSTEM=$(cat "$SRC/VERSION" 2>/dev/null | head -1 | tr -d '[:space:]' ||
 VERSION_WORKFLOW=$(cat "$SRC/ai-workflow/VERSION" 2>/dev/null | head -1 | tr -d '[:space:]' || echo "unknown")
 # Source repo basename for repo-relative manifest paths (PR #604 follow-up, P2 path scrub).
 # Absolute path 가 manifest 에 박히면 다른 checkout 에서 manifest-only noise diff 발생 + workstation FS leak.
-SRC_NAME=$(basename "$SRC")
+# Default repo name 은 "Devhub_example" 이고, worktree/postfix 가 "_<suffix>" 로 붙을 수 있음
+# (예: Devhub_example_minimax, Devhub_example_yklee, Devhub_example_workspace_v2).
+# manifest 의 byte-identical 성질을 두 checkout 간 유지하려면 postfix 를 strip.
+# anchor "^Devhub_example_" — basename 이 "Devhub_example" 자체 (no postfix) 면 sed no-op.
+SRC_NAME=$(basename "$SRC" | sed 's/^Devhub_example_.*/Devhub_example/')
 
 {
   echo "# raw/projects/devhub/_manifest.md (D-72 Phase 1 + Phase 1.5, provenance tracking)"
