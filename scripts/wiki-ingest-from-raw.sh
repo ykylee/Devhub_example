@@ -18,13 +18,17 @@
 #
 # 결정적 단순: 3 단계 wrapper.
 #   1. raw mirror (wiki-sync-devhub.sh) — raw/ 갱신 (in-repo)
-#   2. L2 dense emit (vendor 의 emit_wiki_l2_body.py) — L1 → L2 sources/ 자동 작성
+#   2. L2 dense emit (DevHub adapter, PR #605 follow-up #3)
+#      - self:  scripts/emit_wiki_l2_devhub.py          (vendor 미사용, 1차 출처)
+#      - vendor: scripts/emit_wiki_l2_devhub_vendor.py  (vendor monkey-patch wrapper)
+#      - 동등성 검증: 양쪽 결과 의 file count + byte-identical 동일 시 PASS
 #   3. (optional) drift check (tests/check_wiki_drift_devhub.py)
 #
 # 본 script 의 본 저장소 (= DevHub) 측 책임:
 #   - raw/ 갱신 + L2 dense emit 의 통합 entry point
 #   - in-repo 만 사용 (외부 vault ~/wiki/ 미사용, my_harness 미참조)
 #   - dry-run / apply 의 user confirm flow 일관성
+#   - emit 도구 self/vendor 선택 (default = self, 동등성 검증)
 #
 # Exit code:
 #   0 — success (raw mirror + L2 emit dry-run 또는 apply 모두 성공)
@@ -40,10 +44,13 @@ SOURCE=""
 LIMIT=""
 SKIP_LINT=0
 QUIET=0
+EMIT_TOOL_CHOICE="self"  # PR #603 follow-up #3: self | vendor (default = self, 동등성 검증)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
 VAULT_ROOT="${VAULT_ROOT:-${SRC}/ai-workflow/wiki}"
-EMIT_TOOL="$SRC/vendor/standard_ai_workflow/tools/emit_wiki_l2_body.py"
+EMIT_TOOL_SELF="$SCRIPT_DIR/emit_wiki_l2_devhub.py"
+EMIT_TOOL_VENDOR="$SCRIPT_DIR/emit_wiki_l2_devhub_vendor.py"
+EMIT_TOOL=""  # resolved after --emit-tool parse
 DRIFT_CHECK="$SRC/tests/check_wiki_drift_devhub.py"
 
 usage() {
@@ -60,13 +67,16 @@ Options:
   -h, --help                     도움말.
 
 Examples:
-  # 1. dry-run preview
+  # 1. dry-run preview (default emit tool = self)
   bash scripts/wiki-ingest-from-raw.sh
 
-  # 2. 실제 emit
+  # 2. 실제 emit (self 도구)
   bash scripts/wiki-ingest-from-raw.sh --apply
 
-  # 3. 1 file 만 emit
+  # 3. 실제 emit (vendor monkey-patch wrapper, 동등성 검증)
+  bash scripts/wiki-ingest-from-raw.sh --apply --emit-tool vendor
+
+  # 4. 1 file 만 emit
   bash scripts/wiki-ingest-from-raw.sh --source concepts/devhub-overview.md --apply
 EOF
 }
@@ -81,6 +91,10 @@ while [[ $# -gt 0 ]]; do
     --apply)
       DRY_RUN=0
       shift
+      ;;
+    --emit-tool)
+      EMIT_TOOL_CHOICE="$2"
+      shift 2
       ;;
     --project)
       PROJECT="$2"
@@ -130,10 +144,32 @@ if [[ -n "$SOURCE" && -n "$LIMIT" ]]; then
   exit 2
 fi
 
-# ----- vendor 도구 부재 확인 -----
+# ----- emit 도구 resolution (PR #603 follow-up #3) -----
+case "$EMIT_TOOL_CHOICE" in
+  self)
+    EMIT_TOOL="$EMIT_TOOL_SELF"
+    ;;
+  vendor)
+    EMIT_TOOL="$EMIT_TOOL_VENDOR"
+    ;;
+  *)
+    echo "[wiki-ingest-from-raw] error: invalid --emit-tool: $EMIT_TOOL_CHOICE (must be self|vendor)" >&2
+    exit 2
+    ;;
+esac
+
+# ----- emit 도구 부재 확인 -----
 if [[ ! -f "$EMIT_TOOL" ]]; then
-  echo "[wiki-ingest-from-raw] error: vendor emit 도구 부재: $EMIT_TOOL" >&2
-  echo "[wiki-ingest-from-raw]   hint: 'cp -R ~/repos/standard_ai_workflow_minimax/workflow-source/. vendor/standard_ai_workflow/' 후 재시도" >&2
+  echo "[wiki-ingest-from-raw] error: emit 도구 부재: $EMIT_TOOL" >&2
+  case "$EMIT_TOOL_CHOICE" in
+    self)
+      echo "[wiki-ingest-from-raw]   hint: PR #605 의 scripts/emit_wiki_l2_devhub.py 가 본 worktree 에 없음" >&2
+      echo "[wiki-ingest-from-raw]   hint: 'git fetch origin feat/vendor-emit-devhub-adapter && git cherry-pick <commit>' 로 PR #605 흡수" >&2
+      ;;
+    vendor)
+      echo "[wiki-ingest-from-raw]   hint: PR #605 의 scripts/emit_wiki_l2_devhub_vendor.py 가 본 worktree 에 없음" >&2
+      ;;
+  esac
   exit 1
 fi
 
@@ -152,47 +188,120 @@ else
   bash "$SCRIPT_DIR/wiki-sync-devhub.sh"
 fi
 
-# ----- step 2: L2 dense emit (vendor 의 in-repo 도구) -----
-# vendor 의 emit 도구가 *vendor 의 mini structure* (RAW_MIRROR / project / ai-workflow / wiki) 하드코딩.
-# 우리 DevHub 의 L1 = $VAULT_ROOT/{concepts,decisions,entities,patterns,topics}/*.md. vendor 의 도구가 우리
-# 구조를 인식하려면 source path 가 vendor 의 mini structure 와 일치해야 함. 본 PR 의 follow-up
-# (vendor emit 도구의 devhub adapter) 가 미정. 현재는 *dry-run 만 정상, --apply 시 vendor 의
-# mini structure mismatch 로 fail 가능*. 그 경우 *수동 emit* 안내.
+# ----- step 2: L2 dense emit (DevHub adapter, PR #605 follow-up #3) -----
+# 본 step 의 emit 도구:
+#   - self:   scripts/emit_wiki_l2_devhub.py          (vendor 미사용, 1차 출처)
+#   - vendor: scripts/emit_wiki_l2_devhub_vendor.py  (vendor monkey-patch wrapper)
+#
+# 동등성 검증 (--emit-tool=vendor 인 경우, dry-run 무관): self 결과 와 vendor 결과 의
+# file count + sha256 일치 시 PASS. 불일치 시 non-zero exit 1 (caller 가 명시적 실패 인지).
+#
+# Decision: PR #603 의 Codex P2 (silent skip 방지) 와 PR #605 의 emit 도구 통합.
+# 본 step 의 silent skip 제거 — 정상 호출 + 결과 검증.
 log ""
 log "[wiki-ingest-from-raw] step 2/3: L2 dense emit (L1 → sources/)"
-log "[wiki-ingest-from-raw]   tool: $EMIT_TOOL (vendor in-repo, v0.7.17+)"
-log "[wiki-ingest-from-raw]   follow-up: vendor emit 도구의 devhub adapter (mini structure mismatch) — 본 PR scope 외"
-
+log "[wiki-ingest-from-raw]   tool: $EMIT_TOOL_CHOICE ($EMIT_TOOL)"
 if [[ $DRY_RUN -eq 1 ]]; then
-  log "[wiki-ingest-from-raw]   dry-run: vendor emit 도구 의 dry-run (mini structure mismatch 가능)"
-  python3 "$EMIT_TOOL" --project "$PROJECT" --mode all 2>&1 | tail -10 || true
-  log "[wiki-ingest-from-raw]   dry-run note: L2 dense emit 의 실제 apply 는 *dry-run* 만. 본 dry-run 의 출력은 preview 일 뿐, sources/ 에 실제 file 작성 안 됨."
-else
-  # --apply 모드: L2 dense page 의 *silent skip* 방지 (Codex P2, PR #603)
-  # 본 script 의 caller 가 L2 emit 의 결과를 *명시적* 으로 알 수 있어야 함. silent skip → DONE 시
-  # caller 가 L2 dense page 가 업데이트됐다고 오인 가능. 그래서 *non-zero exit 1* + 명시적 안내.
-  log ""
-  log "[wiki-ingest-from-raw]   apply: vendor emit 도구 의 apply (mini structure mismatch 시 fail 가능)"
-  log "[wiki-ingest-from-raw]   note: 현재 vendor 의 emit 도구는 *vendor 의 mini structure* 만 인식. 우리 DevHub 의"
-  log "[wiki-ingest-from-raw]         in-repo L1 (5 page, A안) 의 *수동 L2 emit* 이 PR #602 의 commit 86e2e2df."
-  log "[wiki-ingest-from-raw]         전체 220+ file L2 자동화는 follow-up PR 의 *devhub adapter*."
-  log ""
-  if [[ -n "$SOURCE" ]]; then
-    log "[wiki-ingest-from-raw]   단일 file apply: $SOURCE"
+  log "[wiki-ingest-from-raw]   mode: dry-run (preview, write 안 함)"
+  # dry-run: emit 도구 의 *default* dry-run 호출. self 는 --project/--mode 미지원 →
+  # 그 option 을 넘기면 argparse exit 2 + silent skip. (PR #606 Codex P2 해소)
+  if [[ "$EMIT_TOOL_CHOICE" == "vendor" ]]; then
+    # vendor 는 --project / --mode 지원. default mode=all 이라 self 와 같은 후보 set.
+    python3 "$EMIT_TOOL" --project "$PROJECT" --mode all 2>&1 | tail -10 || {
+      rc=$?
+      log "[wiki-ingest-from-raw]   dry-run warning: vendor emit 도구 exit code $rc (preview 만)" >&2
+    }
   else
-    log "[wiki-ingest-from-raw]   전체 apply"
+    # self: vendor-only flag 없이 호출 (default dry-run, args.apply=False).
+    python3 "$EMIT_TOOL" 2>&1 | tail -10 || {
+      rc=$?
+      log "[wiki-ingest-from-raw]   dry-run warning: self emit 도구 exit code $rc (preview 만)" >&2
+    }
   fi
-  log "[wiki-ingest-from-raw]   ERROR: --apply 모드 의 L2 emit 호출 *skip*. 다음 중 하나 선택:"
-  log "[wiki-ingest-from-raw]     (a) dry-run 만 사용: --apply 제거, 결과 검토 후 수동 emit"
-  log "[wiki-ingest-from-raw]     (b) follow-up PR 후 재실행: vendor emit 도구의 *devhub adapter* 가 본 PR 의 follow-up 으로 작성되면"
-  log "[wiki-ingest-from-raw]         step 2 가 자동 활성화. adapter 작성 시 본 else branch 의 exit 1 제거 + python3 호출 복원."
-  log ""
-  log "[wiki-ingest-from-raw]   exit 1: --apply 의 L2 emit silent skip 방지 (Codex P2, 2026-06-15)"
-  log ""
-  log "[wiki-ingest-from-raw]   참고: 본 step 1 (raw mirror) 와 step 3 (drift check) 는 *이미 실행됨* — 둘 다 정상."
-  log "[wiki-ingest-from-raw]         step 1 의 raw mirror (964 file, 8M) 와 step 3 의 drift check 결과는 *유효*."
-  log "[wiki-ingest-from-raw]         L2 dense page (sources/) 만 *수동* 또는 *adapter 후* emit 필요."
-  exit 1
+  log "[wiki-ingest-from-raw]   dry-run done. L2 emit 의 실제 apply 는 --apply 시."
+else
+  # --apply: 정상 emit (silent skip 제거, Codex P2 해소)
+  log "[wiki-ingest-from-raw]   mode: apply (실제 L2 dense page 작성)"
+
+  # 동등성 검증: --emit-tool=vendor 인 경우, self 와 vendor 의 결과가 동일한지 검증
+  # 검증 방법: emit 도구 의 *실제 sources/ 출력* 의 *file content* byte-identical 비교
+  # (emit 도구가 같은 sources/<stem>.md 에 작성하므로, 한 도구 의 *출력 file* = 비교 대상)
+  if [[ "$EMIT_TOOL_CHOICE" == "vendor" ]]; then
+    log "[wiki-ingest-from-raw]   동등성 검증: self 와 vendor 의 sources/ 출력 비교 (byte-identical)"
+
+    # self 실행 (--source 1 file 또는 all)
+    if [[ -n "$SOURCE" ]]; then
+      python3 "$EMIT_TOOL_SELF" --apply --source "$SOURCE" 2>&1 | tail -3
+    else
+      python3 "$EMIT_TOOL_SELF" --apply 2>&1 | tail -3
+    fi
+    SELF_RC=$?
+    if [[ $SELF_RC -ne 0 ]]; then
+      log "[wiki-ingest-from-raw] error: self emit 도구 실패 (rc=$SELF_RC)" >&2
+      exit 1
+    fi
+
+    # self 가 작성한 file 들 의 sha256 capture
+    SELF_TARGETS=$(find "$VAULT_ROOT/sources" -type f -name '*.md' 2>/dev/null | LC_ALL=C sort)
+    SELF_HASHES=$(echo "$SELF_TARGETS" | xargs -I {} sh -c "sha256sum '{}'" | sha256sum | awk '{print $1}')
+
+    # vendor 실행 전 sources/ 의 *file list + hash* snapshot — vendor activity 검증용
+    # (PR #606 Codex P2 해소: vendor 가 self 가 채운 placeholder 위에서 0 file emit →
+    # byte-identical PASS 가 self-only-pass 가 되는 false-positive 방지)
+    SOURCES_BEFORE_HASHES=""
+    if [[ -n "$SELF_TARGETS" ]]; then
+      SOURCES_BEFORE_HASHES=$(echo "$SELF_TARGETS" | xargs sha256sum 2>/dev/null | LC_ALL=C sort)
+    fi
+
+    # vendor 실행
+    if [[ -n "$SOURCE" ]]; then
+      python3 "$EMIT_TOOL_VENDOR" --apply --source "$SOURCE" 2>&1 | tail -3
+    else
+      python3 "$EMIT_TOOL_VENDOR" --apply 2>&1 | tail -3
+    fi
+    VENDOR_RC=$?
+    if [[ $VENDOR_RC -ne 0 ]]; then
+      log "[wiki-ingest-from-raw] error: vendor emit 도구 실패 (rc=$VENDOR_RC)" >&2
+      exit 1
+    fi
+
+    # vendor activity 검증: vendor 실행 후 변형된 file 이 0개면 false-positive.
+    # (self 가 모든 placeholder 를 채워서 vendor 의 _patched_needs_body 가 모두 False →
+    # vendor 가 0 file emit → byte-identical 이 self-only 결과.)
+    SOURCES_AFTER_HASHES=$(echo "$SELF_TARGETS" | xargs sha256sum 2>/dev/null | LC_ALL=C sort)
+    VENDOR_CHANGED=$(comm -23 <(echo "$SOURCES_AFTER_HASHES") <(echo "$SOURCES_BEFORE_HASHES") | wc -l | tr -d ' ')
+    if [[ "$VENDOR_CHANGED" -eq 0 ]]; then
+      log "[wiki-ingest-from-raw] error: vendor 가 0 file 변형 — _patched_needs_body 가 모두 False (false-positive byte-identical 방지)" >&2
+      log "[wiki-ingest-from-raw] hint: self 가 이미 placeholder 를 채운 상태에서 vendor 가 nothing to do. --source 로 single file L1 만 emit 해보세요." >&2
+      exit 1
+    fi
+
+    # vendor 가 작성한 file 들 의 sha256 capture + 비교
+    VENDOR_HASHES=$(echo "$SELF_TARGETS" | xargs -I {} sh -c "sha256sum '{}'" | sha256sum | awk '{print $1}')
+    if [[ "$SELF_HASHES" != "$VENDOR_HASHES" ]]; then
+      log "[wiki-ingest-from-raw] error: 동등성 검증 FAIL — sha256 불일치" >&2
+      log "  self:   $SELF_HASHES" >&2
+      log "  vendor: $VENDOR_HASHES" >&2
+      exit 1
+    fi
+
+    log "[wiki-ingest-from-raw]   동등성 검증 PASS ($(echo "$SELF_TARGETS" | wc -l | tr -d ' ') file, sha256 match, vendor_changed=$VENDOR_CHANGED)"
+  else
+    # self 만 (default)
+    if [[ -n "$SOURCE" ]]; then
+      log "[wiki-ingest-from-raw]   단일 file apply: $SOURCE"
+      python3 "$EMIT_TOOL" --apply --source "$SOURCE" 2>&1 | tail -5
+    else
+      log "[wiki-ingest-from-raw]   전체 apply"
+      python3 "$EMIT_TOOL" --apply 2>&1 | tail -5
+    fi
+    EMIT_RC=$?
+    if [[ $EMIT_RC -ne 0 ]]; then
+      log "[wiki-ingest-from-raw] error: emit 도구 exit code $EMIT_RC" >&2
+      exit 1
+    fi
+  fi
+  log "[wiki-ingest-from-raw]   L2 emit apply 완료 (sources/ 갱신)"
 fi
 
 # ----- step 3: drift check (DevHub 자체 adapter) -----
