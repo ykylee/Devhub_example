@@ -25,6 +25,8 @@ import { platformService, PlatformDashboard, Platform } from "@/domain/platform-
 import { PlatformRepository, PlatformStatus, PlatformVisibility } from "@/domain/platform-lifecycle/schema/project.types";
 import { projectService } from "@/domain/platform-lifecycle/service/project.service";
 import { PlatformCreationModal } from "@/domain/platform-lifecycle/view/PlatformCreationModal";
+import { PlatformKPISection } from "@/domain/platform-lifecycle/view/PlatformKPISection";
+import { PlatformTestsSection } from "@/domain/platform-lifecycle/view/PlatformTestsSection";
 import { useToast } from "@/shared/ui-foundation/components/Toast";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
 import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
@@ -444,6 +446,14 @@ export default function ApplicationDetailPage() {
               )}
             </div>
           </section>
+
+          {/* Sprint C — kpi-tests-per-domain-scope.md §2.3 + §6.3: Platform sub-section
+              sub-project rollup. N개 sub-project 의 raw metric 을 sub-project
+              equal average 로 종합. Sprint B (Project 가중치) 와 정공법 분리. */}
+          <PlatformKPISection platformId={id} />
+          {/* Sprint C follow-up — sub-project equal average pass rate + multi-project
+              recent (project_full_name + repository_full_name 표기). */}
+          <PlatformTestsSection platformId={id} />
 
         </div>
 

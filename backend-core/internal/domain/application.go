@@ -571,3 +571,56 @@ type ProjectBuildRun struct {
 	StartedAt          time.Time  `json:"started_at"`
 	FinishedAt         *time.Time `json:"finished_at"`
 }
+
+// PlatformWeightedKPI — Sprint C (kpi-tests-per-domain-scope.md §2.3) 의
+// sub-project rollup payload. platform 의 N개 sub-project 의 가중치 적용
+// metric 을 equal average 로 종합 (sub-project 균등).
+//
+// 정공법 (Sprint B 의 ProjectWeightedKPI 와 정합 — 별도 struct):
+//   - per_project_X = sub-project 의 N개 linked repository 의 raw metric 종합
+//   - platform weighted_X = AVG(per_project_X) (sub-project 균등)
+//   - linked_project_count = 0 인 경우 모든 가중치 metric 0.0
+type PlatformWeightedKPI struct {
+	PlatformID            string    `json:"platform_id"`
+	WindowFrom            time.Time `json:"window_from"`
+	WindowTo              time.Time `json:"window_to"`
+	WeightedQualityScore  float64   `json:"weighted_quality_score"`      // 0~100, sub-project avg
+	WeightedBuildSuccess  float64   `json:"weighted_build_success_rate"` // 0.0~1.0, sub-project avg
+	TotalBuildRunCount    int       `json:"total_build_run_count"`      // Σ (sub-project 무관, 단순 합산)
+	OpenPRCount           int       `json:"open_pr_count"`              // Σ (sub-project 무관, 단순 합산)
+	MergedPRCount         int       `json:"merged_pr_count"`            // Σ (sub-project 무관, 단순 합산)
+	ActiveContributorCount int      `json:"active_contributor_count"`  // Σ (sub-project 무관, 단순 합산)
+	LinkedProjectCount    int       `json:"linked_project_count"`      // projects.platform_id 의 project 수
+	WeightedAt            time.Time `json:"weighted_at"`
+}
+
+// PlatformWeightedTestResults — Sprint C 의 sub-project 가중치 적용 test
+// results payload. N개 sub-project 의 build_runs status 종합 + equal average
+// pass rate + multi-project recent.
+type PlatformWeightedTestResults struct {
+	PlatformID        string             `json:"platform_id"`
+	WindowFrom        time.Time          `json:"window_from"`
+	WindowTo          time.Time          `json:"window_to"`
+	WeightedPassRate  *float64           `json:"weighted_pass_rate"` // 0.0~1.0, sub-project avg
+	Totals            map[string]int     `json:"totals"`             // 7 status (success/failed/running/cancelled/skipped/queued/unknown)
+	Recent            []PlatformBuildRun `json:"recent"`             // multi-project, project_full_name + repository_full_name 표시
+}
+
+// PlatformBuildRun is one build_runs row enriched with project full_name AND
+// repository full_name, scoped under a Platform's recent runs list
+// (multi-project). ProjectBuildRun 의 상위 확장 (project_id + project_full_name
+// 필드 추가). BuildRun 자체는 single-repo 표시용 정공법.
+type PlatformBuildRun struct {
+	ID                 int64      `json:"id"`
+	ProjectID          string     `json:"project_id"`
+	ProjectFullName    string     `json:"project_full_name"`
+	RepositoryID       int64      `json:"repository_id"`
+	RepositoryFullName string     `json:"repository_full_name"`
+	RunExternalID      string     `json:"run_external_id"`
+	Branch             string     `json:"branch"`
+	CommitSHA          string     `json:"commit_sha"`
+	Status             string     `json:"status"`
+	DurationSeconds    *int       `json:"duration_seconds,omitempty"`
+	StartedAt          time.Time  `json:"started_at"`
+	FinishedAt         *time.Time `json:"finished_at"`
+}

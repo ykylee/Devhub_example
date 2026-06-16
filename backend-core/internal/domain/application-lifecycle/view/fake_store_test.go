@@ -56,6 +56,8 @@ type fakeViewPlatformStore struct {
 	errComputePlatformRollup      error
 	errListRepositoryBuildRuns       error
 	errListProjectTestResults        error // Sprint B-Tests
+	errComputePlatformWeightedKPI    error // Sprint C
+	errListPlatformTestResults       error // Sprint C
 }
 
 func newFakeViewPlatformStore() *fakeViewPlatformStore {
@@ -702,6 +704,49 @@ func (s *fakeViewPlatformStore) ListProjectTestResults(_ context.Context, projec
 }
 
 func ptrTime(t time.Time) *time.Time { return &t }
+
+// Sprint C — Platform sub-project rollup fake. 0.93 pass_rate + 5 status + recent
+// 3 row (multi-project) + 156 total. handler test 가 stub 으로 override 가능.
+func (s *fakeViewPlatformStore) ComputePlatformWeightedKPI(_ context.Context, platformID string, opts store.BuildRunListOptions) (domain.PlatformWeightedKPI, error) {
+	if s.errComputePlatformWeightedKPI != nil {
+		return domain.PlatformWeightedKPI{}, s.errComputePlatformWeightedKPI
+	}
+	return domain.PlatformWeightedKPI{
+		PlatformID:             platformID,
+		WindowFrom:             opts.WindowFrom,
+		WindowTo:               opts.WindowTo,
+		WeightedQualityScore:   85.0,
+		WeightedBuildSuccess:   0.9,
+		TotalBuildRunCount:     100,
+		OpenPRCount:            5,
+		MergedPRCount:          15,
+		ActiveContributorCount: 8,
+		LinkedProjectCount:     3,
+		WeightedAt:             time.Now().UTC(),
+	}, nil
+}
+
+func (s *fakeViewPlatformStore) ListPlatformTestResults(_ context.Context, platformID string, opts store.BuildRunListOptions) (domain.PlatformWeightedTestResults, int, error) {
+	if s.errListPlatformTestResults != nil {
+		return domain.PlatformWeightedTestResults{}, 0, s.errListPlatformTestResults
+	}
+	passRate := 0.93
+	return domain.PlatformWeightedTestResults{
+		PlatformID:       platformID,
+		WindowFrom:       opts.WindowFrom,
+		WindowTo:         opts.WindowTo,
+		WeightedPassRate: &passRate,
+		Totals: map[string]int{
+			"success": 145, "failed": 8, "running": 1, "cancelled": 2,
+			"skipped": 0, "queued": 0, "unknown": 0,
+		},
+		Recent: []domain.PlatformBuildRun{
+			{ID: 100, ProjectID: "p-001", ProjectFullName: "API Modernization", RepositoryID: 1, RepositoryFullName: "org/repo-a", RunExternalID: "ext-100", Branch: "main", CommitSHA: "feedface", Status: "success", StartedAt: time.Now().UTC().Add(-2 * time.Hour), FinishedAt: ptrTime(time.Now().UTC().Add(-2 * time.Hour).Add(2 * time.Minute))},
+			{ID: 99, ProjectID: "p-002", ProjectFullName: "UI Refresh", RepositoryID: 2, RepositoryFullName: "org/repo-b", RunExternalID: "ext-99", Branch: "feat/x", CommitSHA: "badfeed", Status: "failed", StartedAt: time.Now().UTC().Add(-3 * time.Hour), FinishedAt: ptrTime(time.Now().UTC().Add(-3 * time.Hour).Add(1 * time.Minute))},
+			{ID: 98, ProjectID: "p-001", ProjectFullName: "API Modernization", RepositoryID: 1, RepositoryFullName: "org/repo-a", RunExternalID: "ext-98", Branch: "main", CommitSHA: "cafe0001", Status: "running", StartedAt: time.Now().UTC().Add(-15 * time.Minute)},
+		},
+	}, 156, nil
+}
 
 func (s *fakeViewPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {
 	if s.errComputePlatformRollup != nil {

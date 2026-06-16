@@ -692,6 +692,49 @@ func (s *memoryPlatformStore) ListProjectTestResults(_ context.Context, projectI
 		Recent: []domain.ProjectBuildRun{},
 	}, 0, nil
 }
+
+// Sprint C — Platform sub-project rollup. memory store 는 linked project 0
+// 시 weighted metric 0 + weightedPassRate=nil + 7 status 0 + recent 빈 array
+// 응답 (Sprint A 의 memoryPlatformStore seed-free 정합).
+func (s *memoryPlatformStore) ComputePlatformWeightedKPI(_ context.Context, platformID string, opts store.BuildRunListOptions) (domain.PlatformWeightedKPI, error) {
+	windowFrom := opts.WindowFrom
+	if windowFrom.IsZero() {
+		windowFrom = time.Now().UTC().AddDate(0, 0, -30)
+	}
+	windowTo := opts.WindowTo
+	if windowTo.IsZero() {
+		windowTo = time.Now().UTC()
+	}
+	return domain.PlatformWeightedKPI{
+		PlatformID:           platformID,
+		WindowFrom:           windowFrom.UTC(),
+		WindowTo:             windowTo.UTC(),
+		LinkedProjectCount:   0,
+		WeightedAt:           time.Now().UTC(),
+	}, nil
+}
+
+func (s *memoryPlatformStore) ListPlatformTestResults(_ context.Context, platformID string, opts store.BuildRunListOptions) (domain.PlatformWeightedTestResults, int, error) {
+	windowFrom := opts.WindowFrom
+	if windowFrom.IsZero() {
+		windowFrom = time.Now().UTC().AddDate(0, 0, -30)
+	}
+	windowTo := opts.WindowTo
+	if windowTo.IsZero() {
+		windowTo = time.Now().UTC()
+	}
+	return domain.PlatformWeightedTestResults{
+		PlatformID:       platformID,
+		WindowFrom:       windowFrom.UTC(),
+		WindowTo:         windowTo.UTC(),
+		WeightedPassRate: nil,
+		Totals: map[string]int{
+			"success": 0, "failed": 0, "running": 0, "cancelled": 0,
+			"skipped": 0, "queued": 0, "unknown": 0,
+		},
+		Recent: []domain.PlatformBuildRun{},
+	}, 0, nil
+}
 // --- Application 롤업 (sprint claude/work_260514-c) ---
 
 func (s *memoryPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {

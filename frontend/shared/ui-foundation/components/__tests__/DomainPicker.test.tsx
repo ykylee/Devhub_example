@@ -10,8 +10,8 @@ import React from "react";
 //    의 entity 로 교체 + active tab 시각화 (aria-selected)
 // 2. entity link 의 href 가 scope 별로 /platforms/[id] /projects/[id]
 //    /repositories/[id] 매핑
-// 3. ready: true 인 scope (Repository) 만 entity 가 link 로, 미준비 scope
-//    (Platform/Project) 는 'sub-section 예정' 배지 표시
+// 3. ready: true 인 scope (Platform/Project/Repository, 2026-06-16 Sprint C 정합)
+//    모두 entity 가 link 로, 미준비 scope 0개 ('sub-section 예정' 배지 미노출)
 // 4. loading/error/empty 3 상태별 메시지
 // 5. 정공법: page 가 entity fetch 후 props 주입 → picker 는 순수 UI
 //    (외부 fetch 호출 0)
@@ -79,7 +79,7 @@ describe("DomainPicker", () => {
     expect(screen.queryByText(/sub-section 예정/i)).not.toBeInTheDocument();
   });
 
-  it("switches to Platform scope → 'sub-section 예정' badge + entity link with /platforms/[id] href", async () => {
+  it("switches to Platform scope → entity link with /platforms/[id] href (Sprint C ready=true, no '예정' badge)", async () => {
     const user = userEvent.setup();
     render(
       <DomainPicker
@@ -97,8 +97,9 @@ describe("DomainPicker", () => {
     const link = screen.getByTestId("domain-picker-entity-p1");
     expect(link).toHaveAttribute("href", "/platforms/p1");
 
-    // 미준비 scope → 'sub-section 예정' 배지
-    expect(screen.getByText(/sub-section 예정/i)).toBeInTheDocument();
+    // Sprint C — Platform scope 도 ready:true (kpi-tests-per-domain-scope.md §6.3
+    // 정합) → 'sub-section 예정' 배지 미노출
+    expect(screen.queryByText(/sub-section 예정/i)).not.toBeInTheDocument();
 
     // entity list 가 Repository → Platform 으로 교체 (repo entity 안 보임)
     expect(screen.queryByTestId("domain-picker-entity-1")).not.toBeInTheDocument();

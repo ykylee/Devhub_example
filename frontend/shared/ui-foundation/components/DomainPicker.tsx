@@ -11,8 +11,8 @@ import { motion } from "framer-motion";
 // scope (Platform/Project/Repository) 선택 → 해당 scope 의 entity list 표시 →
 // entity 클릭 시 해당 entity 의 sub-section 이 있는 도메인 페이지로 redirect.
 //
-// Sprint A (Repository) 만 sub-section 활성화. Sprint B (Project) + Sprint C
-// (Platform) 미구현 → 미구현 scope 의 entity 클릭 시 '준비 중' 안내.
+// Sprint A (Repository) + Sprint B (Project) + Sprint C (Platform) 모두 sub-section
+// 활성화 (2026-06-16, Sprint C PR 정합). 미구현 scope 없음.
 //
 // 정공법: page 가 entity list fetch (projectService.listPlatforms/getPlatforms
 // + repositoryService.listRepositories) 후 props 로 주입. picker 는 순수 UI.
@@ -38,7 +38,7 @@ interface DomainPickerProps {
 }
 
 const SCOPE_OPTIONS: Array<{ value: DomainScope; label: string; icon: typeof Zap; sublabel: string; ready: boolean }> = [
-  { value: "platform", label: "Platform", icon: Zap, sublabel: "sub-project rollup", ready: false },
+  { value: "platform", label: "Platform", icon: Zap, sublabel: "sub-project rollup", ready: true },
   { value: "project", label: "Project", icon: Settings, sublabel: "weighted repository rollup", ready: true },
   { value: "repository", label: "Repository", icon: Server, sublabel: "raw metric (weight=1)", ready: true },
 ];
@@ -71,7 +71,7 @@ export function DomainPicker({
           {scopeMeta.label} Analytics
         </h2>
         <p className="text-sm text-muted-foreground">
-          {scopeMeta.sublabel} · Sprint {scopeMeta.ready ? "A" : scope === "project" ? "B (예정)" : "C (예정)"}
+          {scopeMeta.sublabel} · Sprint {scopeMeta.ready ? "A/B/C" : "(예정)"}
         </p>
       </header>
 

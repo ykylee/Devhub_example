@@ -539,6 +539,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// §6.2 follow-up). N개 linked repository 의 build_runs status 종합 +
 	// 가중치 pass rate + multi-repo recent.
 	v1.GET("/projects/:project_id/test-results", handler.projectTestResults)
+	// Platform sub-project rollup (Sprint C — kpi-tests-per-domain-scope.md §6.3).
+	// platformTestResults 는 동일 Sprint C 의 2 endpoint.
+	v1.GET("/platforms/:platform_id/kpi", handler.platformKPI)
+	v1.GET("/platforms/:platform_id/test-results", handler.platformTestResults)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
 	v1.GET("/platforms/:platform_id/rollup", handler.platformRollup)
 	v1.GET("/platforms/:platform_id/dashboard", handler.platformDashboard)

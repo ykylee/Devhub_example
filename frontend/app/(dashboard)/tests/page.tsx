@@ -22,6 +22,7 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { DomainPicker, type DomainEntity } from "@/shared/ui-foundation/components/DomainPicker";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { projectService } from "@/domain/platform-lifecycle/service/project.service";
+import { platformService } from "@/domain/platform-lifecycle/service/platform.service";
 import type { Project } from "@/domain/platform-lifecycle/schema/project.types";
 import { repositoryService } from "@/domain/repository-integration/service/repository.service";
 import { apiClient } from "@/shared/api/api-client";
@@ -119,10 +120,11 @@ export default function TestManagementPage() {
   const [ciLoading, setCiLoading] = useState(false);
 
   // Sprint D — DomainPicker entity fetch (kpi-tests-per-domain-scope.md §6.4).
-  // Repository scope + Project scope (Sprint B 1차) fetch. Platform 은 Sprint C 와
-  // 함께 추가. 실패 시 picker 가 에러 표시.
+  // Repository scope + Project scope (Sprint B 1차) + Platform scope (Sprint C)
+  // fetch. 실패 시 picker 가 에러 표시.
   const [repositories, setRepositories] = useState<DomainEntity[]>([]);
   const [pickerProjects, setPickerProjects] = useState<DomainEntity[]>([]);
+  const [pickerPlatforms, setPickerPlatforms] = useState<DomainEntity[]>([]);
   const [reposLoading, setReposLoading] = useState(true);
   const [reposError, setReposError] = useState<string | null>(null);
 
@@ -240,17 +242,33 @@ export default function TestManagementPage() {
   }, [selectedProjectId]);
 
   // Sprint D — DomainPicker repositories fetch. 1차 mount 시 1회만.
+  // Sprint C — Platform scope fetch 도 통합 (platformService.listPlatforms).
   useEffect(() => {
     let cancelled = false;
     setReposLoading(true);
     setReposError(null);
-    repositoryService.listRepositories()
-      .then((repos) => {
+    Promise.all([
+      repositoryService.listRepositories(),
+      projectService.listAllProjects().catch((err) => {
+        console.warn("[tests] listAllProjects failed:", err);
+        return [];
+      }),
+      platformService.listPlatforms().catch((err) => {
+        console.warn("[tests] listPlatforms failed:", err);
+        return [];
+      }),
+    ])
+      .then(([repos, projList, platList]) => {
         if (cancelled) return;
         setRepositories(
           repos.map((r) => ({ id: String(r.id), name: r.full_name, description: r.clone_url })),
         );
-        setPickerProjects([]); // Sprint B 1차 placeholder (Sprint B follow-up 에서 활성화)
+        setPickerProjects(
+          projList.map((p) => ({ id: p.id, name: p.name, description: p.key })),
+        );
+        setPickerPlatforms(
+          platList.map((p) => ({ id: p.id, name: p.name, description: p.key })),
+        );
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -392,12 +410,13 @@ export default function TestManagementPage() {
   return (
     <div className="space-y-10 pb-20 px-4 md:px-8">
       {/* Sprint D — kpi-tests-per-domain-scope.md §6.4 Domain picker. Repository
-          scope + Project scope (Sprint B 1차) fetch. Platform 은 Sprint C 와
-          함께 추가. */}
+          scope + Project scope (Sprint B 1차) + Platform scope (Sprint C)
+          fetch. */}
       <DomainPicker
         defaultScope="repository"
         repositories={repositories}
         projects={pickerProjects}
+        platforms={pickerPlatforms}
         loading={reposLoading}
         error={reposError}
       />
