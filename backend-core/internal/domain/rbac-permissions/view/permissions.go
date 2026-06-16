@@ -244,6 +244,11 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// 신규 2 endpoint 의 RBAC 정합. Repository view 권한 보유 actor 만 접근 가능.
 	{http.MethodGet, "/api/v1/repositories/:repository_id/kpi"}:           {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
 	{http.MethodGet, "/api/v1/repositories/:repository_id/test-results"}: {Resource: domain.ResourcePlatformRepositories, Action: domain.ActionView},
+	// Project KPI 가중치 rollup (Sprint B — kpi-tests-per-domain-scope.md §6.2).
+	// projectTestResults 는 follow-up PR (Sprint B-Tests) 에서 추가. deny-by-default
+	// (section 12.9) 회귀 가드 정합: 신규 route 의 row 미등록 시 authenticated 요청도
+	// 403 + auth.policy_unmapped reject.
+	{http.MethodGet, "/api/v1/projects/:project_id/kpi"}: {Resource: domain.ResourceProjects, Action: domain.ActionView},
 
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},

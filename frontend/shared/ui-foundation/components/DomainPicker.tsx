@@ -39,7 +39,7 @@ interface DomainPickerProps {
 
 const SCOPE_OPTIONS: Array<{ value: DomainScope; label: string; icon: typeof Zap; sublabel: string; ready: boolean }> = [
   { value: "platform", label: "Platform", icon: Zap, sublabel: "sub-project rollup", ready: false },
-  { value: "project", label: "Project", icon: Settings, sublabel: "weighted repository rollup", ready: false },
+  { value: "project", label: "Project", icon: Settings, sublabel: "weighted repository rollup", ready: true },
   { value: "repository", label: "Repository", icon: Server, sublabel: "raw metric (weight=1)", ready: true },
 ];
 

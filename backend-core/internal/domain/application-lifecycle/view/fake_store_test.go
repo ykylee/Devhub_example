@@ -51,6 +51,7 @@ type fakeViewPlatformStore struct {
 	errDeleteProjectRepository       error
 	errUpdateProjectRepositoryWeight error
 	errCreateProjectWithRepoPayload  error
+	errComputeProjectWeightedKPI     error // Sprint B
 	errListRepositoriesByProvider    error
 	errComputePlatformRollup      error
 	errListRepositoryBuildRuns       error
@@ -645,6 +646,31 @@ func (s *fakeViewPlatformStore) ListRepositoryQualitySnapshots(_ context.Context
 
 func (s *fakeViewPlatformStore) CountOpenAndMergedPRs(_ context.Context, _ int64, _, _ time.Time) (int, int, error) {
 	return 0, 0, nil
+}
+
+// Sprint B — Project 가중치 rollup fake. test 가 stub 으로 mock 가능하도록
+// err + return value field 노출 (기존 ComputePlatformRollup 패턴 정합).
+func (s *fakeViewPlatformStore) ComputeProjectWeightedKPI(_ context.Context, projectID string, opts store.RepositoryActivityOptions) (domain.ProjectWeightedKPI, error) {
+	if s.errComputeProjectWeightedKPI != nil {
+		return domain.ProjectWeightedKPI{}, s.errComputeProjectWeightedKPI
+	}
+	return domain.ProjectWeightedKPI{
+		ProjectID:              projectID,
+		WindowFrom:             opts.WindowFrom,
+		WindowTo:               opts.WindowTo,
+		WeightedQualityScore:   85.0,
+		WeightedBuildSuccess:   0.9,
+		TotalBuildRunCount:     100,
+		WeightedOpenPRCount:    5,
+		WeightedMergedPRCount:  15,
+		ActiveContributorCount: 8,
+		LinkedRepositoryCount:  3,
+		WeightedAt:             time.Now().UTC(),
+	}, nil
+}
+
+func (s *fakeViewPlatformStore) CountProjectOpenAndMergedPRs(_ context.Context, _ string, _, _ time.Time) (int, int, error) {
+	return 5, 15, nil
 }
 
 func (s *fakeViewPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {

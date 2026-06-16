@@ -652,6 +652,21 @@ func (s *memoryPlatformStore) CountOpenAndMergedPRs(_ context.Context, _ int64, 
 	// 정상 response 검증. 별도 PR seed 가 필요한 test 는 sub-type 으로 override.
 	return 0, 0, nil
 }
+
+// Sprint B — Project 가중치 rollup. memory store 는 seed-free 0,0 default.
+func (s *memoryPlatformStore) ComputeProjectWeightedKPI(_ context.Context, projectID string, opts store.RepositoryActivityOptions) (domain.ProjectWeightedKPI, error) {
+	return domain.ProjectWeightedKPI{
+		ProjectID:              projectID,
+		WindowFrom:             opts.WindowFrom,
+		WindowTo:               opts.WindowTo,
+		LinkedRepositoryCount:  0,
+		WeightedAt:             time.Now().UTC(),
+	}, nil
+}
+
+func (s *memoryPlatformStore) CountProjectOpenAndMergedPRs(_ context.Context, _ string, _, _ time.Time) (int, int, error) {
+	return 0, 0, nil
+}
 // --- Application 롤업 (sprint claude/work_260514-c) ---
 
 func (s *memoryPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {

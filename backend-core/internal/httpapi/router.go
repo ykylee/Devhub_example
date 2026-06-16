@@ -532,6 +532,9 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	v1.POST("/projects/:project_id/repositories", handler.createProjectRepository)
 	v1.DELETE("/projects/:project_id/repositories/:repository_id", handler.deleteProjectRepository)
 	v1.PATCH("/projects/:project_id/repositories/:repository_id", handler.updateProjectRepositoryWeight)
+	// Project KPI 가중치 rollup (Sprint B — kpi-tests-per-domain-scope.md §6.2).
+	// projectTestResults 는 follow-up PR (Sprint B-Tests) 에서 추가.
+	v1.GET("/projects/:project_id/kpi", handler.projectKPI)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
 	v1.GET("/platforms/:platform_id/rollup", handler.platformRollup)
 	v1.GET("/platforms/:platform_id/dashboard", handler.platformDashboard)
