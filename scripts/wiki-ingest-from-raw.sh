@@ -203,10 +203,21 @@ log "[wiki-ingest-from-raw] step 2/3: L2 dense emit (L1 → sources/)"
 log "[wiki-ingest-from-raw]   tool: $EMIT_TOOL_CHOICE ($EMIT_TOOL)"
 if [[ $DRY_RUN -eq 1 ]]; then
   log "[wiki-ingest-from-raw]   mode: dry-run (preview, write 안 함)"
-  python3 "$EMIT_TOOL" --project "$PROJECT" --mode all 2>&1 | tail -10 || {
-    rc=$?
-    log "[wiki-ingest-from-raw]   dry-run warning: emit 도구 exit code $rc (preview 만)" >&2
-  }
+  # dry-run: emit 도구 의 *default* dry-run 호출. self 는 --project/--mode 미지원 →
+  # 그 option 을 넘기면 argparse exit 2 + silent skip. (PR #606 Codex P2 해소)
+  if [[ "$EMIT_TOOL_CHOICE" == "vendor" ]]; then
+    # vendor 는 --project / --mode 지원. default mode=all 이라 self 와 같은 후보 set.
+    python3 "$EMIT_TOOL" --project "$PROJECT" --mode all 2>&1 | tail -10 || {
+      rc=$?
+      log "[wiki-ingest-from-raw]   dry-run warning: vendor emit 도구 exit code $rc (preview 만)" >&2
+    }
+  else
+    # self: vendor-only flag 없이 호출 (default dry-run, args.apply=False).
+    python3 "$EMIT_TOOL" 2>&1 | tail -10 || {
+      rc=$?
+      log "[wiki-ingest-from-raw]   dry-run warning: self emit 도구 exit code $rc (preview 만)" >&2
+    }
+  fi
   log "[wiki-ingest-from-raw]   dry-run done. L2 emit 의 실제 apply 는 --apply 시."
 else
   # --apply: 정상 emit (silent skip 제거, Codex P2 해소)
@@ -234,6 +245,14 @@ else
     SELF_TARGETS=$(find "$VAULT_ROOT/sources" -type f -name '*.md' 2>/dev/null | LC_ALL=C sort)
     SELF_HASHES=$(echo "$SELF_TARGETS" | xargs -I {} sh -c "sha256sum '{}'" | sha256sum | awk '{print $1}')
 
+    # vendor 실행 전 sources/ 의 *file list + hash* snapshot — vendor activity 검증용
+    # (PR #606 Codex P2 해소: vendor 가 self 가 채운 placeholder 위에서 0 file emit →
+    # byte-identical PASS 가 self-only-pass 가 되는 false-positive 방지)
+    SOURCES_BEFORE_HASHES=""
+    if [[ -n "$SELF_TARGETS" ]]; then
+      SOURCES_BEFORE_HASHES=$(echo "$SELF_TARGETS" | xargs sha256sum 2>/dev/null | LC_ALL=C sort)
+    fi
+
     # vendor 실행
     if [[ -n "$SOURCE" ]]; then
       python3 "$EMIT_TOOL_VENDOR" --apply --source "$SOURCE" 2>&1 | tail -3
@@ -246,6 +265,17 @@ else
       exit 1
     fi
 
+    # vendor activity 검증: vendor 실행 후 변형된 file 이 0개면 false-positive.
+    # (self 가 모든 placeholder 를 채워서 vendor 의 _patched_needs_body 가 모두 False →
+    # vendor 가 0 file emit → byte-identical 이 self-only 결과.)
+    SOURCES_AFTER_HASHES=$(echo "$SELF_TARGETS" | xargs sha256sum 2>/dev/null | LC_ALL=C sort)
+    VENDOR_CHANGED=$(comm -23 <(echo "$SOURCES_AFTER_HASHES") <(echo "$SOURCES_BEFORE_HASHES") | wc -l | tr -d ' ')
+    if [[ "$VENDOR_CHANGED" -eq 0 ]]; then
+      log "[wiki-ingest-from-raw] error: vendor 가 0 file 변형 — _patched_needs_body 가 모두 False (false-positive byte-identical 방지)" >&2
+      log "[wiki-ingest-from-raw] hint: self 가 이미 placeholder 를 채운 상태에서 vendor 가 nothing to do. --source 로 single file L1 만 emit 해보세요." >&2
+      exit 1
+    fi
+
     # vendor 가 작성한 file 들 의 sha256 capture + 비교
     VENDOR_HASHES=$(echo "$SELF_TARGETS" | xargs -I {} sh -c "sha256sum '{}'" | sha256sum | awk '{print $1}')
     if [[ "$SELF_HASHES" != "$VENDOR_HASHES" ]]; then
@@ -255,7 +285,7 @@ else
       exit 1
     fi
 
-    log "[wiki-ingest-from-raw]   동등성 검증 PASS ($(echo "$SELF_TARGETS" | wc -l | tr -d ' ') file, sha256 match)"
+    log "[wiki-ingest-from-raw]   동등성 검증 PASS ($(echo "$SELF_TARGETS" | wc -l | tr -d ' ') file, sha256 match, vendor_changed=$VENDOR_CHANGED)"
   else
     # self 만 (default)
     if [[ -n "$SOURCE" ]]; then
