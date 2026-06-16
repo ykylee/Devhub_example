@@ -28,6 +28,7 @@ import { lifecycleStatusBadgeVariant } from "@/shared/utils/lifecycle-status";
 import { PageError, PageLoading } from "@/shared/ui-foundation/components/PageState";
 import { apiClient } from "@/shared/api/api-client";
 import { ProjectKPISection } from "@/domain/platform-lifecycle/view/ProjectKPISection";
+import { ProjectTestsSection } from "@/domain/platform-lifecycle/view/ProjectTestsSection";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -353,6 +354,10 @@ export default function ProjectDetailPage() {
           {/* Sprint B — kpi-tests-per-domain-scope.md §2.2 + §6.2: Project sub-section
               가중치 적용 rollup. contribution_weight 로 N개 linked repository 종합. */}
           <ProjectKPISection projectId={id} />
+          {/* Sprint B-Tests — kpi-tests-per-domain-scope.md §2.2 follow-up:
+              가중치 적용 test results sub-section. N개 linked repository 의
+              build_runs status 종합 + 가중치 pass rate + multi-repo recent. */}
+          <ProjectTestsSection projectId={id} />
           <section className="glass-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-black uppercase tracking-widest text-muted-foreground">Connected Repositories</h3>

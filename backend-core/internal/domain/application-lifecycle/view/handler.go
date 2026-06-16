@@ -83,6 +83,12 @@ type PlatformStore interface {
 	ComputeProjectWeightedKPI(context.Context, string, store.RepositoryActivityOptions) (domain.ProjectWeightedKPI, error)
 	CountProjectOpenAndMergedPRs(context.Context, string, time.Time, time.Time) (int, int, error)
 
+	// Project 가중치 적용 test results — Sprint B-Tests
+	// (kpi-tests-per-domain-scope.md §6.2 follow-up). N개 linked repository 의
+	// build_runs status 종합 + 가중치 pass rate + multi-repo recent. handler
+	// 측에서 JSON 직렬화 시 window/limit 정규화.
+	ListProjectTestResults(context.Context, string, store.BuildRunListOptions) (domain.ProjectWeightedTestResults, int, error)
+
 	// Application 롤업
 	ComputePlatformRollup(context.Context, string, domain.PlatformRollupOptions) (domain.PlatformRollup, error)
 	CountPlatformCriticalWarnings(context.Context, string) (int, error)

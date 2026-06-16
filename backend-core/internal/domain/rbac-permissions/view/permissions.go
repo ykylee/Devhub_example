@@ -249,6 +249,10 @@ var routePermissionTable = map[routeKey]routePolicy{
 	// (section 12.9) 회귀 가드 정합: 신규 route 의 row 미등록 시 authenticated 요청도
 	// 403 + auth.policy_unmapped reject.
 	{http.MethodGet, "/api/v1/projects/:project_id/kpi"}: {Resource: domain.ResourceProjects, Action: domain.ActionView},
+	// Project Tests 가중치 종합 (Sprint B-Tests — kpi-tests-per-domain-scope.md
+	// §6.2 follow-up). projectKPI 와 동일 Resource/Action (projects:view). 신규
+	// route 의 row 미등록 시 deny-by-default 회귀 가드 정합.
+	{http.MethodGet, "/api/v1/projects/:project_id/test-results"}: {Resource: domain.ResourceProjects, Action: domain.ActionView},
 
 	// Project CRUD (API-55..56, sprint claude/work_260514-c).
 	{http.MethodGet, "/api/v1/repositories/:repository_id/projects"}:                {Resource: domain.ResourceProjects, Action: domain.ActionView},
