@@ -76,6 +76,15 @@ def _run_tool(tool: Path, *args: str) -> tuple[int, str, str]:
     return (proc.returncode, proc.stdout, proc.stderr)
 
 
+def _actual_l1_count() -> int:
+    """L1 page 의 actual count (5 dir × *.md, index.md 제외). L1 page 추가 시 동적."""
+    return sum(
+        1
+        for d in L1_DIRS
+        if (L1_BASE / d).is_dir()
+        for f in (L1_BASE / d).glob("*.md")
+        if f.name != "index.md"
+    )
 def _read(p: Path) -> str:
     return p.read_text(encoding="utf-8")
 
@@ -131,7 +140,8 @@ def test_self_dry_run_default() -> None:
     assert rc == 0, f"self dry-run expected exit 0, got {rc}, stderr: {err}"
     assert "DRY-RUN" in out, f"self dry-run output missing DRY-RUN: {out[:200]}"
     # L1 5 file, L2 5 page 가 이미 dense emit 이므로 candidates = 0
-    assert "L1 files: 5" in out, f"self dry-run L1 count expected 5, got: {out[:200]}"
+    actual_l1 = _actual_l1_count()
+    assert f"L1 files: {actual_l1}" in out, f"self dry-run L1 count expected {actual_l1}, got: {out[:200]}"
     assert "L2 candidates (needs body): 0" in out, f"self dry-run candidates expected 0: {out[:200]}"
 
 
@@ -141,8 +151,10 @@ def test_vendor_dry_run_default() -> None:
     rc, out, err = _run_tool(VENDOR_TOOL, "--project", "devhub", "--mode", "l1")
     assert rc == 0, f"vendor dry-run expected exit 0, got {rc}, stderr: {err}"
     assert "DRY-RUN" in out, f"vendor dry-run output missing DRY-RUN: {out[:200]}"
-    assert "L1 files: 5" in out, f"vendor dry-run L1 count expected 5, got: {out[:200]}"
-    assert "L2 pages: 5" in out, f"vendor dry-run L2 count expected 5, got: {out[:200]}"
+    actual_l1 = _actual_l1_count()
+    assert f"L1 files: {actual_l1}" in out, f"vendor dry-run L1 count expected {actual_l1}, got: {out[:200]}"
+    actual_l2 = len([p for p in L2_SOURCES.glob("*.md") if p.name != "_manifest.md"])
+    assert f"L2 pages: {actual_l2}" in out, f"vendor dry-run L2 count expected {actual_l2}, got: {out[:200]}"
     assert "candidates (needs body): 0" in out, f"vendor dry-run candidates expected 0: {out[:200]}"
 
 
@@ -182,7 +194,8 @@ def test_self_l1_file_discovery() -> None:
     """5 dir, *.md glob — 5 L1 page 인식."""
     rc, out, _ = _run_tool(SELF_TOOL)
     assert rc == 0, f"self L1 discovery expected exit 0, got {rc}"
-    assert "L1 files: 5" in out, f"self L1 count expected 5, got: {out[:200]}"
+    actual_l1 = _actual_l1_count()
+    assert f"L1 files: {actual_l1}" in out, f"self L1 count expected {actual_l1}, got: {out[:200]}"
     # 실제 L1 dir 5종 모두 존재 확인
     for sub in L1_DIRS:
         d = L1_BASE / sub
@@ -196,8 +209,10 @@ def test_vendor_l1_file_discovery() -> None:
     """5 dir, *.md glob — 5 L1 page 인식 (vendor wrapper)."""
     rc, out, _ = _run_tool(VENDOR_TOOL, "--project", "devhub", "--mode", "l1")
     assert rc == 0, f"vendor L1 discovery expected exit 0, got {rc}"
-    assert "L1 files: 5" in out, f"vendor L1 count expected 5, got: {out[:200]}"
-    assert "L2 pages: 5" in out, f"vendor L2 count expected 5, got: {out[:200]}"
+    actual_l1 = _actual_l1_count()
+    assert f"L1 files: {actual_l1}" in out, f"vendor L1 count expected {actual_l1}, got: {out[:200]}"
+    actual_l2 = len([p for p in L2_SOURCES.glob("*.md") if p.name != "_manifest.md"])
+    assert f"L2 pages: {actual_l2}" in out, f"vendor L1 discovery L2 count expected {actual_l2}, got: {out[:200]}"
 
 
 @register("test_self_l2_file_emit_shape")
