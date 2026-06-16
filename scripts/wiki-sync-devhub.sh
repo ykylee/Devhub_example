@@ -369,7 +369,10 @@ MANIFEST="$DEST/_manifest.md"
 GIT_COMMIT=$(git -C "$SRC" rev-parse HEAD 2>/dev/null || echo "unknown")
 GIT_COMMIT_SHORT=$(git -C "$SRC" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH=$(git -C "$SRC" branch --show-current 2>/dev/null || echo "unknown")
-GIT_DIRTY=$(git -C "$SRC" status --porcelain 2>/dev/null | grep -v 'raw/projects/devhub/' | head -1)
+# awk: raw/projects/devhub/ line skip 후 첫 non-matching line print + exit.
+# 기존 `grep -v ... | head -1` 는 input empty 시 head 가 stdin close → grep SIGPIPE 141
+# → set -o pipefail + set -e 가 script 종료 → manifest regeneration 안 됨 (PR #604 follow-up).
+GIT_DIRTY=$(git -C "$SRC" status --porcelain 2>/dev/null | awk '!/raw\/projects\/devhub\// { print; exit }')
 if [[ -n "$GIT_DIRTY" ]]; then
   GIT_DIRTY_FLAG="(dirty: uncommitted changes)"
 else
