@@ -7,6 +7,8 @@ release 절차 (validate → dist → version-bump → note-draft → release �
 Phase 1 (v0.7.9): validate / version-bump / note-draft — 사전 점검 + version + note.
 Phase 2 (v0.7.10): release / verify / rollback — gh CLI 통합 + read-only verify + destructive rollback.
 Phase 3 (v0.7.11): dist — `python3 -m build` wheel + sdist 자동 빌드 (PEP 517/518).
+Phase 5 (v0.7.18): release coordination observability — cmd_release 의 --auto-bump
+  + remote tag pre-check (`git ls-remote origin`). v0.7.16 의 race lesson 반영.
 
 PyPI/TestPyPI 업로드 ❌ (memory #5 의 release 채널 정책 — GitHub Releases 만).
 
@@ -171,6 +173,145 @@ def cmd_validate(args) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 1.5 release coordination observability (v0.7.18+)
+# ---------------------------------------------------------------------------
+
+
+def _check_remote_tag(tag: str, *, timeout: int = 15) -> dict:
+    """원격 (origin) 에 주어진 tag 가 존재하는지 확인.
+
+    Returns:
+        {"exists": bool, "remote_url": str | None, "tag": str}
+    """
+    result: dict = {"exists": False, "remote_url": None, "tag": tag}
+    # 1. remote URL 추출
+    remote_proc = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+    )
+    if remote_proc.returncode != 0:
+        return result
+    result["remote_url"] = remote_proc.stdout.strip()
+    # 2. ls-remote 로 tag 조회
+    ls_proc = subprocess.run(
+        ["git", "ls-remote", "origin", f"refs/tags/{tag}"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+    )
+    if ls_proc.returncode == 0 and ls_proc.stdout.strip():
+        result["exists"] = True
+    return result
+
+
+def _list_remote_tags(pattern: str = "v*", *, timeout: int = 15) -> list[str]:
+    """원격의 tag list (정규식 filter, sort -V)."""
+    ls_proc = subprocess.run(
+        ["git", "ls-remote", "--tags", "origin", pattern],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+    )
+    if ls_proc.returncode != 0:
+        return []
+    tags = []
+    for line in ls_proc.stdout.strip().splitlines():
+        # line: "<sha>\trefs/tags/<tagname>"
+        parts = line.split("\t", 1)
+        if len(parts) == 2:
+            tag = parts[1].removeprefix("refs/tags/")
+            # peel 된 ^{} tag 제외
+            if not tag.endswith("^{}"):
+                tags.append(tag)
+    return sorted(tags, key=_version_sort_key)
+
+
+def _version_sort_key(tag: str) -> tuple:
+    """PEP 440 + suffix sort key. v0.7.17-beta → (0, 7, 17, 'beta'), v0.7.18 → (0, 7, 18, '').
+
+    SemVer-ish + PEP 440 suffix 순서 (release < alpha < beta < rc). 정수 tuple 이므로
+    `sorted(tags, key=_version_sort_key)` 가 *자동으로* numeric + suffix 순서.
+    """
+    # 'v' prefix 제거
+    s = tag.lstrip("v")
+    # '-suffix' 분리
+    if "-" in s:
+        base, suffix = s.split("-", 1)
+    else:
+        base, suffix = s, ""
+    # base = 'X.Y.Z' → int tuple
+    parts = base.split(".")
+    nums = tuple(int(p) for p in parts if p.isdigit())
+    # suffix sort: '' (release) < 'alpha' < 'beta' < 'rc'
+    suffix_order = {"": 0, "alpha": 1, "beta": 2, "rc": 3}
+    suffix_rank = suffix_order.get(suffix.split(".")[0], 99)
+    return nums + (suffix_rank, suffix)
+
+
+def next_available_version(local_version: str, *, remote_tags: list[str] | None = None) -> dict:
+    """local_version 보다 큰, remote 에 없는 다음 version 결정.
+
+    1차 출처: remote `git ls-remote --tags origin "vX.Y.*"` 의 latest + 0.0.1 bump.
+    local_version 이 이미 remote 의 latest 보다 크면 그대로 (충돌 없음).
+    같은 major.minor prefix 의 모든 tag → max + 0.0.1.
+
+    Args:
+        local_version: 현재 local pyproject 의 version (e.g. "0.7.17").
+        remote_tags: pre-fetched list. None 이면 _list_remote_tags() 호출.
+
+    Returns:
+        {"next": "0.7.18", "current_local": "0.7.17", "remote_max": "0.7.17-beta", "bumped": True}
+    """
+    if remote_tags is None:
+        remote_tags = _list_remote_tags()
+    # local_version 의 major.minor prefix
+    parts = local_version.split(".")
+    if len(parts) < 2:
+        major_minor_prefix = local_version
+    else:
+        major_minor_prefix = ".".join(parts[:2])
+    # remote 의 같은 major.minor 의 tag 만 filter
+    prefix = f"v{major_minor_prefix}."
+    same_prefix = [t for t in remote_tags if t.startswith(prefix)]
+    # numeric base 비교 (PEP 440 suffix 무시)
+    def base_tuple(t: str) -> tuple:
+        b = t.lstrip("v").split("-", 1)[0]
+        try:
+            return tuple(int(p) for p in b.split("."))
+        except ValueError:
+            return (0,)
+    if same_prefix:
+        remote_max = max(same_prefix, key=base_tuple)
+    else:
+        remote_max = None
+    local_tuple = base_tuple(f"v{local_version}")
+    if remote_max is None:
+        # remote 에 같은 major.minor 부재 → local 그대로 (다음 patch 가 local 의 +1)
+        next_v = local_version
+        bumped = False
+    else:
+        remote_tuple = base_tuple(remote_max)
+        if local_tuple > remote_tuple:
+            # local 이 remote max 보다 큼 → 그대로
+            next_v = local_version
+            bumped = False
+        elif local_tuple < remote_tuple:
+            # local 이 remote max 보다 작음 → remote max + 0.0.1
+            next_tuple = list(remote_tuple)
+            next_tuple[-1] += 1
+            next_v = ".".join(str(n) for n in next_tuple)
+            bumped = True
+        else:
+            # local == remote max → patch bump
+            next_tuple = list(remote_tuple)
+            next_tuple[-1] += 1
+            next_v = ".".join(str(n) for n in next_tuple)
+            bumped = True
+    return {
+        "next": next_v,
+        "current_local": local_version,
+        "remote_max": remote_max,
+        "bumped": bumped,
+    }
+
+
+# ---------------------------------------------------------------------------
 # 2. version-bump
 # ---------------------------------------------------------------------------
 
@@ -252,6 +393,10 @@ def cmd_version_bump(args) -> dict:
     """pyproject.toml version patch + workflow_kit/__init__.py __version__ 자동 sync (v0.7.14+).
 
     --no-init flag 시 __init__.py sync skip (CI / override 시나리오).
+
+    v0.7.27+: --apply 시 sync_release_hash.py 자동 호출 (TASK-V0726-003). 본 release 의
+    state.json + backlog 의 hash = latest commit (apply 후의 chore commit) 으로 1 commit
+    으로 정합. infinite fix(state) loop 회피.
     """
     current = read_version()
     current_wk = read_workflow_kit_version()
@@ -286,7 +431,114 @@ def cmd_version_bump(args) -> dict:
         result["current_workflow_kit"] = written
     else:
         result["workflow_kit_skipped"] = True
+
+    # TASK-V0726-003 (v0.7.27): post-step 자동 sync — state.json + backlog 의 hash = latest
+    # commit. --skip-sync-hash flag 시 skip (manual override).
+    if not getattr(args, "skip_sync_hash", False):
+        sync_result = _run_post_step_sync_hash(new)
+        result["sync_hash_result"] = sync_result
     return result
+
+
+def _run_post_step_sync_hash(version: str) -> dict:
+    """sync_release_hash.py 자동 호출 (TASK-V0726-003 post-step) + amend 통합 (TASK-V0727-001).
+
+    2-phase:
+    1. sync_release_hash.py 자동 호출 — state.json + backlog 의 TBD → *current HEAD* hash
+    2. `git add` (sync 의 변경) + `git commit --amend --no-edit` — 1 commit 통합 (별도 fix(state) commit 불필요)
+
+    sync_release_hash.py 는 release_pipeline.py 와 같은 dir (workflow-source/tools/) 에
+    위치. REPO_ROOT 와 무관하게 __file__ 의 parents[1] (workflow-source/tools/) 기준.
+
+    Args:
+        version: new version (e.g. "0.7.29").
+
+    Returns:
+        dict with keys: ok (bool), sync_result (subprocess result), amend_result (subprocess result),
+        final_hash (amend 후의 HEAD short SHA, 또는 None).
+        sync_release_hash.py 또는 git amend 의 returncode != 0 면 ok = False.
+    """
+    sync_tool = Path(__file__).resolve().parent / "sync_release_hash.py"
+    if not sync_tool.exists():
+        return {
+            "ok": False, "sync_result": None, "amend_result": None, "final_hash": None,
+            "error": f"sync_release_hash.py not found: {sync_tool}",
+        }
+    version_arg = f"v{version}" if not version.startswith("v") else version
+
+    # Phase 1: sync_release_hash 호출
+    proc_sync = subprocess.run(
+        [sys.executable, str(sync_tool), f"--version={version_arg}", "--apply"],
+        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+    )
+    sync_result = {
+        "stdout": proc_sync.stdout,
+        "stderr": proc_sync.stderr,
+        "returncode": proc_sync.returncode,
+    }
+    if proc_sync.returncode != 0:
+        return {
+            "ok": False, "sync_result": sync_result, "amend_result": None, "final_hash": None,
+            "error": f"sync_release_hash.py failed (returncode={proc_sync.returncode}): {proc_sync.stderr}",
+        }
+
+    # Phase 2: git add (sync 의 변경) + git commit --amend --no-edit (1 commit 통합)
+    # amend 시 *HEAD* 의 *직전* commit (feat or chore) 이 amend 됨
+    # sync_release_hash 의 변경 = state.json + backlog 의 TBD → HEAD hash
+    # *이미* amend 후 의 *HEAD* 의 본 release 의 chore commit hash 와 정합
+    proc_add = subprocess.run(
+        ["git", "add", "-A"],
+        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+    )
+    add_result = {
+        "stdout": proc_add.stdout,
+        "stderr": proc_add.stderr,
+        "returncode": proc_add.returncode,
+    }
+    if proc_add.returncode != 0:
+        return {
+            "ok": False, "sync_result": sync_result, "amend_result": add_result, "final_hash": None,
+            "error": f"git add failed (returncode={proc_add.returncode}): {proc_add.stderr}",
+        }
+
+    proc_amend = subprocess.run(
+        ["git", "commit", "--amend", "--no-edit"],
+        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+    )
+    amend_result = {
+        "stdout": proc_amend.stdout,
+        "stderr": proc_amend.stderr,
+        "returncode": proc_amend.returncode,
+    }
+    if proc_amend.returncode != 0:
+        return {
+            "ok": False, "sync_result": sync_result, "amend_result": amend_result, "final_hash": None,
+            "error": f"git commit --amend failed (returncode={proc_amend.returncode}): {proc_amend.stderr}",
+        }
+
+    # final hash (amend 후의 HEAD)
+    # 2-step: full SHA → short=7 (F-7+ 의 정공법, v0.7.26)
+    proc_full = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT),
+    )
+    if proc_full.returncode == 0 and proc_full.stdout.strip():
+        head_full = proc_full.stdout.strip()
+        proc_short = subprocess.run(
+            ["git", "rev-parse", "--short=7", head_full],
+            capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT),
+        )
+        if proc_short.returncode == 0 and proc_short.stdout.strip():
+            final_hash = proc_short.stdout.strip()[:7]
+        else:
+            final_hash = None
+    else:
+        final_hash = None
+
+    return {
+        "ok": True, "sync_result": sync_result, "amend_result": amend_result, "final_hash": final_hash,
+        "error": None,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -554,6 +806,86 @@ def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _resolve_notes_file(version: str, template: str, *, dry_run: bool = False) -> dict:
+    """v0.7.24+ --notes-template flag 의 release notes file 결정.
+
+    Templates:
+        - default: `Beta-v{version}.md` (기존 동작)
+        - detailed: `Beta-v{version}.md` + 1st paragraph (default 와 동일, 명시적)
+        - simple: `Beta-v{version}-simple.md` (1 line summary)
+        - changelog: `CHANGELOG.md` (Keep-a-Changelog 1.1.0 형식, v0.7.14 의 changelog-gen 의 output)
+        - custom:<path>: 임의 path
+
+    Returns:
+        {"notes_file": Path, "source": str, "error": str | None}
+    """
+    template = (template or "default").strip()
+    if template == "default" or template == "detailed":
+        notes_file = RELEASES_DIR / f"Beta-v{version}.md"
+        return {"notes_file": notes_file, "source": template, "error": None}
+    elif template == "simple":
+        notes_file = RELEASES_DIR / f"Beta-v{version}-simple.md"
+        if not notes_file.exists() and not dry_run:
+            # simple: default notes 의 1st # 헤더 + 1st ## 헤더 + 1st paragraph 만 자동 generate
+            # 본문 추출: 1st # + 1st ## + (1st blank skip) + 본문 line + 2nd blank (paragraph 끝)
+            default_notes = RELEASES_DIR / f"Beta-v{version}.md"
+            if default_notes.exists():
+                content = default_notes.read_text(encoding="utf-8")
+                lines = content.split("\n")
+                # 1st # 헤더
+                first_h1 = next((i for i, l in enumerate(lines) if l.startswith("# ")), -1)
+                if first_h1 >= 0:
+                    simple_lines: list[str] = []
+                    seen_h1 = False
+                    seen_first_h2 = False
+                    # 1st # 헤더 + 1st ## 헤더 + 본문 (2nd ## 헤더 또는 2nd blank 전까지)
+                    # 본문 = 1st ## 헤더 *후* 의 non-blank line 들
+                    blank_count = 0
+                    in_body = False
+                    for i in range(first_h1, len(lines)):
+                        line = lines[i]
+                        if not seen_h1:
+                            if line.startswith("# "):
+                                simple_lines.append(line)
+                                seen_h1 = True
+                            continue
+                        if line.startswith("## "):
+                            if not seen_first_h2:
+                                simple_lines.append(line)
+                                seen_first_h2 = True
+                                in_body = True
+                            else:
+                                # 2nd ## 헤더 → 끝
+                                break
+                        elif line.strip() == "":
+                            if in_body:
+                                blank_count += 1
+                                if blank_count >= 2:
+                                    # 2nd blank → 1st paragraph 끝
+                                    break
+                        else:
+                            if in_body:
+                                simple_lines.append(line)
+                                blank_count = 0
+                    notes_file.parent.mkdir(parents=True, exist_ok=True)
+                    notes_file.write_text("\n".join(simple_lines).rstrip() + "\n", encoding="utf-8")
+        return {"notes_file": notes_file, "source": template, "error": None}
+    elif template == "changelog":
+        notes_file = REPO_ROOT / "workflow-source" / "CHANGELOG.md"
+        return {"notes_file": notes_file, "source": template, "error": None}
+    elif template.startswith("custom:"):
+        custom_path = Path(template[len("custom:"):])
+        if not custom_path.is_absolute():
+            custom_path = REPO_ROOT / custom_path
+        return {"notes_file": custom_path, "source": template, "error": None}
+    else:
+        return {
+            "notes_file": Path(),
+            "source": template,
+            "error": f"unknown --notes-template value: {template!r}. Use 'default' / 'detailed' / 'simple' / 'changelog' / 'custom:<path>'",
+        }
+
+
 def cmd_changelog_gen(args) -> dict:
     """multi-release git log → CHANGELOG.md 본문 생성 (Keep-a-Changelog 형식)."""
     from_tag = getattr(args, "from_tag", None)
@@ -609,6 +941,12 @@ def cmd_release(args) -> dict:
     사전 점검: --skip-validate 미지정 시 validate 4 source 자동 호출.
     1+ source fail 시 release 중단 (exit 1).
 
+    **v0.7.18+ release coordination observability**:
+    `tag` 결정 후 `git ls-remote origin` 로 *원격 tag 존재 여부* 확인. 존재 시
+    - default: exit 1 + auto-bump hint
+    - `--auto-bump`: `next_available_version()` 로 다음 version 결정 + version-bump 자동 + re-flow
+    v0.7.16 의 race lesson 반영 (memory #22 §release coordination race).
+
     gh auth 인증된 환경 가정. token 회전 부담은 caller 책임.
     """
     results: dict = {"pre_check": {}, "gh_commands": [], "mode": "dry-run" if args.dry_run else "apply"}
@@ -619,6 +957,7 @@ def cmd_release(args) -> dict:
         results["pre_check"] = val_result
         if not all(v.get("ok", False) for v in val_result.values()):
             return {**results, "error": "validate failed; abort release"}
+
     # 2. dist 파일 glob
     # v0.7.13+: --version override (backfill 시 staging 용도). default 는 read_version().
     if getattr(args, "version", None):
@@ -627,20 +966,93 @@ def cmd_release(args) -> dict:
     else:
         version = read_version()
         results["version_source"] = "pyproject.toml"
+
+    # v0.7.18+ auto-bump: pre-check 후 tag 결정 전에 호출
+    if getattr(args, "auto_bump", False):
+        bump_info = next_available_version(version)
+        if bump_info["bumped"]:
+            version = bump_info["next"]
+            results["version_source"] = "auto-bump"
+            results["auto_bump"] = bump_info
+            # version-bump 자동 적용 (in-place). write_version + write_workflow_kit_version
+            write_version(version)
+            suffix = "beta"
+            if read_workflow_kit_version().endswith("-beta"):
+                suffix = "beta"
+            elif read_workflow_kit_version().endswith("-alpha"):
+                suffix = "alpha"
+            else:
+                suffix = ""  # default
+            write_workflow_kit_version(version, suffix=("-" + suffix) if suffix else "")
+        else:
+            results["auto_bump"] = bump_info  # bumped=False, info only
+
     dist_files = find_dist_files(version)
     if not dist_files:
         return {**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"}
 
-    # 3. tag + gh command
+    # 3. tag 결정 + 원격 tag pre-check (v0.7.18+)
     tag = f"v{version}-beta"
-    notes_file = RELEASES_DIR / f"Beta-v{version}.md"
+    # v0.7.24+: --notes-template flag 로 release notes format 자유도
+    notes_template = getattr(args, "notes_template", "default") or "default"
+    notes_resolution = _resolve_notes_file(version, notes_template, dry_run=args.dry_run)
+    if notes_resolution.get("error"):
+        return {**results, "error": notes_resolution["error"]}
+    notes_file = notes_resolution["notes_file"]
     if not notes_file.exists():
         return {**results, "error": f"release note not found: {notes_file}"}
+
+    # 3.5 원격 tag pre-check + tag push (v0.7.18+ race lesson, v0.7.21+ follow-up)
+    # v0.7.21 fix: tag push 와 release 의 coupling. *순서*:
+    #   1. pre-check: remote 에 tag 가 이미 push 됐는지 확인
+    #   2. tag push: pre-check fail 시 default = skip, --allow-existing-tag 면 skip + 진행, --auto-bump 면 bump
+    #   3. gh release create: --verify-tag 가 tag 의 remote 존재 검증 (pre-check 와 *redundant* 한 부분)
+    if not args.dry_run:
+        tag_check = _check_remote_tag(tag)
+        results["tag_pre_check"] = tag_check
+        if tag_check["exists"]:
+            if not getattr(args, "allow_existing_tag", False):
+                return {
+                    **results,
+                    "error": (
+                        f"remote tag {tag} already exists at {tag_check['remote_url']}. "
+                        f"v0.7.16 race 정공법: --auto-bump 으로 다음 version 자동 bump, "
+                        f"--allow-existing-tag 으로 *기존 tag* 에 re-attach, "
+                        f"또는 --version=<next> 명시."
+                    ),
+                }
+            # --allow-existing-tag: skip pre-check fail, 그대로 release 진행
+            results["tag_pre_check_skipped"] = "allow-existing-tag"
+
+    # 3.6 local tag push (v0.7.21+ — tag push 와 release 의 coupling)
+    if not args.dry_run:
+        push_tag_proc = subprocess.run(
+            ["git", "push", "origin", f"refs/tags/{tag}"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30,
+        )
+        results["tag_push"] = {
+            "tag": tag,
+            "returncode": push_tag_proc.returncode,
+            "stdout_tail": push_tag_proc.stdout.strip().split("\n")[-1] if push_tag_proc.stdout else "",
+            "stderr_tail": push_tag_proc.stderr.strip().split("\n")[-1] if push_tag_proc.stderr else "",
+        }
+        if push_tag_proc.returncode != 0 and not getattr(args, "allow_existing_tag", False):
+            return {**results, "error": f"git push tag {tag} failed: {push_tag_proc.stderr.strip()}"}
+    else:
+        # dry-run: pre-check 결과 + warning (plan 검증)
+        tag_check = _check_remote_tag(tag)
+        results["tag_pre_check"] = tag_check
+        if tag_check["exists"]:
+            results["tag_pre_check_warning"] = f"remote tag {tag} already exists (dry-run: pre-check only)"
 
     rel_assets = [str(f.relative_to(REPO_ROOT)) for f in dist_files]
     results["tag"] = tag
     results["assets"] = rel_assets
-    results["notes_file"] = str(notes_file.relative_to(REPO_ROOT))
+    # v0.7.24+: notes_file 가 in-repo 면 relative path, 그 외 (예: changelog) 면 absolute
+    try:
+        results["notes_file"] = str(notes_file.relative_to(REPO_ROOT))
+    except ValueError:
+        results["notes_file"] = str(notes_file)
 
     # 4. gh command build
     repo_remote = subprocess.run(
@@ -936,6 +1348,8 @@ def main() -> int:
     p_vb.add_argument("--dry-run", action="store_true", dest="dry_run",
                        help="bump plan 만 출력 (default: --apply)")
     p_vb.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_vb.add_argument("--skip-sync-hash", action="store_true", dest="skip_sync_hash",
+                       help="post-step sync_release_hash 자동 호출 skip (TASK-V0726-003, manual override)")
     p_vb.add_argument("--json", action="store_true", help="JSON output (CI integration)")
 
     # note-draft
@@ -964,6 +1378,18 @@ def main() -> int:
     p_rel.add_argument("--skip-validate", action="store_true", help="validate 사전 점검 skip")
     p_rel.add_argument("--version", default=None,
                        help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
+    p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,
+                       help="remote tag pre-check fail 시 다음 version 으로 자동 bump + re-flow. "
+                            "v0.7.18+: release coordination observability.")
+    p_rel.add_argument("--allow-existing-tag", dest="allow_existing_tag", action="store_true", default=False,
+                       help="remote tag pre-check 가 'already exists' 일 때 *skip* + 그대로 release 진행. "
+                            "v0.7.21+ follow-up: tag push 와 release 의 coupling fix. "
+                            "*의도된* tag re-push (e.g. wheel re-attach) 또는 backfill 시에만 사용.")
+    p_rel.add_argument("--notes-template", dest="notes_template", default="default",
+                       help="release notes format 결정. v0.7.24+. "
+                            "'default' (Beta-v<X>.<Y>.<Z>.md) / 'detailed' (default 와 동일) / "
+                            "'simple' (1 line summary) / 'changelog' (workflow-source/CHANGELOG.md) / "
+                            "'custom:<path>' (임의 path).")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")

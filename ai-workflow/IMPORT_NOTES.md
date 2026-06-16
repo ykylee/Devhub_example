@@ -1,14 +1,14 @@
-# AI-Workflow Vendor Import Notes (v0.7.17, 2026-06-15)
+# AI-Workflow Vendor Import Notes (v0.7.37, 2026-06-16)
 
-> 표준화 워크플로우 v0.7.17 (standard_ai_workflow) 의 도구/스킬 발매 패키지를 본 저장소 (DevHub) 에 vendor import 한 작업의 메모. 향후 vendor 갱신 + 운영 시 참조.
+> 표준화 워크플로우 v0.7.37 (standard_ai_workflow) 의 도구/스킬 발매 패키지를 본 저장소 (DevHub) 에 vendor import 한 작업의 메모. v0.7.17 (2026-06-15, commit 4d09dee) 에서 v0.7.37 (2026-06-16, commit 0993b12) 로 갱신.
 
 ## 1. import 범위
 
-**Source**: [`ykylee/standard_ai_workflow`](https://github.com/ykylee/standard_ai_workflow) main 브랜치 commit `4d09dee` (v0.7.17, 2026-06-15)
+**Source**: [`ykylee/standard_ai_workflow`](https://github.com/ykylee/standard_ai_workflow) main 브랜치 commit `0993b12` (v0.7.37, 2026-06-16)
 **Local path**: `vendor/standard_ai_workflow/`
 **Upstream metadata**: [`vendor/standard_ai_workflow/.upstream-url`](../../vendor/standard_ai_workflow/.upstream-url)
 
-**가져온 것** (전체 28M, raw 52M → dist/build/egg-info 제거 후):
+**가져온 것** (raw 6.7M / 639 file → dist/build/egg-info/__pycache__ 제거 후 5.0M / 533 file):
 - `workflow-source/tools/` (7 도구, 핵심):
   - `refresh_wiki_memory.py` (v0.7.5+, v0.7.17 in-repo redirect)
   - `emit_wiki_l2_body.py` (v0.7.6+, v0.7.17 in-repo redirect)
@@ -33,6 +33,27 @@
 - `workflow-source/dist/` (52M wheel/sdist, build artifact)
 - `workflow-source/standard_ai_workflow.egg-info/` (build metadata)
 - `workflow-source/dist 오후 10.44.30/`, `dist 오후 11.10.58/` (소스 내 build 오염, 향후 mavis-trash)
+
+## 1.5 v0.7.17 → v0.7.37 갱신 (2026-06-16, 본 PR)
+
+**Scope**: 72 commits, 94 file changed, +18,685 −12 line (v0.7.17..v0.7.37)
+**New tests**: 108 file (v0.7.17 의 11/11 → v0.7.37 의 108 check_*.py)
+**Major new files** (workflow_kit/): `okf_export.py` (ADR-018 vcs_commit), `okf_import.py`
+(ADR-007 + 7/7 PASS), `path_resolver.py` (ADR-008), `url_validity.py` (ADR-010)
+
+**DevHub follow-up patch re-applied** (v0.7.17 의 PR #608 의 vendor file byte-different):
+- `vendor/standard_ai_workflow/tests/check_wiki_drift.py` — PR #608 follow-up (P0 fix,
+  drift gate assert + WIKI_DRIFT_ALLOWLIST env var) 가 v0.7.37 base 에 없음. 본 PR 에서
+  manual re-apply: `git diff dd20266a 1615a004 -- vendor/standard_ai_workflow/tests/check_wiki_drift.py | patch`.
+
+**In-repo redirect 유지** (DevHub 의 customization 우선):
+- `emit_wiki_l2_body.py` (vendor) → DevHub 의 `scripts/emit_wiki_l2_devhub.py` (PR #605-#614).
+  v0.7.37 의 upstream byte (`build_metadata_only_body`, `update_l2_full`) 가 추가됐으나,
+  DevHub 의 in-repo variant 가 이미 동일 기능 cover (PR #605 follow-up). 이중 byte 방지
+  위해 vendor 의 byte 를 **dev 전용 reference** 로만 유지, in-repo variant 가 우선.
+
+**Smoke regression**: `bash scripts/check_vendor_smoke.sh` → 49/49 PASS (smoke 1~6 회귀 0).
+`python3 vendor/standard_ai_workflow/tests/check_v0_7_17_wiki_in_repo_isolation.py` → 11/11 PASS.
 
 ## 2. 격리 이유 (vendor side-by-side)
 

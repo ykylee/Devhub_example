@@ -91,6 +91,11 @@ def get_current_branch() -> str:
     rather than the current process CWD, so callers invoking this from a
     sandboxed temp directory (smoke tests, sub-agents, MCP servers) still see
     the real workflow repo's branch.
+
+    Detached HEAD (e.g. CI checkout at a specific SHA) returns the commit
+    short SHA (7-char prefix) as a stable, collision-resistant slug instead
+    of the bare ``HEAD`` literal, which would otherwise fall through to
+    ``main`` and lose the context. F-7 (v0.7.26) fix.
     """
     for env_key in BRANCH_ENV_KEYS:
         branch = _usable_branch_name(os.environ.get(env_key))
@@ -105,9 +110,27 @@ def get_current_branch() -> str:
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
-        return _usable_branch_name(branch) or "main"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "main"
+
+    # F-7 fix: detached HEAD (branch == "HEAD") — return commit short SHA
+    # instead of falling back to "main". Provides stable identifier for
+    # CI checkouts / specific commit references.
+    if branch == "HEAD":
+        try:
+            short_sha = subprocess.check_output(
+                ["git", "rev-parse", "--short=7", "HEAD"],
+                cwd=str(repo_root),
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+            if short_sha and len(short_sha) >= 7:
+                return short_sha
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        return "main"
+
+    return _usable_branch_name(branch) or "main"
 
 
 def workflow_branch_dir(project_profile_path: Path) -> Path:
