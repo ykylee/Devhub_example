@@ -667,6 +667,31 @@ func (s *memoryPlatformStore) ComputeProjectWeightedKPI(_ context.Context, proje
 func (s *memoryPlatformStore) CountProjectOpenAndMergedPRs(_ context.Context, _ string, _, _ time.Time) (int, int, error) {
 	return 0, 0, nil
 }
+
+// Sprint B-Tests — Project 가중치 적용 test results. memory store 는 linked repo 0
+// 시 weightedPassRate=nil + 7 status 0 + recent 빈 array 응답 (Sprint A 의
+// memoryPlatformStore seed-free 정합).
+func (s *memoryPlatformStore) ListProjectTestResults(_ context.Context, projectID string, opts store.BuildRunListOptions) (domain.ProjectWeightedTestResults, int, error) {
+	windowFrom := opts.WindowFrom
+	if windowFrom.IsZero() {
+		windowFrom = time.Now().UTC().AddDate(0, 0, -30)
+	}
+	windowTo := opts.WindowTo
+	if windowTo.IsZero() {
+		windowTo = time.Now().UTC()
+	}
+	return domain.ProjectWeightedTestResults{
+		ProjectID:        projectID,
+		WindowFrom:       windowFrom.UTC(),
+		WindowTo:         windowTo.UTC(),
+		WeightedPassRate: nil,
+		Totals: map[string]int{
+			"success": 0, "failed": 0, "running": 0, "cancelled": 0,
+			"skipped": 0, "queued": 0, "unknown": 0,
+		},
+		Recent: []domain.ProjectBuildRun{},
+	}, 0, nil
+}
 // --- Application 롤업 (sprint claude/work_260514-c) ---
 
 func (s *memoryPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {

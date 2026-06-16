@@ -55,6 +55,7 @@ type fakeViewPlatformStore struct {
 	errListRepositoriesByProvider    error
 	errComputePlatformRollup      error
 	errListRepositoryBuildRuns       error
+	errListProjectTestResults        error // Sprint B-Tests
 }
 
 func newFakeViewPlatformStore() *fakeViewPlatformStore {
@@ -672,6 +673,35 @@ func (s *fakeViewPlatformStore) ComputeProjectWeightedKPI(_ context.Context, pro
 func (s *fakeViewPlatformStore) CountProjectOpenAndMergedPRs(_ context.Context, _ string, _, _ time.Time) (int, int, error) {
 	return 5, 15, nil
 }
+
+// Sprint B-Tests — Project 가중치 적용 test results fake. 0.93 pass_rate + 5 status
+// (성공 145 / 실패 8 / running 1 / cancelled 2) + recent 3 row + 156 total
+// (PR #597 의 RepositoryTestsSection 정공법 — view 패키지 handler test 의
+// "happy path" 의 seed 가 풍부해야 component 정합 검증 가능). handler test 가
+// stub 으로 override 가능.
+func (s *fakeViewPlatformStore) ListProjectTestResults(_ context.Context, projectID string, opts store.BuildRunListOptions) (domain.ProjectWeightedTestResults, int, error) {
+	if s.errListProjectTestResults != nil {
+		return domain.ProjectWeightedTestResults{}, 0, s.errListProjectTestResults
+	}
+	passRate := 0.93
+	return domain.ProjectWeightedTestResults{
+		ProjectID:        projectID,
+		WindowFrom:       opts.WindowFrom,
+		WindowTo:         opts.WindowTo,
+		WeightedPassRate: &passRate,
+		Totals: map[string]int{
+			"success": 145, "failed": 8, "running": 1, "cancelled": 2,
+			"skipped": 0, "queued": 0, "unknown": 0,
+		},
+		Recent: []domain.ProjectBuildRun{
+			{ID: 100, RepositoryID: 1, RepositoryFullName: "org/repo-a", RunExternalID: "ext-100", Branch: "main", CommitSHA: "feedface", Status: "success", StartedAt: time.Now().UTC().Add(-2 * time.Hour), FinishedAt: ptrTime(time.Now().UTC().Add(-2 * time.Hour).Add(2 * time.Minute))},
+			{ID: 99, RepositoryID: 2, RepositoryFullName: "org/repo-b", RunExternalID: "ext-99", Branch: "feat/x", CommitSHA: "badfeed", Status: "failed", StartedAt: time.Now().UTC().Add(-3 * time.Hour), FinishedAt: ptrTime(time.Now().UTC().Add(-3 * time.Hour).Add(1 * time.Minute))},
+			{ID: 98, RepositoryID: 1, RepositoryFullName: "org/repo-a", RunExternalID: "ext-98", Branch: "main", CommitSHA: "cafe0001", Status: "running", StartedAt: time.Now().UTC().Add(-15 * time.Minute)},
+		},
+	}, 156, nil
+}
+
+func ptrTime(t time.Time) *time.Time { return &t }
 
 func (s *fakeViewPlatformStore) ComputePlatformRollup(_ context.Context, _ string, opts domain.PlatformRollupOptions) (domain.PlatformRollup, error) {
 	if s.errComputePlatformRollup != nil {

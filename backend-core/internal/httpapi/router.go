@@ -535,6 +535,10 @@ func NewRouter(cfg RouterConfig) *gin.Engine {
 	// Project KPI 가중치 rollup (Sprint B — kpi-tests-per-domain-scope.md §6.2).
 	// projectTestResults 는 follow-up PR (Sprint B-Tests) 에서 추가.
 	v1.GET("/projects/:project_id/kpi", handler.projectKPI)
+	// Project Tests 가중치 종합 (Sprint B-Tests — kpi-tests-per-domain-scope.md
+	// §6.2 follow-up). N개 linked repository 의 build_runs status 종합 +
+	// 가중치 pass rate + multi-repo recent.
+	v1.GET("/projects/:project_id/test-results", handler.projectTestResults)
 	// API-57 Application 롤업 (sprint claude/work_260514-c)
 	v1.GET("/platforms/:platform_id/rollup", handler.platformRollup)
 	v1.GET("/platforms/:platform_id/dashboard", handler.platformDashboard)

@@ -533,3 +533,41 @@ type ProjectWeightedKPI struct {
 	LinkedRepositoryCount int      `json:"linked_repository_count"`   // project_repositories 의 link 수
 	WeightedAt           time.Time `json:"weighted_at"`
 }
+
+// ProjectWeightedTestResults — Sprint B-Tests (kpi-tests-per-domain-scope.md §2.2
+// follow-up) 의 가중치 적용 test results payload — project 의 N개 linked
+// repository 의 build_runs status 를 종합.
+//
+// 정공법:
+//   - WeightedPassRate = Σ(success_i × contribution_weight_i) /
+//     Σ((success_i + failed_i) × contribution_weight_i). denom=0 → nil
+//     (linked repo 0 또는 모든 build 가 queued/running/cancelled/skipped/unknown).
+//   - Totals 는 N개 repo 의 build_runs status 합산 (가중치 무관, 단순 count —
+//     RepositoryTestsSection 의 totals 와 동일 정공법).
+//   - Recent 는 모든 linked repo 의 build_runs 의 최신순 limit 개
+//     (multi-repo 표시 위해 RepositoryFullName 추가).
+type ProjectWeightedTestResults struct {
+	ProjectID        string          `json:"project_id"`
+	WindowFrom       time.Time       `json:"window_from"`
+	WindowTo         time.Time       `json:"window_to"`
+	WeightedPassRate *float64        `json:"weighted_pass_rate"` // 0.0~1.0 or null
+	Totals           map[string]int  `json:"totals"`             // 7 status (success/failed/running/cancelled/skipped/queued/unknown)
+	Recent           []ProjectBuildRun `json:"recent"`           // multi-repo build_runs + repo full_name
+}
+
+// ProjectBuildRun is one build_runs row enriched with repository full_name,
+// scoped under a Project's recent runs list (multi-repo). BuildRun 자체는
+// single-repo 표시용 정공법 (repositoryBuildRuns response) 이므로 본 struct 는
+// 별도 정의 — BuildRun 영향 분리.
+type ProjectBuildRun struct {
+	ID                 int64      `json:"id"`
+	RepositoryID       int64      `json:"repository_id"`
+	RepositoryFullName string     `json:"repository_full_name"`
+	RunExternalID      string     `json:"run_external_id"`
+	Branch             string     `json:"branch"`
+	CommitSHA          string     `json:"commit_sha"`
+	Status             string     `json:"status"`
+	DurationSeconds    *int       `json:"duration_seconds,omitempty"`
+	StartedAt          time.Time  `json:"started_at"`
+	FinishedAt         *time.Time `json:"finished_at"`
+}
