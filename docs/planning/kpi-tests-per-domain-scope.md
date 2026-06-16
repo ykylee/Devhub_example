@@ -224,8 +224,7 @@ const systemMenu: MenuItem[] = [
 - **공용** (docs only, 사내 한정 정보 미포함)
 - 후속 backend API (4.1~4.3) — 사내 한정 정보 미포함 시 사외 가능 (가중치 / rollup 은 표준 로직)
 
-## 9. 변경 이력
-
 | 일자 | 변경 | sprint |
 |---|---|---|
 | 2026-06-15 | 본 컨셉 초안 — KPI/Tests 위치 정공법 (도메인 scope 별 sub-section) + sidebar 재구성 + 5 sprint 진입 hook | (TBD) |
+| 2026-06-15 | **Sprint A (Repository sub-section) implemented** — PR #597 (squash `25f2262e`) 머지 완료. 24 file, +1946/-23 line. Backend 2 endpoint (`GET /api/v1/repositories/:id/kpi` + `/test-results`) + `routePermissionTable` 등록 + parseWindowShort helper + `BuildRunListOptions.WindowFrom/To` filter + frontend 2 component (RepositoryKPISection + RepositoryTestsSection) + `ManagerView.tsx` inline 배치 + openapi.yaml +86 path (84 → 86) + test_cases.md (예정) + memory 4 file. 4 follow-up P1/P2 (lucide-react import 닫기, routePermissionTable 등록, ?window=Nd parsing, build-runs window filter) 동시 squash. | `feat/x-repository-kpi-tests-section` (PR #597) |

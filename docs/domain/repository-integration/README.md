@@ -28,7 +28,7 @@
 | REQ | [`./requirements.md`](./requirements.md) | active (Phase 3 split, 2026-05-29) |
 | ARCH | [`./architecture.md`](./architecture.md) | active (Phase 3) |
 | API | [`./api.md`](./api.md) | active (Phase 3) |
-| TC | `./test_cases.md` | planned (Phase 2) |
+| TC | [`./test_cases.md`](./test_cases.md) | active (Sprint A follow-up, 2026-06-16 — PR #597 의 repository-kpi-tests-section) |
 
 ## 4. 관련 ADR
 
