@@ -36,7 +36,7 @@
 
 | 영역 | spec 파일 | 핵심 TC | sprint |
 | --- | --- | --- | --- |
-| Sprint A KPI/Tests sub-section UI | `frontend/tests/e2e/repository-kpi-tests-section.spec.ts` (**예정, 별도 PR**) | `TC-REPO-KPI-TESTS-01` — Repository 상세 진입 → KPI/Tests sub-section 탭 클릭 → metric 정상 표시 + window selector 7d/30d/90d 전환 시 data refetch | `feat/x-repository-kpi-tests-section` (PR #597 의 follow-up) |
+| Sprint A KPI/Tests sub-section UI | `frontend/tests/e2e/repository-kpi-tests-section.spec.ts` (2026-06-16 본 follow-up PR 작성 완료) | `TC-REPO-KPI-TESTS-01` — Repository 상세 진입 → KPI/Tests sub-section 탭 클릭 → metric 정상 표시 + window selector 7d/30d/90d 전환 시 data refetch | `chore/260616-sprint-a-tests-followup` (PR #597 follow-up 2차) |
 | 기존 Repository 통합 UI | `frontend/tests/e2e/repositories-ui.spec.ts` | Repository list + detail 진입 + 연동 표시 | 기존 |
 | Repository detail 음수 경로 | `frontend/tests/e2e/repositories-detail-negative.spec.ts` | 404 / 권한없음 / 잘못된 id 형식 처리 | 기존 |
 | Repository publish flow | `frontend/tests/e2e/repositories-publish.spec.ts` | publish 요청 + 동기화 상태 표시 | 기존 |
@@ -58,10 +58,10 @@
 
 | 영역 | test 파일 | 핵심 TC |
 | --- | --- | --- |
-| `RepositoryKPISection` | `frontend/domain/repository-integration/view/__tests__/RepositoryKPISection.test.tsx` (PR #597 의 sprint plan §2.4 의 신규 file, 1차 PR 미포함 → **예정**) | `TC-REPO-KPI-UI-01` — quality_score 색상 코드 (≥80 emerald / ≥60 amber / <60 red / null muted) + build_success_rate ≥0.9 emerald / ≥0.7 amber / <0.7 red + window selector 4 옵션 + refresh |
-| `RepositoryTestsSection` | `frontend/domain/repository-integration/view/__tests__/RepositoryTestsSection.test.tsx` (마찬가지 **예정**) | `TC-REPO-TESTS-UI-01` — Recharts 도넛 + Status Distribution 5 + Recent Runs table + window selector |
-| `fetchRepositoryKPI` | `frontend/domain/repository-integration/service/__tests__/repository-kpi.service.test.ts` (PR #597 신규 file 미작성 → **예정**) | `TC-REPO-KPI-SVC-01` — `?window=30d` default, `?from&to` 우선, 404 → `null`, 그 외 error throw |
-| `fetchRepositoryTests` | `frontend/domain/repository-integration/service/__tests__/repository-tests.service.test.ts` (마찬가지 **예정**) | `TC-REPO-TESTS-SVC-01` — `?limit=20` default, 1~50 강제, 404 → `null` |
+| `RepositoryKPISection` | `frontend/domain/repository-integration/view/__tests__/RepositoryKPISection.test.tsx` (2026-06-16 본 follow-up PR 작성 완료) | `TC-REPO-KPI-UI-01` — quality_score 색상 코드 (≥80 emerald / ≥60 amber / <60 red / null muted) + build_success_rate ≥0.9 emerald / ≥0.7 amber / <0.7 red + window selector 4 옵션 + refresh |
+| `RepositoryTestsSection` | `frontend/domain/repository-integration/view/__tests__/RepositoryTestsSection.test.tsx` (2026-06-16 본 follow-up PR 작성 완료) | `TC-REPO-TESTS-UI-01` — Recharts 도넛 + Status Distribution 5 + Recent Runs table + window selector |
+| `fetchRepositoryKPI` | `frontend/domain/repository-integration/service/__tests__/repository-kpi.service.test.ts` (2026-06-16 본 follow-up PR 작성 완료) | `TC-REPO-KPI-SVC-01` — `?window=30d` default, `?from&to` 우선, 404 → `null`, 그 외 error throw |
+| `fetchRepositoryTests` | `frontend/domain/repository-integration/service/__tests__/repository-tests.service.test.ts` (2026-06-16 본 follow-up PR 작성 완료) | `TC-REPO-TESTS-SVC-01` — `?limit=20` default, 1~50 강제, 404 → `null` |
 
 ## 5. 실행
 
@@ -97,11 +97,11 @@ npx playwright test rbac-routes.spec.ts
 
 PR #597 본문 명시 + sprint plan §2.5/§3 의 후속:
 
-- **`repository-kpi-tests-section.spec.ts` e2e (별도 PR)** — `TC-REPO-KPI-TESTS-01` 1 case 작성
-- **`__tests__/RepositoryKPISection.test.tsx`** — Vitest unit 1차 PR 미포함, 후속
-- **`__tests__/RepositoryTestsSection.test.tsx`** — Vitest unit 1차 PR 미포함, 후속
-- **`__tests__/repository-kpi.service.test.ts`** + **`repository-tests.service.test.ts`** — service unit 후속
-- **`rbac-routes.spec.ts` 확장** — 2 신규 route 의 RBAC 강제 TC 추가
+- [x] **`repository-kpi-tests-section.spec.ts` e2e** — `TC-REPO-KPI-TESTS-01` 1 case 작성 (2026-06-16)
+- [x] **`__tests__/RepositoryKPISection.test.tsx`** — Vitest unit 작성 (2026-06-16)
+- [x] **`__tests__/RepositoryTestsSection.test.tsx`** — Vitest unit 작성 (2026-06-16)
+- [x] **`__tests__/repository-kpi.service.test.ts`** + **`repository-tests.service.test.ts`** — service unit 작성 (2026-06-16)
+- [ ] **`rbac-routes.spec.ts` 확장** — 2 신규 route 의 RBAC 강제 TC 추가 (후속)
 
 ## 8. 후속 Sprint (참조)
 
@@ -117,3 +117,4 @@ PR #597 본문 명시 + sprint plan §2.5/§3 의 후속:
 | 일자 | 변경 | sprint |
 | --- | --- | --- |
 | 2026-06-16 | 본 TC 카탈로그 초안 — Sprint A (PR #597) 의 backend 2 endpoint + frontend 2 component + window filter + routePermissionTable 의 회귀 가드 정의. e2e + Vitest unit 의 후속 4 file 명시. | `feat/x-repository-kpi-tests-section` (PR #597 follow-up) |
+| 2026-06-16 | 본 follow-up PR 작성 — 후속 4 file (`repository-kpi-tests-section.spec.ts` e2e + `RepositoryKPISection.test.tsx` + `RepositoryTestsSection.test.tsx` + `repository-kpi.service.test.ts` + `repository-tests.service.test.ts`) 완료. `rbac-routes.spec.ts` 확장 잔여. | `chore/260616-sprint-a-tests-followup` (PR #597 follow-up 2차) |
