@@ -26,6 +26,9 @@ Reference:
 - scripts/atomic_write.py (v0.7.15 follow-up D)
 - POSIX rename(2) atomicity guarantee
 - vendor/standard_ai_workflow/v0.7.15+ workflow_kit.common.atomic_write (pattern 동일, 독립)
+
+Wiki: ai-workflow/wiki/patterns/in-repo-redirect.md
+      ai-workflow/wiki/decisions/v0.7.17-import.md
 """
 
 from __future__ import annotations

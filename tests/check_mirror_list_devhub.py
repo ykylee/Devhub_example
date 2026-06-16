@@ -10,6 +10,9 @@ and the raw mirror (ai-workflow/wiki/raw/projects/devhub). 4 test scenario:
 4. test_mirror_list_doc_consistency: docs 의 "15 패턴" claim + list_sources file count 정합.
 
 Refs: PR #604 (raw mirror full commit), PR #610 (manifest regen), PR #616 (본 test).
+
+Wiki: ai-workflow/wiki/topics/standard-ai-workflow-vendor.md
+      ai-workflow/wiki/decisions/v0.7.37-import.md
 """
 
 from __future__ import annotations

@@ -127,6 +127,112 @@ def validate_l1_pages(inrepo_wiki: Path) -> tuple[int, list[str]]:
     return (len(issues), issues)
 
 
+
+def test_wiki_cross_reference_consistency() -> None:
+    """Wiki cross-reference consistency (PR #621 follow-up):
+
+    1. source code 의 `Wiki:` reference 가 실제 L1 page 에 매칭 (broken link detection)
+    2. L1 page 의 `related_pages` 가 실제 L1 page 에 매칭 (cross-page link)
+    3. Wiki: reference count (>= 1) sanity
+
+    SSOT: docs/governance/wiki-cross-reference.md
+    """
+    import re
+    WIKI_RE = re.compile(r"^#?\s*Wiki:\s*(.+)$", re.MULTILINE)
+    CONT_RE = re.compile(r"^\s{2,}(\S+\.md)\s*$", re.MULTILINE)
+    PAGE_PATH_RE = re.compile(
+        r"ai-workflow/wiki/(concepts|decisions|entities|patterns|topics)/[A-Za-z0-9_\-./]+\.md"
+    )
+    source_root = REPO_ROOT / "scripts"
+    test_root = REPO_ROOT / "tests"
+
+    # 1. Per-line scan: Wiki: line + indented continuation lines
+    wiki_refs: dict[str, set[str]] = {}
+    for root in (source_root, test_root):
+        for py_file in sorted(root.rglob("*.py")):
+            if "__pycache__" in str(py_file):
+                continue
+            text = py_file.read_text(encoding="utf-8", errors="ignore")
+            for m in WIKI_RE.finditer(text):
+                refs: set[str] = {m.group(1).strip()}
+                after = text[m.end():]
+                for cm in CONT_RE.finditer(after):
+                    refs.add(cm.group(1).strip())
+                wiki_refs[str(py_file.relative_to(REPO_ROOT))] = refs
+        for sh_file in sorted(root.rglob("*.sh")):
+            if "__pycache__" in str(sh_file):
+                continue
+            text = sh_file.read_text(encoding="utf-8", errors="ignore")
+            for m in WIKI_RE.finditer(text):
+                refs = {m.group(1).strip()}
+                after = text[m.end():]
+                for cm in CONT_RE.finditer(after):
+                    refs.add(cm.group(1).strip())
+                wiki_refs[str(sh_file.relative_to(REPO_ROOT))] = refs
+
+    if not wiki_refs:
+        raise AssertionError(
+            "Wiki: reference 가 scripts/ 또는 tests/ 어느 file 에도 없음. "
+            "PR #621 의 cross-reference 가 미적용."
+        )
+
+    # 2. Each Wiki: ref 가 actual L1 page 에 매칭 (broken link detection)
+    broken: list[str] = []
+    for src, refs in wiki_refs.items():
+        for ref in refs:
+            if not PAGE_PATH_RE.match(ref):
+                broken.append(
+                    f"{src}: Wiki: ref '{ref}' 가 L1 page path 형식 아님 "
+                    "(expected ai-workflow/wiki/<dir>/<file>.md)"
+                )
+                continue
+            abs_path = REPO_ROOT / ref
+            if not abs_path.is_file():
+                broken.append(f"{src}: Wiki: ref '{ref}' 가 broken link (file not found)")
+
+    if broken:
+        raise AssertionError(
+            f"{len(broken)} cross-reference broken links:\n" + "\n".join(broken[:10])
+        )
+
+    # 3. L1 page 의 related_pages 가 실제 L1 page 에 매칭
+    related_broken: list[str] = []
+    wiki_root = REPO_ROOT / "ai-workflow" / "wiki"
+    for md in wiki_root.rglob("*.md"):
+        rel = md.relative_to(wiki_root)
+        if rel.parts[0] not in ("concepts", "decisions", "entities", "patterns", "topics"):
+            continue
+        text = md.read_text(encoding="utf-8")
+        fm_match = re.match(r"^---\n(.+?)\n---", text, re.DOTALL)
+        if not fm_match:
+            continue
+        related_match = re.search(
+            r"^related_pages:\s*\[(.+?)\]\s*$", fm_match.group(1), re.MULTILINE
+        )
+        if not related_match:
+            continue
+        for page in re.findall(r"([A-Za-z0-9_\-./]+\.md)", related_match.group(1)):
+            found = any(
+                (wiki_root / d / page).is_file()
+                for d in ("concepts", "decisions", "entities", "patterns", "topics")
+            )
+            if not found:
+                related_broken.append(
+                    f"{rel}: related_pages '{page}' 가 어느 L1 dir 에도 없음"
+                )
+
+    if related_broken:
+        raise AssertionError(
+            f"{len(related_broken)} L1 page related_pages broken:\n"
+            + "\n".join(related_broken[:10])
+        )
+
+    # 4. Summary
+    total_refs = sum(len(refs) for refs in wiki_refs.values())
+    print(
+        f"    [cross-ref] {len(wiki_refs)} source file → {total_refs} Wiki: refs, all valid"
+    )
+
 def main() -> int:
     if not VENDOR_TEST.is_file():
         print(f"[check-wiki-drift-devhub] error: vendor test not found: {VENDOR_TEST}")
@@ -147,6 +253,7 @@ def main() -> int:
         ("test_ingested_from_paths_exist", getattr(module, "test_ingested_from_paths_exist", None)),
         ("test_l1_wiki_pages_format", getattr(module, "test_l1_wiki_pages_format", None)),
         # test_v070_concept_pages_indexed 는 *vendor 자체 repo 의 self-test* → DevHub 에서는 skip
+        ("test_wiki_cross_reference_consistency", test_wiki_cross_reference_consistency),
     ]
 
 

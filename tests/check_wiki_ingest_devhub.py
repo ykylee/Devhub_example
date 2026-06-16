@@ -14,6 +14,9 @@ raw mirror 의 mtime 을 갱신하여 working dir 에 unstaged 변경을 만든�
 *logical* side-effect 는 0 (sources/ 미변경) 이지만 raw mirror 의 mtime 변경은
 test 의 scope 밖. 따라서 test 1, 2 는 sources/ 의 content 변화 검증으로
 단순화하지 않고, step 2 log + exit code 만 확인한다.
+
+Wiki: ai-workflow/wiki/decisions/v0.7.17-import.md
+      ai-workflow/wiki/decisions/v0.7.37-import.md
 """
 
 from __future__ import annotations

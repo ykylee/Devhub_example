@@ -24,6 +24,10 @@ Usage:
 
     # Vendor monkey-patch wrapper (vendor 의 도구 의 mini structure 우회):
     python3 scripts/emit_wiki_l2_devhub_vendor.py --apply
+
+Wiki: ai-workflow/wiki/decisions/v0.7.37-import.md
+      ai-workflow/wiki/decisions/v0.7.17-import.md
+      ai-workflow/wiki/concepts/devhub-overview.md
 """
 
 from __future__ import annotations

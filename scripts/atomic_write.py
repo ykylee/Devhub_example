@@ -23,6 +23,9 @@ Reference:
   (pattern 동일, 본 구현은 독립)
 - POSIX rename(2) man page — atomic 보장 spec
 - POSIX fsync(2) man page — power-loss safety
+
+Wiki: ai-workflow/wiki/patterns/in-repo-redirect.md
+      ai-workflow/wiki/decisions/v0.7.17-import.md
 """
 
 from __future__ import annotations
