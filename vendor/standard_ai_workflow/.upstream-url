@@ -1,13 +1,7 @@
 [vendor "standard_ai_workflow"]
 upstream_url = https://github.com/ykylee/standard_ai_workflow.git
 upstream_branch = main
-upstream_commit = 4d09deeff56c9a92cfa8a3b0c6a8b3a3c4f9c1c0
-version = v0.7.17
-imported_at = 2026-06-15
-imported_by = mavis (session mvs_c112b0cf5e474767b9e65aa999afd115)
-import_reason = 표준화 워크플로우 v0.7.17 (wiki in-repo storage isolation) 통째 import. Devhub 의 자체 ai-workflow/ 와 동명 dir 충돌 회피를 위해 vendor/ 격리.
-local_path = vendor/standard_ai_workflow
-update_strategy = manual (릴리즈 노트 + breaking change 발생 시 gh pr create --base main 후 vendor/ 갱신)
-size_note = dist/ + build/ + standard_ai_workflow.egg-info/ + __pycache__/* 제거 후 28M (raw ~52M)
-verified = pending smoke (v0.7.17 check_v0_7_17_wiki_in_repo_isolation.py)
-scope_decision = wiki 운영 in-repo 전환 (v0.7.17 N/A → applicable, 1차 출처 = ai-workflow/memory/active/, 2차 출처 = ai-workflow/wiki/sources/)
+upstream_version = v0.7.37
+upstream_commit = 0993b12dc27d7d7da184ea03a0988105a9f3f875
+devhub_imported_at = 2026-06-16
+devhub_imported_via = "cp -a workflow-source + manual patch (PR #608 follow-up re-apply)"

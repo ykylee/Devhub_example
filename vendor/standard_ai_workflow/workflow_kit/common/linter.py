@@ -56,7 +56,8 @@ def check_maturity_consistency(
     for skill_name, info in skills.items():
         test_path_str = info.get("test_path")
         if test_path_str:
-            test_path = (project_root / test_path_str).resolve()
+            # v0.7.22+ symlink-aware: .resolve() → .absolute() (mavis data dir 격리 환경 fix)
+            test_path = (project_root / test_path_str).absolute()
             if not test_path.exists():
                 issues.append({
                     "type": "maturity_error",
@@ -178,7 +179,12 @@ def check_workflow_consistency(
             try:
                 # Remove query or fragments if any
                 clean_link = link.split("#")[0].split("?")[0]
-                link_path = (path.parent / clean_link).resolve()
+                # v0.7.22+ symlink-aware: .resolve() 는 symlink 따라가서
+                # mavis data dir 격리 (e.g. .mavis -> .minimax symlink) + macOS
+                # /var symlink 환경에서 *정상 relative path* 를 *broken* 으로
+                # false-positive 보고. .absolute() 는 symlink 보존 + cwd 기준
+                # 정규화만 — 즉 *user 가 작성한 relative path* 가 그대로 유지됨.
+                link_path = (path.parent / clean_link).absolute()
                 # v0.7.15+: excluded_paths glob match 시 broken link check skip
                 if excluded_paths and _is_excluded(link_path, excluded_paths):
                     continue
