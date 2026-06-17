@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCcw, TrendingUp, GitPullRequest, Users, Activity, Link2 } from "lucide-react";
 import { fetchProjectKPI } from "../service/project-kpi.service";
 import {
@@ -33,6 +35,7 @@ const WINDOW_OPTIONS: { label: string; days: ProjectKPIWindowDays }[] = [
 
 export function ProjectKPISection({ projectId }: ProjectKPISectionProps) {
   const [kpi, setKpi] = useState<ProjectWeightedKPI | null>(null);
+  const isOnDetailPage = usePathname()?.endsWith(`/projects/${projectId}/kpi`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [windowDays, setWindowDays] = useState<ProjectKPIWindowDays>(DEFAULT_PROJECT_KPI_WINDOW_DAYS);
@@ -133,6 +136,16 @@ export function ProjectKPISection({ projectId }: ProjectKPISectionProps) {
             <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
+          {!isOnDetailPage && (
+            <Link
+              href={`/projects/${projectId}/kpi`}
+              data-testid="projects-kpi-drill-down"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              자세히 보기
+            </Link>
+          )}
+
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

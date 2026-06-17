@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCcw, TestTubes, GitCommit, Building2 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchPlatformTestResults } from "../service/platform-tests.service";
@@ -49,6 +51,7 @@ const STATUS_LABEL_KO: Record<string, string> = {
 
 export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) {
   const [results, setResults] = useState<PlatformWeightedTestResults | null>(null);
+  const isOnDetailPage = usePathname()?.endsWith(`/platforms/${platformId}/tests`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [window, setWindow] = useState<PlatformTestResultsWindow>(DEFAULT_PLATFORM_TEST_RESULTS_WINDOW);
@@ -89,7 +92,7 @@ export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) 
       <KpiTestErrorState
         title="Failed to load platform test results"
         message={error}
-        onRetry={() => loadTests(windowDays)}
+        onRetry={() => loadResults(window)}
         testIdPrefix="platform-tests"
       />
     );
@@ -150,6 +153,16 @@ export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) 
             <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
+          {!isOnDetailPage && (
+            <Link
+              href={`/platforms/${platformId}/tests`}
+              data-testid="platforms-tests-drill-down"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              자세히 보기
+            </Link>
+          )}
+
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
