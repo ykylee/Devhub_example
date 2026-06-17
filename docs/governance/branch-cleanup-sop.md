@@ -83,11 +83,16 @@
 
 ### 4.3 Dry-run
 
-`git push --delete` 는 `--dry-run` 을 지원하지 않음. 다음 절차로 dry-run 효과:
+`git push --delete` + `--dry-run` 조합은 **git 2.23+ 에서 지원된다** (e.g. `git push origin --delete --dry-run <ref>`). 따라서 다음 절차로 진짜 dry-run 이 가능하다.
 
 1. 분류 script 가 만든 `<list>.txt` 를 사용자에게 출력.
-2. `git log --oneline -n 3 origin/<branch>` 로 tip 의 마지막 3 commit + author 출력.
-3. 사용자가 1회 OK 한 후에만 실제 delete 실행.
+2. **`git push origin --delete --dry-run <ref>`** 로 remote 가 받아들일 ref 인지 + 권한이 있는지 검증. 실패 ref 는 list 에서 제외.
+3. `git log --oneline -n 3 origin/<branch>` 로 tip 의 마지막 3 commit + author 출력.
+4. 사용자가 1회 OK 한 후에만 실제 delete 실행 (`--dry-run` 제거).
+
+**§5 의 shell-level 정공법**: `xargs git push origin --delete --dry-run < list` + `xargs git push origin --delete < list` 2 단계.
+
+> **변경 이력**: bot codex 의 PR #631 review (2026-06-16) — 기존 §4.3 의 "`git push --delete --dry-run` 미지원" 안내가 false. `git push -h` 의 `-d, --delete` + `-n, --dry-run` 조합이 2.23+ 에서 동작. 정정함.
 
 ## 5. 실행 절차
 
@@ -105,7 +110,9 @@ gh auth status
 #    D: open PR  (제외)
 #    E: no PR   (사전 확인 후 결정)
 git for-each-ref --format='%(refname:short)' refs/remotes/origin/ \
-  | grep -v '^origin/HEAD$' > /tmp/origin-branches.txt
+  | grep -v '^origin/HEAD$' | sed 's|^origin/||' > /tmp/origin-branches.txt
+#    (sed prefix strip: `git for-each-ref %(refname:short)` 는 `origin/foo` 형태를 반환.
+#     `git push --delete` 는 plain `foo` 를 기대하므로 strip 필수. bot codex 리뷰 2026-06-16.)
 # ... (분류 script — `gh pr list --state all --json ...` 와 merge-base 결합)
 
 # 3. Backup dump
@@ -116,7 +123,10 @@ awk '{...}' > ".git/branch-backup/$TS/branches.tsv"
 # 4. Show user
 echo "Delete list:"; cat /tmp/list-final-delete.txt
 
-# 5. Execute
+# 5a. Dry-run (git 2.23+) — 실패 ref 자동 필터링
+xargs git push origin --delete --dry-run < /tmp/list-final-delete.txt
+
+# 5b. Real delete (사용자 OK 후, --dry-run 제거)
 xargs git push origin --delete < /tmp/list-final-delete.txt
 
 # 6. Prune tracking refs
@@ -165,14 +175,15 @@ git for-each-ref --format='%(refname:short)' refs/remotes/origin/ \
 
 ## 8. 한계 + 알려진 함정
 
-- `git push --delete --dry-run` 미지원 → §4.3 절차로 dry-run 효과.
 - `gh pr list --limit` 의 기본값 (30) → 본 SOP 의 일괄 처리 시 `--limit 1500` 권장 (현재 PR 574 개).
 - 5xx+ PR 의 경우 `--limit` 을 더 올리거나 graphql API 로 paginate 필요.
 - backup restore.sh 는 `origin` remote 의 write 권한 필요 (PR §0 "사외/사내 2-tier" 에서 사외 repo 의 push 만 가능).
 - backup 디렉터리는 host-local 이므로 **다른 머신으로 이관 시 별도 동기화** 필요 (rsync 또는 tar).
+- `git for-each-ref %(refname:short)` 의 `origin/` prefix strip — `git push --delete` 는 plain ref name 을 기대하므로 strip 필수. 5.1 step 2 의 `sed 's|^origin/||'` 참조.
 
 ## 9. 변경 이력
 
 | 일자 | 변경 |
 | --- | --- |
 | 2026-06-16 | 1차 작성. 원격 78 + 로컬 41 일괄 cleanup (2026-06-16 sprint hygiene) 의 SOP 표준화. |
+| 2026-06-16 | bot codex PR #631 review 반영 — §4.3 "`git push --delete --dry-run` 미지원" → git 2.23+ 지원 정정 + §5.1 step 5a dry-run 단계 추가. §5.1 step 2 `sed 's\|^origin/\|\|'` prefix strip 추가. §8 "미지원" 한계 row 제거 + `origin/` prefix strip row 추가. |
