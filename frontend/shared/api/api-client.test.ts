@@ -309,7 +309,37 @@ describe("apiClient", () => {
 
       expect(refreshAccessToken).toHaveBeenCalledTimes(1);
       expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  describe("AbortSignal plumb-through (N-9 residual)", () => {
+    it("rejects with DOMException AbortError when signal is already aborted", async () => {
+      const { apiClient } = await import("./api-client");
+      const controller = new AbortController();
+      controller.abort();
+
+      await expect(
+        apiClient("GET", "/api/v1/build-runs", undefined, { signal: controller.signal }),
+      ).rejects.toMatchObject({ name: "AbortError" });
+      // abort 시점 즉시 reject — fetch 자체가 호출되지 않는다.
+      expect(fetchMock).not.toHaveBeenCalled();
     });
+
+    it("forwards AbortSignal to fetch options.signal", async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => '{"data":[]}',
+      });
+
+      const { apiClient } = await import("./api-client");
+      const controller = new AbortController();
+      await apiClient("GET", "/api/v1/build-runs", undefined, { signal: controller.signal });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const init = fetchMock.mock.calls[0][1];
+      expect(init.signal).toBe(controller.signal);
+    });
+  });
   });
 
   describe("ApiError", () => {

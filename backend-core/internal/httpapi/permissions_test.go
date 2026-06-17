@@ -170,6 +170,12 @@ func TestEnforceRoutePermission_RoleAllowedAndDenied(t *testing.T) {
 		{"developer views project test-results (Sprint B-Tests) gate passes", "developer", http.MethodGet, "/api/v1/projects/p-1/test-results", false},
 		{"developer views platform KPI (Sprint C) gate passes", "developer", http.MethodGet, "/api/v1/platforms/pl-1/kpi", false},
 		{"developer views platform test-results (Sprint C) gate passes", "developer", http.MethodGet, "/api/v1/platforms/pl-1/test-results", false},
+		// #556 (N-9 sub-1): repository build-runs endpoint — ResourcePlatformRepositories + ActionView 매핑 회귀 가드.
+		// Sprint A 와 동일 패턴 (developer 가 단일 repository view 가능).
+		{"developer views repository build-runs (N-9) gate passes", "developer", http.MethodGet, "/api/v1/repositories/1/build-runs", false},
+		// #556 (N-9 sub-1) negative case — role 이 guest/없는 경우 deny-by-default.
+		// guest role 은 RBAC policy 에 없으므로 deny.
+		{"unauthenticated guest cannot view repository build-runs (N-9 deny-by-default)", "guest", http.MethodGet, "/api/v1/repositories/1/build-runs", true},
 	}
 
 	for _, tc := range cases {

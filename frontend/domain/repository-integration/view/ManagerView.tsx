@@ -32,6 +32,7 @@ import { Badge } from "@/shared/ui-foundation/components/Badge";
 
 import { RepositoryKPISection } from "./RepositoryKPISection";
 import { RepositoryTestsSection } from "./RepositoryTestsSection";
+import { RepositoryBuildRunsSection } from "./RepositoryBuildRunsSection";
 interface ManagerViewProps {
   repo: Repository;
   activity: RepositoryActivity | null;
@@ -328,6 +329,8 @@ export function ManagerView({ repo, activity, dashboardData }: ManagerViewProps)
         {/* Sprint A — Repository KPI / Tests sub-section (kpi-tests-per-domain-scope.md §2.1) */}
         <RepositoryKPISection repoId={repo.id} />
         <RepositoryTestsSection repoId={repo.id} />
+        {/* N-9 잔여 build-runs polish — kpi-tests-per-domain-scope.md §6.5 + PR #555 잔여 4건 sub-issue 3+4. */}
+        <RepositoryBuildRunsSection repoId={repo.id} />
 
       </div>
     </div>

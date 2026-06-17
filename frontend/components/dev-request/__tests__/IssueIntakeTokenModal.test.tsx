@@ -54,8 +54,10 @@ describe("IssueIntakeTokenModal", () => {
     await user.type(screen.getByLabelText(/Client Label/i), "test_client");
     await user.type(screen.getByLabelText(/Source System/i), "test_sys");
     
-    // Fill first IP input
+    // 2026-06-17 fix: default 가 0.0.0.0/0 + ::/0 pre-filled. user 가 의도적으로
+    // 1.1.1.1 만 submit 하려면 default 0.0.0.0/0 을 clear 후 1.1.1.1 입력.
     const ipInputs = screen.getAllByPlaceholderText(/10\.0\.0\.0/i);
+    await user.clear(ipInputs[0]);
     await user.type(ipInputs[0], "1.1.1.1");
 
     await user.click(screen.getByRole("button", { name: /Issue Token/i }));
@@ -64,7 +66,9 @@ describe("IssueIntakeTokenModal", () => {
       expect(devRequestTokenService.issue).toHaveBeenCalledWith({
         client_label: "test_client",
         source_system: "test_sys",
-        allowed_ips: ["1.1.1.1"],
+        // 2026-06-17 fix: default 가 ["0.0.0.0/0", "::/0"] pre-filled. 첫 input 만
+        // user 가 clear 후 "1.1.1.1" 입력했으나 두 번째 input (::/0) 는 default 유지.
+        allowed_ips: ["1.1.1.1", "::/0"],
       });
     });
 
@@ -118,8 +122,9 @@ describe("IssueIntakeTokenModal", () => {
     // Fill and submit to get to reveal phase
     await user.type(screen.getByLabelText(/Client Label/i), "test");
     await user.type(screen.getByLabelText(/Source System/i), "sys");
-    const ipInputs = screen.getAllByPlaceholderText(/10\.0\.0\.0/i);
-    await user.type(ipInputs[0], "0.0.0.0/0");
+    // default 가 0.0.0.0/0 + ::/0 (2026-06-17 fix) — IP field 가 pre-filled 이므로
+    // 추가 typing 없이 그대로 submit. clear + type 불필요.
+    // (placeholder "e.g. 10.0.0.0/24" 와 selector 매치)
     await user.click(screen.getByRole("button", { name: /Issue Token/i }));
 
     await screen.findByText(/Token shown once/i);
@@ -128,4 +133,14 @@ describe("IssueIntakeTokenModal", () => {
     await user.keyboard("{Escape}");
     expect(mockOnClose).not.toHaveBeenCalled();
   });
+  it("default allowed_ips = 0.0.0.0/0 + ::/0 (2026-06-17 fix — admin RBAC 한정)", () => {
+    // token 발급 endpoint 는 admin RBAC 한정 (ResourceDevRequestIntakeTokens + ActionCreate)
+    // 이므로 default = 모든 IP 허용의 risk 낮음. dev 환경의 다양한 host IP (docker/colima/WSL)
+    // 에서 client_ip 미스매치 방지.
+    render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
+    const ipInputs = screen.getAllByPlaceholderText(/10\.0\.0\.0/);
+    expect(ipInputs[0]).toHaveValue("0.0.0.0/0");
+    expect(ipInputs[1]).toHaveValue("::/0");
+  });
+
 });

@@ -26,7 +26,7 @@ export async function apiClient<T>(
   method: string,
   path: string,
   body?: unknown,
-  options?: { headers?: Record<string, string> }
+  options?: { headers?: Record<string, string>; signal?: AbortSignal }
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) {
@@ -47,11 +47,19 @@ export async function apiClient<T>(
   // Prepend same-origin API_BASE_URL (basePath prefix) if path is relative /api/v1/*
   const resolvedUrl = path.startsWith("/api/") ? `${API_BASE_URL}${path}` : path;
 
-  let response = await fetch(resolvedUrl, {
+  // AbortSignal plumb-through for caller-driven cancellation (e.g. hook effect cleanup
+  // racing). abort 가 이미 trigger 됐으면 즉시 reject — caller 의 setState 단계 진입 방지.
+  if (options?.signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+  const fetchInit: RequestInit = {
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+    signal: options?.signal,
+  };
+
+  let response = await fetch(resolvedUrl, fetchInit);
 
   // 401 핸들링: 인증 시도가 있었던(token 또는 refresh token 보유) 경우에만 refresh 시도.
   // (anon endpoint 호출의 401 은 회복 대상 아님.)
@@ -61,11 +69,7 @@ export async function apiClient<T>(
       const refreshedAccessToken = tokenStore.getAccessToken();
       if (refreshedAccessToken) {
         headers["Authorization"] = `Bearer ${refreshedAccessToken}`;
-        response = await fetch(resolvedUrl, {
-          method,
-          headers,
-          body: body !== undefined ? JSON.stringify(body) : undefined,
-        });
+        response = await fetch(resolvedUrl, fetchInit);
       }
     } else if (outcome.kind === "auth_failed") {
       // refresh_token 거부 / 부재 — 세션 사망. /login 으로 hard nav (idempotent).
@@ -76,6 +80,9 @@ export async function apiClient<T>(
     // transient_failed: 세션을 죽이지 않음. 401 그대로 propagate → caller 가 결정
     // (다음 호출 시점에 다시 refresh 시도되어 자연 회복 가능).
   }
+
+
+
 
   let parsed: unknown = null;
   const text = await response.text();

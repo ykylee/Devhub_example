@@ -122,6 +122,15 @@ export default function ReceptionTestPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        // 401 + auth_intake_ip_denied 정공법 안내: token 의 allowed_ips 가 현재 client IP 와 미스매치.
+        // token 발급 시 /admin/settings/dev-request-tokens 의 Allowed IPs 필드에
+        // 현재 client IP 또는 0.0.0.0/0 추가 필요. IssueIntakeTokenModal 가 dev 환경에서
+        // 0.0.0.0/0 + ::/0 default 제공 (2026-06-17 정공법 fix) — production 환경
+        // 또는 docker / colima / WSL / load-balancer 등 dev 환경의 다양한 host IP 에서
+        // 발생 가능. dev 환경에서 127.0.0.1/32 만 allow 한 경우 이 에러 발생.
+        if (res.status === 401 && body?.code === "auth_intake_ip_denied") {
+          toast("Token 의 Allowed IPs 가 현재 client IP 와 미스매치. /admin/settings/dev-request-tokens 에서 IP 수정 또는 0.0.0.0/0 추가.", "error");
+        }
         throw new Error(`intake ${res.status}: ${body?.error ?? res.statusText}`);
       }
       const body = await res.json();
