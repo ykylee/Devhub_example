@@ -118,3 +118,4 @@ SWAP 47.=47:
 | 일자 | 변경 | sprint |
 |---|---|---|
 | 2026-06-17 | 본 sprint plan 작성. 사용자 결정 (2026-06-17, "잔여 2건 frontend only 로 축소") 반영. branch `chore/260617-n9-residual-build-runs-polish`. | (본 sprint) |
+| 2026-06-17 | PR #633 의 codex P2 review 코멘트 2건 정공법 fix (동일 branch follow-up commit). (1) backend `store.ListRepositoryBuildRuns` 의 3-tuple total 을 frontend 가 합성하지 않고 `service.getRepositoryBuildRunsWithMeta` (legacy `getRepositoryBuildRuns` caller 무손상 보존) 로 expose, hook 이 `meta.total` 사용 (fallback = `items.length >= pageSize`) — `hasMore` 정확. (2) hook 의 cleanup boolean + ref-reset race → `AbortController` per-request token + `isCurrent` 가드 (ref 일치 + `signal.aborted`) + service 옵션 `signal` → `apiClient` plumb. `apiClient` 4번째 인자 `options.signal?: AbortSignal` 추가 (backward-compatible) + refresh 후 2nd fetch 동일 signal 유지. 검증: hook 9/9 + section 7/7 + service 13/13 + apiClient 17/17 + RepositoryDashboardView 8/8 PASS, `tsc --noEmit` PR 영향 7 file 모두 0. | (본 sprint) |
