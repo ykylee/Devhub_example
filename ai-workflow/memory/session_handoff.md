@@ -1,10 +1,10 @@
-# Session Handoff — main (2026-06-15, X-5 follow-up + Sprint A 종합 — PR #596 + #597 MERGED)
+# Session Handoff — main (2026-06-17, 사용자 보고 3건 + codex P1/P2 review 정공법 fix 종합 — PR #639 MERGED)
 
-문서 목적: PR #596 (X-5 Gitea Hourly Pull production wire follow-up) + PR #597 (Sprint A Repository KPI/Tests sub-section) 의 main 머지 + codex review 7건 fix + main flat memory finalize 정공법.
-범위: `backend-core/internal/{store,integrations/adapters,httpapi,domain/application-lifecycle/view/rbac-permissions}` + `frontend/domain/repository-integration/{schema,service,view}` + `docs/{planning,traceability,llm-wiki,adr/0034}` + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`.
-상태: main HEAD `25f2262e` (PR #597 squash, 2026-06-15 02:55 KST). PR #596 + #597 둘 다 MERGED. 본인 회귀 0건. CI 잔여 FAIL 은 X-1/X-2 의 pre-existing 회귀로 별도 housekeeping sprint (사용자 결정).
-최종 수정일: 2026-06-15 02:55 KST (PR #597 머지 후 main flat memory finalize)
-직전 handoff: §0a 참조 (PR #545 v0.5.11 sync ~ PR #595 X-4 merge).
+문서 목적: 본 turn (2026-06-17) 의 사용자 보고 3건 (이슈 1: dev-request intake 401 client IP / 이슈 2: KPI/test 카드 5xx / 이슈 3: drill-down detail page) + PR #635/#636/#637 의 codex P1/P2 inline review 8건 (1 P1 + 7 P2) 정공법 fix + 4 PR 의 변경 일괄 main 머지 (`fix/260617-final-merge` PR #639) — main flat memory finalize 정공법.
+범위: `frontend/components/dev-request/IssueIntakeTokenModal.tsx` + `frontend/shared/utils/error-message.ts` + `frontend/shared/ui-foundation/components/{KpiTestErrorState,KpiTestDetailPage}.tsx` + `frontend/app/(dashboard)/{platforms,projects,repositories}/[id]/{kpi,test-results}/page.tsx` (6 신규 page) + 6 component (Platform/Project/Repository × KPI/Tests) 의 drill-down link + `useRepositoryBuildRuns.ts` 의 stale loadingMore reset + `backend-core/internal/httpapi/router.go` 의 `platformStoreOrUnavailable` code field + `docs/{planning,traceability,llm-wiki}` + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`.
+상태: main HEAD (PR #639 squash `fix/260617-final-merge` 머지, 2026-06-17). PR #633 (N-9 frontend 2건) + PR #635 (이슈 1) + PR #639 (이슈 2+3 + codex P1/P2 fix 종합, commit `7189d277`) MERGED. PR #634/#636/#637/#638 의 변경은 PR #639 의 cherry-pick 으로 main 정합. 16/16 test file 62/62 PASS (이전 turn 44 → 62, +18 case) + `tsc --noEmit` 본 PR 영향 0 + `go build ./...` silent. 본인 회귀 0건.
+최종 수정일: 2026-06-17 04:30 KST (PR #639 머지 후 main flat memory finalize)
+직전 handoff: 본 turn 직전 = 2026-06-15 session_handoff.md (PR #596 + #597 MERGED, main HEAD `25f2262e`).
 - 직전 handoff (PR #514 + #515 finalizing): §0a 참조, main HEAD `fee06d4` 까지.
 
 ## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 + N-6 skip)
