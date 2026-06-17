@@ -4,7 +4,7 @@
 - 범위: 본 디렉터리 + `docs/traceability/` 의 cross-reference.
 - 대상 독자: 모든 contributor (사람 + AI agent), 외부 감사.
 - 상태: accepted
-- 최종 수정일: 2026-05-20
+- 최종 수정일: 2026-06-16
 
 ## 두 축
 
@@ -31,16 +31,19 @@ DevHub 의 거버넌스는 다음 두 축으로 운영된다:
 ```
 docs/
 ├── governance/
-│   ├── README.md                          ← 본 문서
-│   ├── document-standards.md              ← 문서 작성·관리 표준
-│   ├── worker_division.md                 ← 워커 분업 (Claude / Codex / Gemini), 2026-05-20 신규
-│   └── keycloak_admin_responsibility.md   ← IdP 팀 ↔ DevHub 운영자 책임 분리 협약, 2026-05-22 신규 (ADR-0020 §3.2 승격)
+│   ├── README.md                              ← 본 문서
+│   ├── document-standards.md                  ← 문서 작성·관리 표준
+│   ├── worker_division.md                     ← 워커 분업 historical + 사외/사내 2-tier 정책 (§0, §6)
+│   ├── keycloak_admin_responsibility.md       ← IdP 팀 ↔ DevHub 운영자 책임 분리 협약 (ADR-0020 §3.2 승격)
+│   ├── code-taxonomy.md                       ← 코드 분류 12+4 카테고리
+│   ├── l1-format.md                           ← in-repo wiki L1 page format SSOT
+│   ├── wiki-cross-reference.md                ← wiki ↔ code cross-reference SSOT
+│   └── branch-cleanup-sop.md                  ← 원격/로컬 branch 일괄 정리 SOP (3-tier 분류 + backup 절차)
 └── traceability/
     ├── README.md             ← 추적성 체계 개요
     ├── conventions.md        ← ID 컨벤션 표준
     ├── sync-checklist.md     ← PR 동기화 절차
-    └── report.md             ← 종합 추적성 매트릭스 (1차)
-```
+    └── report.md             ← 종합 추적성 매트릭스
 
 ## AI agent 진입점
 
@@ -55,3 +58,4 @@ docs/
 | 2026-05-13 | 1차 작성 (sprint `claude/work_260513-c`). |
 | 2026-05-22 | `keycloak_admin_responsibility.md` 신규 — ADR-0020 §3.2 책임 매트릭스 승격 + escalation path + 명시 금지 5건 (sprint `claude/work_260522-internal-coordinated-carve-docs`). |
 | 2026-06-09 | **워커 분업 전면 취소 (사용자 결정)** — `worker_division.md` 가 §0 + §1~§4 의 historical 標記 + §2.5 branch prefix 자유화 + §5 Owner 권한 명시로 전면 改 編. Claude/Codex 의 자유 이용 불가로 분배 무효화. 유지 정책: §4.2 ADR supersession 정공법, §5 Owner 권한, 우선순위 P0~P3 (sprint `maintenance/work_260609-a-cancel-worker-division`). |
+| 2026-06-16 | `branch-cleanup-sop.md` 신규 — 원격 78 + 로컬 41 일괄 cleanup 의 SOP 표준화 (3-tier 분류, backup dump, dry-run 절차, retention). 백업 위치: `.git/branch-backup/<UTC-timestamp>/`. 디렉터리 트리 갱신. |
