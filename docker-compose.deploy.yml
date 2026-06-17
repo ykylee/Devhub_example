@@ -103,8 +103,16 @@ services:
     profiles: ["local-idp"]
     # Keycloak 단일 IdP (ADR-0019). 사내 환경에서는 별도 운영 Keycloak instance 사용 권장 — 본 service 는 1차 reference.
     # version 26.0 (ADR-0023, 2026-05-26 — ADR-0022 25.0 retreat reversal, 사내 재확인 26.x 사용 가능 확정).
-    image: quay.io/keycloak/keycloak:26.0
-    restart: unless-stopped
+  keycloak:
+    # P2-6 + X-8 정공법 (2026-06-17 e2e smoke): CI 환경의 keycloak service 가 SPI build
+    # 사용. Dockerfile.keycloak 의 multi-stage build (Stage 1: Maven spi-builder → Stage 2:
+    # quay.io/keycloak/keycloak:26.0 + SPI JAR copy + kc.sh build auto-config). 의도적 변경:
+    # 기존 quay.io/keycloak/keycloak:26.0 image 직접 사용 → Dockerfile.keycloak build 변경
+    # (colima / deploy 와 동일 pattern). CI 환경의 SPI e2e smoke 정공법 검증.
+    build:
+      context: ./infra/idp
+      dockerfile: Dockerfile.keycloak
+    command:
     command:
       - start
       - --hostname=${KEYCLOAK_HOSTNAME:?set KEYCLOAK_HOSTNAME}
