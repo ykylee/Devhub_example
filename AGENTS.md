@@ -4,8 +4,8 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v0.1.0 릴리즈 로드맵 (워커 분업 전면 취소 결정 2026-06-09 반영)**, **사외/사내 2-tier 형상관리 분리 (2026-06-10 결정)**
 - 대상 독자: 모든 AI 워커 (Claude/Codex/Gemini/Reasonix/OpenCode/Mavis/기타), 저장소 관리자, workflow 설계자
 - 상태: active
-- 최종 수정일: 2026-06-10 (워커 분업 전면 취소 + branch prefix 자유화 + 사외/사내 2-tier 분업 정책 추가)
-- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**§0 워커 분업 전면 취소 + §6 사외/사내 2-tier 분업**), `docs/planning/release_v0-1_roadmap.md` (**v0.1.0 릴리즈 로드맵**), `docs/traceability/README.md`
+- 최종 수정일: 2026-06-17 (v0.2.0 umbrella + ADR-0034 OKF + ADR-0035 backend-knowledge 추가, Q&A 11/11 결정 완료)
+- 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**§0 워커 분업 전면 취소 + §6 사외/사내 2-tier 분업**), `docs/planning/release_v0-1_roadmap.md` (**v0.1.0 릴리즈 로드맵**), `docs/planning/release_v0-2_roadmap.md` (**v0.2.0 릴리즈 로드맵 — 외부 시스템 연동 + OKF 기반 AI Agent Library**, 2026-06-17 accepted, [ADR-0034 OKF v0.1 채택](./adr/0034-okf-adoption.md) + [ADR-0035 backend-knowledge 신설](./adr/0035-backend-knowledge-creation.md), Q&A 11/11 결정 완료), `docs/traceability/README.md`
 
 ## v0.1.0 릴리즈 로드맵
 
@@ -16,6 +16,23 @@
 - [`docs/planning/release_v0-1_roadmap.md`](docs/planning/release_v0-1_roadmap.md) — v0.1.0 scope + 잔여 carve 우선순위 (P0~P3) + 마일스톤 (워커 분담 표 §5 는 2026-06-09 취소, 작업 우선순위/P0~P3 자체는 유효)
 
 > 참고: [`docs/governance/worker_division.md`](docs/governance/worker_division.md) 는 2026-06-09 전면 취소 결정의 historical record + 유지되는 정책 (ADR supersession 정공법, Owner 권한) + **2026-06-10 §6 사외/사내 2-tier 분업** 만 보존. 강제력 없음.
+
+## v0.2.0 릴리즈 로드맵 (2026-06-17 결정)
+
+**v0.2.0 = 외부 시스템 연동 + 데이터 취합을 별도의 백엔드(`backend-knowledge`)로 모으고, Google OKF v0.1 기반 AI Agent Library 로 통합.** 사용자가 2026-06-17 결정.
+
+모든 신규 sprint / 작업 진입 전 다음 1 문서 확인:
+
+- [`docs/planning/release_v0-2_roadmap.md`](docs/planning/release_v0-2_roadmap.md) — v0.2.0 scope (G1~G7: backend-knowledge 단일화 / 외부 연동 흡수 / OKF 형 bundle / 3가지 기능 / 1차 raw API / 완전 독립 운영 / Q&A 11/11 결정) + 마일스톤 (M-v0.2.0-alpha~v0.3.0 6 단계) + cross-section 정합 (round 1/1.1/2 + §3/§4/§5/§6/§7/§8 self-review)
+
+핵심 결정:
+- **신규 백엔드**: `backend-knowledge/` (Python 3.13+ / FastAPI / OKF / Pi (pi.dev) v0.79.6 LLM enrich, **완전 standalone** — 다른 backend 연결 ❌)
+- **ADR-0034**: [OKF v0.1 채택](./adr/0034-okf-adoption.md) (1차 출처: Google SPEC.md / README.md, Apache 2.0, 1 concept = 1 .md, frontmatter `type` 1개 필수, 8종 type enum)
+- **ADR-0035**: [`backend-knowledge` 신설](./adr/0035-backend-knowledge-creation.md) (외부 시스템 7종 source 만 단방향, M-v0.2.3 운영 기준: Gitea 4 sub-plugin gitea_repo_pull / gitea_issue / gitea_wiki / gitea_action + homelab + metrics + hrdb, 2026-06-17 A/A 결정 + 2026-06-18 supersession 정합)
+- **backend-ai/ 폐기** (M-v0.2.2, placeholder 정리)
+- **Q&A 11/11 결정 완료** (Q1~Q11, release_v0-2_roadmap.md §7)
+
+sprint 진입 checklist (release_v0-2_roadmap.md §5.3) 6 항목 중 4 항목 완료 (2026-06-17): umbrella doc publish ✅ / child doc active 전환 ✅ / state.json M-v0.2.0 row 발급 ✅ / OKF SPEC.md 1차 정독 ✅. 2 항목 별도: `backend-knowledge/` 디렉터리 skeleton (별도 PR) / GitHub milestone v0.2.0 (별도).
 
 ## 사외 / 사내 2-tier 형상관리 분리 (2026-06-10 결정)
 
