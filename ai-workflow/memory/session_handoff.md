@@ -1,10 +1,10 @@
-# Session Handoff — main (2026-06-17, X-6 Keycloak group staging-prod 적용 정공법 = docs only — PR #640 MERGED)
+# Session Handoff — main (2026-06-17, X-8 Keycloak SPI realm events push 전환 정공법 = compose + docs only — PR #641 MERGED)
 
-문서 목적: 본 turn (2026-06-17) 의 X-6 (issue #214, P1-3 Keycloak group staging-prod 적용) 정공법 = docs only + issue #214 close + release_v0-1_roadmap.md X-6 row status `⏳ planned` → `🟡 in_progress` — main flat memory finalize 정공법.
-범위: `docs/setup/keycloak_operations.md` (변경 0, 정공법 정합 확인) + `scripts/verify-keycloak-groups.sh` (변경 0, main 정합) + `docs/planning/release_v0-1_roadmap.md` (X-6 row + §9 변경 이력 row) + `CHANGELOG.md` (v0.1.1-alpha table X-6 row) + `docs/traceability/report.md` (§6 변경 이력 X-6 row) + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`. 백엔드/프론트엔드 코드 변경 0.
-상태: main HEAD `8673dedc` (PR #640 squash `feat/260617-x6-keycloak-groups-docs` 머지, 2026-06-17). X-6 의 backend/script 변경 0 — 이미 main 정합 (keycloak_operations.md §4.3 + §4.4 SOP + verify-keycloak-groups.sh 자동 검증). 정공법 = docs only (3 file +5/-3) + issue #214 close 정공법 (SOP + 자동 검증 main 정합 + 사용자 admin 작업 잔여). 16/16 test file 62/62 PASS (이전 turn 44 → 62, +18 case) + `tsc --noEmit` 본 PR 영향 0 + `go build ./...` silent (변경 0). 본인 회귀 0건.
-최종 수정일: 2026-06-17 05:00 KST (PR #640 머지 후 main flat memory finalize)
-직전 handoff: 본 turn 직전 = 2026-06-17 (이전 turn) session_handoff.md (PR #639 MERGED, 사용자 보고 3건 + codex P1/P2 review 정공법 fix 종합).
+문서 목적: 본 turn (2026-06-17) 의 X-8 (P2-6 + P3-5 Keycloak SPI realm events push 전환) 정공법 = compose + docs only + main flat memory finalize 정공법.
+범위: `infra/idp/keycloak-event-listener-spi/` (Java SPI source 변경 0) + `docker-compose.colima.yml` + `docker-compose.deploy.yml` (SPI JAR volume mount + env DEVHUB_BACKEND_SPI_WEBHOOK_URL + DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET 추가) + `docs/setup/keycloak_event_listener_spi.md` (정공법 SOP NEW, 8.7KB) + `scripts/verify-keycloak-spi.sh` (자동 검증 4 항목 NEW) + `docs/planning/release_v0-1_roadmap.md` (X-8 row status `⏳ planned` → `🟡 in_progress` + §9 변경 이력 row) + `CHANGELOG.md` (v0.1.1-alpha table X-8 row) + `docs/traceability/report.md` (§6 변경 이력 X-8 row) + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`. 백엔드 코드 변경 0.
+상태: main HEAD `b49e50cc` (PR #641 squash `feat/260617-x8-keycloak-event-listener-spi-sop` 머지, 2026-06-17). X-8 의 backend 변경 0 — DevHubEventListenerProvider.java async sendAsync POST + DevHubEventListenerProviderFactory.java env-var wire + keycloak_events_webhook.go webhook handler + keycloak_event_puller.go polling cron (residual) + event_cursors.go dedup 모두 main 정합. 정공법 = compose + docs only (7 file +305/-3) + 잔여 = 사내 빌드 (Java 21 + Maven 3.13+ 환경, 사용자 결정) + 사내 staging/prod 적용 후 `verify-keycloak-spi.sh` 1회 실행 (4 항목 PASS 확인). 16/16 test file 62/62 PASS (이전 turn 44 → 62, +18 case) + `tsc --noEmit` 본 PR 영향 0 + `go build ./...` silent (변경 0) + compose YAML lint 정공법 (colima + deploy 둘 다 OK). 본인 회귀 0건.
+최종 수정일: 2026-06-17 05:30 KST (PR #641 머지 후 main flat memory finalize)
+직전 handoff: 본 turn 직전 = 2026-06-17 (X-6 turn) session_handoff.md (PR #640 MERGED, X-6 Keycloak group staging-prod 적용 정공법 = docs only).
 - 직전 handoff (PR #514 + #515 finalizing): §0a 참조, main HEAD `fee06d4` 까지.
 
 ## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 + N-6 skip)
