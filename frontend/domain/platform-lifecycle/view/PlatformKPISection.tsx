@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCcw, TrendingUp, GitPullRequest, Users, Activity, Building2 } from "lucide-react";
 import { fetchPlatformKPI } from "../service/platform-kpi.service";
 import {
@@ -9,6 +11,7 @@ import {
   PlatformWeightedKPI,
 } from "../schema/platform-kpi.types";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
+import { KpiTestErrorState } from "@/shared/ui-foundation/components/KpiTestErrorState";
 
 // PlatformKPISection — Sprint C (kpi-tests-per-domain-scope.md §2.3 + §6.3)
 //
@@ -33,6 +36,7 @@ const WINDOW_OPTIONS: { label: string; days: PlatformKPIWindowDays }[] = [
 
 export function PlatformKPISection({ platformId }: PlatformKPISectionProps) {
   const [kpi, setKpi] = useState<PlatformWeightedKPI | null>(null);
+  const isOnDetailPage = usePathname()?.endsWith(`/platforms/${platformId}/kpi`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [windowDays, setWindowDays] = useState<PlatformKPIWindowDays>(DEFAULT_PLATFORM_KPI_WINDOW_DAYS);
@@ -67,13 +71,12 @@ export function PlatformKPISection({ platformId }: PlatformKPISectionProps) {
 
   if (error) {
     return (
-      <div className="glass border border-red-300 dark:border-red-700 rounded-2xl p-6 flex items-start gap-2 text-red-600 dark:text-red-300">
-        <AlertCircle className="w-4 h-4 mt-0.5" />
-        <div>
-          <div className="font-semibold">Failed to load platform KPI</div>
-          <div className="text-sm">{error}</div>
-        </div>
-      </div>
+      <KpiTestErrorState
+        title="Failed to load platform KPI"
+        message={error}
+        onRetry={() => loadKpi(windowDays)}
+        testIdPrefix="platform-kpi"
+      />
     );
   }
 
@@ -134,6 +137,16 @@ export function PlatformKPISection({ platformId }: PlatformKPISectionProps) {
             <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
+          {!isOnDetailPage && (
+            <Link
+              href={`/platforms/${platformId}/kpi`}
+              data-testid="platforms-kpi-drill-down"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              자세히 보기
+            </Link>
+          )}
+
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

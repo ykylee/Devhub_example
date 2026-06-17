@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCcw, TestTubes, GitCommit, Building2 } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchPlatformTestResults } from "../service/platform-tests.service";
@@ -11,6 +13,7 @@ import {
   PlatformWeightedTestResults,
 } from "../schema/platform-tests.types";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
+import { KpiTestErrorState } from "@/shared/ui-foundation/components/KpiTestErrorState";
 
 // PlatformTestsSection — Sprint C (kpi-tests-per-domain-scope.md §2.3
 // follow-up + §6.3)
@@ -48,6 +51,7 @@ const STATUS_LABEL_KO: Record<string, string> = {
 
 export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) {
   const [results, setResults] = useState<PlatformWeightedTestResults | null>(null);
+  const isOnDetailPage = usePathname()?.endsWith(`/platforms/${platformId}/test-results`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [window, setWindow] = useState<PlatformTestResultsWindow>(DEFAULT_PLATFORM_TEST_RESULTS_WINDOW);
@@ -85,13 +89,12 @@ export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) 
 
   if (error) {
     return (
-      <div className="glass border border-red-300 dark:border-red-700 rounded-2xl p-6 flex items-start gap-2 text-red-600 dark:text-red-300">
-        <AlertCircle className="w-4 h-4 mt-0.5" />
-        <div>
-          <div className="font-semibold">Failed to load platform test results</div>
-          <div className="text-sm">{error}</div>
-        </div>
-      </div>
+      <KpiTestErrorState
+        title="Failed to load platform test results"
+        message={error}
+        onRetry={() => loadResults(window)}
+        testIdPrefix="platform-tests"
+      />
     );
   }
 
@@ -150,6 +153,16 @@ export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) 
             <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
+          {!isOnDetailPage && (
+            <Link
+              href={`/platforms/${platformId}/test-results`}
+              data-testid="platforms-tests-drill-down"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              자세히 보기
+            </Link>
+          )}
+
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

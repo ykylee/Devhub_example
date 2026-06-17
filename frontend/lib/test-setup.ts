@@ -1,3 +1,4 @@
+import React from "react";
 // Vitest setup file (PR-T2, work_26_05_11-d sprint).
 // Runs once per worker before any test file. Wires jest-dom matchers into
 // vitest's expect, and resets the DOM between tests to keep RTL renders
@@ -51,3 +52,18 @@ Object.defineProperty(window, "localStorage", {
   writable: true,
 });
 
+// --- next/link + next/navigation mock (2026-06-17 issue 3 detail page test 정합) ---
+// KpiTestDetailPage wrapper + 4 component (Platform/Project/Repository × KPI/Tests) 가
+// \`next/link\` 의 <Link> + \`next/navigation\` 의 usePathname 사용. vitest runtime 에서
+// next.js router 가 없으므로 <a> + location 모킹으로 정합. 실제 navigation 동작은
+// production runtime 에서 next.js 가 처리 (client-side prefetch + push).
+vi.mock("next/link", () => ({
+  default: ({ children, href, ...rest }: { children: React.ReactNode; href: string; [k: string]: unknown }) =>
+    React.createElement("a", { href, ...rest }, children),
+}));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+  useParams: () => ({}),
+  useSearchParams: () => new URLSearchParams(),
+}));

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCcw, TrendingUp, GitPullRequest, Users, Activity } from "lucide-react";
 import { fetchRepositoryKPI } from "../service/repository-kpi.service";
 import {
@@ -8,7 +10,9 @@ import {
   KPIWindowDays,
   RepositoryKPI,
 } from "../schema/repository-kpi.types";
-import { toUserErrorMessage } from "@/shared/utils/error-message";
+
+import { KpiTestErrorState } from "../../../shared/ui-foundation/components/KpiTestErrorState";
+import { toUserErrorMessage } from "../../../shared/utils/error-message";
 
 // RepositoryKPISection — Sprint A (kpi-tests-per-domain-scope.md §2.1)
 //
@@ -31,6 +35,7 @@ const WINDOW_OPTIONS: { label: string; days: KPIWindowDays }[] = [
 
 export function RepositoryKPISection({ repoId }: RepositoryKPISectionProps) {
   const [kpi, setKpi] = useState<RepositoryKPI | null>(null);
+  const isOnDetailPage = usePathname()?.endsWith(`/repositories/${repoId}/kpi`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [windowDays, setWindowDays] = useState<KPIWindowDays>(DEFAULT_KPI_WINDOW_DAYS);
@@ -64,13 +69,12 @@ export function RepositoryKPISection({ repoId }: RepositoryKPISectionProps) {
 
   if (error) {
     return (
-      <div className="glass border border-red-300 dark:border-red-700 rounded-2xl p-6 flex items-start gap-2 text-red-600 dark:text-red-300">
-        <AlertCircle className="w-4 h-4 mt-0.5" />
-        <div>
-          <div className="font-semibold">Failed to load repository KPI</div>
-          <div className="text-sm">{error}</div>
-        </div>
-      </div>
+      <KpiTestErrorState
+        title="Failed to load repository KPI"
+        message={error}
+        onRetry={() => loadKpi(windowDays)}
+        testIdPrefix="repository-kpi"
+      />
     );
   }
 
@@ -133,6 +137,16 @@ export function RepositoryKPISection({ repoId }: RepositoryKPISectionProps) {
             <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
+          {!isOnDetailPage && (
+            <Link
+              href={`/repositories/${repoId}/kpi`}
+              data-testid="repositories-kpi-drill-down"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              자세히 보기
+            </Link>
+          )}
+
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

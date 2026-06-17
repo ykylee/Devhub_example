@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Loader2, AlertCircle, RefreshCcw, TestTubes, GitCommit } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { fetchRepositoryTestResults } from "../service/repository-tests.service";
@@ -10,7 +12,9 @@ import {
   RepositoryTestResults,
   TestResultsWindow,
 } from "../schema/repository-tests.types";
-import { toUserErrorMessage } from "@/shared/utils/error-message";
+
+import { KpiTestErrorState } from "../../../shared/ui-foundation/components/KpiTestErrorState";
+import { toUserErrorMessage } from "../../../shared/utils/error-message";
 
 // RepositoryTestsSection — Sprint A (kpi-tests-per-domain-scope.md §2.1)
 //
@@ -45,6 +49,7 @@ const STATUS_LABEL_KO: Record<string, string> = {
 
 export function RepositoryTestsSection({ repoId }: RepositoryTestsSectionProps) {
   const [results, setResults] = useState<RepositoryTestResults | null>(null);
+  const isOnDetailPage = usePathname()?.endsWith(`/repositories/${repoId}/test-results`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [window, setWindow] = useState<TestResultsWindow>(DEFAULT_TEST_RESULTS_WINDOW);
@@ -78,13 +83,12 @@ export function RepositoryTestsSection({ repoId }: RepositoryTestsSectionProps) 
 
   if (error) {
     return (
-      <div className="glass border border-red-300 dark:border-red-700 rounded-2xl p-6 flex items-start gap-2 text-red-600 dark:text-red-300">
-        <AlertCircle className="w-4 h-4 mt-0.5" />
-        <div>
-          <div className="font-semibold">Failed to load repository test results</div>
-          <div className="text-sm">{error}</div>
-        </div>
-      </div>
+      <KpiTestErrorState
+        title="Failed to load repository test results"
+        message={error}
+        onRetry={() => loadResults(window)}
+        testIdPrefix="repository-tests"
+      />
     );
   }
 
@@ -150,6 +154,16 @@ export function RepositoryTestsSection({ repoId }: RepositoryTestsSectionProps) 
             <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
+          {!isOnDetailPage && (
+            <Link
+              href={`/repositories/${repoId}/test-results`}
+              data-testid="repositories-tests-drill-down"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              자세히 보기
+            </Link>
+          )}
+
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
