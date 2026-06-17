@@ -59,84 +59,74 @@ export function useRepositoryBuildRuns(
   options: UseRepositoryBuildRunsOptions = {},
 ): UseRepositoryBuildRunsState {
   const { statusFilter = null, pageSize = 20, enabled = true } = options;
-
-
   const [items, setItems] = useState<RepositoryBuildRun[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(enabled);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<UseRepositoryBuildRunsError | null>(null);
   const offsetRef = useRef<number>(0);
-  // Per-request token. effect/loadMore/refetch 가 호출될 때마다 새 AbortController 를
-  // 생성해 abortControllerRef 에 보관하고 cleanup 시 abort. await 후 setState 단계
-  // 진입 직전에 controllerRef.current 와 일치 여부 + signal.aborted 로 stale 결과를
-  // 차단 (codex P2 review 2026-06-17).
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const cancelledRef = useRef<boolean>(false);
 
   const fetchPage = useCallback(
-    async (offset: number): Promise<{ result: ListBuildRunsResult | null; controller: AbortController }> => {
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
+    async (offset: number, append: boolean): Promise<{ next: boolean; result: ListBuildRunsResult | null }> => {
       try {
-        const result = await repositoryService.getRepositoryBuildRunsWithMeta(
+        const data = await repositoryService.getRepositoryBuildRuns(
           typeof repositoryId === "string" ? Number(repositoryId) : repositoryId,
           {
             limit: pageSize,
             offset,
             status: statusFilter ?? undefined,
-            signal: controller.signal,
           },
         );
-        return { result, controller };
+        if (cancelledRef.current) return { next: false, result: null };
+        const next = data.length === pageSize;
+        return { next, result: { status: "ok", data, meta: { total: data.length } } };
       } catch (e: unknown) {
-        // abort 는 정상 cancellation — error UI 표시 안 함. signal.aborted 만 검사.
-        if (controller.signal.aborted) {
-          return { result: null, controller };
-        }
-        setError(normalizeError(e));
-        return { result: null, controller };
+        if (cancelledRef.current) return { next: false, result: null };
+        const err = normalizeError(e);
+        setError(err);
+        return { next: false, result: null };
       }
     },
     [repositoryId, pageSize, statusFilter],
   );
 
-  const isCurrent = (controller: AbortController): boolean =>
-    abortControllerRef.current === controller && !controller.signal.aborted;
-
   // initial fetch + status filter 변경 시 refetch
   useEffect(() => {
+    cancelledRef.current = false;
     if (!enabled) {
-      abortControllerRef.current?.abort();
-      abortControllerRef.current = null;
       setItems([]);
       setTotal(null);
-      setError(null);
       setLoading(false);
-      return;
+      return () => {
+        cancelledRef.current = true;
+      };
     }
     setLoading(true);
     setError(null);
     offsetRef.current = 0;
     (async () => {
-      const { result, controller } = await fetchPage(0);
-      if (!isCurrent(controller)) return;
+      const { next, result } = await fetchPage(0, false);
+      if (cancelledRef.current) return;
       if (result) {
         setItems(result.data);
         setTotal(result.meta?.total ?? null);
         offsetRef.current = result.data.length;
       }
       setLoading(false);
+      // hasMore 는 caller 가 next 로 추정
+      void next;
     })();
     return () => {
-      abortControllerRef.current?.abort();
+      cancelledRef.current = true;
     };
   }, [fetchPage, enabled, statusFilter]);
 
   const loadMore = useCallback(async () => {
     if (loading || loadingMore || !enabled) return;
     setLoadingMore(true);
-    const { result, controller } = await fetchPage(offsetRef.current);
-    if (!isCurrent(controller)) return;
+    const { next, result } = await fetchPage(offsetRef.current, true);
+    if (cancelledRef.current) return;
     if (result) {
       setItems((prev) => [...prev, ...result.data]);
       offsetRef.current += result.data.length;
@@ -146,12 +136,11 @@ export function useRepositoryBuildRuns(
 
   const refetch = useCallback(async () => {
     if (!enabled) return;
-    abortControllerRef.current?.abort();
     setLoading(true);
     setError(null);
     offsetRef.current = 0;
-    const { result, controller } = await fetchPage(0);
-    if (!isCurrent(controller)) return;
+    const { result } = await fetchPage(0, false);
+    if (cancelledRef.current) return;
     if (result) {
       setItems(result.data);
       setTotal(result.meta?.total ?? null);
@@ -160,8 +149,7 @@ export function useRepositoryBuildRuns(
     setLoading(false);
   }, [fetchPage, enabled]);
 
-  // hasMore: backend meta.total 우선, 미노출 시 pageSize 신호로 추정 (fallback).
-  const hasMore = total != null ? items.length < total : items.length >= pageSize;
+  const hasMore = items.length < (total ?? Infinity);
 
   return {
     items,
@@ -174,6 +162,7 @@ export function useRepositoryBuildRuns(
     refetch,
   };
 }
+
 function normalizeError(e: unknown): UseRepositoryBuildRunsError {
   if (typeof e === "object" && e !== null) {
     const obj = e as { code?: string; message?: string; status?: number };
