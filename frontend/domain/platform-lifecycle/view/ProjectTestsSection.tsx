@@ -50,7 +50,7 @@ const STATUS_LABEL_KO: Record<string, string> = {
 
 export function ProjectTestsSection({ projectId }: ProjectTestsSectionProps) {
   const [results, setResults] = useState<ProjectWeightedTestResults | null>(null);
-  const isOnDetailPage = usePathname()?.endsWith(`/projects/${projectId}/tests`);
+  const isOnDetailPage = usePathname()?.endsWith(`/projects/${projectId}/test-results`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [window, setWindow] = useState<ProjectTestResultsWindow>(DEFAULT_PROJECT_TEST_RESULTS_WINDOW);
@@ -161,7 +161,7 @@ export function ProjectTestsSection({ projectId }: ProjectTestsSectionProps) {
         </div>
           {!isOnDetailPage && (
             <Link
-              href={`/projects/${projectId}/tests`}
+              href={`/projects/${projectId}/test-results`}
               data-testid="projects-tests-drill-down"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
             >

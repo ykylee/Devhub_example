@@ -51,7 +51,7 @@ const STATUS_LABEL_KO: Record<string, string> = {
 
 export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) {
   const [results, setResults] = useState<PlatformWeightedTestResults | null>(null);
-  const isOnDetailPage = usePathname()?.endsWith(`/platforms/${platformId}/tests`);
+  const isOnDetailPage = usePathname()?.endsWith(`/platforms/${platformId}/test-results`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [window, setWindow] = useState<PlatformTestResultsWindow>(DEFAULT_PLATFORM_TEST_RESULTS_WINDOW);
@@ -155,7 +155,7 @@ export function PlatformTestsSection({ platformId }: PlatformTestsSectionProps) 
         </div>
           {!isOnDetailPage && (
             <Link
-              href={`/platforms/${platformId}/tests`}
+              href={`/platforms/${platformId}/test-results`}
               data-testid="platforms-tests-drill-down"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
             >

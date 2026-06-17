@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IssueIntakeTokenModal } from "../IssueIntakeTokenModal";
@@ -17,6 +17,10 @@ describe("IssueIntakeTokenModal", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("renders form phase initially", () => {
@@ -48,8 +52,19 @@ describe("IssueIntakeTokenModal", () => {
       expires_at: null,
     };
     vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken);
+    // PR #637 codex P1 fix: dev 환경 stubEnv → useEffect 가 mount 시 0.0.0.0/0 + ::/0 자동 채움.
+    vi.stubEnv("NODE_ENV", "development");
+    try {
+      render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
+    } finally {
+      // stubEnv 는 afterEach 에서 unstubAllEnvs 로 정리 (vitest 자동 처리)
+    }
 
-    render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
+    // useEffect 의 setState 가 hydration 후 적용되므로 waitFor 로 default 검증
+    await waitFor(() => {
+      const initialIpInputs = screen.getAllByPlaceholderText(/10\.0\.0\.0/);
+      expect(initialIpInputs[0]).toHaveValue("0.0.0.0/0");
+    });
 
     await user.type(screen.getByLabelText(/Client Label/i), "test_client");
     await user.type(screen.getByLabelText(/Source System/i), "test_sys");
@@ -110,8 +125,18 @@ describe("IssueIntakeTokenModal", () => {
       expires_at: null,
     };
     vi.mocked(devRequestTokenService.issue).mockResolvedValue(mockToken);
+    // PR #637 codex P1 fix: dev 환경 stubEnv → useEffect 가 mount 시 0.0.0.0/0 + ::/0 자동 채움.
+    vi.stubEnv("NODE_ENV", "development");
+    try {
+      render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
+    } finally {
+      // stubEnv 는 afterEach 에서 unstubAllEnvs 로 정리 (vitest 자동 처리)
+    }
 
-    render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
+    await waitFor(() => {
+      const initialIpInputs = screen.getAllByPlaceholderText(/10\.0\.0\.0/);
+      expect(initialIpInputs[0]).toHaveValue("0.0.0.0/0");
+    });
 
     // In form phase, ESC should close
     await user.keyboard("{Escape}");
@@ -133,14 +158,30 @@ describe("IssueIntakeTokenModal", () => {
     await user.keyboard("{Escape}");
     expect(mockOnClose).not.toHaveBeenCalled();
   });
-  it("default allowed_ips = 0.0.0.0/0 + ::/0 (2026-06-17 fix — admin RBAC 한정)", () => {
-    // token 발급 endpoint 는 admin RBAC 한정 (ResourceDevRequestIntakeTokens + ActionCreate)
-    // 이므로 default = 모든 IP 허용의 risk 낮음. dev 환경의 다양한 host IP (docker/colima/WSL)
-    // 에서 client_ip 미스매치 방지.
+  // 2026-06-17 PR #637 codex P1 review 정공법: prod 환경 default = [""] (deny-by-default).
+  // dev 환경 (NODE_ENV=development) 에서만 mount 시점에 0.0.0.0/0 + ::/0 자동 채움.
+  // vitest 의 NODE_ENV 가 "test" 이므로 본 test 는 (1) prod 정공법 검증 (default = [""])
+  // + (2) dev 환경 stub 후 useEffect 적용 검증 (["0.0.0.0/0", "::/0"]).
+  it("default allowed_ips = empty array in production env (deny-by-default, codex P1 fix)", () => {
+    // vitest 의 NODE_ENV 가 "test" → useEffect 가 분기 적용 안 함 → default [""] 유지.
     render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
     const ipInputs = screen.getAllByPlaceholderText(/10\.0\.0\.0/);
-    expect(ipInputs[0]).toHaveValue("0.0.0.0/0");
-    expect(ipInputs[1]).toHaveValue("::/0");
+    expect(ipInputs[0]).toHaveValue("");
+  });
+
+  it("mount 시 dev 환경 (NODE_ENV=development) 에서 0.0.0.0/0 + ::/0 자동 채움 (2026-06-17 fix)", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    try {
+      render(<IssueIntakeTokenModal onClose={mockOnClose} onIssued={mockOnIssued} />);
+      // useEffect 의 setState 가 hydration 후 적용되므로 waitFor 로 검증
+      await waitFor(() => {
+        const ipInputs = screen.getAllByPlaceholderText(/10\.0\.0\.0/);
+        expect(ipInputs[0]).toHaveValue("0.0.0.0/0");
+        expect(ipInputs[1]).toHaveValue("::/0");
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
 });

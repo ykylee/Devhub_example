@@ -136,7 +136,14 @@ export function useRepositoryBuildRuns(
     if (loading || loadingMore || !enabled) return;
     setLoadingMore(true);
     const { result, controller } = await fetchPage(offsetRef.current);
-    if (!isCurrent(controller)) return;
+    if (!isCurrent(controller)) {
+      // PR #635/#636/#637 codex P2 review 정공법 (2026-06-17) — stale controller 에서
+      // setLoadingMore(false) 누락 시 button 영구 disabled. effect 의 cleanup 이
+      // 새 controller 로 교체 시 stale return path 가 setLoadingMore(false) 호출
+      // 없이 skip → 다음 effect 의 loading state 가 stuck true.
+      setLoadingMore(false);
+      return;
+    }
     if (result) {
       setItems((prev) => [...prev, ...result.data]);
       offsetRef.current += result.data.length;

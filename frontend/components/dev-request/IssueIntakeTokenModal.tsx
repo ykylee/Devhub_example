@@ -20,13 +20,16 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
   const [phase, setPhase] = useState<ModalPhase>("form");
   const [clientLabel, setClientLabel] = useState("");
   const [sourceSystem, setSourceSystem] = useState("");
-  // default: 전체 IPv4 + IPv6 (0.0.0.0/0, ::/0). local loopback 만 allow 하면
-  // docker/colima/WSL/load-balancer 등 dev 환경의 다양한 host IP / IPv6 에서
-  // client_ip 미스매치 → 401 `auth_intake_ip_denied` 발생 (2026-06-17 정공법 fix).
-  // dev/prod 무관 default = 모든 IP 허용. token 발급 endpoint 는 admin RBAC 한정
-  // (`ResourceDevRequestIntakeTokens, ActionCreate`) 이므로 risk 낮음. 운영 환경에서
-  // 발급 시 helper text 의 경고에 따라 반드시 IP 좁히기 (e.g. 10.0.0.0/16).
-  const [allowedIPs, setAllowedIPs] = useState<string[]>(["0.0.0.0/0", "::/0"]);
+  // default: 빈 배열 (deny-by-default 정공법). prod 환경 risk (PR #637 codex P1
+  // review 2026-06-17 — `0.0.0.0/0` + `::/0` default 가 production 의 admin
+  // 모달에서 accidental submit 시 의도하지 않은 전체 IP 허용 → bearer token leak 시
+  // 모든 IP 에서 사용 가능). dev 환경 (docker/colima/WSL/load-balancer) 의 다양한
+  // host IP / IPv6 에서 401 `auth_intake_ip_denied` 미스매치 해결 위해 mount 시점
+  // client-side 분기로 0.0.0.0/0 + ::/0 자동 적용 (아래 useEffect). helper text 의
+  // "운영 환경에서는 반드시 IP 좁히기" 경고 유지. token 발급 endpoint 는 admin RBAC
+  // 한정 (`ResourceDevRequestIntakeTokens, ActionCreate`) 이므로 dev 환경의 자동
+  // 채움은 안전.
+  const [allowedIPs, setAllowedIPs] = useState<string[]>([""]);
   const [expiresAt, setExpiresAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +45,18 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [canCloseForm, onClose]);
+
+  // dev 환경 (NODE_ENV=development) 에서만 mount 시점에 0.0.0.0/0 + ::/0 자동 채움.
+  // Next.js 의 build-time inlining 회피 — useState initial 에서 NODE_ENV 검사 시
+  // production build 에서도 "development" 가 inlining 되므로 useEffect 의 runtime
+  // 분기 적용. production 환경 (NODE_ENV=production) 에서는 default [""] 유지
+  // (deny-by-default 정공법). PR #637 codex P1 review 정공법 (2026-06-17).
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development" && allowedIPs.length === 1 && allowedIPs[0] === "") {
+      setAllowedIPs(["0.0.0.0/0", "::/0"]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateIP = (idx: number, value: string) => {
     setAllowedIPs((prev) => prev.map((v, i) => (i === idx ? value : v)));
