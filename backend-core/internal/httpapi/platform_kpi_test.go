@@ -49,3 +49,25 @@ func TestPlatformKPI_InvalidWindow(t *testing.T) {
 		t.Errorf("response should be rejected: %s", rec.Body.String())
 	}
 }
+
+// 3) GET /platforms/:platform_id/kpi — nil store → 503 + code: "platform_store_unavailable"
+// (2026-06-17 fix). 5 KPI/test handler 가 공통 사용하는 platformStoreOrUnavailable
+// helper 의 response body 가 machine-readable code field 포함하는지 회귀 검증.
+// frontend 의 4 component (Platform/Project/Repository × KPI/Tests) 가 본 code 로
+// 명확한 안내 ("Backend store not initialized") + retry 가능.
+func TestPlatformKPI_NilStoreReturns503WithCode(t *testing.T) {
+	router := newPlatformsRouter(nil) // PlatformStore nil
+	rec := doJSON(t, router, http.MethodGet, "/api/v1/platforms/pl-1/kpi?window=30d", "")
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d (want 503) body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`"status":"unavailable"`,
+		`"code":"platform_store_unavailable"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("response missing %q: %s", want, body)
+		}
+	}
+}
