@@ -64,10 +64,20 @@ services:
       KC_HOSTNAME_STRICT_HTTPS: ${KC_HOSTNAME_STRICT_HTTPS:-false}
       KC_HTTP_RELATIVE_PATH: ${KC_HTTP_RELATIVE_PATH:-/devhub/auth/keycloak}
       KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
+      # P2-6 (Keycloak SPI provider JAR) + X-8 (P3-5 audit event listener push 전환) 정공법
+      # 2026-06-17: SPI 가 cloud-native env-var wire 이므로 standalone.xml 의 SPI 등록 불필요.
+      # webhook URL = backend container name 기준 internal-only endpoint.
+      DEVHUB_BACKEND_SPI_WEBHOOK_URL: "http://backend-core:8080/api/v0-1/internal/keycloak-events"
+      # shared secret = X-Webhook-Secret header 정합. CI/test 환경 default = "devhub-spi-secret" (정합 확인).
+      DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET: "${DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET:-devhub-spi-secret}"
     ports:
       - "${KEYCLOAK_HOST_PORT:-18180}:8080"
     volumes:
       - ${KEYCLOAK_REALM_IMPORT_PATH:-./infra/idp/keycloak-realm.dev.json}:/opt/keycloak/data/import/realm.json:ro
+      # P2-6 + X-8 — SPI JAR mount (Keycloak boot 시 auto-load)
+      # JAR 빌드 결과 = infra/idp/keycloak-event-listener-spi/target/devhub-keycloak-event-listener.jar
+      # (`mvn package` 실행 후). 빌드 산출물 부재 시 keycloak healthcheck fail → SOP §2 참조.
+      - ./infra/idp/keycloak-event-listener-spi/target/devhub-keycloak-event-listener.jar:/opt/keycloak/providers/devhub-keycloak-event-listener.jar:ro
     depends_on:
       db-init:
         condition: service_completed_successfully
