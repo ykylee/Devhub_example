@@ -41,6 +41,7 @@ vi.mock("next/link", () => ({
 vi.mock("../service/repository.service", () => ({
   repositoryService: {
     getRepositoryBuildRuns: vi.fn(),
+    getRepositoryBuildRunsWithMeta: vi.fn(),
   },
 }));
 
@@ -70,7 +71,7 @@ describe("RepositoryBuildRunsSection (N-9 residual)", () => {
 
   it("TC-N9-SECTION-01 — initial loading 시 skeleton 5 row 표시", async () => {
     // Never-resolving promise to keep loading state
-    (repositoryService.getRepositoryBuildRuns as ReturnType<typeof vi.fn>).mockImplementation(
+    (repositoryService.getRepositoryBuildRunsWithMeta as ReturnType<typeof vi.fn>).mockImplementation(
       () => new Promise(() => {}),
     );
 
@@ -86,9 +87,7 @@ describe("RepositoryBuildRunsSection (N-9 residual)", () => {
   });
 
   it("TC-N9-SECTION-02 — data fetch 완료 후 build-runs-list + 20 row 표시", async () => {
-    (repositoryService.getRepositoryBuildRuns as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-      mockItems(20),
-    );
+    (repositoryService.getRepositoryBuildRunsWithMeta as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ status: "ok", data: mockItems(20), meta: { total: 20 } });
 
     render(<RepositoryBuildRunsSection repoId={1} />);
 
@@ -103,9 +102,7 @@ describe("RepositoryBuildRunsSection (N-9 residual)", () => {
   });
 
   it("TC-N9-SECTION-03 — status filter dropdown 표시 + 8 옵션 (all + 7 enum)", async () => {
-    (repositoryService.getRepositoryBuildRuns as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-      mockItems(20),
-    );
+    (repositoryService.getRepositoryBuildRunsWithMeta as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ status: "ok", data: mockItems(20), meta: { total: 20 } });
 
     render(<RepositoryBuildRunsSection repoId={1} />);
 
@@ -125,7 +122,7 @@ describe("RepositoryBuildRunsSection (N-9 residual)", () => {
   });
 
   it("TC-N9-SECTION-04 — error (not_found) 시 에러 UI + Retry 버튼", async () => {
-    (repositoryService.getRepositoryBuildRuns as ReturnType<typeof vi.fn>).mockRejectedValueOnce({
+    (repositoryService.getRepositoryBuildRunsWithMeta as ReturnType<typeof vi.fn>).mockRejectedValueOnce({
       code: "repository_not_found",
       message: "repository not found",
       status: 404,
@@ -142,7 +139,7 @@ describe("RepositoryBuildRunsSection (N-9 residual)", () => {
   });
 
   it("TC-N9-SECTION-05 — empty state (0 item) 시 안내 + 'View all repositories' link", async () => {
-    (repositoryService.getRepositoryBuildRuns as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+    (repositoryService.getRepositoryBuildRunsWithMeta as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ status: "ok", data: [], meta: { total: 0 } });
 
     render(<RepositoryBuildRunsSection repoId={1} />);
 
@@ -157,9 +154,9 @@ describe("RepositoryBuildRunsSection (N-9 residual)", () => {
   });
 
   it("TC-N9-SECTION-06 — status filter selectOption('failed') 시 refetch 호출", async () => {
-    (repositoryService.getRepositoryBuildRuns as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce(mockItems(20))
-      .mockResolvedValueOnce(mockItems(1, "failed"));
+    (repositoryService.getRepositoryBuildRunsWithMeta as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ status: "ok", data: mockItems(20), meta: { total: 20 } })
+      .mockResolvedValueOnce({ status: "ok", data: mockItems(1, "failed"), meta: { total: 1 } });
 
     const user = userEvent.setup();
     render(<RepositoryBuildRunsSection repoId={1} />);
@@ -175,18 +172,15 @@ describe("RepositoryBuildRunsSection (N-9 residual)", () => {
       expect(screen.getAllByTestId("build-runs-row")).toHaveLength(1);
     });
 
-    expect(repositoryService.getRepositoryBuildRuns).toHaveBeenCalledTimes(2);
-    expect(repositoryService.getRepositoryBuildRuns).toHaveBeenLastCalledWith(1, {
-      limit: 20,
-      offset: 0,
-      status: "failed",
-    });
+    expect(repositoryService.getRepositoryBuildRunsWithMeta).toHaveBeenCalledTimes(2);
+    expect(repositoryService.getRepositoryBuildRunsWithMeta).toHaveBeenLastCalledWith(
+      1,
+      expect.objectContaining({ limit: 20, offset: 0, status: "failed" }),
+    );
   });
 
   it("TC-N9-SECTION-07 — row 에 status badge + branch + commit short + relative time 표시", async () => {
-    (repositoryService.getRepositoryBuildRuns as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-      mockItems(3, "success"),
-    );
+    (repositoryService.getRepositoryBuildRunsWithMeta as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ status: "ok", data: mockItems(3, "success"), meta: { total: 3 } });
 
     render(<RepositoryBuildRunsSection repoId={1} />);
 

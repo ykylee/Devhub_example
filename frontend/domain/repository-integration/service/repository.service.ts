@@ -135,7 +135,24 @@ class RepositoryService {
     return body.data;
   }
 
-  async getRepositoryBuildRuns(repositoryId: number, options: { limit?: number; offset?: number; status?: string; branch?: string } = {}): Promise<RepositoryBuildRun[]> {
+  async getRepositoryBuildRuns(
+    repositoryId: number,
+    options: { limit?: number; offset?: number; status?: string; branch?: string } = {},
+  ): Promise<RepositoryBuildRun[]> {
+    const body = await this.getRepositoryBuildRunsWithMeta(repositoryId, options);
+    return body.data;
+  }
+
+  /**
+   * build-runs list + meta.total 함께 반환 (cursor pagination 정합).
+   * N-9 잔여 polish (codex P2 review 2026-06-17): backend store.ListRepositoryBuildRuns
+   * 가 (runs, total, err) 3-tuple 을 반환하므로 frontend 도 meta.total 을 노출해야
+   * hasMore 가 정확히 계산된다. 기존 getRepositoryBuildRuns(data only) caller 보존.
+   */
+  async getRepositoryBuildRunsWithMeta(
+    repositoryId: number,
+    options: { limit?: number; offset?: number; status?: string; branch?: string; signal?: AbortSignal } = {},
+  ): Promise<ListBuildRunsResult> {
     const params = new URLSearchParams();
     if (typeof options.limit === "number") params.set("limit", String(options.limit));
     if (typeof options.offset === "number") params.set("offset", String(options.offset));
@@ -143,9 +160,10 @@ class RepositoryService {
     if (options.branch) params.set("branch", options.branch);
     const query = params.toString();
     const url = `${this.baseUrl}/api/v1/repositories/${repositoryId}/build-runs${query ? `?${query}` : ""}`;
-    const body = await apiClient<ListBuildRunsResult>("GET", url);
-    return body.data;
+    return apiClient<ListBuildRunsResult>("GET", url, undefined, { signal: options.signal });
   }
+
+
 
   async getRepositoryDashboardData(repositoryId: number): Promise<RepositoryDashboardData> {
     return {

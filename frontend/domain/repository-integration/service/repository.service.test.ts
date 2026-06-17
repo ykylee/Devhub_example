@@ -226,7 +226,12 @@ describe("RepositoryService", () => {
 
       expect(runs).toHaveLength(1);
       expect(runs[0].status).toBe("success");
-      expect(apiClientMock).toHaveBeenCalledWith("GET", expect.stringContaining("/api/v1/repositories/1/build-runs"));
+      expect(apiClientMock).toHaveBeenCalledWith(
+        "GET",
+        expect.stringContaining("/api/v1/repositories/1/build-runs"),
+        undefined,
+        expect.objectContaining({ signal: undefined }),
+      );
     });
 
     it("passes query parameters for filtering", async () => {
