@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
+import React from "react";
 // RepositoryKPISection 컴포넌트 unit test (Sprint A follow-up, TC-REPO-KPI-UI-01).
 //
 // 정공법:
