@@ -133,12 +133,22 @@ services:
       KC_HTTP_RELATIVE_PATH: ${KC_HTTP_RELATIVE_PATH:-/devhub/auth/keycloak}
       # Logging (운영 정책 별 결정 — 사내 보안팀 SOP 정합)
       KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
+      # P2-6 (Keycloak SPI provider JAR) + X-8 (P3-5 audit event listener push 전환) 정공법
+      # 2026-06-17: SPI 가 Keycloak container 의 /opt/keycloak/providers 에 mount 되어
+      # boot 시 자동 load. 빌드 산출물 = infra/idp/keycloak-event-listener-spi/target/devhub-keycloak-event-listener.jar
+      # (`mvn package` 실행 후). 부재 시 keycloak healthcheck fail → SOP §3 참조.
+      # webhook URL = backend container name 기준 internal-only endpoint.
+      DEVHUB_BACKEND_SPI_WEBHOOK_URL: "${DEVHUB_BACKEND_SPI_WEBHOOK_URL:-http://backend-core:8080/api/v0-1/internal/keycloak-events}"
+      # shared secret = X-Webhook-Secret header 정합. 사내 운영 vault 별도 관리.
+      DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET: "${DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET:?set DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET}"
     volumes:
       # realm-export.json 을 사내 운영 git 외부에서 mount 권장. import-realm 시 1회 적용.
       # 사내 환경 별 realm/client/role 설정은 docs/setup/keycloak_operations.md §2~§4 SOP 따름.
       # 로컬 테스트 모드 기본은 keycloak-realm.dev.json (localhost wildcard 포함).
       # 외부 모드 / 운영 시 keycloak-realm.prod.json 을 reference 로 사내 운영팀이 별도 발급.
       - ${KEYCLOAK_REALM_IMPORT_PATH:-./infra/idp/keycloak-realm.dev.json}:/opt/keycloak/data/import/realm.json:ro
+      # P2-6 + X-8 정공법 — SPI JAR mount (Keycloak boot 시 auto-load)
+      - ./infra/idp/keycloak-event-listener-spi/target/devhub-keycloak-event-listener.jar:/opt/keycloak/providers/devhub-keycloak-event-listener.jar:ro
     expose:
       - "8080"
     healthcheck:
