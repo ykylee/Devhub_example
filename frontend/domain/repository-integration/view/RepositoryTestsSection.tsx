@@ -49,7 +49,7 @@ const STATUS_LABEL_KO: Record<string, string> = {
 
 export function RepositoryTestsSection({ repoId }: RepositoryTestsSectionProps) {
   const [results, setResults] = useState<RepositoryTestResults | null>(null);
-  const isOnDetailPage = usePathname()?.endsWith(`/repositories/${repoId}/tests`);
+  const isOnDetailPage = usePathname()?.endsWith(`/repositories/${repoId}/test-results`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [window, setWindow] = useState<TestResultsWindow>(DEFAULT_TEST_RESULTS_WINDOW);
@@ -156,7 +156,7 @@ export function RepositoryTestsSection({ repoId }: RepositoryTestsSectionProps) 
         </div>
           {!isOnDetailPage && (
             <Link
-              href={`/repositories/${repoId}/tests`}
+              href={`/repositories/${repoId}/test-results`}
               data-testid="repositories-tests-drill-down"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
             >
