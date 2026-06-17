@@ -67,17 +67,21 @@ services:
       # P2-6 (Keycloak SPI provider JAR) + X-8 (P3-5 audit event listener push 전환) 정공법
       # 2026-06-17: SPI 가 cloud-native env-var wire 이므로 standalone.xml 의 SPI 등록 불필요.
       # webhook URL = backend container name 기준 internal-only endpoint.
-      DEVHUB_BACKEND_SPI_WEBHOOK_URL: "http://backend-core:8080/api/v0-1/internal/keycloak-events"
+      DEVHUB_BACKEND_SPI_WEBHOOK_URL: "http://backend-core:8080/api/v1/internal/keycloak-events"
       # shared secret = X-Webhook-Secret header 정합. CI/test 환경 default = "devhub-spi-secret" (정합 확인).
       DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET: "${DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET:-devhub-spi-secret}"
     ports:
       - "${KEYCLOAK_HOST_PORT:-18180}:8080"
     volumes:
       - ${KEYCLOAK_REALM_IMPORT_PATH:-./infra/idp/keycloak-realm.dev.json}:/opt/keycloak/data/import/realm.json:ro
-      # P2-6 + X-8 — SPI JAR mount (Keycloak boot 시 auto-load)
-      # JAR 빌드 결과 = infra/idp/keycloak-event-listener-spi/target/devhub-keycloak-event-listener.jar
-      # (`mvn package` 실행 후). 빌드 산출물 부재 시 keycloak healthcheck fail → SOP §2 참조.
-      - ./infra/idp/keycloak-event-listener-spi/target/devhub-keycloak-event-listener.jar:/opt/keycloak/providers/devhub-keycloak-event-listener.jar:ro
+      # PR #641 codex review P2 #4 정공법 (2026-06-17) — colima 환경의 SPI JAR volume mount 제거.
+      # Dockerfile.keycloak 의 multi-stage build (Stage 1: Maven spi-builder → Stage 2:
+      # quay.io/keycloak/keycloak:26.0 + SPI JAR copy + kc.sh build auto-config) 가 이미 SPI JAR 을
+      # `/opt/keycloak/providers/devhub-keycloak-event-listener.jar` 에 copy. colima 환경의 volume mount 는
+      # build artifact 를 override 위험 + colima 사용자가 `mvn clean package` 1차 build 후 동일 JAR 을
+      # mount 할 수 있어 정합 깨짐. colima 환경 = Dockerfile.keycloak build 만 사용 (single source of truth).
+      # CI 환경 (docker-compose.test.yml) 와 deploy 환경 (docker-compose.deploy.yml) 의 volume mount 는
+      # 유지 (CI/운영의 standalone mount — Dockerfile build 와 별도, 정합된 mvn build 산출물만 mount).
     depends_on:
       db-init:
         condition: service_completed_successfully

@@ -146,7 +146,7 @@ services:
       # boot 시 자동 load. 빌드 산출물 = infra/idp/keycloak-event-listener-spi/target/devhub-keycloak-event-listener.jar
       # (`mvn package` 실행 후). 부재 시 keycloak healthcheck fail → SOP §3 참조.
       # webhook URL = backend container name 기준 internal-only endpoint.
-      DEVHUB_BACKEND_SPI_WEBHOOK_URL: "${DEVHUB_BACKEND_SPI_WEBHOOK_URL:-http://backend-core:8080/api/v0-1/internal/keycloak-events}"
+      DEVHUB_BACKEND_SPI_WEBHOOK_URL: "${DEVHUB_BACKEND_SPI_WEBHOOK_URL:-http://backend-core:8080/api/v1/internal/keycloak-events}"
       # shared secret = X-Webhook-Secret header 정합. 사내 운영 vault 별도 관리.
       DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET: "${DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET:?set DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET}"
     volumes:
