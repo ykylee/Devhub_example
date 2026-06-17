@@ -161,6 +161,15 @@ func TestEnforceRoutePermission_RoleAllowedAndDenied(t *testing.T) {
 		{"developer cannot view audit-logs", "developer", http.MethodGet, "/api/v1/audit-logs", true},
 		{"developer can view risks", "developer", http.MethodGet, "/api/v1/risks", false},
 		{"system_admin delete users gate passes", "system_admin", http.MethodDelete, "/api/v1/users/u-1", false},
+		// Sprint E (kpi-tests-per-domain-scope.md §6.5) — KPI/Tests sub-section
+		// 6 endpoint 의 deny-by-default 회귀 가드. routePermissionTable 의
+		// resource/action 매핑이 active 한 경우 role 과 정합.
+		{"developer views repository KPI (Sprint A) gate passes", "developer", http.MethodGet, "/api/v1/repositories/1/kpi", false},
+		{"developer views repository test-results (Sprint A) gate passes", "developer", http.MethodGet, "/api/v1/repositories/1/test-results", false},
+		{"developer views project KPI (Sprint B) gate passes", "developer", http.MethodGet, "/api/v1/projects/p-1/kpi", false},
+		{"developer views project test-results (Sprint B-Tests) gate passes", "developer", http.MethodGet, "/api/v1/projects/p-1/test-results", false},
+		{"developer views platform KPI (Sprint C) gate passes", "developer", http.MethodGet, "/api/v1/platforms/pl-1/kpi", false},
+		{"developer views platform test-results (Sprint C) gate passes", "developer", http.MethodGet, "/api/v1/platforms/pl-1/test-results", false},
 	}
 
 	for _, tc := range cases {

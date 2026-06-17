@@ -20,6 +20,7 @@ import {
 import { DashboardHeader } from "@/shared/ui-foundation/components/DashboardHeader";
 import { Badge } from "@/shared/ui-foundation/components/Badge";
 import { DomainPicker, type DomainEntity } from "@/shared/ui-foundation/components/DomainPicker";
+import { AnalyticsDeprecationBanner } from "@/shared/ui-foundation/components/AnalyticsDeprecationBanner";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { projectService } from "@/domain/platform-lifecycle/service/project.service";
 import { platformService } from "@/domain/platform-lifecycle/service/platform.service";
@@ -412,6 +413,9 @@ export default function TestManagementPage() {
       {/* Sprint D — kpi-tests-per-domain-scope.md §6.4 Domain picker. Repository
           scope + Project scope (Sprint B 1차) + Platform scope (Sprint C)
           fetch. */}
+      {/* Sprint E — kpi-tests-per-domain-scope.md §6.5 (옵션 B 결정) 의
+          user-facing 안내. 도메인 상세 sub-section 1차 진입점 명시. */}
+      <AnalyticsDeprecationBanner />
       <DomainPicker
         defaultScope="repository"
         repositories={repositories}
