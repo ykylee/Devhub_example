@@ -1,10 +1,10 @@
-# Session Handoff — main (2026-06-17, X-8 staging hand-off + CI e2e smoke 정공법 — PR #642 MERGED)
+# Session Handoff — main (2026-06-17, codex P1/P2 review 정공법 fix — PR #643 MERGED)
 
-문서 목적: 본 turn (2026-06-17) 의 X-8 (P2-6 + P3-5 Keycloak SPI realm events push 전환) 의 staging hand-off + CI e2e smoke 정공법 (PR #641 의 compose + docs 의 후속) + main flat memory finalize.
+문서 목적: 본 turn (2026-06-17) 의 PR #640 / #641 codex inline review 5건 정공법 fix (P1 2건 + P2 3건) + main flat memory finalize.
 범위: [`docs/setup/keycloak_event_listener_spi_staging.md`](../../docs/setup/keycloak_event_listener_spi_staging.md) **NEW** (9KB, staging hand-off SOP 7 step) + [`scripts/build-keycloak-spi.sh`](../../scripts/build-keycloak-spi.sh) **NEW** (JAR build + push) + [`docker-compose.test.yml`](../../docker-compose.test.yml) (CI 환경 SPI build + mount + env) + [`infra/idp/keycloak-realm.ci.json`](../../infra/idp/keycloak-realm.ci.json) (eventsListeners 추가) + [`docker-compose.deploy.yml`](../../docker-compose.deploy.yml) (이전 PR #641 의 stale tag 회피 + 본 turn python script 직접 적용) + [`frontend/tests/e2e/keycloak-event-listener-spi.spec.ts`](../../frontend/tests/e2e/keycloak-event-listener-spi.spec.ts) **NEW** (Playwright e2e smoke 2 case) + 3 docs (release_v0-1_roadmap.md / CHANGELOG.md / traceability/report.md) + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`. 백엔드 변경 0.
-상태: main HEAD `2a24c239` (PR #642 squash `feat/260617-x8-staging-handoff-e2e-smoke` 머지, 2026-06-17). X-8 의 PR #641 정공법 (compose + docs) + 본 turn 의 staging hand-off + CI e2e smoke 통합 정공법. 정공법 (8 file +412/-6) + 잔여 = 사내 빌드 (Java 21 + Maven 3.13+ 환경, `scripts/build-keycloak-spi.sh`) + staging/prod 적용 + `verify-keycloak-spi.sh` 1회 실행 (사용자 결정). 16/16 test file 62/62 PASS (이전 turn 유지) + `tsc --noEmit` 본 PR 영향 0 + `go build ./...` silent (변경 0) + compose YAML lint 정공법 (colima + deploy + test 셋 다 OK). 본인 회귀 0건.
-최종 수정일: 2026-06-17 06:00 KST (PR #642 머지 후 main flat memory finalize)
-직전 handoff: 본 turn 직전 = 2026-06-17 (X-8 compose + docs turn) session_handoff.md (PR #641 MERGED, X-8 Keycloak SPI realm events push 전환 정공법 = compose + docs only).
+상태: main HEAD `59eb662e` (PR #643 squash `fix/260617-codex-pr-640-641-review` 머지, 2026-06-17). X-8 의 PR #641 정공법 (compose + docs) + 본 turn 의 staging hand-off + CI e2e smoke 통합 정공법. 정공법 (8 file +412/-6) + 잔여 = 사내 빌드 (Java 21 + Maven 3.13+ 환경, `scripts/build-keycloak-spi.sh`) + staging/prod 적용 + `verify-keycloak-spi.sh` 1회 실행 (사용자 결정). 16/16 test file 62/62 PASS (이전 turn 유지) + `tsc --noEmit` 본 PR 영향 0 + `go build ./...` silent (변경 0) + compose YAML lint 정공법 (colima + deploy + test 셋 다 OK). 본인 회귀 0건.
+최종 수정일: 2026-06-17 06:30 KST (PR #643 머지 후 main flat memory finalize)
+직전 handoff: 본 turn 직전 = 2026-06-17 (X-8 staging hand-off turn) session_handoff.md (PR #642 MERGED, X-8 staging hand-off + CI e2e smoke 정공법).
 - 직전 handoff (PR #514 + #515 finalizing): §0a 참조, main HEAD `fee06d4` 까지.
 
 ## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 + N-6 skip)
