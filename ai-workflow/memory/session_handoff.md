@@ -1,10 +1,10 @@
-# Session Handoff — main (2026-06-17, 사용자 보고 3건 + codex P1/P2 review 정공법 fix 종합 — PR #639 MERGED)
+# Session Handoff — main (2026-06-17, X-6 Keycloak group staging-prod 적용 정공법 = docs only — PR #640 MERGED)
 
-문서 목적: 본 turn (2026-06-17) 의 사용자 보고 3건 (이슈 1: dev-request intake 401 client IP / 이슈 2: KPI/test 카드 5xx / 이슈 3: drill-down detail page) + PR #635/#636/#637 의 codex P1/P2 inline review 8건 (1 P1 + 7 P2) 정공법 fix + 4 PR 의 변경 일괄 main 머지 (`fix/260617-final-merge` PR #639) — main flat memory finalize 정공법.
-범위: `frontend/components/dev-request/IssueIntakeTokenModal.tsx` + `frontend/shared/utils/error-message.ts` + `frontend/shared/ui-foundation/components/{KpiTestErrorState,KpiTestDetailPage}.tsx` + `frontend/app/(dashboard)/{platforms,projects,repositories}/[id]/{kpi,test-results}/page.tsx` (6 신규 page) + 6 component (Platform/Project/Repository × KPI/Tests) 의 drill-down link + `useRepositoryBuildRuns.ts` 의 stale loadingMore reset + `backend-core/internal/httpapi/router.go` 의 `platformStoreOrUnavailable` code field + `docs/{planning,traceability,llm-wiki}` + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`.
-상태: main HEAD (PR #639 squash `fix/260617-final-merge` 머지, 2026-06-17). PR #633 (N-9 frontend 2건) + PR #635 (이슈 1) + PR #639 (이슈 2+3 + codex P1/P2 fix 종합, commit `7189d277`) MERGED. PR #634/#636/#637/#638 의 변경은 PR #639 의 cherry-pick 으로 main 정합. 16/16 test file 62/62 PASS (이전 turn 44 → 62, +18 case) + `tsc --noEmit` 본 PR 영향 0 + `go build ./...` silent. 본인 회귀 0건.
-최종 수정일: 2026-06-17 04:30 KST (PR #639 머지 후 main flat memory finalize)
-직전 handoff: 본 turn 직전 = 2026-06-15 session_handoff.md (PR #596 + #597 MERGED, main HEAD `25f2262e`).
+문서 목적: 본 turn (2026-06-17) 의 X-6 (issue #214, P1-3 Keycloak group staging-prod 적용) 정공법 = docs only + issue #214 close + release_v0-1_roadmap.md X-6 row status `⏳ planned` → `🟡 in_progress` — main flat memory finalize 정공법.
+범위: `docs/setup/keycloak_operations.md` (변경 0, 정공법 정합 확인) + `scripts/verify-keycloak-groups.sh` (변경 0, main 정합) + `docs/planning/release_v0-1_roadmap.md` (X-6 row + §9 변경 이력 row) + `CHANGELOG.md` (v0.1.1-alpha table X-6 row) + `docs/traceability/report.md` (§6 변경 이력 X-6 row) + `ai-workflow/memory/{state.json, work_backlog.md, session_handoff.md}`. 백엔드/프론트엔드 코드 변경 0.
+상태: main HEAD `8673dedc` (PR #640 squash `feat/260617-x6-keycloak-groups-docs` 머지, 2026-06-17). X-6 의 backend/script 변경 0 — 이미 main 정합 (keycloak_operations.md §4.3 + §4.4 SOP + verify-keycloak-groups.sh 자동 검증). 정공법 = docs only (3 file +5/-3) + issue #214 close 정공법 (SOP + 자동 검증 main 정합 + 사용자 admin 작업 잔여). 16/16 test file 62/62 PASS (이전 turn 44 → 62, +18 case) + `tsc --noEmit` 본 PR 영향 0 + `go build ./...` silent (변경 0). 본인 회귀 0건.
+최종 수정일: 2026-06-17 05:00 KST (PR #640 머지 후 main flat memory finalize)
+직전 handoff: 본 turn 직전 = 2026-06-17 (이전 turn) session_handoff.md (PR #639 MERGED, 사용자 보고 3건 + codex P1/P2 review 정공법 fix 종합).
 - 직전 handoff (PR #514 + #515 finalizing): §0a 참조, main HEAD `fee06d4` 까지.
 
 ## 0. 본 세션 핵심 결과 (2026-06-10/11, v0.5.0→v0.5.11 ai-workflow 동기화 + N-6 skip)
