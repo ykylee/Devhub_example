@@ -113,7 +113,7 @@ if [ -n "${TEST_USER_USERNAME:-}" ] && [ -n "${TEST_USER_PASSWORD:-}" ]; then
     # Verify backend audit_logs receive push within 1s
     sleep 1
     AUDIT_COUNT=$(curl -sSf -H "Authorization: Bearer $ADMIN_TOKEN" \
-      "$DEVHUB_BACKEND_API_URL/api/v0-1/internal/audit-events/keycloak?since=$PUSH_START_MS" 2>/dev/null | jq -r 'length // 0')
+      "$DEVHUB_BACKEND_API_URL/api/v1/internal/audit-events/keycloak?since=$PUSH_START_MS" 2>/dev/null | jq -r 'length // 0')
     if [ "$AUDIT_COUNT" -ge 1 ]; then
       pass "backend audit_logs received push event within 1s (count=$AUDIT_COUNT, latency < 1s ✓)"
     else
