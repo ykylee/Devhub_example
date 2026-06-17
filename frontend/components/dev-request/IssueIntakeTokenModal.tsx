@@ -20,7 +20,13 @@ export function IssueIntakeTokenModal({ onClose, onIssued }: IssueIntakeTokenMod
   const [phase, setPhase] = useState<ModalPhase>("form");
   const [clientLabel, setClientLabel] = useState("");
   const [sourceSystem, setSourceSystem] = useState("");
-  const [allowedIPs, setAllowedIPs] = useState<string[]>([""]);
+  // default: 전체 IPv4 + IPv6 (0.0.0.0/0, ::/0). local loopback 만 allow 하면
+  // docker/colima/WSL/load-balancer 등 dev 환경의 다양한 host IP / IPv6 에서
+  // client_ip 미스매치 → 401 `auth_intake_ip_denied` 발생 (2026-06-17 정공법 fix).
+  // dev/prod 무관 default = 모든 IP 허용. token 발급 endpoint 는 admin RBAC 한정
+  // (`ResourceDevRequestIntakeTokens, ActionCreate`) 이므로 risk 낮음. 운영 환경에서
+  // 발급 시 helper text 의 경고에 따라 반드시 IP 좁히기 (e.g. 10.0.0.0/16).
+  const [allowedIPs, setAllowedIPs] = useState<string[]>(["0.0.0.0/0", "::/0"]);
   const [expiresAt, setExpiresAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
