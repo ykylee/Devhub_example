@@ -19,6 +19,23 @@ describe("toUserErrorMessage", () => {
     );
   });
 
+  // 2026-06-17 fix: backend platformStoreOrUnavailable (router.go) 가 503 + body
+  // {code: "platform_store_unavailable"} 반환. toUserErrorMessage 가 payload.code
+  // 매핑 → "Backend store is not initialized" 안내. generic 5xx 메시지보다 우선.
+  it("returns Backend-store-not-initialized message for 503 + code: platform_store_unavailable", () => {
+    const error = new ApiError(503, { code: "platform_store_unavailable", error: "..." }, "HTTP 503");
+
+    expect(toUserErrorMessage(error, "fallback")).toContain("Backend store is not initialized");
+  });
+
+  it("returns generic 5xx message for 503 without code field (fallback)", () => {
+    const error = new ApiError(503, null, "HTTP 503");
+
+    expect(toUserErrorMessage(error, "fallback")).toBe(
+      "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+    );
+  });
+
   it("returns the not-found Korean message for ApiError 404", () => {
     const error = new ApiError(404, { status: "rejected" }, "HTTP 404");
 

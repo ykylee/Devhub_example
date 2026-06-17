@@ -750,9 +750,22 @@ func normalizeProviderSDKKey(v string) string {
 	return strings.ToLower(strings.TrimSpace(v))
 }
 
+// platformStoreOrUnavailable — KPI/test 5개 handler (repositories/:id/kpi +
+// /test-results, projects/:id/kpi + /test-results, platforms/:id/kpi +
+// /test-results) 가 공통으로 사용. nil store 시 503 + code: "platform_store_unavailable"
+// 반환 → frontend 가 명확히 감지하여 "Backend store not initialized" 안내 +
+// retry (2026-06-17 fix). 6개 handler 가 본 helper 사용. SPRINT-C PR
+// (`feat/x-repository-kpi-tests-section`, PR #597) 의 1차 PR 에서 helper 만
+// generic 503 + status: "unavailable" body 였으나 frontend 의 4 component
+// (Platform/Project/Repository × KPI/Tests) 가 error UI 정공법 강화 위해
+// machine-readable code field 추가.
 func (h Handler) platformStoreOrUnavailable(c *gin.Context) (PlatformStore, bool) {
 	if h.cfg.PlatformStore == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "platform store is not configured"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "unavailable",
+			"code":   "platform_store_unavailable",
+			"error":  "platform store is not configured (PlatformStore nil in RouterConfig)",
+		})
 		return nil, false
 	}
 	return h.cfg.PlatformStore, true

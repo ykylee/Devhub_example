@@ -11,6 +11,7 @@ import {
   ProjectWeightedTestResults,
 } from "../schema/project-tests.types";
 import { toUserErrorMessage } from "@/shared/utils/error-message";
+import { KpiTestErrorState } from "@/shared/ui-foundation/components/KpiTestErrorState";
 
 // ProjectTestsSection — Sprint B-Tests (kpi-tests-per-domain-scope.md §2.2
 // follow-up)
@@ -84,13 +85,12 @@ export function ProjectTestsSection({ projectId }: ProjectTestsSectionProps) {
 
   if (error) {
     return (
-      <div className="glass border border-red-300 dark:border-red-700 rounded-2xl p-6 flex items-start gap-2 text-red-600 dark:text-red-300">
-        <AlertCircle className="w-4 h-4 mt-0.5" />
-        <div>
-          <div className="font-semibold">Failed to load project test results</div>
-          <div className="text-sm">{error}</div>
-        </div>
-      </div>
+      <KpiTestErrorState
+        title="Failed to load project test results"
+        message={error}
+        onRetry={() => loadTests(windowDays)}
+        testIdPrefix="project-tests"
+      />
     );
   }
 
