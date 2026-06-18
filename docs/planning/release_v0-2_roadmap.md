@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18, 11/11 → 18/18 결정) — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 7 row 추가 (storage_mode dual mode / Pi SDK M-v0.2.0+ / DB type / per source mapping / cron interval / Pi LLM fallback / backend-ai 폐기 timing). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 monitoring cross-reference / §5.1 M-v0.2.0 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 day-2 운영 / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신 + §8 timeline Q12~Q18 결정 row 7 row 추가).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + **§12 frontend page 상세화 (M-v0.2.1+ 관리/조회 page 1 + viz.html)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html 자가 viewer + 5 page + 3 role + 14 row API matrix + 7 step frontend cutover). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 monitoring cross-reference / §5.1 M-v0.2.1 scope frontend page detail / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html detail / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.6 + §3.8 + §4.2/§4.3 갱신 + §8 timeline Q12~Q18 결정 row 추가).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -1611,7 +1611,7 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 | --- | --- | --- | --- | --- |
 | **M-v0.2.0-alpha** | 컨셉 umbrella + child doc 정합 + PoC 진입 | 본 문서 publish + `external-integrations-agentic-rag-roadmap.md` cross-link | (없음) | ⏳ planned (v0.2.0-alpha) |
 | **M-v0.2.0** | 1차 standalone 구현 (Gitea 통합 4 sub-plugin PoC, backend 단독, frontend 0) | `backend-knowledge/` skeleton + OKF spec model (frontmatter `x_devhub_category` 필드 추가) + **Gitea 통합 4종** (`gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action`, Gitea 1 instance 의 4 sub-plugin, 5 카테고리 중 4: 이슈/위키/SCM/CI-CD, §3.8.2 정공법) + `homelab_mock` 1종 (§3.8.3 정공법) = **5종 PoC (5 카테고리 결정 기반, 2026-06-17, §3.2.1 / §3.7.2 / §3.8 / §6.4 정합)** + Ingest 1 endpoint + Query 1 endpoint (concept 직접 조회) + 1차 raw API + OpenAPI. **frontend 0 page** (M-v0.2.0 만, viz.html 자가 viewer 만 SSR) | M-v0.2.0-alpha | ⏳ planned (v0.2.0) |
-| **M-v0.2.1** | 1차 완성 + Gitea 통합 정식 + 사내 시스템 wire + Curate + frontend 관리/조회 page 1 | Gitea 통합 4종 정식 wire (1차 PoC → 정식, 5 카테고리 중 4) + `homelab_mock` → `homelab` (real wire, 5 카테고리 외 사내 시스템) = 5종 운영 + Curate 3 endpoint (enrich / edit / rebuild) + 1차 viz.html (자가 viewer) + **frontend 관리/조회 page 1** (`backend-knowledge/web/`, 별도 standalone frontend, **devhub frontend 와 분리**, standalone 정책 정합) + e2e smoke | M-v0.2.0 | ⏳ planned (v0.2.1) |
+| **M-v0.2.1** | 1차 완성 + Gitea 통합 정식 + 사내 시스템 wire + Curate + frontend 관리/조회 page 1 | Gitea 통합 4종 정식 wire (1차 PoC → 정식, 5 카테고리 중 4) + `homelab_mock` → `homelab` (real wire, 5 카테고리 외 사내 시스템) = 5종 운영 + Curate 3 endpoint (enrich / edit / rebuild) + 1차 viz.html (자가 viewer) + **frontend 관리/조회 page 1** (`backend-knowledge/web/`, 별도 standalone frontend, **devhub frontend 와 분리**, standalone 정책 정합, **§12.2 의 5 page 상세 정합**: concept list / concept detail / ingest trigger / bundle management / raw inspector) + e2e smoke | M-v0.2.0 | ⏳ planned (v0.2.1) |
 | **M-v0.2.2** | 5 카테고리 외 추가 wire + backend-ai 폐기 | M-v0.2.1 의 5종 + `metrics` 정식 wire (모니터링, 5 카테고리 외) = 6종 운영 + `backend-ai/` 디렉터리 제거 (단독 결정) | M-v0.2.1 | ⏳ planned (v0.2.2) |
 | **M-v0.2.3** | Pi LLM enrich + cross-link 자동 resolution | + Pi `pi-coding-agent` SDK or RPC mode 로 LLM enrich 활성화 (1 vendor) + cross-link 자동 resolution | M-v0.2.2 | ⏳ planned (v0.2.3) |
 | **M-v0.3.0** | 풀 RAG (chunking + embedding + retrieval) | sentence-transformers or 외부 embedding + vector index (sqlite-vss or pgvector) + reranking + LLM answer | M-v0.2.3 | ⏳ planned (v0.3.0) |
@@ -1893,7 +1893,7 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 - **mock source**: filesystem fixture 1개 (`backend-knowledge/var/fixtures/homelab/*.json`, `homelab_mock.py` 의 입력, 5 카테고리 외 사내 시스템). 외부 시스템 실제 호출 ❌. **Gitea 통합 4 sub-plugin 은 M-v0.2.0 부터 real Gitea 1 instance 에 PoC wire** (mock 없이 실제 API, 1차 wire 정공법 — §3.2.1 / §6.4 정합).
 - **인증**: **internal-only, no auth** (gateway / firewall / IP allowlist 별도 보호, §2.3). OIDC / Keycloak / backend-core 인증 위임 ❌.
 - **테스트**: unit (OKF spec / enricher / link_graph) + e2e (ingest → curate → query) 의 **신규 백엔드 단독**.
-- **frontend**: **M-v0.2.0 만 frontend 0 page** (1차 backend 단독 구현). **M-v0.2.1 부터 frontend 관리/조회 page 1 추가** (§5.1 M-v0.2.1 / §5.2 P1 정합, `backend-knowledge/web/` 별도 standalone frontend, devhub frontend 와 분리, §1.2 G7 standalone 정책 정합). viz.html 자체 viewer (자가 graph viewer) 는 backend-knowledge 가 SSR (모든 Phase 공통)
+- **frontend**: **M-v0.2.0 만 frontend 0 page** (1차 backend 단독 구현). **M-v0.2.1 부터 frontend 관리/조회 page 1 추가** (§5.1 M-v0.2.1 / §5.2 P1 / **§12 정합**, `backend-knowledge/web/` 별도 standalone frontend, devhub frontend 와 분리, §1.2 G7 standalone 정책 정합). viz.html 자체 viewer (자가 graph viewer) 는 backend-knowledge 가 SSR (모든 Phase 공통, **§12.1 상세 정합**: Cytoscape.js + marked.js CDN embed + 4 edge type + 8 type node 색상)
 - **day-2 운영**: §11 운영 runbook 정공법 적용 (incident 대응 + backup + monitoring, M-v0.2.0 PoC = 1 operator, §11.4)
 
 ### 6.2 Phase 2 — 외부 시스템 6종 source wire + backend-ai 폐기 (M-v0.2.2)
@@ -2226,6 +2226,7 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 | 2026-06-18 | **§11 운영 runbook (day-2 운영 정공법) 신규 + cross-section 정합 fix 4 위치** — (1) **신규 §11** 4 subsection: **§11.1** Incident 대응 runbook 6 type (source plugin sync 실패 §11.1.1 / credential 만료 §11.1.2 / Pi ingest pipeline timeout-degraded §11.1.3 / retention cron 실패 §11.1.4 / integrity violation §11.1.5 / archive trigger 실패 §11.1.6 — per trigger / detection / triage / mitigation / recovery 구조, RTO < 30분/< 1시간/< 4시간/< 15분/< 1시간) / **§11.2** Backup + restore 절차 (5 backup 대상: DB / var/bundles/ / var/raw/ / .env-KEK / governance field + per storage mode backup 방법 + retention 정책 일별 7일 / 주별 4주 / 월별 12개월 + restore 5 step 절차 + RTO 5 target + 분기 1회 restore drill) / **§11.3** Monitoring + alert routing (5 monitoring 지표: source plugin sync 성공률 / Query API p95 latency / raw 정합성 violation rate / Pi ingest pipeline success rate / concept archive trigger 정상 작동 + 3 tier alert routing info/warning/critical + alert message template + alert deduplication 5분) / **§11.4** On-call 운영 + role 정의 (4 role: backend-knowledge operator / source plugin developer / Pi LLM curator / security auditor + M-v0.2.0 1 person / M-v0.2.1+ 1주 rotation + Operator training per release) (2) cross-section 정합 fix 4 위치: §1.2 G7 standalone 유지 정책 노트 보강 ("day-2 운영도 standalone — §11 의 운영 runbook 다른 backend 모니터링 도구 공유 ❌") / §4.7 raw 정합성 검증 의 audit log 7 event 표 + §11.3 monitoring 5 지표 cross-reference / §5.6 cutover checklist 8 항목 + §11 운영 runbook 정합 (cutover rollback trigger → §11.1 incident runbook 자동 활성화) / §6.1 Phase 1 운영 정공법 에 "day-2 운영 = §11 운영 runbook 정공법 적용 (M-v0.2.0 PoC = 1 operator, §11.4)" 추가 / ADR-0034 §4.3 영향 section §11 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §11 운영 runbook" + §4.7 raw 정합성 검증 + §5.6 cutover/rollback 의 운영 연속 + §6 Phase 운영 정공법 + day-2 운영 정공법 (incident 대응 + backup/restore + monitoring/alert + on-call) 의 umbrella doc 본문 정공법 부재) |
 | 2026-06-18 | **§6 Phase 1/2/3 운영 정공법 상세 — 신규 §6.5~§6.7 + cross-section 정합 fix 0 위치** — (1) **신규 §6.5** Phase 1 (M-v0.2.0+M-v0.2.1) 운영 정공법 상세 4 subsection: §6.5.1 docker-compose standalone 정합 (`backend-knowledge/docker-compose.yml` 별도, `backend-knowledge/dev-up.sh` 별도, `backend-knowledge-net` 격리, 4 volumes mount + standalone 검증 3 항목) / §6.5.2 mock source + real wire transition (M-v0.2.0 = 5종 source + 1 mock + Gitea 4 real + homelab_mock fixture, M-v0.2.1 = homelab_mock → homelab.py real wire 교체 + storage_mode=db + normalize_mode=pi-sdk) / §6.5.3 gateway + firewall + IP allowlist 정책 (dev = localhost / staging = VPN+사내 CA / production = WAF+allowlist+외부 CA, §2.3 "API 인증 internal-only" 정합) / §6.5.4 5 step e2e smoke pipeline (ingest→raw 확인→index.md 자동 생성→concept 응답→viz.html SSR) (2) **신규 §6.6** Phase 2 (M-v0.2.2) 운영 정공법 상세 3 subsection: §6.6.1 6종 source wire cutover (metrics.py 추가, bundle=devhub-metrics, storage_mode=file, normalize_mode=rule-based, 5 step cutover) / §6.6.2 backend-ai 폐기 절차 10 단계 (디렉터리 + Dockerfile + docker-compose.deploy.yml + Makefile + dev-up.sh + docs + infra + ci workflow + state.json, PR 4 분리) / §6.6.3 6 step e2e 6종 smoke + alert routing 검증 (3) **신규 §6.7** Phase 3 (M-v0.2.3) 운영 정공법 상세 3 subsection: §6.7.1 7종 source wire cutover (hrdb.py 추가, bundle=devhub-hrdb, storage_mode=db, normalize_mode=pi-sdk, PII + complex → §10 Pi-driven) / §6.7.2 Pi 운영 상세 (SDK mode M-v0.2.0~v0.2.2 default / RPC mode M-v0.2.3+ option, mode 선택 기준 표) / §6.7.3 LLM enrich + cross-link 자동 resolution 운영 (`POST /concepts/{id}/enrich` 운영 / `curate/link_resolver.py` 의 unresolved link → Pi LLM 추천, §11 runbook 정합) / §5.6 cutover + §11 monitoring 5 지표 정합 (4) ADR-0034 §4.3 영향 section §6.5~§6.7 row 추가 + ADR-0034 frontmatter 수정일 갱신 (5) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §6 Phase 1/2/3 상세화" + §6.1/§6.2/§6.3 의 high-level 정공법 + §5.6 cutover 와 §10 DB path 운영 정합 + §11 runbook 의 cutover/rollback 단계와 의미 중복 조정 (서로 다른 초점: §6 = deployment/transition, §11 = incident response)) |
 | 2026-06-18 | **§7 Q&A 확장 (Q12~Q18, 11/11 → 18/18 결정 완료) + cross-section 정합 fix 3 위치** — (1) **Q12~Q18 row 추가** (7 row): **Q12** raw storage_mode 결정 (dual mode per source, gitea 4 = file + homelab/hrdb = db + metrics = file, §10.4 정합) / **Q13** Pi SDK mode timing 변경 (M-v0.2.0+ periodic ingest + M-v0.2.3+ LLM enrich + M-v0.2.3+ cross-link 자동 resolution, §6.3 / §10.3 정합) / **Q14** DB type 결정 (M-v0.2.0~v0.2.2 sqlite + M-v0.2.3+ PostgreSQL option, §10.1 정합) / **Q15** per source storage_mode default mapping 결정 (simple schema = file+rule-based, complex 사내 시스템 = db+pi-sdk, §10.4 정합) / **Q16** Pi ingest cron interval default 결정 (`*/5 * * * *` 5분 default, §10.3 정합) / **Q17** Pi LLM fallback 결정 (timeout 30초 초과 OR 출력 invalid → rule-based normalize() 자동 fallback, §10.3 + §11.1.3 정합) / **Q18** backend-ai 폐기 timing 결정 (M-v0.2.2 와 동시, §5.5 + §6.6.2 정합) (2) **§7 제목 갱신** "11/11 결정 완료" → "18/18 결정 완료" (3) cross-section 정합 fix 3 위치: §8 timeline 결정 row 7 row 추가 (Q12~Q18 결정 timeline) / ADR-0035 §4.2 negative/trade-off row 갱신 (§7 Q12~Q18 결정 + 운영 부담 영향) / frontmatter 갱신 (umbrella doc 최종 수정일 + §7 Q&A 확장 cross-section fix 명시) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §7 Q&A 확장" + §10/§11/§6.5~§6.7 추가로 인한 새 Q 7 row 식별 + §7 Q&A 표 = 18/18 결정 완료 + ADR-0035 §4.2 trade-off 영향) |
+| 2026-06-18 | **§12 frontend page 상세화 (M-v0.2.1+ 관리/조회 page 1 + viz.html 자가 viewer) 신규 + cross-section 정합 fix 6 위치** — (1) **신규 §12** 5 subsection: **§12.1** M-v0.2.0 viz.html 자가 viewer 상세 (Cytoscape.js v3.x + marked.js v5.x CDN embed + inline style + SVG fallback + viz.html component 5 element + Cytoscape node 7 field + edge 4 type 정합) / **§12.2** M-v0.2.1 frontend 관리/조회 page 1 5 page 상세 (concept list / concept detail / ingest trigger / bundle management / raw inspector + routing 구조 + frontend 기술 선택 vanilla JS/Next.js/Vue.js/Svelte 옵션) / **§12.3** User flow + 권한 매트릭스 3 role (visitor/operator/admin + Path Y caller-provided user context 흐름 + gateway 의 3-step orchestration) / **§12.4** API integration matrix 14 row (per frontend page → backend-knowledge API 1:1 mapping, Path Y user context 필수 정합) / **§12.5** frontend cutover 정책 (7 step M-v0.2.0→v0.2.1 cutover + frontend update 주기 per release + viz.html 단독 vs frontend 통합 운영 + §5.6 cutover 정합) (2) cross-section 정합 fix 6 위치: **§5.1 M-v0.2.1 DoD row** "frontend 관리/조회 page 1" 의 5 page detail (§12.2) cross-reference / **§6.1 Phase 1** "M-v0.2.0 만 frontend 0 page, viz.html 자가 viewer 만 SSR" 의 viz.html 상세 (§12.1) cross-reference / ADR-0035 §3.6 frontend 정책 row + §12.2 5 page + §12.3 3 role + §12.4 API matrix + §12.5 cutover 정책 cross-reference 추가 / ADR-0034 §4.3 영향 section §12 row 추가 + ADR-0034 frontmatter 수정일 갱신 / frontmatter 갱신 (umbrella doc 최종 수정일 + §12 frontend page 상세화 cross-section fix 명시) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §12 frontend page 상세화" + §5.1 M-v0.2.1 DoD + §6.1 Phase 1 frontend 의 viz.html + frontend page 1 의 high-level 정의 → 5 page / 3 role / 14 row API matrix / 7 step cutover 정책 의 concrete 정공법 부재) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
@@ -2739,3 +2740,203 @@ On-call: @{responder}
 - §5.6 의 cutover 절차 중 rollback trigger 발동 시 본 §11.1 의 incident runbook 중 해당 type 의 runbook 즉시 활성화
 - on-call operator 가 cutover rollback + incident 대응 동시 수행
 - cutover 후 monitoring 지표 5 항목 중 1 이상 임계 초과 시 incident 등록
+
+## 12. Frontend page 상세화 (M-v0.2.1+ 관리/조회 page 1 + viz.html 자가 viewer, 2026-06-18 신규)
+
+**Motivation**: §5.1 M-v0.2.1 DoD 의 "frontend 관리/조회 page 1" + §6.1 Phase 1 의 "M-v0.2.0 만 frontend 0 page, viz.html 자가 viewer 만 SSR" 가 구체적 정공법 없이 high-level 정의만 존재. 본 §12 가 frontend component 구조 / page list / routing / user flow / API integration / 운영 정책 상세 정의.
+
+**독립 backend-knowledge frontend 정합** (§1.2 G7 + §2.3 standalone 정합):
+- `backend-knowledge/web/` 별도 standalone frontend (devhub frontend 와 분리)
+- frontend 기술 선택 = 운영자 결정 (Next.js / Vue.js / Svelte / vanilla JS — M-v0.2.0 PoC 는 vanilla JS + CDN 권장, M-v0.2.1+ 운영자 결정)
+- backend-knowledge 의 API 와 HTTP 통신 (envelope + endpoint, §3.1 / §10.2 정합)
+- gateway 가 frontend ↔ backend-knowledge 사이 인증 + user context 처리 (Path Y, §3.6.1 정합)
+
+### 12.1 M-v0.2.0 frontend 0 page + viz.html 자가 viewer 상세
+
+**viz.html 자가 viewer** (M-v0.2.0 PoC = frontend 의 전부):
+
+**위치**: `backend-knowledge/var/bundles/{bundle}/viz.html` (per-bundle, §3.5.4 정합)
+
+**기술 스택** (M-v0.2.0 PoC 권장):
+- **Cytoscape.js** v3.x (graph visualization, CDN embed)
+- **marked.js** v5.x (Markdown → HTML 변환, CDN embed)
+- **HTML/CSS/JS CDN**: jsdelivr / unpkg (외부 CDN, M-v0.2.0 PoC simple)
+- **inline style** (외부 CSS 의존 ❌, M-v0.2.0 PoC self-contained)
+- **SVG fallback** (CDN 부재 시)
+
+**viz.html component 구조**:
+
+```
+<viz.html>
+├── <div id="cy-container">          ← Cytoscape.js canvas (full screen)
+├── <div id="concept-detail">       ← concept detail panel (right side, hidden default)
+├── <div id="bundle-info">          ← bundle metadata (top, sticky)
+├── <div id="filter-bar">           ← category + type filter (left side, collapsible)
+└── <script src="cytoscape.min.js"> ← CDN embed
+    <script src="marked.min.js">    ← CDN embed
+    <script>
+      // 1. load bundle's index.md (parent dir)
+      // 2. parse per-category sections → build Cytoscape nodes
+      // 3. parse intra-bundle cross-link → build edges
+      // 4. node click → show concept-detail (frontmatter + body)
+    </script>
+```
+
+**Cytoscape nodes** (concept .md):
+- node.id = `{type}_{slug}.md` (filename)
+- node.label = `concept.title` (frontmatter)
+- node.type = concept.type (8 enum)
+- node.category = `concept.x_devhub_category` (5 enum)
+- node.curator = `concept.x_devhub_curator`
+- node.lifecycle = `concept.x_devhub_status` (M-v0.2.1+ 추가)
+- node.style.color = type 별 색상 (e.g., `dataset` = blue, `metric` = green, `runbook` = orange, ...)
+
+**Cytoscape edges** (cross-link, §3.5.5 정합):
+- edge.id = `{from_node}__to__{to_node}`
+- edge.source = from concept
+- edge.target = to concept
+- edge.type = `intra-bundle` / `cross-bundle` / `source-external` / `reverse-index`
+- edge.style.dashArray = type 별 점선 패턴
+
+**viz.html 의 자가 viewer 특성** (M-v0.2.0 PoC 의 frontend 0 page 정책 정합):
+- **외부 backend 호출 ❌**: viz.html 은 정적 HTML 파일 (curl 가능)
+- **graph data = index.md 의 frontmatter + body** (parse at load time)
+- **CDN 의존성**: M-v0.2.0 PoC = jsdelivr/unpkg CDN 허용 (offline 시 SVG fallback)
+- **browser-only**: JavaScript 만 사용 (Node.js / server-side rendering ❌)
+
+**viz.html 자동 생성**: `curate/index_builder.py` 가 per-bundle rebuild 시 자동 emit (M-v0.2.0 PoC, §3.5.4 정합)
+
+### 12.2 M-v0.2.1 frontend 관리/조회 page 1 상세
+
+**`backend-knowledge/web/` 별도 standalone frontend** (M-v0.2.1+ 추가, devhub frontend 와 분리, §5.1 / §5.5 정합):
+
+**5 page 구성** (per §5.5 M-v0.2.1 DoD "frontend 관리/조회 page 1" 의 page list):
+
+| Page | path | 기능 | backend-knowledge API | 권한 |
+| --- | --- | --- | --- | --- |
+| **(1) Concept list page** | `/` | bundle/category/type filter + full-text search + pagination | GET `/api/v0-2/search?q=...&type=...&category=...&limit=...&offset=...` (§3.1) | visitor + (caller scope filter, §3.6.3 정합) |
+| **(2) Concept detail page** | `/concept/{type}/{name}` | frontmatter + body markdown + cross-link 표시 + lifecycle state + lifecycle transition UI (review/publish/archive) | GET `/api/v0-2/concepts/{type}/{name}` (§3.1) + PUT `/api/v0-2/concepts/{id}` (manual edit, §3.6.2 정합) | visitor + operator (edit) + admin (lifecycle state change, §3.9 정합) |
+| **(3) Ingest trigger page** | `/ingest` | source 별 POST trigger + status + cron interval | POST `/api/v0-2/ingest/{source}/sync` (§3.1) + GET `/api/v0-2/ingest/{source}/status` (§3.1) | operator (system_admin OR bundle owner_org member) |
+| **(4) Bundle management page** | `/bundles` | bundle list + create + rebuild + viz.html preview + index.md download | GET `/api/v0-2/bundles` + POST `/api/v0-2/bundles` + POST `/api/v0-2/bundles/{bundle}/rebuild` (§3.1) | admin (system_admin) |
+| **(5) Raw inspector page** | `/db/raw` (M-v0.2.0+ DB path 추가) | raw_records 검색/필터 + sha256 검증 + Pi ingest status | GET `/api/v0-2/db/raw?source=...&since=...` + GET `/api/v0-2/db/raw/{id}` + GET `/api/v0-2/db/raw/ingest-status?source=...&since=...` (§10.2 정합) | operator (storage_mode=db source 한정, §10.5 visibility 정합) |
+
+**Frontend 기술 선택** (운영자 결정, M-v0.2.1+ sprint 진입 시):
+- **vanilla JS + CDN** (M-v0.2.0 PoC 권장 — simple, backend-knowledge 의 standalone 정합)
+- **Next.js** (React 기반, SSR 가능, M-v0.2.1+ 옵션)
+- **Vue.js** (Composition API, M-v0.2.1+ 옵션)
+- **Svelte** (compile-time reactive, M-v0.2.1+ 옵션)
+- 운영자 결정 (별도 ADR 권장, M-v0.2.1 sprint 진입 시)
+
+**Routing 구조** (vanilla JS 예시):
+```
+backend-knowledge/web/
+├── index.html                  # redirect → /concept (default page)
+├── concept/
+│   └── index.html              # (1) concept list page (M-v0.2.1+)
+├── concept-detail/
+│   └── index.html              # (2) concept detail page (M-v0.2.1+)
+├── ingest/
+│   └── index.html              # (3) ingest trigger page (M-v0.2.1+)
+├── bundles/
+│   └── index.html              # (4) bundle management page (M-v0.2.1+)
+└── db/
+    └── raw/
+        └── index.html          # (5) raw inspector page (M-v0.2.0+)
+```
+
+**Standalone 정합**:
+- `backend-knowledge/web/` 는 backend-knowledge repo 내부 (별도 standalone repo ❌)
+- frontend build 결과물 (정적 HTML/JS/CSS) 만 deploy (SSR / dynamic rendering ❌, M-v0.2.0 PoC = static)
+- devhub frontend 와 코드 공유 ❌ (import ❌, §1.2 G7 standalone 정합)
+
+### 12.3 User flow + 권한 매트릭스 (3 user role)
+
+**3 user role** (M-v0.2.1+ frontend 정책, §3.6 governance 정합):
+
+| Role | 정의 | 권한 범위 | frontend UI |
+| --- | --- | --- | --- |
+| **visitor** | 모든 인증된 user (Path Y caller-provided user context 정합) | GET only, `x_devhub_visibility = public` 인 concept + bundle 만 | concept list + detail (read only) |
+| **operator** | bundle owner_org member + caller user_id 가 owner_user_id 또는 org_head scope | GET + POST `/ingest/{source}/sync` + GET raw inspector (visibility 정합) | visitor + ingest trigger + raw inspector |
+| **admin** | system_admin (or org_head scope 의 critical action) | GET + POST + PUT + DELETE + lifecycle state change | operator + bundle management + lifecycle transition UI |
+
+**Path Y caller-provided user context 흐름** (§3.6.1 정합):
+```
+[User browser] → [gateway (Keycloak 인증 + user context 추출)]
+                  ↓ X-DevHub-User-Context header
+              [backend-knowledge API]
+                  ↓ 4-tier query scope priority (§3.6.3) 적용
+              [Filtered response]
+                  ↓ JSON envelope (§3.4)
+              [frontend rendering]
+```
+
+**Frontend ↔ gateway 통신**:
+- frontend 는 backend-knowledge 직접 호출 ❌ (gateway 통과 필수, §2.3 "운영자 또는 별도 agent 가 호출")
+- gateway 가 Keycloak 인증 + user context 구성 + backend-knowledge 호출 의 3-step orchestration
+- frontend → gateway: OIDC code flow + PKCE (Keycloak standard)
+- gateway → backend-knowledge: X-DevHub-User-Context header
+
+### 12.4 API integration matrix (frontend ↔ backend-knowledge)
+
+**Per page → API mapping** (M-v0.2.1+ frontend 운영):
+
+| Frontend page | HTTP method | API endpoint | §3.1 / §10.2 cross-ref | Path Y user context |
+| --- | --- | --- | --- | --- |
+| **(1) Concept list page** | GET | `/api/v0-2/search` + `/api/v0-2/concepts/{type}/{name}` (개별 상세 link) | §3.1 Query | 필수 |
+| **(1)** | GET | `/api/v0-2/bundles/{bundle}/index.md` (per-bundle index for viz.html) | §3.1 Query | 필수 (caller scope filter) |
+| **(2) Concept detail page** | GET | `/api/v0-2/concepts/{type}/{name}` | §3.1 Query | 필수 (visibility 정합) |
+| **(2)** | PUT | `/api/v0-2/concepts/{id}` (manual edit) | §3.6.2 curation permission | 필수 |
+| **(2)** | POST | `/api/v0-2/concepts/{id}/enrich` (LLM enrich, M-v0.2.3+) | §3.1 Curate | 필수 |
+| **(2)** | POST | `/api/v0-2/concepts/{id}/publish` (system_admin override) | §3.9.4 publish 절차 | 필수 |
+| **(2)** | POST | `/api/v0-2/concepts/{id}/archive` (obsolete, M-v0.2.1+) | §3.9.4 archive 절차 | 필수 (operator 권한) |
+| **(3) Ingest trigger page** | POST | `/api/v0-2/ingest/{source}/sync` | §3.1 Ingest | 필수 (caller 권한 check) |
+| (3) | GET | `/api/v0-2/ingest/{source}/status` | §3.1 Ingest | 필수 |
+| **(4) Bundle management page** | GET | `/api/v0-2/bundles` | §3.1 Query | 필수 |
+| (4) | POST | `/api/v0-2/bundles` (create) | §3.1 Query | 필수 (admin only) |
+| (4) | POST | `/api/v0-2/bundles/{bundle}/rebuild` | §3.1 Query | 필수 (admin only) |
+| **(5) Raw inspector page** | GET | `/api/v0-2/db/raw?source=...&since=...&sort=...&limit=...&offset=...` | §10.2 | 필수 (operator, storage_mode=db source 한정) |
+| (5) | GET | `/api/v0-2/db/raw/{id}` | §10.2 | 필수 |
+| (5) | GET | `/api/v0-2/db/raw/ingest-status?source=...&since=...` | §10.2 | 필수 |
+
+**API path prefix 구분**:
+- §3.1 endpoints = `/api/v0-2/{ingest|curate|query|raw|bundles|concepts}` (기존 raw storage = file, §4 정합)
+- §10.2 endpoints = `/api/v0-2/db/raw` (db storage, §10 정합)
+- §3.6.1 endpoints = `/api/v0-2/{bundles|concepts|raw|db/raw}` 의 caller scope filter 정합
+
+### 12.5 Frontend cutover 정책 (M-v0.2.1+ 운영)
+
+**M-v0.2.0 → M-v0.2.1 frontend cutover** (viz.html → frontend 관리/조회 page 1 추가):
+
+```
+Step 1: `backend-knowledge/web/` 디렉터리 작성 (5 page + routing)
+Step 2: backend-knowledge API integration (§12.4 매트릭스 정합)
+Step 3: Path Y caller-provided user context 구현 (frontend → gateway → backend-knowledge)
+Step 4: e2e smoke (frontend 5 page 정상 응답)
+Step 5: §5.6 cutover checklist 8 항목 통과
+Step 6: frontend deploy (별도 정적 파일 deploy, backend-knowledge 와 독립)
+Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
+```
+
+**Frontend update 주기**:
+- per release (M-v0.2.1 release, M-v0.2.2 release, ...)
+- frontend 는 backend-knowledge 와 별도 deploy 가능 (정적 파일 deploy, no coupling)
+- 긴급 patch: §5.6 cutover 절차 + §11.1 incident runbook §11.1.6 (archive trigger 실패) 와 연계
+
+**viz.html 단독 운영 vs frontend 통합 운영**:
+- M-v0.2.0 PoC = viz.html 단독 (frontend 0 page)
+- M-v0.2.1+ = viz.html + frontend 관리/조회 page 1 양립
+  - viz.html = public visibility 의 concept + bundle 만 표시 (visitor 용)
+  - frontend page = operator/admin 기능 (ingest / bundle management / raw inspector / lifecycle transition)
+
+**§5.6 cutover 와 정합**:
+- frontend cutover 도 §5.6 의 6 step cutover 절차 적용 (이전 viz.html → 새 frontend)
+- §5.6 의 8 항목 cutover checklist + frontend-specific item (browser compatibility check, CDN fallback 검증)
+- cutover 후 monitoring: §11.3 monitoring 5 지표 + frontend-specific (page load time, JS error rate) 추가
+
+**Cross-section 정합 fix 6 위치** (2026-06-18 신규):
+1. **§5.1 M-v0.2.1 DoD** — "frontend 관리/조회 page 1" 의 5 page detail (§12.2 정합) cross-reference
+2. **§6.1 Phase 1** — "M-v0.2.0 만 frontend 0 page, viz.html 자가 viewer 만 SSR" 의 viz.html 상세 (§12.1 정합) cross-reference
+3. **§3.5.4 index.md 자동 생성** — viz.html 자동 emit 정합 (§12.1 정합)
+4. **§3.9.4 publish + archive 절차** — frontend lifecycle transition UI 정합 (§12.2 정합)
+5. **§10 DB path raw_records** — frontend raw inspector page 정합 (§12.2 정합)
+6. **ADR-0035 §3.6 frontend 정책** — §12 frontend cutover 정책 cross-reference + frontend 독립 frontend 기술 선택 노트

@@ -90,8 +90,8 @@
 
 ### 3.6 frontend 정책
 
-- **viz.html (자가 viewer)**: 모든 Phase 공통 (backend-knowledge 가 SSR)
-- **frontend 관리/조회 page 1**: M-v0.2.1+ 부터, `backend-knowledge/web/` (별도 standalone frontend, devhub frontend 와 분리, §1.2 G7 standalone 정책 정합)
+- **viz.html (자가 viewer)**: 모든 Phase 공통 (backend-knowledge 가 SSR, **§12.1 상세 정합**: Cytoscape.js + marked.js CDN embed + 4 edge type + 8 type node 색상 + static HTML)
+- **frontend 관리/조회 page 1**: M-v0.2.1+ 부터, `backend-knowledge/web/` (별도 standalone frontend, devhub frontend 와 분리, §1.2 G7 standalone 정책 정합, **§12.2 의 5 page 상세 정합**: concept list / concept detail / ingest trigger / bundle management / raw inspector + §12.3 user flow 3 role + §12.4 API integration matrix + §12.5 frontend cutover 정책)
 - **frontend 0 page**: M-v0.2.0 (1차 backend 단독)
 
 ### 3.7 Keycloak 분류 (재확인)
