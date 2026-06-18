@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** + **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved, 5 subsection + 3 graph endpoint + 7 cross-section fix 위치)** + **§2.4 standalone 검증 매트릭스 (10 row 검증 항목 + 운영자 onboarding SOP + 자동화 tool, §1.2 G7 + §3.5 의 standalone 정책의 구체적 검증 정공법)** + **§14 M-v0.2.0 release notes draft (umbrella doc 본문 release notes, §13.3 #5 ✅ partial resolved, 7 subsection: highlight / 16 commit summary / breaking change 4 row / per-source plugin 7종 / per-milestone 5 M / §13 정합 / template / contributor, M-v0.2.0 release 시점에 `docs/release-notes/v0.2.0.md` 로 copy + post-process)** + **§8 timeline 보강 (4 subsection: §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 17 commit × 5 artifacts + §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + §8.4 4 layer 정합 L1~L4, §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + §1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표 + §3.5.6 cross-link reverse index 정공법 (5 subsection + 3 graph endpoint) + §2.4 standalone 검증 매트릭스 (10 row + 운영자 onboarding SOP) + §14 M-v0.2.0 release notes draft (7 subsection + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge) + §8 timeline 보강 (4 subsection + 17 commit 결정 timeline + cross-reference 매트릭스 + 향후 결정 row 10 row + 4 layer 정합 L1~L4). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.1 `okf/link_graph.py` 코멘트 갱신 / §2.3 3 row / §2.4 신규 / §3.1 API 매트릭스 / §3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.5.5 reverse index row 4 보강 / §3.5.6 신규 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §3.9.4 archive 거부 정책 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / §6.5.4 E2E smoke Step 6 / §11.1.7 stale link runbook / §13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 / §1.2 G7 cross-reference + §6.5.1 docker-compose standalone 정합 검증 cross-reference + §11.4 on-call Operator training cross-reference (§2.4 매트릭스 정공법) / §13.3 #5 release notes draft ✅ partial resolved (본 §14) + §13.4 정합 검증 row 추가 (release notes) + §14 자체가 종합 review 이므로 fix 0 row + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge + contributor placeholder / **§8 timeline 보강 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능** / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.5 + §3.6 + §3.8 + §4.2/§4.3 갱신 + ADR-0034/0035 frontmatter 갱신 (17 row / 8 row 영향) + §8 timeline Q12~Q18 결정 row 추가 + §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 + §8.3 향후 결정 row 10 row + §8.4 4 layer 정합 + §13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시 + §1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 + §3.5.6 cross-link reverse index 정공법 신규 — 7 cross-section fix 위치 + §2.4 standalone 검증 매트릭스 신규 — 3 cross-section fix 위치 + §14 M-v0.2.0 release notes draft 신규 — 3 cross-section fix 위치 (§13.3 #5 / §13.4 정합 검증 / ADR-0034/0035 영향) + release 시점 post-process 10 step SOP + **§8 timeline 보강 신규 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4**).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** + **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved, 5 subsection + 3 graph endpoint + 7 cross-section fix 위치)** + **§2.4 standalone 검증 매트릭스 (10 row 검증 항목 + 운영자 onboarding SOP + 자동화 tool, §1.2 G7 + §3.5 의 standalone 정책의 구체적 검증 정공법)** + **§14 M-v0.2.0 release notes draft (umbrella doc 본문 release notes, §13.3 #5 ✅ partial resolved, 7 subsection: highlight / 16 commit summary / breaking change 4 row / per-source plugin 7종 / per-milestone 5 M / §13 정합 / template / contributor, M-v0.2.0 release 시점에 `docs/release-notes/v0.2.0.md` 로 copy + post-process)** + **§8 timeline 보강 (4 subsection: §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 17 commit × 5 artifacts + §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + §8.4 4 layer 정합 L1~L4, §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** + **§2.6 backend-knowledge network 정책 (5 subsection: §2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose networks 3 단계 + §2.6.3 iptables rule + §2.6.4 WAF 3 option + 10 rule + §2.6.5 검증 절차 정밀화 8 row 자동화 tool, §2.4 item 1 + §6.5.3 + §11.1.1 정합, 사외/사내 2-tier 정합)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + §1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표 + §3.5.6 cross-link reverse index 정공법 (5 subsection + 3 graph endpoint) + §2.4 standalone 검증 매트릭스 (10 row + 운영자 onboarding SOP) + §14 M-v0.2.0 release notes draft (7 subsection + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge) + §8 timeline 보강 (4 subsection + 17 commit 결정 timeline + cross-reference 매트릭스 + 향후 결정 row 10 row + 4 layer 정합 L1~L4) + §2.6 backend-knowledge network 정책 (5 subsection + 3 단계 + docker-compose networks + iptables + WAF 10 rule + 8 row 자동화 tool + 사외/사내 2-tier). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.1 `okf/link_graph.py` 코멘트 갱신 / §2.3 3 row / §2.4 신규 / **§2.4 item 1 (network 격리) 의 "상세 정공법" → §2.6 cross-reference 추가** / §3.1 API 매트릭스 / §3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.5.5 reverse index row 4 보강 / §3.5.6 신규 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §3.9.4 archive 거부 정책 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / §6.5.4 E2E smoke Step 6 / §11.1.7 stale link runbook / §13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 / §1.2 G7 cross-reference + §6.5.1 docker-compose standalone 정합 검증 cross-reference + §11.4 on-call Operator training cross-reference (§2.4 매트릭스 정공법) / §13.3 #5 release notes draft ✅ partial resolved (본 §14) + §13.4 정합 검증 row 추가 (release notes) + §14 자체가 종합 review 이므로 fix 0 row + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge + contributor placeholder / §8 timeline 보강 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능 / **§2.6 backend-knowledge network 정책 — 4 cross-section fix 위치 (§2.4 item 1 "상세 정공법" cross-reference / §6.5.3 "상세 정공법" cross-reference / §11.1.1 "Network 진단" 4 row / §13.4 정합 검증 row 추가 (network 정책)) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내)** / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.5 + §3.6 + §3.8 + §4.2/§4.3 갱신 + ADR-0034/0035 frontmatter 갱신 (18 row / 9 row 영향) + §8 timeline Q12~Q18 결정 row 추가 + §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 + §8.3 향후 결정 row 10 row + §8.4 4 layer 정합 + §13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시 + §1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 + §3.5.6 cross-link reverse index 정공법 신규 — 7 cross-section fix 위치 + §2.4 standalone 검증 매트릭스 신규 — 3 cross-section fix 위치 + §14 M-v0.2.0 release notes draft 신규 — 3 cross-section fix 위치 (§13.3 #5 / §13.4 정합 검증 / ADR-0034/0035 영향) + release 시점 post-process 10 step SOP + §8 timeline 보강 신규 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + **§2.6 backend-knowledge network 정책 신규 — 4 cross-section fix 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / §13.4) + 사외/사내 2-tier 정합**).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -200,7 +200,7 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 
 | # | 항목 | 검증 방법 | PASS 기준 | FAIL 시 mitigation | 자동화 |
 | --- | --- | --- | --- | --- | --- |
-| **1** | **Network 격리** | `docker network ls` + container `docker inspect` 의 `NetworkMode` 확인. backend-knowledge container 가 `backend-knowledge-net` 만 연결, host network mode ❌, 다른 backend container 와 shared network ❌ | container 가 `backend-knowledge-net` 만 연결 + host network 미사용 + 다른 backend container 와 shared network 없음 | `docker-compose.yml` 의 `networks: backend-knowledge-net: external: true` 명시 + `network_mode: bridge` (default) + 다른 backend container 의 network 는 `external: false` 로 격리 | M-v0.2.0 (CI `scripts/check_network_isolation.sh`) |
+| **1** | **Network 격리** | `docker network ls` + container `docker inspect` 의 `NetworkMode` 확인. backend-knowledge container 가 `backend-knowledge-net` 만 연결, host network mode ❌, 다른 backend container 와 shared network ❌ | container 가 `backend-knowledge-net` 만 연결 + host network 미사용 + 다른 backend container 와 shared network 없음 | `docker-compose.yml` 의 `networks: backend-knowledge-net: external: true` 명시 + `network_mode: bridge` (default) + 다른 backend container 의 network 는 `external: false` 로 격리 | M-v0.2.0 (CI `scripts/check_network_isolation.sh`) | **상세 정공법: §2.6 (dev/staging/production 3 단계 + docker-compose networks + iptables rule + WAF 설정 + 8 row 자동화 tool + 검증 SOP) — §2.4 item 1 의 정밀화** |
 | **2** | **Port expose** | `docker inspect` 의 `Ports` 확인 + `curl localhost:8000/docs` (FastAPI OpenAPI) + `curl localhost:8000/health` (health check) | FastAPI port 8000 만 container 내부 노출 (호스트 expose ❌). 다른 backend port (8080, 5432 등) 미사용. firewall / WAF 가 외부 접근 차단 (production) | `docker-compose.yml` 의 `expose: ["8000"]` 명시 (host port 매핑 ❌) + `ports:` 미사용 + production 시 gateway / firewall / IP allowlist 정책 (§6.5.3 정합) | M-v0.2.0 (`docker inspect --format='{{json .NetworkSettings.Ports}}'`) |
 | **3** | **Env var 격리** | `docker exec backend-knowledge env` 출력 확인. 사내 한정 env var (`DEVHUB_KEYCLOAK_*` / `GITEA_URL` / `HR_EXPORT_CMD` / `internal-registry.example.com` / `kc.internal.example.com` / `devhub.example.com` / `172.16.0.0/12`) 의 **무관** + 사외 한정 env var (`GITEA_URL_PUBLIC` 등) 만 사용. 단, source plugin credential 은 사내 한정 가능 (봉투 암호화, ADR-0025) | 사내 한정 env var 부재 + `DEVHUB_KEYCLOAK_*` / `kc.internal.example.com` / `devhub.example.com` / `172.16.0.0/12` 의 단일 occurrence ❌. 단, source plugin credential 은 §3.8.1 credential schema + ADR-0025 봉투 암호화 정합 | `docs/governance/worker_division.md §6.5 PR 작성 시 self-check` 정합 + `.env.example` 의 사내 한정 env var 미포함 검증 | M-v0.2.0 (`scripts/check_env_isolation.sh`, 환경변수 패턴 grep) |
 | **4** | **Import 격리** (정적 분석) | `grep -r "from backend_core\|from backend-core\|import backend_core\|from devhub_core\|import devhub_core" backend-knowledge/` 출력. 다른 backend 의 Python module import 시도 ❌ | 0 occurrence. 단, OKF reference (`google-cloud-knowledge-catalog` 또는 `okf/`) 의 import 는 ✅ (외부 표준) | `pyproject.toml` 의 `dependencies` 에 다른 backend pkg 미포함 + pre-commit hook `scripts/check_import_isolation.sh` | M-v0.2.0 (CI grep) |
@@ -263,6 +263,289 @@ grep -rE "requests\.(get|post|put|patch|delete)" backend-knowledge/sources/ | gr
 **M-v0.2.0 PoC 의 baseline** (2026-06-18 결정): 10 row 모두 PASS. 본 §2.4 의 자동화 tool 은 M-v0.2.1+ CI 도입 시점에 정식 활성화. M-v0.2.0 PoC = 운영자 수동 검증 (위 SOP step 2~5).
 
 **§1.2 G7 standalone 정책 + 본 §2.4 정합**: §1.2 G7 의 high-level 선언 (다른 backend 연결 ❌, OIDC ❌, 외부 시스템 only 단방향, caller-provided user context) → §2.3 의 6 row 시스템 경계 정책 → **본 §2.4 의 10 row 검증 매트릭스 (구체적 검증 정공법)** 3 계층 정합. 운영자 / contributor 가 어느 계층을 봐도 standalone 정책 의도 + 정공법 파악 가능.
+
+### 2.6 backend-knowledge 운영 환경의 network 정책 (2026-06-18 신규)
+
+**§2.4 매트릭스 item 1 (network 격리)** 의 **구체적 정공법** + §2.4 item 8 (monitoring 격리) 의 metric endpoint network 정책 + §6.5.3 의 gateway + firewall + IP allowlist 정책 의 detail. 본 §2.6 은 **dev / staging / production 3 단계 별 network 정책** + docker-compose networks 설정 + firewall iptables rule + WAF 설정 + 검증 절차 정밀화.
+
+#### 2.6.1 3 단계 network 정책 (dev / staging / production)
+
+| Phase | Network 정책 | 인증 | Port expose | WAF | Firewall | Egress | 사내 CA | VPN | 비고 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **dev (M-v0.2.0 PoC)** | localhost 만 (`127.0.0.1` / `192.168.0.0/16` dev LAN) | 없음 (internal-only) | `8000` 만 container 내부 노출 (host `expose: ["8000"]` 또는 `ports: - "127.0.0.1:8000:8000"`) | ❌ 미사용 | ❌ 미사용 (iptables default ACCEPT or docker default) | 자유 (source plugin source_url 만) | ❌ 미사용 | ❌ 미사용 | M-v0.2.0 PoC = 1 운영자 단독, §6.1 Phase 1 정합 |
+| **staging (M-v0.2.1~v0.2.2)** | VPN + 사내 CA | 사내 CA 인증 (사내 LDAP / SAML) | `8000` 만 (gateway 뒤) | 선택 (Cloudflare staging tier or nginx mod_security) | iptables + gateway IP allowlist | 사내 시스템 only (source plugin source_url + 사내 모니터링 endpoint) | ✅ 사내 CA | ✅ VPN (WireGuard / OpenVPN) | M-v0.2.1+ frontend 운영 + 6종 source wire (M-v0.2.2) 정합 |
+| **production (M-v0.2.3+)** | WAF + 외부 CA + gateway | 외부 CA 인증 (Let's Encrypt / DigiCert) | ❌ host port 매핑 없음 (내부 only) | ✅ 필수 (Cloudflare Pro / AWS WAF) | iptables + WAF + IP allowlist (gateway IP + 사내 운영자 IP) | source plugin source_url + 명시 화이트리스트 (gitea / homelab / prometheus / hrdb) + metric export (Prometheus endpoint) | ❌ 미사용 (외부 CA) | ❌ 미사용 (WAF + gateway 만) | M-v0.2.3+ 7종 source wire + PostgreSQL option + Pi RPC mode 정합 |
+
+**정책 결정 흐름** (per release / per phase):
+1. M-v0.2.0 PoC (현재) = **dev 단계** — localhost 만, port 8000 host expose (127.0.0.1 binding), WAF/firewall 미사용, 1 운영자 단독 검증
+2. M-v0.2.1~v0.2.2 = **staging 단계** — VPN + 사내 CA 도입 + iptables basic + gateway IP allowlist + WAF 선택 (M-v0.2.1+ frontend 운영 준비)
+3. M-v0.2.3+ = **production 단계** — WAF + 외부 CA + iptables strict + gateway + IP allowlist (M-v0.2.3+ hrdb + Pi RPC + PostgreSQL + 다중 운영자)
+
+**사외/사내 2-tier 정합** (AGENTS.md §사외/사내 2-tier 형상관리 분리, 2026-06-10 결정):
+- dev (M-v0.2.0 PoC) = **사외 tier** (외부 인프라 무관, localhost 만, OKF 형식 자체 vendor-neutral)
+- staging (M-v0.2.1+) = **사내 tier 가능** (VPN + 사내 CA + 사내 시스템 only egress, 사내 SCM 에만 push)
+- production (M-v0.2.3+) = **사내 tier** (WAF + gateway + 사내 운영자 IP allowlist, 사내 형상관리 / 모니터링 / log aggregation)
+
+#### 2.6.2 docker-compose.yml networks 설정 정공법
+
+**dev (M-v0.2.0 PoC) — `backend-knowledge/docker-compose.yml`**:
+
+```yaml
+version: "3.9"
+
+services:
+  backend-knowledge:
+    image: backend-knowledge:v0.2.0
+    build: .
+    container_name: backend-knowledge
+    networks:
+      - backend-knowledge-net
+    expose:
+      - "8000"  # container 내부만 노출, host port 매핑 ❌
+    # 또는 dev 시 host access 필요하면:
+    # ports:
+    #   - "127.0.0.1:8000:8000"  # localhost 만 binding, 외부 노출 ❌
+    environment:
+      - DATABASE_URL=sqlite:///var/sqlite/raw_index.db
+      - STORAGE_MODE_DEFAULT=file  # §10.4 default mapping 정합
+      - PATH_Y_TRUST_MODE=caller-provided  # §3.6 Path Y 정합
+    volumes:
+      - ./var/bundles:/app/var/bundles
+      - ./var/raw:/app/var/raw
+      - ./var/raw_index.db:/app/var/raw_index.db
+      - ./var/fixtures:/app/var/fixtures
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  backend-knowledge-net:
+    driver: bridge
+    # dev: default bridge (외부 접근 가능, host network mode ❌)
+```
+
+**staging (M-v0.2.1+)**:
+
+```yaml
+services:
+  backend-knowledge:
+    networks:
+      - backend-knowledge-net  # internal (source plugin + DB only)
+      - egress-internal        # egress: 사내 시스템 only (VPN 내부)
+    # host port 매핑 ❌ (gateway 뒤에서만 접근)
+
+networks:
+  backend-knowledge-net:
+    driver: bridge
+    internal: true  # 외부 internet egress ❌, internal communication 만
+  egress-internal:
+    driver: bridge
+    # egress: source plugin source_url (Gitea internal / homelab internal) + 사내 monitoring endpoint
+```
+
+**production (M-v0.2.3+)**:
+
+```yaml
+services:
+  backend-knowledge:
+    networks:
+      - backend-knowledge-net  # internal strict (container 간 통신만)
+      - egress-allowlist       # egress: 명시 화이트리스트만 (source plugin + metric)
+
+networks:
+  backend-knowledge-net:
+    driver: bridge
+    internal: true  # 외부 internet egress 완전 차단
+  egress-allowlist:
+    driver: bridge
+    # egress: source plugin source_url 화이트리스트 (Gitea production / homelab production / Prometheus / hrdb) + metric export endpoint
+    # iptables + WAF 가 egress 도 검증
+```
+
+**핵심 design decision**:
+- **dev = default bridge** (외부 internet 자유, 1 운영자 검증)
+- **staging = internal bridge** (외부 internet 차단, 사내 시스템 만 egress via VPN)
+- **production = internal bridge + egress allowlist** (외부 완전 차단, 명시 화이트리스트 만 egress)
+- **`internal: true`** (Docker network driver 의 flag) = 외부 internet egress 완전 차단 → §2.4 item 1 + §6.1 정합
+
+#### 2.6.3 firewall iptables rule 예시 (production)
+
+**production 시점의 iptables rule** (M-v0.2.3+ 운영 환경, host level firewall):
+
+```bash
+#!/bin/bash
+# /etc/iptables/backend-knowledge-rules.sh (production)
+# §2.4 item 1 (network 격리) + §2.6.2 docker-compose networks 정합
+
+# 기본 정책: INPUT/FORWARD DROP, OUTPUT ACCEPT (egress allowlist 검증 후)
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+# Loopback 허용
+iptables -A INPUT -i lo -j ACCEPT
+
+# Established/related connection 허용
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# SSH (운영자)
+iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --set --name SSH
+iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 --name SSH -j DROP
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Gateway → backend-knowledge (8000) 만 허용
+# gateway IP = 10.0.0.10 (internal gateway / Cloudflare tunnel origin)
+iptables -A INPUT -p tcp -s 10.0.0.10 --dport 8000 -m state --state NEW -j ACCEPT
+
+# 운영자 IP (사내) → monitoring endpoint (9091) 허용
+iptables -A INPUT -p tcp -s 10.0.0.0/8 --dport 9091 -m state --state NEW -j ACCEPT
+
+# Egress: source plugin source_url 만 허용
+# (Docker network level 에서 egress-allowlist bridge 가 이미 검증, host iptables 는 backup)
+
+# Rate limit: source plugin 당 분당 60 request (Gitea API rate limit 정합)
+iptables -A OUTPUT -p tcp -d gitea.production.example.com --dport 443 -m limit --limit 60/min --limit-burst 100 -j ACCEPT
+iptables -A OUTPUT -p tcp -d gitea.production.example.com --dport 443 -j DROP
+
+# Logging
+iptables -A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables_INPUT_denied: " --log-level 4
+iptables -A OUTPUT -m limit --limit 5/min -j LOG --log-prefix "iptables_OUTPUT_denied: " --log-level 4
+```
+
+**핵심 rule**:
+- INPUT: SSH + gateway → 8000 + 운영자 → 9091 (monitoring) 만 허용
+- OUTPUT: source plugin source_url rate limit (Gitea 60/min, homelab 30/min, Prometheus 120/min, hrdb 30/min)
+- FORWARD: default DROP (container 간 통신 만, 외부 전달 ❌)
+- Logging: 거부 packet 5/min rate limit log → §11.3 monitoring 의 alert
+
+**Docker iptables interaction** (M-v0.2.3+ production 운영 시 주의):
+- Docker daemon 의 iptables rule (`DOCKER`, `DOCKER-USER`, `DOCKER-ISOLATION`) 가 자동 추가됨 → host iptables 의 INPUT chain 의 `ESTABLISHED,RELATED` accept 가 Docker rule 과 conflict 가능
+- 해결: iptables 의 `DOCKER-USER` chain 에 custom rule 추가 (Docker 가 자동으로 chain 처리 안 함)
+- 운영 SOP: §11.1.1 incident runbook 의 "source plugin sync 실패" → firewall log 확인 → Docker iptables chain 검증
+
+#### 2.6.4 WAF (Web Application Firewall) 설정
+
+**3 option 비교** (per 운영 환경):
+
+| Option | 장점 | 단점 | 권장 phase |
+| --- | --- | --- | --- |
+| **Cloudflare Pro** | managed 서비스 + DDoS 보호 + bot 차단 + free tier (basic) | 외부 SaaS 의존 (M-v0.2.3+ production 시 사내 정책 검토) + per request 비용 | M-v0.2.3+ production (외부 CA + 사외 tier) |
+| **AWS WAF** | AWS ecosystem 통합 + managed rules + pay-as-you-go | AWS account 필요 + cost ($5/월 + per request) + AWS region 종속 | production (AWS 인프라 사용 시) |
+| **nginx mod_security v3** | 자체 호스팅 + OSS + full control + 외부 의존 ❌ | 운영 부담 (rule set 관리 + OWASP CRS 업데이트) + DDoS 보호 미약 (보조 DDoS solution 필요) | M-v0.2.1+ staging → M-v0.2.3+ production (사내 tier) |
+
+**WAF rules (per backend-knowledge API)** (§3.1 API 매트릭스 정합):
+
+| Rule | Pattern | Action | 정합 section |
+| --- | --- | --- | --- |
+| **R1: Path Y header 검증** | request without `X-DevHub-User-Context` to `/api/v0-2/query` or `/api/v0-2/concepts/*/manual-edit` | **block** (403) | §3.6.1 (Path Y caller-provided user context) |
+| **R2: HTTP method whitelist** | `/api/v0-2/*` allow only `GET` / `POST` / `PUT` / `PATCH` / `DELETE` per endpoint | block other methods | §3.1 API 매트릭스 |
+| **R3: SQL injection** | `UNION SELECT` / `DROP TABLE` / `;` in query/path | block (403) | §10.2 (DB CRUD) |
+| **R4: XSS** | `<script>` / `onerror=` in body | block (403) | §12.4 (frontend API) |
+| **R5: Rate limit per IP** | 100 req/min per IP (Gitea API rate limit 정합) | throttle (429) | §11.1.1 (source plugin sync 실패) |
+| **R6: Request size limit** | body ≤ 10MB (large raw 제한) | block (413) | §4.4 (raw retention + quota) |
+| **R7: IP allowlist** | source plugin source_url IP CIDR 만 허용 (외부 IP block) | block (403) | §6.5.3 (gateway + firewall + IP allowlist) |
+| **R8: User agent** | allow `backend-knowledge/{version}` + gateway user agent + monitoring agent | block (403) | §11.3 (monitoring agent) |
+| **R9: Geolocation** | 사외 tier (dev) = any / 사내 tier (staging/production) = 사내 IP CIDR 만 | block (403) | §2.6.1 (3 단계) |
+| **R10: Bot detection** | suspicious bot pattern (no user agent / excessive crawling) | challenge (CAPTCHA) | §2.6.4 (WAF DDoS) |
+
+**IP allowlist (CIDR)**:
+- dev: any (외부 IP 허용, localhost 만 binding)
+- staging: 사내 IP CIDR (e.g., `10.0.0.0/8`, `172.16.0.0/12` per 사내 정책)
+- production: 사내 운영자 IP + gateway IP + WAF egress IP only
+
+#### 2.6.5 §2.4 item 1 network 격리 검증 절차 정밀화
+
+**자동화 tool** (M-v0.2.1+ CI pre-merge + M-v0.2.0 PoC 수동):
+
+```bash
+# scripts/check_network_isolation.sh
+# §2.4 매트릭스 item 1 (network 격리) + 본 §2.6 의 docker-compose networks + iptables + WAF 정합
+
+# 1. docker network 검증
+echo "=== 1. Docker network 격리 ==="
+docker network ls | grep -E "backend-knowledge-net|egress-internal|egress-allowlist" || echo "FAIL: backend-knowledge-net 없음"
+
+# 2. container network 검증
+echo "=== 2. Container network mode ==="
+NETWORK_MODE=$(docker inspect backend-knowledge --format='{{.HostConfig.NetworkMode}}')
+if [ "$NETWORK_MODE" = "host" ]; then
+  echo "FAIL: host network mode (container host network 공유)"
+else
+  echo "PASS: network mode = $NETWORK_MODE"
+fi
+
+# 3. 다른 backend container 와 shared network 검증
+echo "=== 3. 다른 backend container 와 shared network ==="
+SHARED=$(docker inspect backend-knowledge --format='{{json .NetworkSettings.Networks}}' | jq -r 'keys[]' | grep -v "backend-knowledge-net\|egress-")
+if [ -n "$SHARED" ]; then
+  echo "FAIL: 다른 backend network 와 공유: $SHARED"
+else
+  echo "PASS: backend-knowledge-net 만 사용"
+fi
+
+# 4. iptables INPUT chain 검증 (production)
+echo "=== 4. iptables INPUT chain (production) ==="
+if iptables -L INPUT | grep -q "10.0.0.10.*8000.*ACCEPT"; then
+  echo "PASS: gateway IP → 8000 ACCEPT"
+else
+  echo "FAIL: gateway IP → 8000 ACCEPT rule 없음"
+fi
+
+# 5. iptables OUTPUT chain 검증 (production)
+echo "=== 5. iptables OUTPUT chain ==="
+if iptables -L OUTPUT | grep -q "gitea.production.example.com.*443.*ACCEPT"; then
+  echo "PASS: source plugin source_url ACCEPT"
+else
+  echo "FAIL: source plugin source_url ACCEPT rule 없음"
+fi
+
+# 6. WAF endpoint 검증 (production)
+echo "=== 6. WAF endpoint ==="
+WAF_ENDPOINT=$(grep "WAF_ENDPOINT" backend-knowledge/.env 2>/dev/null | cut -d= -f2)
+if [ -n "$WAF_ENDPOINT" ]; then
+  echo "PASS: WAF endpoint = $WAF_ENDPOINT"
+else
+  echo "WARN: WAF endpoint 미설정 (production 시 필수)"
+fi
+
+# 7. egress 화이트리스트 검증 (production)
+echo "=== 7. egress 화이트리스트 ==="
+EGRESS_ALLOW=$(grep "EGRESS_ALLOWLIST" backend-knowledge/.env 2>/dev/null | cut -d= -f2)
+if [ -n "$EGRESS_ALLOW" ]; then
+  echo "PASS: egress allowlist = $EGRESS_ALLOW"
+else
+  echo "WARN: egress allowlist 미설정 (production 시 필수)"
+fi
+
+# 8. host port binding 검증
+echo "=== 8. Host port binding ==="
+HOST_PORTS=$(docker inspect backend-knowledge --format='{{json .HostConfig.PortBindings}}' | jq -r 'to_entries[] | "\(.key) -> \(.value[0].HostPort // "none")"' | grep -v "none\|8000/tcp")
+if [ -n "$HOST_PORTS" ]; then
+  echo "FAIL: 예상치 못한 host port binding: $HOST_PORTS"
+else
+  echo "PASS: host port = 8000 만 (또는 expose only)"
+fi
+```
+
+**운영자 manual 검증 SOP** (per release):
+
+1. **M-v0.2.0 PoC (현재)**: `bash scripts/check_network_isolation.sh` 수동 실행 + 8 row 모두 PASS 확인 + 결과 문서 `docs/operations/network-verification-m-v0-2-0.md` 작성
+2. **M-v0.2.1+ staging**: staging 환경 에서 위 자동화 tool + 사내 CA 인증 + VPN 검증 + 4 row (item 1 + item 2 + item 4 + item 8) 추가 검증
+3. **M-v0.2.3+ production**: production 환경 에서 위 자동화 tool + WAF rule 10 row 검증 + iptables rule 검증 + IP allowlist 검증 + DDoS protection 검증
+
+**Per release audit** (분기 1회):
+- §2.4 매트릭스 10 row 중 item 1 (network 격리) 의 정밀 검증
+- 본 §2.6.5 의 8 row 자동화 검증 tool + WAF rule 10 row + iptables rule 6 row = 24 row 검증
+- 결과 문서 `docs/operations/network-audit-{YYYY-Q{n}}.md` 작성 + §11.4 on-call operator 의 oral check
+
+**incident runbook 정합** (M-v0.2.3+ production):
+- §11.1.1 source plugin sync 실패 → firewall log + WAF log + Docker iptables chain 검증 (4 row 진단)
+- §11.1.4 retention cron 실패 → §2.6 의 egress allowlist + WAF rule R6 (request size limit) 검증
+- §11.1.5 integrity violation → §2.6 의 ingress WAF rule R1~R10 + egress iptables rule 검증
+
+**§1.2 G7 standalone 정책 + 본 §2.6 정합**: §1.2 G7 의 high-level 선언 (다른 backend 연결 ❌) + §2.3 의 6 row 시스템 경계 정책 (다른 backend 연결 (general) ❌) + §2.4 의 10 row 검증 매트릭스 (item 1 = network 격리) + **본 §2.6 의 5 subsection (3 단계 정책 + docker-compose networks + iptables + WAF + 검증 절차 정밀화)** = 4 계층 정합. 운영자 / contributor / 보안 감사자 가 어느 계층을 봐도 network 정책 의도 + 정공법 + 검증 절차 파악 가능.
 
 ## 3. 3가지 기본 기능 (API)
 
@@ -2398,6 +2681,8 @@ echo "API docs: http://localhost:8000/docs"
 
 **§2.3 의 "API 인증: internal-only, no auth + gateway/firewall/IP allowlist"** 정합. backend-knowledge 자체는 firewall 보호 + gateway caller 책임 인증 (Path Y, §3.6.1).
 
+**상세 정공법**: **§2.6 backend-knowledge 운영 환경의 network 정책 (5 subsection: §2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose.yml networks 설정 정공법 (3 단계 별 YAML 예시) + §2.6.3 firewall iptables rule 예시 (production) + §2.6.4 WAF 설정 (Cloudflare / AWS WAF / nginx mod_security 3 option + 10 row WAF rules) + §2.6.5 §2.4 item 1 network 격리 검증 절차 정밀화 (8 row 자동화 tool + 운영자 manual SOP + per release audit))** — 본 §6.5.3 의 3 단계 표 (dev/staging/production) 가 §2.6.1 의 3 단계 network 정책 표 와 1:1 정합. §2.6.4 의 WAF rule R1 (Path Y header 검증) 가 §3.6.1 caller-provided user context 정합 + §6.5.3 의 (b) gateway 의 X-DevHub-User-Context header 생성 정합. §2.4 매트릭스 item 1 (network 격리) 의 정밀화.
+
 #### 6.5.4 E2E smoke pipeline (M-v0.2.0 PoC, 5종)
 
 **6 step e2e smoke** (per source, 2026-06-18 갱신 — §3.5.6 reverse index PoC 검증 단계 추가):
@@ -2743,6 +3028,7 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 | 2026-06-18 | **§2.4 standalone 검증 매트릭스 (10 row 검증 항목 + 운영자 onboarding SOP) + cross-section 정합 fix 3 위치** — (1) **신규 §2.4 "Standalone 정책 검증 매트릭스"** = 10 row 검증 매트릭스 (network 격리 / port expose / env var / import / API 호출 / DB / cron worker / monitoring / log / artifact) + per 항목 검증 방법 + PASS 기준 + FAIL 시 mitigation + 자동화 tool `scripts/check_standalone_drift.sh` (M-v0.2.0 PoC = CI grep, M-v0.2.1+ = pre-merge 자동화) + 운영자 onboarding SOP (5 step: 문서 숙지 / 자동화 tool 실행 / 수동 검증 / 결과 문서 작성 / oral check) + M-v0.2.0 PoC 의 baseline. §1.2 G7 + §2.3 의 standalone 정책의 **구체적 검증 정공법**. 운영자 / contributor 가 어느 계층 (high-level 선언 / 시스템 경계 / 검증 매트릭스) 을 봐도 standalone 정책 의도 + 정공법 파악 가능. (2) cross-section 정합 fix 3 위치: §1.2 G7 cell 의 "상세 검증 정공법" column 에 §2.4 cross-reference 추가 / §6.5.1 docker-compose standalone 정합 검증 section 의 마지막에 §2.4 cross-reference 추가 / §11.4 on-call Operator training 3 release 별 (M-v0.2.0/M-v0.2.1/M-v0.2.3) 에 §2.4 매트릭스 점검 / CI 자동화 tool / 분기 audit 추가 (3) ADR 영향 갱신: ADR-0035 §3.5 운영 환경 (standalone 정합) row 의 "별도 dev script / docker-compose" 항목 다음에 §2.4 cross-reference 추가 / ADR-0035 §4.3 영향 section §2.4 row 추가 (10 row 검증 항목 + 운영자 onboarding SOP + 자동화 tool + cross-section 정합 3 위치) + ADR-0035 frontmatter 갱신 / ADR-0034 §4.3 영향 section §2.4 row 추가 (vendor-neutral 정책 + 본 §2.4 item 4 import 격리 + item 5 API 호출 격리 정합 + cross-section 정합 3 위치) + ADR-0034 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + §2.4 cross-section fix 3 위치 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(d) §2.4 standalone 검증 매트릭스" + §1.2 G7 + §2.3 의 standalone 정책의 high-level 선언 / 시스템 경계 정의만 있고 구체적 검증 정공법 부재 + 운영자 onboarding 시점에 10 row PASS 검증 필수 + drift 방지 + 자동화 tool + PR template 의 `affects-standalone` field M-v0.2.1+ 도입 검토 + 3 cross-section fix 위치 (umbrella doc 본문 + ADR-0034/0035)) |
 | 2026-06-18 | **§14 M-v0.2.0 release notes draft (umbrella doc 본문, §13.3 #5 ✅ partial resolved) + cross-section 정합 fix 3 위치** — (1) **신규 §14** 7 subsection: §14.1 highlight 7-10 bullet (신규 백엔드 / OKF v0.1 / 5 카테고리 / Path Y / DB-based raw / 운영 runbook / 한계 7개 / backend-ai 폐기 / 18/18 결정 / 10 row 매트릭스) / §14.2 16 commit summary (per commit highlight + 영향 section) / §14.3 breaking change 4 row (`backend-ai/` 폐기 M-v0.2.2 + Go adapter 흡수 M-v0.2.2~v0.2.3 + Tier 분리 정책 + `x_devhub_curator` curation governance 정책) / §14.4 per-source plugin 7종 (Gitea 4 + homelab + homelab_mock + metrics + hrdb, per M-v0.2.0~v0.2.3 + per storage_mode × normalize_mode) / §14.5 per-milestone 5 M (M-v0.2.0 PoC = 본 release, M-v0.2.1/2.2/2.3/M-v0.3.0+) / §14.6 §13 cross-cutting 정합 + post-sprint follow-up 6 row (1 resolved + 5 자연 해소, ⚠️ 5 row release 직전 처리) / §14.7 release notes template per backend-knowledge (frontmatter + 7 section + post-process 10 step) / §14.8 contributor placeholder (Sisyphus + 사용자, release 시점에 자동화) (2) cross-section 정합 fix 3 위치: §13.3 #5 (M-v0.2.0 release notes draft) ✅ partial resolved 갱신 / §13.4 정합 검증 row 추가 (release notes) / ADR-0034 §4.3 영향 section §14 row 추가 (highlight 의 OKF v0.1 1차 출처 + breaking change 의 Tier 분리 정책 + per-source plugin 의 bundle 디렉터리 구조 + template 의 frontmatter `type` 1개 필수 정합) + ADR-0034 frontmatter 갱신 / ADR-0035 §4.3 영향 section §14 row 추가 (7 subsection 의 16 commit / breaking change / per-source / per-milestone / template / contributor) + ADR-0035 frontmatter 갱신 (3) umbrella doc frontmatter 갱신 (최종 수정일 + §14 cross-section fix 3 위치 + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template 명시) (4) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "11번 진행해줘이어서 작업하자" — 다음 concept organization 4-option 질문 응답 "(b) §14 release notes draft (M-v0.2.0)" + 16 commit 의 종합 release notes draft (umbrella doc 본문 의 §14 로 publish) + M-v0.2.0 release 시점의 `docs/release-notes/v0.2.0.md` 의 초안 으로 활용 + release 시점에 post-process (image 첨부 / link 자동화 / contributor list 갱신) 만 수행 + 7 subsection (highlight / 16 commit / breaking change / per-source / per-milestone / §13 정합 / template / contributor) + 3 cross-section fix 위치 (§13.3 #5 / §13.4 / ADR-0034/0035) + §13.3 #5 ✅ partial resolved) |
 | 2026-06-18 | **§8 timeline 보강 (4 subsection + 4 layer 정합 L1~L4) + cross-section 정합 fix 4 위치** — (1) **§8 보강** 4 subsection: §8.1 17 commit 결정 timeline (per commit 의 concept change 1줄 + 영향 section + cross-reference 17 row) / §8.2 cross-reference 매트릭스 (17 commit × 5 artifacts: ADR-0034 14/17 = 82%, **ADR-0035 10/17 = 59%**, state.json 3/17 = 18%, external-integrations-agentic-rag-roadmap.md 2/17 = 12%, **docs/llm-wiki mirror 17/17 = 100% = ~75 file**) / §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 2026-06-19 = 5 row release 직전 처리 + Q-F1~Q-F4 후속 sprint 2026-07-01~09-01 = 4 row §1.1 한계 능동적 강화 + M-v0.2.1~v0.2.3 scope) / §8.4 결정 timeline 의 4 layer 정합 (L1 high-level 결정 19 row / L2 commit 결정 17 row / L3 cross-reference 매트릭스 / L4 향후 결정 10 row) (2) cross-section 정합 fix 4 위치: §13.4 정합 검증 row 추가 (timeline 보강) / §13.1 cross-reference matrix 정합 (12 umbrella sections × 5 artifacts, 본 §8.2 의 commit × 5 artifacts 와 cross-reference) / ADR-0034 §4.3 영향 section §8 row 추가 (OKF 형식 영향 = 14/17 commit, §8.1 의 17 commit 영향 section 정합) + ADR-0034 frontmatter 갱신 (17 row 추가) / ADR-0035 §4.3 영향 section §8 row 추가 (backend-knowledge 신설 영향 = 10/17 commit) + ADR-0035 frontmatter 갱신 (3) umbrella doc frontmatter 갱신 (최종 수정일 + §8 보강 4 subsection + 4 layer 정합 + cross-reference 매트릭스 5 artifacts 영향 row + 향후 결정 row 10 row 명시) (4) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §8 timeline 보강 (17 commit 결정 timeline + cross-reference + 향후 결정 row)" + 17 commit 결정 row 의 cross-reference 상세화 + §13.1 cross-reference matrix 정합 + 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + 4 layer 정합 L1~L4 + 5 artifacts cross-reference density (ADR-0034 82% / ADR-0035 59% / state.json 18% / external-integrations-agentic-rag-roadmap.md 12% / docs/llm-wiki 100%) + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능) |
+| 2026-06-18 | **§2.6 backend-knowledge network 정책 (5 subsection + dev/staging/production 3 단계 + docker-compose networks + iptables + WAF + 8 row 자동화 tool) + cross-section 정합 fix 4 위치** — (1) **신규 §2.6** 5 subsection: §2.6.1 3 단계 network 정책 표 (dev = localhost + port 8000 / staging = VPN+사내 CA+iptables basic+gateway IP allowlist / production = WAF+외부 CA+iptables strict+gateway+IP allowlist) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) / §2.6.2 docker-compose.yml networks 설정 정공법 3 단계 별 YAML 예시 (dev = default bridge / staging = internal bridge + egress-internal / production = internal bridge + egress-allowlist + `internal: true` flag) / §2.6.3 firewall iptables rule 예시 production (INPUT chain SSH+gateway → 8000 ACCEPT + OUTPUT chain source plugin source_url + rate limit + FORWARD default DROP + Docker iptables chain interaction 주의) / §2.6.4 WAF 설정 (Cloudflare Pro / AWS WAF / nginx mod_security v3 3 option + 10 row WAF rules: R1 Path Y header / R2 HTTP method / R3 SQL injection / R4 XSS / R5 rate limit / R6 request size / R7 IP allowlist / R8 user agent / R9 geolocation / R10 bot detection + IP allowlist CIDR per environment) / §2.6.5 §2.4 item 1 검증 절차 정밀화 (8 row 자동화 tool `scripts/check_network_isolation.sh` + 운영자 manual SOP + per release audit + incident runbook 정합) (2) cross-section 정합 fix 4 위치: §2.4 매트릭스 item 1 "상세 정공법" column 에 §2.6 cross-reference 추가 / §6.5.3 gateway + firewall + IP allowlist 정책 의 마지막에 "**상세 정공법: §2.6 backend-knowledge network 정책**" 추가 / §11.1.1 source plugin sync 실패 의 Recovery 다음에 "Network 진단 (M-v0.2.3+ production)" 4 row 진단 절차 + §2.6 cross-reference 추가 / §13.4 정합 검증 row 추가 (network 정책) (3) ADR 영향 갱신: ADR-0034 §4.3 영향 section §2.6 row 추가 (5 subsection + WAF rule R1 Path Y header 검증 가 §3.6.1 정합 + 4 cross-section fix 위치) + ADR-0034 frontmatter 갱신 (18 row 추가) / ADR-0035 §4.3 영향 section §2.6 row 추가 (5 subsection + §3.5 운영 환경 standalone 정합의 구체적 network 정공법 = §2.6 + 사외/사내 2-tier 정합) + ADR-0035 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + §2.6 cross-section fix 4 위치 + 사외/사내 2-tier 정합 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §2.6 backend-knowledge 운영 환경의 network 정책" + §2.4 매트릭스 item 1 (network 격리) 의 구체적 정공법 + §2.4 item 8 (monitoring 격리) 의 metric endpoint network 정책 + §6.5.3 의 gateway + firewall + IP allowlist 정책 의 detail + 5 subsection (3 단계 + docker-compose + iptables + WAF + 검증 절차) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) + 4 cross-section fix 위치 (umbrella doc 본문 + ADR-0034/0035) + §11.1.1 incident runbook 정합 (Network 진단 4 row)) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
@@ -3040,6 +3326,15 @@ class SourceMeta(BaseModel):
 - **Recovery**:
   - sync 성공 시 audit log 에 `raw.received` success event
   - 5회 연속 실패 시 critical alert (§11.3 routing) + on-call page
+- **Network 진단 (M-v0.2.3+ production)**:
+  - **상세 정공법**: §2.6 network 정책 (firewall iptables rule + WAF log + Docker iptables chain)
+  - **4 row 진단 절차**:
+    1. `iptables -L INPUT -nv` (gateway IP → 8000 ACCEPT rule 확인) + `iptables -L OUTPUT -nv` (source plugin source_url ACCEPT rule + rate limit 확인)
+    2. WAF log 확인 (R1 Path Y header / R2 HTTP method / R3 SQL injection / R5 rate limit / R7 IP allowlist / R10 bot detection 6 row trigger 확인)
+    3. Docker iptables chain 확인 (`DOCKER-USER` chain 의 custom rule, §2.6.3 정합)
+    4. Egress allowlist 확인 (`EGRESS_ALLOWLIST` env var + source plugin source_url 매치)
+  - 4 row 모두 PASS 인데 sync 실패 → 외부 시스템 incident → 외부 status page 확인
+  - **자동화**: `bash scripts/check_network_isolation.sh` (§2.6.5 8 row 자동화 tool) — 1 회 실행으로 8 row 검증 + WAF log + iptables log 동시 확인
 
 #### 11.1.2 Credential 만료
 
@@ -3572,6 +3867,7 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 | **§2.4 standalone 검증 매트릭스 (10 row + 운영자 onboarding SOP, 2026-06-18 신규)** | ✅ | 10 row 검증 항목 (network 격리 / port expose / env var / import / API 호출 / DB / cron worker / monitoring / log / artifact) + per 항목 PASS/FAIL + 운영자 onboarding SOP + 자동화 tool `scripts/check_standalone_drift.sh` (M-v0.2.1+ CI pre-merge) + §1.2 G7 + §6.5.1 + §11.4 cross-reference |
 | **§14 M-v0.2.0 release notes draft (umbrella doc 본문, 2026-06-18 신규 — §13.3 #5 ✅ partial resolved)** | ✅ | 7 subsection (§14.1 highlight 7-10 bullet / §14.2 16 commit summary / §14.3 breaking change 4 row / §14.4 per-source plugin 7종 / §14.5 per-milestone 5 M / §14.6 §13 cross-cutting 정합 / §14.7 release notes template per backend-knowledge / §14.8 contributor placeholder) + 5 row breaking change + 16 commit 정렬 + 5 milestone + release 시점 post-process SOP (image / link / contributor 자동화) |
 | **§8 timeline 보강 (2026-06-18 신규 — §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** | ✅ | 4 subsection (§8.1 17 commit 결정 timeline / §8.2 17 commit × 5 artifacts cross-reference 매트릭스 17 row / §8.3 향후 결정 row 10 row: Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint / §8.4 결정 timeline 의 4 layer 정합 L1~L4) + 4 layer cross-reference (high-level 결정 / commit 결정 / cross-reference / 향후 결정) + 운영자 / contributor 가 §8 의 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능 |
+| **§2.6 backend-knowledge network 정책 (2026-06-18 신규 — §2.4 item 1 + §6.5.3 + §11.1.1 정합)** | ✅ | 5 subsection (§2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose.yml networks 설정 정공법 3 단계 별 YAML + §2.6.3 firewall iptables rule 예시 production + §2.6.4 WAF 설정 3 option + 10 row WAF rules + §2.6.5 §2.4 item 1 검증 절차 정밀화 8 row 자동화 tool + 운영자 manual SOP + per release audit) + cross-section 정합 fix 4 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / ADR-0034/0035) + 사외/사내 2-tier 정책 정합 |
 
 **📋 미완료 (post-sprint follow-up)** — §13.3 의 6 row (GitHub milestone / state.json / external-integrations-agentic-rag-roadmap.md status / docs/llm-wiki mirror / release notes / DOCUMENT_INDEX.md). 이 항목들은 **M-v0.2.0 sprint 진입 시점에 처리** (umbrella doc 본 §13 commit 시점에서는 의도적 미완료).
 
