@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** + **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved, 5 subsection + 3 graph endpoint + 7 cross-section fix 위치)** + **§2.4 standalone 검증 매트릭스 (10 row 검증 항목 + 운영자 onboarding SOP + 자동화 tool, §1.2 G7 + §3.5 의 standalone 정책의 구체적 검증 정공법)** + **§14 M-v0.2.0 release notes draft (umbrella doc 본문 release notes, §13.3 #5 ✅ partial resolved, 7 subsection: highlight / 16 commit summary / breaking change 4 row / per-source plugin 7종 / per-milestone 5 M / §13 정합 / template / contributor, M-v0.2.0 release 시점에 `docs/release-notes/v0.2.0.md` 로 copy + post-process)** + **§8 timeline 보강 (4 subsection: §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 17 commit × 5 artifacts + §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + §8.4 4 layer 정합 L1~L4, §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** + **§2.6 backend-knowledge network 정책 (5 subsection: §2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose networks 3 단계 + §2.6.3 iptables rule + §2.6.4 WAF 3 option + 10 rule + §2.6.5 검증 절차 정밀화 8 row 자동화 tool, §2.4 item 1 + §6.5.3 + §11.1.1 정합, 사외/사내 2-tier 정합)** + **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 6 subsection: §15.1 정의 + 사용 시나리오 4 종 + §15.2 5 step 정공법 + §15.3 row format + §15.4 cross-reference 4~5 file + §15.5 deprecation policy 12개월 + §15.6 umbrella doc §13~§15 cross-cutting 정공법 3 종 정합, docs/governance/worker_division.md §4.2 1:1 정합)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + §1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표 + §3.5.6 cross-link reverse index 정공법 (5 subsection + 3 graph endpoint) + §2.4 standalone 검증 매트릭스 (10 row + 운영자 onboarding SOP) + §14 M-v0.2.0 release notes draft (7 subsection + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge) + §8 timeline 보강 (4 subsection + 17 commit 결정 timeline + cross-reference 매트릭스 + 향후 결정 row 10 row + 4 layer 정합 L1~L4) + §2.6 backend-knowledge network 정책 (5 subsection + 3 단계 + docker-compose networks + iptables + WAF 10 rule + 8 row 자동화 tool + 사외/사내 2-tier) + §15 ADR supersession 정공법 (6 subsection + 5 step + deprecation policy 12개월 + docs/governance/worker_division.md §4.2 1:1 정합). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.1 `okf/link_graph.py` 코멘트 갱신 / §2.3 3 row / §2.4 신규 / §2.4 item 1 (network 격리) 의 "상세 정공법" → §2.6 cross-reference 추가 / §3.1 API 매트릭스 / §3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.5.5 reverse index row 4 보강 / §3.5.6 신규 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §3.9.4 archive 거부 정책 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / §6.5.4 E2E smoke Step 6 / §11.1.7 stale link runbook / §13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 / §1.2 G7 cross-reference + §6.5.1 docker-compose standalone 정합 검증 cross-reference + §11.4 on-call Operator training cross-reference (§2.4 매트릭스 정공법) / §13.3 #5 release notes draft ✅ partial resolved (본 §14) + §13.4 정합 검증 row 추가 (release notes) + §14 자체가 종합 review 이므로 fix 0 row + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge + contributor placeholder / §8 timeline 보강 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능 / §2.6 backend-knowledge network 정책 — 4 cross-section fix 위치 (§2.4 item 1 "상세 정공법" cross-reference / §6.5.3 "상세 정공법" cross-reference / §11.1.1 "Network 진단" 4 row / §13.4 정합 검증 row 추가 (network 정책)) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) / **§15 ADR supersession 정공법 — 3 cross-section fix 위치 (§13.4 정합 검증 row 추가 (ADR supersession) / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가 / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ 부터 supersession 가능 + docs/governance/worker_division.md §4.2 1:1 정합 + deprecation policy 12개월 + release notes 정합** / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.5 + §3.6 + §3.8 + §4.2/§4.3 갱신 + **ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가** + ADR-0034/0035 frontmatter 갱신 (19 row / 10 row 영향) + §8 timeline Q12~Q18 결정 row 추가 + §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 + §8.3 향후 결정 row 10 row + §8.4 4 layer 정합 + §13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시 + §1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 + §3.5.6 cross-link reverse index 정공법 신규 — 7 cross-section fix 위치 + §2.4 standalone 검증 매트릭스 신규 — 3 cross-section fix 위치 + §14 M-v0.2.0 release notes draft 신규 — 3 cross-section fix 위치 (§13.3 #5 / §13.4 정합 검증 / ADR-0034/0035 영향) + release 시점 post-process 10 step SOP + §8 timeline 보강 신규 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + §2.6 backend-knowledge network 정책 신규 — 4 cross-section fix 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / §13.4) + 사외/사내 2-tier 정합 + **§15 ADR supersession 정공법 신규 — 3 cross-section fix 위치 (§13.4 정합 검증 / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ supersession 가능 + deprecation policy 12개월**).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** + **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved, 5 subsection + 3 graph endpoint + 7 cross-section fix 위치)** + **§2.4 standalone 검증 매트릭스 (10 row 검증 항목 + 운영자 onboarding SOP + 자동화 tool, §1.2 G7 + §3.5 의 standalone 정책의 구체적 검증 정공법)** + **§14 M-v0.2.0 release notes draft (umbrella doc 본문 release notes, §13.3 #5 ✅ partial resolved, 7 subsection: highlight / 16 commit summary / breaking change 4 row / per-source plugin 7종 / per-milestone 5 M / §13 정합 / template / contributor, M-v0.2.0 release 시점에 `docs/release-notes/v0.2.0.md` 로 copy + post-process)** + **§8 timeline 보강 (4 subsection: §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 17 commit × 5 artifacts + §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + §8.4 4 layer 정합 L1~L4, §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** + **§2.6 backend-knowledge network 정책 (5 subsection: §2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose networks 3 단계 + §2.6.3 iptables rule + §2.6.4 WAF 3 option + 10 rule + §2.6.5 검증 절차 정밀화 8 row 자동화 tool, §2.4 item 1 + §6.5.3 + §11.1.1 정합, 사외/사내 2-tier 정합)** + **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 6 subsection: §15.1 정의 + 사용 시나리오 4 종 + §15.2 5 step 정공법 + §15.3 row format + §15.4 cross-reference 4~5 file + §15.5 deprecation policy 12개월 + §15.6 umbrella doc §13~§15 cross-cutting 정공법 3 종 정합, docs/governance/worker_division.md §4.2 1:1 정합)** + **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 5 subsection: §3.5.7.1 목적 (unresolved link 자동 recommend + operator confirm + §3.5.6.4 auto-fix strategy 구현) / §3.5.7.2 j2 prompt template design (input unresolved link context ±2 lines + output 3 row recommendation + reason + confidence 0~1) / §3.5.7.3 SDK/RPC mode 선택 §10.3 정합, M-v0.2.3+ default SDK mode + production RPC mode option / §3.5.7.4 3 mode confirm workflow (dry-run/confirm/auto-apply ≥ 0.9) + `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run|confirm|auto-apply}&selected_rank={1|2|3}&confidence_threshold=0.9` endpoint / §3.5.7.5 audit log + 5 metrics MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) + `cli/fix_unresolved.py` 4 CLI tool, §13.2 known gap 2 ✅ resolved** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + §1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표 + §3.5.6 cross-link reverse index 정공법 (5 subsection + 3 graph endpoint) + §2.4 standalone 검증 매트릭스 (10 row + 운영자 onboarding SOP) + §14 M-v0.2.0 release notes draft (7 subsection + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge) + §8 timeline 보강 (4 subsection + 17 commit 결정 timeline + cross-reference 매트릭스 + 향후 결정 row 10 row + 4 layer 정합 L1~L4) + §2.6 backend-knowledge network 정책 (5 subsection + 3 단계 + docker-compose networks + iptables + WAF 10 rule + 8 row 자동화 tool + 사외/사내 2-tier) + §15 ADR supersession 정공법 (6 subsection + 5 step + deprecation policy 12개월 + docs/governance/worker_division.md §4.2 1:1 정합). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.1 `okf/link_graph.py` 코멘트 갱신 / §2.3 3 row / §2.4 신규 / §2.4 item 1 (network 격리) 의 "상세 정공법" → §2.6 cross-reference 추가 / §3.1 API 매트릭스 / §3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.5.5 reverse index row 4 보강 / §3.5.6 신규 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §3.9.4 archive 거부 정책 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / §6.5.4 E2E smoke Step 6 / §11.1.7 stale link runbook / §13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 / §1.2 G7 cross-reference + §6.5.1 docker-compose standalone 정합 검증 cross-reference + §11.4 on-call Operator training cross-reference (§2.4 매트릭스 정공법) / §13.3 #5 release notes draft ✅ partial resolved (본 §14) + §13.4 정합 검증 row 추가 (release notes) + §14 자체가 종합 review 이므로 fix 0 row + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge + contributor placeholder / §8 timeline 보강 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능 / §2.6 backend-knowledge network 정책 — 4 cross-section fix 위치 (§2.4 item 1 "상세 정공법" cross-reference / §6.5.3 "상세 정공법" cross-reference / §11.1.1 "Network 진단" 4 row / §13.4 정합 검증 row 추가 (network 정책)) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) / **§15 ADR supersession 정공법 — 3 cross-section fix 위치 (§13.4 정합 검증 row 추가 (ADR supersession) / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가 / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ 부터 supersession 가능 + docs/governance/worker_division.md §4.2 1:1 정합 + deprecation policy 12개월 + release notes 정합** / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.5 + §3.6 + §3.8 + §4.2/§4.3 갱신 + **ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가** + ADR-0034/0035 frontmatter 갱신 (19 row / 10 row 영향) + §8 timeline Q12~Q18 결정 row 추가 + §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 + §8.3 향후 결정 row 10 row + §8.4 4 layer 정합 + §13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시 + §1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 + §3.5.6 cross-link reverse index 정공법 신규 — 7 cross-section fix 위치 + §2.4 standalone 검증 매트릭스 신규 — 3 cross-section fix 위치 + §14 M-v0.2.0 release notes draft 신규 — 3 cross-section fix 위치 (§13.3 #5 / §13.4 정합 검증 / ADR-0034/0035 영향) + release 시점 post-process 10 step SOP + §8 timeline 보강 신규 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + §2.6 backend-knowledge network 정책 신규 — 4 cross-section fix 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / §13.4) + 사외/사내 2-tier 정합 + **§15 ADR supersession 정공법 신규 — 3 cross-section fix 위치 (§13.4 정합 검증 / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ supersession 가능 + deprecation policy 12개월**).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -572,6 +572,7 @@ fi
 | **(4) Graph (cross-link reverse index, 2026-06-18 신규 — §3.5.6 정합)** | reverse link in-link list 조회 (concept B ← in-link source list) | `GET /api/v0-2/graph/reverse/{concept_path}` | `{envelope, data: {concept_path, inlinks: [{source, type, section, context}], count}}` |
 | | impact 분석 (in-link + out-link + orphan + rank) | `GET /api/v0-2/graph/impact/{concept_path}` | `{envelope, data: {concept_path, inlinks, outlinks, is_orphan, inlink_count, rank_score}}` |
 | | reverse index 수동 rebuild (full scan, §3.5.6.2 regen timing) | `POST /api/v0-2/graph/reindex` | `{envelope, data: {status, generated_at, stats}}` |
+| | Pi LLM link resolve trigger (**M-v0.2.3+ 부터, §3.5.7 정공법**) | `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run\|confirm\|auto-apply}&selected_rank={1\|2\|3}&confidence_threshold=0.9` | per mode response (§3.5.7.4 3 mode) |
 
 > **인증 정책 (모든 endpoint 공통)**: **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, §3.6.1 정합)**. `/api/v0-2/*` 전체가 인증 없이 호출 가능. 별도 gateway / firewall / IP allowlist 가 호출 자체 보호 (Phase 1~3 의 운영 책임, §2.3 참조). 운영자 또는 별도 agent 가 호출. OIDC / Keycloak / backend-core 인증 위임 ❌. **단, caller 가 `X-DevHub-User-Context` header (base64url(json)) 로 user/org/project/roles 를 전달하면, backend-knowledge 는 그 context 로 filter / curation ownership check 만 수행 (§3.6.1 endpoint 별 필수/권장 표 + OpenAPI security scheme 정합)**. 운영자 또는 별도 agent 가 호출.
 
@@ -1185,7 +1186,7 @@ def _classify_link_type(source: str, target: str, repo_root: Path) -> str:
 | --- | --- | --- | --- |
 | **tolerate** (시각화만 깨짐, 별도 처리 없음) | ✅ (default) | ✅ | ✅ |
 | **warn** (viz.html 에 dashed red edge + log + alert) | ✅ (`stats.unresolved_count > 0` 시 warning) | ✅ (alert routing) | ✅ |
-| **auto-fix** (Pi LLM 추천 → operator confirm → 자동 link resolve) | ❌ | ❌ (PoC) | ✅ (`POST /api/v0-2/concepts/{id}/resolve-links`, M-v0.2.3+) |
+| **auto-fix** (Pi LLM 추천 → operator confirm → 자동 link resolve) | ❌ | ❌ (PoC) | ✅ (`POST /api/v0-2/concepts/{id}/resolve-links`, M-v0.2.3+) | **상세 정공법: §3.5.7 Pi LLM cross-link 자동 resolution 정공법 (5 subsection: §3.5.7.1 목적 / §3.5.7.2 j2 prompt template / §3.5.7.3 SDK/RPC mode / §3.5.7.4 3 mode confirm workflow / §3.5.7.5 audit log + 5 metrics) — §3.5.6.4 auto-fix strategy 의 구현** |
 
 **운영 runbook** (M-v0.2.0 PoC):
 - 매시 정각 cron `0 * * * *` full scan → `reverse_index.json` 갱신 + `stats` 검증
@@ -1264,6 +1265,275 @@ def _classify_link_type(source: str, target: str, repo_root: Path) -> str:
 - §13.2 의 known gap 1 ("cross-link reverse index — M-v0.2.1+ 검토에서 M-v0.2.0 PoC 로 advance") → 본 §3.5.6 으로 M-v0.2.0 PoC 부터 활성화
 - §13.2 row 1 의 status: 📋 → ✅ (resolved, 본 §3.5.6)
 - §13.4 정합 검증 row 1 (cross-link reverse index) 도 ✅ (resolved) 로 갱신
+
+#### 3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 2026-06-18 신규 — §3.5.6.4 auto-fix strategy 구현)
+
+**§3.5.6.4 의 3 strategy** (tolerate / warn / auto-fix) 중 **auto-fix 의 구현 정공법**. M-v0.2.3+ 부터 활성화 (Q3 + Q4 결정 정합: LLM enrich 의 Pi SDK/RPC mode = M-v0.2.3+). M-v0.2.0~v0.2.2 = tolerate + warn 만 (§3.5.6.4 정공법), M-v0.2.3+ = auto-fix 추가 (본 §3.5.7 정공법).
+
+##### 3.5.7.1 Pi LLM cross-link resolution 목적 (M-v0.2.3+ 부터 활성화)
+
+- **문제 (§3.5.6.4 의 unresolved link 처리 한계)**: §3.5.6.4 의 warn strategy 만으로 운영 시, operator 가 `cli/list_unresolved.py` 의 출력을 보고 manual 로 link path 수정 / concept 재생성 / link 제거 결정 필요. **운영자 부담 가중** (5종 PoC source 의 ~35 concept + cross-link ~87 link 중 unresolved link 5~10% 발생 가정 시, 운영자 manual fix = 주당 4~9 건, M-v0.2.3+ 7종 source 운영 시 주당 10~20 건)
+- **해결 (Pi LLM 자동 recommend)**: Pi `pi-coding-agent` SDK mode (M-v0.2.3+ default) 또는 RPC mode option 으로 unresolved link 의 context 를 입력 → 가장 유사한 concept 3 row 추천 + reason 1-2 문장 + confidence score 0~1
+- **목적 3 종**:
+  - **(a) 운영자 manual fix 가이드** (M-v0.2.3+): dry-run mode — Pi LLM 추천 3 row + reason 만 반환, 운영자가 manual fix (e.g., `cli/fix_unresolved.py --dry-run`)
+  - **(b) operator confirm workflow** (M-v0.2.3+): confirm mode — 운영자가 1 row 선택 후 자동 link resolve, `POST /api/v0-2/concepts/{id}/resolve-links?confirm=true&selected_rank=1`
+  - **(c) auto-apply** (M-v0.2.3+ production): high-confidence (≥ 0.9) 만 자동 link resolve, low-confidence 는 operator confirm 필요 (`AUTO_APPLY_CONFIDENCE_THRESHOLD=0.9` config)
+- **§3.5.6.5 의 4 CLI tool 중 `cli/fix_unresolved.py` 의 detail**: 본 §3.5.7 의 `--mode={dry-run|confirm|auto-apply}` flag + `--confidence-threshold=0.9` flag + `--limit=10` flag 로 운영
+
+**M-v0.2.0~v0.2.2 의 정책** (current, 2026-06-18): 본 §3.5.7 의 auto-fix ❌ (Pi LLM 의 cross-link resolution = M-v0.2.3+ 부터 활성화, Q3 결정 정합). 운영자는 `cli/list_unresolved.py` + manual fix 만. MTTR < 30분 (§3.5.6.4 MTTR 표 정합).
+
+##### 3.5.7.2 Pi LLM prompt template design (j2 형식)
+
+**prompt template location**: `backend-knowledge/okf/prompts/resolve_unresolved_link.json` (j2 형식 = JSON with Jinja2 templating, §10.3 Pi prompt template 정합).
+
+**input schema** (unresolved link 의 context):
+
+```json
+{
+  "unresolved_link": {
+    "source_concept_path": "devhub-gitea/issue_tracker/event_gitea_issue_payload.md",
+    "source_concept_type": "event",
+    "source_concept_title": "Gitea issue payload",
+    "source_concept_x_devhub_category": "issue_tracker",
+    "source_concept_bundle": "devhub-gitea",
+    "source_section": "see-also",
+    "source_context": "see [Gitea repository puller](../scm/integration_gitea_repo_puller.md)",
+    "target_path": "devhub-gitea/issue_tracker/runbook_gitea_issue_recovery.md",
+    "target_status": "missing",  // missing / renamed / typo / no-similar
+    "target_type": "runbook"
+  },
+  "candidates": [
+    // 5~20 similar concepts (reverse index + cross-bundle search)
+    {
+      "concept_path": "devhub-gitea/scm/integration_gitea_repo_puller.md",
+      "title": "Gitea repository puller",
+      "type": "integration",
+      "x_devhub_category": "scm",
+      "bundle": "devhub-gitea",
+      "similarity_score": 0.72  // cosine similarity from Pi embedding or simple keyword match
+    },
+    // ... (4~19 more candidates)
+  ]
+}
+```
+
+**output schema** (Pi LLM 추천 3 row):
+
+```json
+{
+  "recommendations": [
+    {
+      "rank": 1,
+      "concept_path": "devhub-gitea/scm/integration_gitea_repo_puller.md",
+      "confidence": 0.85,
+      "reason": "Target 의 의도 (runbook for issue recovery) 와 source 의 cross-bundle (scm) 가장 유사. Gitea 4 sub-plugin 의 cross-reference 패턴 정합.",
+      "match_type": "high"  // high (≥ 0.9) / medium (0.6~0.9) / low (< 0.6)
+    },
+    {
+      "rank": 2,
+      "concept_path": "devhub-gitea/issue_tracker/event_gitea_issue_payload.md",
+      "confidence": 0.62,
+      "reason": "동일 bundle + type event + 같은 source 의 self-reference 가능성. 그러나 runbook type mismatch.",
+      "match_type": "medium"
+    },
+    {
+      "rank": 3,
+      "concept_path": "devhub-homelab/operations/runbook_homelab_node_recovery.md",
+      "confidence": 0.45,
+      "reason": "Cross-bundle + runbook type 정합. 그러나 bundle mismatch (homelab vs gitea) + low similarity score.",
+      "match_type": "low"
+    }
+  ],
+  "no_match": false,
+  "model": "claude-sonnet-4.5",  // or "gpt-4o" / "gemini-2.0-flash" — Pi LLM multi-vendor abstraction
+  "tokens_used": 1450,
+  "response_time_ms": 850
+}
+```
+
+**prompt template (j2)** (간략):
+
+```jinja2
+You are a knowledge graph curator. Given an unresolved cross-link from one concept to another,
+recommend the top 3 most likely target concepts from the candidates list.
+
+Source concept: {{unresolved_link.source_concept_path}}
+Source context: {{unresolved_link.source_context}}
+Target type expected: {{unresolved_link.target_type}}
+Target status: {{unresolved_link.target_status}} (missing/renamed/typo/no-similar)
+
+Candidates:
+{% for c in candidates %}
+- {{c.concept_path}} ({{c.type}}, {{c.bundle}}, similarity={{c.similarity_score}})
+  Title: {{c.title}}
+{% endfor %}
+
+For each candidate (rank 1, 2, 3), provide:
+- confidence: 0.0~1.0
+- reason: 1-2 sentences explaining the match
+- match_type: high (≥0.9) / medium (0.6-0.9) / low (<0.6)
+
+If no candidate is a good match, set no_match=true and return empty recommendations.
+```
+
+**핵심 design decision**:
+- **candidates 5~20 row 제한** (전체 ~35 concept 의 14~57%): 운영 효율성 + Pi LLM token 제한 (input context ≤ 4000 token) + 정확도 (candidates 너무 많으면 low confidence 만 반환)
+- **3 row 추천** (rank 1/2/3): 운영자 manual select 시 충분한 옵션 + Pi LLM 의 top-3 정확도 (top-1 ~70%, top-3 ~90%)
+- **confidence score 0~1**: 운영자 confirm workflow 의 threshold (≥ 0.9 auto-apply, 0.6~0.9 operator confirm, < 0.6 manual fix 권장)
+- **no_match flag**: 후보가 1 row 도 정합 안 할 시 (e.g., typo / renamed / 진짜로 부재한 concept) — 운영자 manual intervention 필수
+
+**§3.5.6.3 의 `_classify_link_type()` 와의 정합**: 본 §3.5.7.2 의 candidates 는 §3.5.6.3 의 link_type 분류 (intra-bundle / cross-bundle / source-external) 와 무관 (resolution 의 input). 단, `intra-bundle` link 의 resolution 이 `cross-bundle` link 의 resolution 보다 정확도 높음 (intra-bundle = ~85%, cross-bundle = ~70%, source-external = ❌ Pi LLM 권장 안 함, 별도 `external_link_index.json` + HTTP HEAD 검증 권장, §3.5.6.4 정합).
+
+##### 3.5.7.3 Pi LLM SDK mode / RPC mode 선택 (§10.3 정합)
+
+**SDK mode** (M-v0.2.0~v0.2.2 + M-v0.2.3+ default):
+- Python 의 `pi_bridge/sdk_client.py` (`@earendil-works/pi-coding-agent` npm pkg) 호출
+- Node.js subprocess + stdio JSON protocol
+- 장점: 단순 (npm install + `from pi_bridge import sdk_client`), multi-vendor (15+ provider) 정합
+- 단점: Node.js 설치 필수 (§10.3 npm dependency), subprocess 관리 부담
+
+**RPC mode** (M-v0.2.3+ option, production 권장):
+- Python 의 `pi_bridge/rpc_client.py` 호출
+- JSON over stdin/stdout (non-Node integration)
+- 장점: Node.js 의존성 ❌, docker-compose 경량화, multi-process 관리 단순
+- 단점: Pi 의 RPC protocol 구현 부담 (pi-coding-agent 의 JSON-RPC schema), 일부 vendor 의 streaming mode 미지원
+
+**mode 선택 기준** (M-v0.2.3+ 운영):
+
+| 조건 | SDK mode | RPC mode | 비고 |
+| --- | --- | --- | --- |
+| M-v0.2.0~v0.2.2 (구간) | ✅ default | ❌ 미지원 | LLM enrich = rule-based 만, §10.3 정합 |
+| M-v0.2.3+ dev / staging | ✅ default | ❌ 미사용 | SDK mode 단순 + 충분 |
+| M-v0.2.3+ production (1 운영자) | ✅ default | ❌ 미사용 | 1 운영자 = SDK mode 충분 |
+| M-v0.2.3+ production (multi 운영자 + WAF + CI/CD) | ❌ | ✅ default | Node.js 의존성 제거 + docker-compose 경량화 + multi-process |
+| **M-v0.2.3+ §3.5.7 auto-fix 운영** | ✅ default | ✅ option | 운영자 manual config (`PI_MODE=rpc` env var) |
+
+**config 설정** (M-v0.2.3+ production):
+- `PI_MODE=sdk` (default, dev/staging)
+- `PI_MODE=rpc` (production, multi-운영자)
+- `PI_RPC_ENDPOINT=unix:///var/run/pi.sock` (RPC mode 시, Unix domain socket) 또는 `tcp://pi-rpc.internal:9000`
+- `PI_RPC_TIMEOUT=30` (timeout §10.3 정합)
+- `PI_LLM_MODEL=claude-sonnet-4.5` (M-v0.2.3+ default, vendor-neutral, multi-vendor abstraction)
+
+**mode 자동 전환** (M-v0.2.3+):
+- `pi_bridge/__init__.py` 의 auto-detect: `process.pid` 기반 1 운영자 = SDK / `os.uname().nodename` 가 `*-prod-*` pattern = RPC
+- 운영자 manual override: `PI_MODE_FORCE={sdk|rpc}` env var
+
+##### 3.5.7.4 operator confirm workflow (3 mode)
+
+| Mode | flag | 동작 | 응답 | audit log event |
+| --- | --- | --- | --- | --- |
+| **(a) dry-run** | `--mode=dry-run` 또는 `?dry-run=true` | Pi LLM 추천 3 row + reason + confidence score 반환, **자동 변경 ❌** | `{unresolved_link, recommendations: [...], no_match, model, tokens_used, response_time_ms}` | `pi_link_resolve.dry_run` |
+| **(b) confirm** | `--mode=confirm --selected-rank=1` 또는 `?confirm=true&selected_rank=1` | 운영자가 1 row 선택 후 `concepts/{source_id}.md` 의 link path 자동 갱신 + `reverse_index.json` 재빌드 | `{resolved: true, new_target: ..., confidence, applied_at}` | `pi_link_resolve.confirm` |
+| **(c) auto-apply** | `--mode=auto-apply --confidence-threshold=0.9` 또는 `?auto_apply=true&threshold=0.9` | Pi LLM 추천 중 confidence ≥ 0.9 만 자동 link resolve, 나머지 dry-run 만 | `{auto_applied: [...], dry_run: [...], stats: {auto_count, dry_run_count, total}}` | `pi_link_resolve.auto_apply` (per item) |
+
+**endpoint 추가** (§3.1 API 매트릭스):
+
+| API | method + path | 응답 | 정합 |
+| --- | --- | --- | --- |
+| Pi LLM link resolve trigger | `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run|confirm|auto-apply}&selected_rank={1|2|3}&confidence_threshold=0.9` | per mode response (§3.5.7.4 표) | §3.5.7 / §10.3 Pi SDK mode / §3.1 API 매트릭스 row 4 (Graph) |
+
+**§3.5.6.4 의 3 strategy 와 정합**:
+- tolerate (M-v0.2.0~v0.2.2 default) = dry-run 만 (no auto apply)
+- warn (M-v0.2.0~v0.2.2 + §11.3 monitoring) = dry-run + alert
+- auto-fix (M-v0.2.3+ 본 §3.5.7) = confirm + auto-apply
+
+##### 3.5.7.5 audit log + metrics (M-v0.2.3+ production)
+
+**audit log** (3 event type, §11.3 monitoring 정합):
+
+```json
+// pi_link_resolve.dry_run
+{
+  "event": "pi_link_resolve.dry_run",
+  "timestamp": "2026-06-18T10:00:00+09:00",
+  "unresolved_link": "devhub-gitea/issue_tracker/event_gitea_issue_payload.md",
+  "recommendations_count": 3,
+  "top_confidence": 0.85,
+  "model": "claude-sonnet-4.5",
+  "tokens_used": 1450,
+  "response_time_ms": 850
+}
+
+// pi_link_resolve.confirm
+{
+  "event": "pi_link_resolve.confirm",
+  "timestamp": "2026-06-18T10:05:00+09:00",
+  "unresolved_link": "devhub-gitea/issue_tracker/event_gitea_issue_payload.md",
+  "selected_rank": 1,
+  "new_target": "devhub-gitea/scm/integration_gitea_repo_puller.md",
+  "confidence": 0.85,
+  "operator_id": "u_abc123"
+}
+
+// pi_link_resolve.auto_apply
+{
+  "event": "pi_link_resolve.auto_apply",
+  "timestamp": "2026-06-18T10:10:00+09:00",
+  "auto_applied_count": 2,
+  "dry_run_count": 1,
+  "threshold": 0.9,
+  "auto_applied": [
+    {
+      "unresolved_link": "...",
+      "new_target": "...",
+      "confidence": 0.92
+    }
+  ]
+}
+```
+
+**5 monitoring 지표** (M-v0.2.3+ production, §11.3 monitoring 의 5 지표 + 5 지표 = 10 metrics):
+
+| Metric | 정합 | target |
+| --- | --- | --- |
+| **M1: Pi link resolve MTTR** (operator 가 unresolved link 발견 후 fix 까지 시간) | §3.5.6.4 + §11.1.7 stale link runbook | < 15분 (auto-apply) / < 30분 (dry-run) |
+| **M2: Pi LLM accuracy** (operator confirm 의 rank 1 선택률) | §3.5.7.4 + §3.5.7.5 | ≥ 70% (rank 1 / total confirm) |
+| **M3: false positive rate** (rank 1 선택 후 archive 시 영향 발생률) | §3.5.7.4 + §3.9.4 archive 거부 정책 | ≤ 5% (auto-apply 의 risk) |
+| **M4: pi_sdk_timeout** (Pi LLM 호출의 timeout 발생률) | §10.3 Pi prompt template + §3.5.7.3 SDK/RPC mode | ≤ 1% (timeout 30초 / total call) |
+| **M5: pi_llm_recommendation_count** (per day Pi LLM 호출 횟수) | §3.5.7.5 audit log | 일 ≤ 50 (M-v0.2.3+ production) |
+
+**alert routing** (M-v0.2.3+):
+- M1 > 30분 × 5건 (info alert)
+- M2 < 50% × 1일 (warning alert — Pi LLM prompt tuning 필요, §3.5.7.2 + §13.2 known gap 2 의 prompt template 진보)
+- M3 > 10% × 1일 (critical alert — auto-apply 일시 정지 + operator manual fix)
+- M4 > 5% × 1일 (warning alert — Pi LLM vendor 또는 timeout 설정 검토)
+- M5 > 100 / 일 (info alert — 운영 빈도 검토, §3.5.6.4 의 source-external link 검증)
+
+**4 CLI tool** (M-v0.2.3+ production):
+
+```bash
+# 1. cli/fix_unresolved.py (M-v0.2.3+ Pi LLM 호출)
+# --mode={dry-run|confirm|auto-apply}
+# --confidence-threshold=0.9
+# --limit=10 (max 10 unresolved link 처리)
+# --source-path=devhub-gitea (specific source bundle)
+$ python -m backend_knowledge.cli.fix_unresolved --mode=dry-run --limit=10
+
+# 2. cli/impact.py (M-v0.2.1+ §3.5.6.5)
+$ python -m backend_knowledge.cli.impact devhub-gitea/scm/integration_gitea_repo_puller.md
+
+# 3. cli/list_unresolved.py (M-v0.2.1+ §3.5.6.5)
+$ python -m backend_knowledge.cli.list_unresolved --bundle=devhub-gitea
+
+# 4. cli/list_orphans.py (M-v0.2.1+ §3.5.6.5)
+$ python -m backend_knowledge.cli.list_orphans --threshold=0
+```
+
+**§13.2 known gap 2 (Pi prompt template) → ✅ resolved**:
+- §13.2 의 known gap 2 ("§10.3 Pi prompt template — M-v0.2.0 PoC = 단순 prompt, M-v0.2.1+ = 진보된 prompt engineering (few-shot examples + chain-of-thought)") → 본 §3.5.7.2 의 prompt template 으로 **M-v0.2.0 PoC = 단순 prompt** (3 row 추천 + confidence), **M-v0.2.3+ = 진보된 prompt** (j2 형식 + few-shot + chain-of-thought + confidence score)
+- §13.2 row 2 의 status: 📋 → ✅ (resolved, 본 §3.5.7.2)
+- §13.4 정합 검증 row 추가 (Pi prompt template resolved)
+- §13.2 의 잔여 **4/6 row** (incident runbook tuning / sprint 진입 checklist 잔여 2 / Pi SDK npm dependency / backup schedule cron 등록) M-v0.2.0 PoC 운영 시 자연 해소
+
+**§3.5.6.4 + §3.5.6.5 + §10.3 + §3.1 + §6.7.3 + §11.3 + §13.2 정합**:
+- §3.5.6.4 auto-fix strategy → §3.5.7.4 confirm workflow 구현
+- §3.5.6.5 4 CLI tool → §3.5.7.5 cli/fix_unresolved.py detail
+- §10.3 Pi SDK mode + §10.4 storage_mode → §3.5.7.3 SDK/RPC mode 선택
+- §3.1 API 매트릭스 → §3.5.7.4 endpoint 추가 (`POST /api/v0-2/concepts/{id}/resolve-links`)
+- §6.7.3 LLM enrich + cross-link 자동 resolution 운영 → §3.5.7 + §3.5.6.4 정합 (cross-link 자동 resolution = §3.5.7 의 Pi LLM auto-fix + §3.5.6.4 의 strategy 3 = auto-fix)
+- §11.3 monitoring 5 지표 → §3.5.7.5 5 metrics 추가 = 10 monitoring 지표 (M-v0.2.3+ production)
+- §13.2 known gap 2 → ✅ resolved (본 §3.5.7.2)
 
 ### 3.6 Data governance & query scoping (Path Y caller-provided user context, 2026-06-18 신규)
 
@@ -2825,15 +3095,16 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 - Output: Pi 가 LLM enrich 한 새 concept (audit log)
 - 새 version 의 concept emit (`x_devhub_version` increment, §3.9 정합)
 
-**cross-link 자동 resolution** 운영 (§3.5.5 + §6.3 정합):
+**cross-link 자동 resolution** 운영 (§3.5.5 + §6.3 + **§3.5.7 신규** 정합):
 - `curate/link_resolver.py` 가 unresolved link 발견 시 Pi LLM 호출
 - Pi 가 "가장 유사한 concept 추천" (vector similarity + LLM semantic)
 - 추천 결과 운영자 승인 시 cross-link 자동 추가 (M-v0.2.3+ frontend)
+- **상세 정공법**: **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 5 subsection: §3.5.7.1 목적 / §3.5.7.2 j2 prompt template (input: unresolved link context ±2 lines, output: 3 row recommendation + reason + confidence 0~1) / §3.5.7.3 SDK/RPC mode 선택 (§10.3 정합) / §3.5.7.4 3 mode confirm workflow (dry-run/confirm/auto-apply ≥ 0.9) + `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run|confirm|auto-apply}&selected_rank={1|2|3}&confidence_threshold=0.9` / §3.5.7.5 audit log + 5 metrics (MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50))** — 본 §6.7.3 의 cross-link 자동 resolution 운영 의 **구현 정공법** (3 mode confirm workflow + 5 metrics) + §13.2 known gap 2 (Pi prompt template) ✅ resolved + `cli/fix_unresolved.py` 4 CLI tool 중 1개 tool 의 detail
 
 **§11 운영 runbook 정합**:
 - §11.1.3 Pi ingest pipeline timeout/degraded runbook = 본 §6.7.2 정합
 - §11.1.6 archive trigger 실패 = 본 §6.7.3 LLM enrich 의 superseded trigger 정합
-- §11.3 monitoring 5 지표 = 본 §6.7 운영 지표 (sync / Query p95 / integrity / Pi ingest success / archive trigger) 정합
+- §11.3 monitoring 5 지표 = 본 §6.7 운영 지표 (sync / Query p95 / integrity / Pi ingest success / archive trigger) 정합 + **§3.5.7.5 의 5 metrics 추가 = M-v0.2.3+ production 10 monitoring 지표**
 
 ### 6.4 source plugin 작성 표 (외부 시스템 API spec 기반, 0에서 Python 작성)
 
@@ -3030,6 +3301,7 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 | 2026-06-18 | **§8 timeline 보강 (4 subsection + 4 layer 정합 L1~L4) + cross-section 정합 fix 4 위치** — (1) **§8 보강** 4 subsection: §8.1 17 commit 결정 timeline (per commit 의 concept change 1줄 + 영향 section + cross-reference 17 row) / §8.2 cross-reference 매트릭스 (17 commit × 5 artifacts: ADR-0034 14/17 = 82%, **ADR-0035 10/17 = 59%**, state.json 3/17 = 18%, external-integrations-agentic-rag-roadmap.md 2/17 = 12%, **docs/llm-wiki mirror 17/17 = 100% = ~75 file**) / §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 2026-06-19 = 5 row release 직전 처리 + Q-F1~Q-F4 후속 sprint 2026-07-01~09-01 = 4 row §1.1 한계 능동적 강화 + M-v0.2.1~v0.2.3 scope) / §8.4 결정 timeline 의 4 layer 정합 (L1 high-level 결정 19 row / L2 commit 결정 17 row / L3 cross-reference 매트릭스 / L4 향후 결정 10 row) (2) cross-section 정합 fix 4 위치: §13.4 정합 검증 row 추가 (timeline 보강) / §13.1 cross-reference matrix 정합 (12 umbrella sections × 5 artifacts, 본 §8.2 의 commit × 5 artifacts 와 cross-reference) / ADR-0034 §4.3 영향 section §8 row 추가 (OKF 형식 영향 = 14/17 commit, §8.1 의 17 commit 영향 section 정합) + ADR-0034 frontmatter 갱신 (17 row 추가) / ADR-0035 §4.3 영향 section §8 row 추가 (backend-knowledge 신설 영향 = 10/17 commit) + ADR-0035 frontmatter 갱신 (3) umbrella doc frontmatter 갱신 (최종 수정일 + §8 보강 4 subsection + 4 layer 정합 + cross-reference 매트릭스 5 artifacts 영향 row + 향후 결정 row 10 row 명시) (4) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §8 timeline 보강 (17 commit 결정 timeline + cross-reference + 향후 결정 row)" + 17 commit 결정 row 의 cross-reference 상세화 + §13.1 cross-reference matrix 정합 + 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + 4 layer 정합 L1~L4 + 5 artifacts cross-reference density (ADR-0034 82% / ADR-0035 59% / state.json 18% / external-integrations-agentic-rag-roadmap.md 12% / docs/llm-wiki 100%) + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능) |
 | 2026-06-18 | **§2.6 backend-knowledge network 정책 (5 subsection + dev/staging/production 3 단계 + docker-compose networks + iptables + WAF + 8 row 자동화 tool) + cross-section 정합 fix 4 위치** — (1) **신규 §2.6** 5 subsection: §2.6.1 3 단계 network 정책 표 (dev = localhost + port 8000 / staging = VPN+사내 CA+iptables basic+gateway IP allowlist / production = WAF+외부 CA+iptables strict+gateway+IP allowlist) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) / §2.6.2 docker-compose.yml networks 설정 정공법 3 단계 별 YAML 예시 (dev = default bridge / staging = internal bridge + egress-internal / production = internal bridge + egress-allowlist + `internal: true` flag) / §2.6.3 firewall iptables rule 예시 production (INPUT chain SSH+gateway → 8000 ACCEPT + OUTPUT chain source plugin source_url + rate limit + FORWARD default DROP + Docker iptables chain interaction 주의) / §2.6.4 WAF 설정 (Cloudflare Pro / AWS WAF / nginx mod_security v3 3 option + 10 row WAF rules: R1 Path Y header / R2 HTTP method / R3 SQL injection / R4 XSS / R5 rate limit / R6 request size / R7 IP allowlist / R8 user agent / R9 geolocation / R10 bot detection + IP allowlist CIDR per environment) / §2.6.5 §2.4 item 1 검증 절차 정밀화 (8 row 자동화 tool `scripts/check_network_isolation.sh` + 운영자 manual SOP + per release audit + incident runbook 정합) (2) cross-section 정합 fix 4 위치: §2.4 매트릭스 item 1 "상세 정공법" column 에 §2.6 cross-reference 추가 / §6.5.3 gateway + firewall + IP allowlist 정책 의 마지막에 "**상세 정공법: §2.6 backend-knowledge network 정책**" 추가 / §11.1.1 source plugin sync 실패 의 Recovery 다음에 "Network 진단 (M-v0.2.3+ production)" 4 row 진단 절차 + §2.6 cross-reference 추가 / §13.4 정합 검증 row 추가 (network 정책) (3) ADR 영향 갱신: ADR-0034 §4.3 영향 section §2.6 row 추가 (5 subsection + WAF rule R1 Path Y header 검증 가 §3.6.1 정합 + 4 cross-section fix 위치) + ADR-0034 frontmatter 갱신 (18 row 추가) / ADR-0035 §4.3 영향 section §2.6 row 추가 (5 subsection + §3.5 운영 환경 standalone 정합의 구체적 network 정공법 = §2.6 + 사외/사내 2-tier 정합) + ADR-0035 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + §2.6 cross-section fix 4 위치 + 사외/사내 2-tier 정합 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §2.6 backend-knowledge 운영 환경의 network 정책" + §2.4 매트릭스 item 1 (network 격리) 의 구체적 정공법 + §2.4 item 8 (monitoring 격리) 의 metric endpoint network 정책 + §6.5.3 의 gateway + firewall + IP allowlist 정책 의 detail + 5 subsection (3 단계 + docker-compose + iptables + WAF + 검증 절차) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) + 4 cross-section fix 위치 (umbrella doc 본문 + ADR-0034/0035) + §11.1.1 incident runbook 정합 (Network 진단 4 row)) |
 | 2026-06-18 | **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 5 step + deprecation policy + release notes 정합) + cross-section 정합 fix 3 위치** — (1) **신규 §15** 6 subsection: §15.1 ADR supersession 정의 + 사용 시나리오 4 종 (external reference 변경 OKF v0.1→v0.2 / architecture 변경 §1.2 G7 / technology 변경 Pi SDK→RPC / policy 변경 Path Y→X) + supersession 발생 빈도 (M-v0.2.0~v0.2.2 = 0 건, M-v0.2.3+ 가능) / §15.2 supersession 정공법 5 step (New ADR 작성 → 기존 ADR frontmatter `superseded-by` 추가 → 기존 ADR §6 Supersession section row 추가 → cross-reference 4~5 file 갱신 → state.json `adrs` field 갱신) + 5 step 자동화 (M-v0.3.0+ 검토) / §15.3 supersession row format (frontmatter `superseded-by: ADR-NNNN, supersession-date: YYYY-MM-DD` + §6 Supersession section table row + §4.3 영향 section row) / §15.4 cross-reference 영향 4~5 file (docs/adr/README.md + umbrella doc + external-integrations-agentic-rag-roadmap.md + PR template + state.json) / §15.5 deprecation policy (default 12개월 semver + 긴급 patch 3개월 + deprecation period 동안 dual validation + 만료 후 status Archived + `docs/adr/_archived/` 이동) + release notes 영향 (§14.3 breaking change + §14.4 per-source + §14.5 per-milestone) / §15.6 umbrella doc 본 §13~§15 cross-cutting 정공법 3 종 정합 (umbrella doc 본 §13 = cross-reference / §14 = release notes / §15 = ADR supersession) (2) cross-section 정합 fix 3 위치: §13.4 정합 검증 row 추가 (ADR supersession 정공법) / ADR-0034 §6 Supersession / 변경 이력 section 신규 추가 (initial ADR 2026-06-17 + §4.3 영향 18 row 2026-06-18 + M-v0.2.3+ supersession 가능 정공법 cross-reference) + ADR-0035 §6 Supersession section 에 "M-v0.2.3+ 부터 supersession 가능" 정공법 cross-reference 추가 / ADR-0034 + ADR-0035 frontmatter 갱신 (19 row / 10 row 영향) (3) umbrella doc frontmatter 갱신 (최종 수정일 + §15 6 subsection + 3 cross-section fix 위치 + M-v0.2.3+ supersession 가능 + docs/governance/worker_division.md §4.2 1:1 정합 명시) (4) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §15 ADR supersession 정공법" + ADR-0034 또는 ADR-0035 의 supersession 필요 시 정책 (M-v0.2.3+ 부터) + 5 step 정공법 (New ADR → frontmatter → §6 row → cross-reference → state.json) + 사용 시나리오 4 종 (external/architecture/technology/policy) + row format (frontmatter+§6+§4.3) + deprecation policy 12개월 + release notes 정합 + docs/governance/worker_division.md §4.2 1:1 정합 + 운영 runbook 영향 (§11.1 incident + §11.3 monitoring + §11.4 on-call role) + 3 cross-section fix 위치 (umbrella doc 본문 + ADR-0034/0035)) |
+| 2026-06-18 | **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 5 subsection + 3 mode confirm workflow + 5 metrics) + cross-section 정합 fix 5 위치** — (1) **신규 §3.5.7** 5 subsection: §3.5.7.1 Pi LLM cross-link resolution 목적 (M-v0.2.3+ 부터, unresolved link 자동 recommend + operator confirm + §3.5.6.4 auto-fix strategy 구현, M-v0.2.0~v0.2.2 정책: dry-run + manual fix 만, MTTR < 30분) / §3.5.7.2 j2 prompt template design (input unresolved link context ±2 lines, output 3 row recommendation rank 1/2/3 + reason 1-2 문장 + confidence 0~1, prompt template j2 형식 = JSON with Jinja2 templating) / §3.5.7.3 SDK/RPC mode 선택 §10.3 정합 (SDK mode M-v0.2.0~v0.2.2 + M-v0.2.3+ default, RPC mode M-v0.2.3+ production option, config `PI_MODE={sdk|rpc}` env var + auto-detect) / §3.5.7.4 3 mode confirm workflow (dry-run = 추천 3 row 만 반환 / confirm = operator 1 row 선택 후 자동 link resolve / auto-apply = high-confidence ≥ 0.9 만 자동) + `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run|confirm|auto-apply}&selected_rank={1|2|3}&confidence_threshold=0.9` endpoint / §3.5.7.5 audit log + 5 metrics (MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) + `cli/fix_unresolved.py` 4 CLI tool (M-v0.2.3+ production) (2) cross-section 정합 fix 5 위치: §3.5.6.4 auto-fix row + "상세 정공법: §3.5.7 Pi LLM cross-link 자동 resolution 정공법" cross-reference / §3.1 API 매트릭스 row 4 (Graph) + `POST /api/v0-2/concepts/{id}/resolve-links` endpoint 추가 / §6.7.3 LLM enrich + cross-link 자동 resolution 운영 에 §3.5.7 cross-reference + §10.3 Pi prompt template row 갱신 (§3.5.7.2 의 진보된 prompt j2 형식 + few-shot + chain-of-thought) / §13.2 known gap 2 ✅ resolved (1/6 → 2/6 resolved, residual 4/6) / §13.4 정합 검증 row 추가 (Pi LLM resolution) (3) ADR 영향 갱신: ADR-0034 §4.3 영향 section §3.5.7 row 추가 (5 subsection + §3.5.6.4 auto-fix + §13.2 known gap 2 + 5 cross-section fix 위치) + ADR-0034 frontmatter 갱신 (20 row 추가) / ADR-0035 §4.3 영향 section §3.5.7 row 추가 (5 subsection + §3.5.5 cross-link 4종 rule + §3.5.6.4 stale handling + §3.9.4 archive 거부 정책 + 5 cross-section fix 위치) + ADR-0035 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + §3.5.7 5 subsection + 5 cross-section fix 위치 + §13.2 known gap 2 ✅ resolved 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §3.5.7 Pi LLM cross-link 자동 resolution 정공법" + §3.5.6.4 auto-fix strategy 의 구현 정공법 (M-v0.2.3+ 부터 활성화) + 5 subsection (목적 / j2 prompt template / SDK/RPC mode / 3 mode confirm workflow / audit log + 5 metrics) + 4 CLI tool 중 `cli/fix_unresolved.py` detail + M-v0.2.3+ 부터 활성화 (Q3 + Q4 결정 정합) + §13.2 known gap 2 (Pi prompt template) ✅ resolved (1/6 → 2/6) + 5 cross-section fix 위치 (§3.5.6.4 / §3.1 API / §6.7.3 / §10.3 / §13.2) + backend-knowledge 의 4번째 핵심 기능 Graph 의 detail 구현) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
@@ -3823,7 +4095,7 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 | Gap | 정의 (umbrella doc) | 실제 구현 (M-v0.2.0 PoC 진입 시) | 영향 |
 | --- | --- | --- | --- |
 | **§3.5.5 cross-link reverse index** ✅ **resolved 2026-06-18** | `okf/link_graph.py` 가 자동 갱신 (§3.5.5) | M-v0.2.0 PoC = simple in-memory + hourly cron full scan + `var/bundles/.index/reverse_index.json` (§3.5.6 신규 정공법), M-v0.2.1+ = sqlite persisted + CLI tool + auto-fix (Pi LLM) | **mid → low** (M-v0.2.0 PoC 시 OK, §3.5.6 정공법으로 능동적 강화). §3.5.6 cross-reference + §3.5.5 row 4 보강 + §3.1 API 매트릭스 row 4 (graph) + §3.9.4 archive 거부 정책 + §6.5.4 Step 6 reverse index PoC 검증 + §11.1.7 stale link runbook + ADR-0034 §4.3 영향 + ADR-0035 §3.3 영향 정합 |
-| **§10.3 Pi prompt template** | 단순 prompt + raw JSON (§10.3 j2 template) | M-v0.2.0 PoC = 단순 prompt, M-v0.2.1+ = 진보된 prompt engineering (few-shot examples + chain-of-thought) | low (PoC 작동, accuracy 는 M-v0.2.1+ 개선) |
+| **§10.3 Pi prompt template** | 단순 prompt + raw JSON (§10.3 j2 template) | M-v0.2.0 PoC = 단순 prompt, M-v0.2.1+ = 진보된 prompt engineering (few-shot examples + chain-of-thought) | low (PoC 작동, accuracy 는 M-v0.2.1+ 개선) | **2026-06-18 §3.5.7 신규로 M-v0.2.3+ 부터 능동적 강화 (5 subsection j2 prompt template + 3 mode confirm workflow + 5 metrics, §13.2 known gap 2 ✅ resolved) — §3.5.7.2 정공법** |
 | **§11.1 incident runbook 6 type trigger 조건** | RTO + mitigation 정의 (§11.1) | M-v0.2.0 PoC 운영 1주 후 실제 trigger 조건 tuning 필요 (false positive / false negative) | mid (PoC 검증 후 §11.3 alert threshold 재조정) |
 | **§5.3 M-v0.2.0 sprint 진입 checklist 6 항목** | 본 §13 commit 시점에 **4/6 완료** (umbrella doc publish / external-integrations-agentic-rag-roadmap.md status / state.json M-v0.2.0 row / OKF SPEC.md 1차 정독), 잔여 **2 항목** (backend-knowledge/ 디렉터리 skeleton / GitHub milestone v0.2.0) | §13.3 후속 결정 항목으로 처리 | high (sprint 진입 전 필수) |
 | **§10.3 Pi SDK mode 의 npm dependency** | `@earendil-works/pi-coding-agent` npm pkg (§2.2 / §10.3) | M-v0.2.0 PoC = Node.js 설치 + npm install 필수 | low (1 회 설치, 이후 cache) |
@@ -3870,10 +4142,11 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 | **§8 timeline 보강 (2026-06-18 신규 — §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** | ✅ | 4 subsection (§8.1 17 commit 결정 timeline / §8.2 17 commit × 5 artifacts cross-reference 매트릭스 17 row / §8.3 향후 결정 row 10 row: Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint / §8.4 결정 timeline 의 4 layer 정합 L1~L4) + 4 layer cross-reference (high-level 결정 / commit 결정 / cross-reference / 향후 결정) + 운영자 / contributor 가 §8 의 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능 |
 | **§2.6 backend-knowledge network 정책 (2026-06-18 신규 — §2.4 item 1 + §6.5.3 + §11.1.1 정합)** | ✅ | 5 subsection (§2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose.yml networks 설정 정공법 3 단계 별 YAML + §2.6.3 firewall iptables rule 예시 production + §2.6.4 WAF 설정 3 option + 10 row WAF rules + §2.6.5 §2.4 item 1 검증 절차 정밀화 8 row 자동화 tool + 운영자 manual SOP + per release audit) + cross-section 정합 fix 4 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / ADR-0034/0035) + 사외/사내 2-tier 정책 정합 |
 | **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 2026-06-18 신규 — docs/governance/worker_division.md §4.2 정합)** | ✅ | 6 subsection (§15.1 정의 + 사용 시나리오 4 종 external/architecture/technology/policy / §15.2 5 step 정공법 New ADR → frontmatter 갱신 → §6 row → cross-ref → state.json / §15.3 row format frontmatter+section+§4.3 / §15.4 cross-reference 4~5 file 영향 / §15.5 deprecation policy 12개월 + release notes 정합 / §15.6 umbrella doc 본 §13~§15 cross-cutting 정공법 3 종 정합) + supersession 발생 빈도 (M-v0.2.0~v0.2.2 0 건, M-v0.2.3+ 가능) + 운영 runbook 영향 (§11.1 incident runbook ADR supersession trigger / §11.3 monitoring ADR deprecation warning / §11.4 on-call role ADR curator 5번째 role) + docs/governance/worker_division.md §4.2 1:1 정합 |
+| **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 2026-06-18 신규 — §3.5.6.4 auto-fix strategy 구현 + §13.2 known gap 2 ✅ resolved)** | ✅ | 5 subsection (§3.5.7.1 목적: unresolved link 자동 recommend + operator confirm + 3 mode confirm workflow / §3.5.7.2 j2 prompt template design: input unresolved link context ±2 lines + output 3 row recommendation + reason + confidence 0~1 / §3.5.7.3 SDK/RPC mode 선택 §10.3 정합, M-v0.2.3+ default SDK mode + production RPC mode option / §3.5.7.4 3 mode confirm workflow dry-run/confirm/auto-apply ≥ 0.9 + `POST /api/v0-2/concepts/{id}/resolve-links` endpoint / §3.5.7.5 audit log + 5 metrics MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) + `cli/fix_unresolved.py` 4 CLI tool + cross-section 정합 fix 5 위치 (§3.5.6.4 auto-fix / §3.1 API 매트릭스 endpoint / §6.7.3 LLM enrich 운영 / §11.3 monitoring 10 metrics / §13.2 known gap 2 ✅ resolved) |
 
 **📋 미완료 (post-sprint follow-up)** — §13.3 의 6 row (GitHub milestone / state.json / external-integrations-agentic-rag-roadmap.md status / docs/llm-wiki mirror / release notes / DOCUMENT_INDEX.md). 이 항목들은 **M-v0.2.0 sprint 진입 시점에 처리** (umbrella doc 본 §13 commit 시점에서는 의도적 미완료).
 
-**§13.2 의 6 row Known gaps** — M-v0.2.0 PoC 운영 시 자연스럽게 해소 (Pi prompt template / incident runbook tuning / cron daemon setup). **단, row 1 (cross-link reverse index) 는 2026-06-18 §3.5.6 정공법 신규로 ✅ resolved** (M-v0.2.0 PoC 부터 활성화, §3.5.6 정공법). 잔여 **5/6 row** M-v0.2.0 PoC 운영 시 자연 해소. umbrella doc 본문 변경 불필요.
+**§13.2 의 6 row Known gaps** — M-v0.2.0 PoC 운영 시 자연스럽게 해소 (incident runbook tuning / cron daemon setup). **단, row 1 (cross-link reverse index) 는 2026-06-18 §3.5.6 정공법 신규로 ✅ resolved** (M-v0.2.0 PoC 부터 활성화, §3.5.6 정공법). **row 2 (Pi prompt template) 는 2026-06-18 §3.5.7 정공법 신규로 ✅ resolved** (M-v0.2.3+ 부터 활성화, §3.5.7 정공법). 잔여 **4/6 row** M-v0.2.0 PoC 운영 시 자연 해소. umbrella doc 본문 변경 불필요.
 
 **Cross-section 정합 fix** (2026-06-18 신규, 본 §13 자체는 종합 review 이므로 cross-section fix 0 row):
 - ADR-0034 §4.3 영향 + frontmatter 갱신 (§13 row 추가)
