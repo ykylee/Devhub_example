@@ -114,6 +114,8 @@ KPI / Tests 위치를 **세 가지 도메인 scope 별 sub-section** 으로 재�
 
 **권장**: **옵션 B** — 사용자가 "각 위치에서 참조하는 정보의 범위에 따라 표현하는 방식이 달라질 수 있다" 고 명시했으므로, 글로벌 페이지는 "위치 picker" 역할로 격하 + sidebar 의 "Analytics" 그룹으로 별도. 도메인 상세 페이지의 sub-section 이 1차 진입점.
 
+**결정 (2026-06-16, 사용자 확정)**: **옵션 B 채택**. Sprint E (branch `chore/260616-sprint-e-legacy-picker-active`) 가 정공법 확립. 상세: [`2026-06-16-sprint-e-legacy-picker-active-sprint-plan.md`](./2026-06-16-sprint-e-legacy-picker-active-sprint-plan.md).
+
 ## 3. Sidebar 위치 정공법
 
 `frontend/shared/ui-foundation/layout/Sidebar.tsx` 의 메뉴 재구성 (제안):
@@ -194,6 +196,8 @@ const systemMenu: MenuItem[] = [
 - backend: `GET /api/v1/projects/:id/kpi/quality` + `/kpi/test-pass-rate` (가중치 적용 rollup query)
 - 기존 `contribution_weight` + `completionRate` 활용
 
+**Sprint B 1차 PR status (2026-06-16)**: **in_progress** (branch `chore/260616-sprint-b-project-kpi`, PR TBD). projectKPI endpoint (1) + ProjectKPISection component (1) + service 1 + schema 1 + Vitest 2 + backend handler test 2 + openapi.yaml + routePermissionTable 등록 + ProjectView 통합 + DomainPicker 의 Project scope `ready: true` 활성화. projectTestResults + ProjectTestsSection + e2e 1 은 follow-up PR (Sprint B-Tests).
+
 ### 6.3 Sprint C: Platform sub-section (3차, sub-project rollup)
 
 - `frontend/domain/platform-lifecycle/view/PlatformKPISection.tsx` (NEW)
@@ -206,9 +210,14 @@ const systemMenu: MenuItem[] = [
 - `frontend/app/(dashboard)/kpis/page.tsx` 에 도메인 picker (Repository/Project/Platform select) 추가
 - `frontend/app/(dashboard)/tests/page.tsx` 동일
 
+**Sprint D status (2026-06-16)**: **in_progress** (branch `chore/260616-sprint-d-sidebar-picker`, PR TBD). Sprint A 정합법 + 1차 진입 완료. 후속 (Sprint B/C sub-section + Sprint E legacy 결정) 는 follow-up PR.
+
 ### 6.5 Sprint E: 글로벌 페이지 옵션 B/C 결정 + legacy 정리
 
 - 옵션 A (deprecated) vs B (cross-reference picker) vs C (legacy) 결정 후 처리
+
+**Sprint E status (2026-06-16)**: **in_progress → done** (branch `chore/260616-sprint-e-legacy-picker-active`, PR TBD). 옵션 B 확정. (1) `frontend/shared/ui-foundation/components/AnalyticsDeprecationBanner.tsx` (NEW) — user-facing 안내 banner (옵션 B 의 cross-reference picker 명시 + legacy 위젯 deprecate 안내). (2) `/kpis` + `/tests` 페이지 상단에 banner 통합 (legacy 본문 유지, 회귀 0). (3) `AnalyticsDeprecationBanner.test.tsx` (NEW) — Vitest unit test 4 case (data-testid / a11y role+aria-live / cross-reference 문구 / legacy 위젯 문구). (4) `frontend/tests/e2e/analytics-picker.spec.ts` (NEW) — 2 test (kpi + tests 각각 3 scope tab + entity list + redirect). (5) `docs/traceability/report.md` §6 Sprint E 종합 row 추가. (6) 본 §6.5 status = `done` 갱신.
+
 
 ## 7. 정합 검증 (권장 DoD)
 
@@ -224,8 +233,13 @@ const systemMenu: MenuItem[] = [
 - **공용** (docs only, 사내 한정 정보 미포함)
 - 후속 backend API (4.1~4.3) — 사내 한정 정보 미포함 시 사외 가능 (가중치 / rollup 은 표준 로직)
 
-## 9. 변경 이력
-
 | 일자 | 변경 | sprint |
 |---|---|---|
 | 2026-06-15 | 본 컨셉 초안 — KPI/Tests 위치 정공법 (도메인 scope 별 sub-section) + sidebar 재구성 + 5 sprint 진입 hook | (TBD) |
+| 2026-06-15 | **Sprint A (Repository sub-section) implemented** — PR #597 (squash `25f2262e`) 머지 완료. 24 file, +1946/-23 line. Backend 2 endpoint (`GET /api/v1/repositories/:id/kpi` + `/test-results`) + `routePermissionTable` 등록 + parseWindowShort helper + `BuildRunListOptions.WindowFrom/To` filter + frontend 2 component (RepositoryKPISection + RepositoryTestsSection) + `ManagerView.tsx` inline 배치 + openapi.yaml +86 path (84 → 86) + test_cases.md (예정) + memory 4 file. 4 follow-up P1/P2 (lucide-react import 닫기, routePermissionTable 등록, ?window=Nd parsing, build-runs window filter) 동시 squash. | `feat/x-repository-kpi-tests-section` (PR #597) |
+| 2026-06-16 | **Sprint A follow-up 회귀 가드** — PR #625 (squash `71a227b6`) 머지 완료. 6 file, +755/-10 line. 4 unit test (fetchRepositoryKPI/fetchRepositoryTestResults + RepositoryKPISection/RepositoryTestsSection) + 1 e2e (`repository-kpi-tests-section.spec.ts`, `TC-REPO-KPI-TESTS-01`) + test_cases.md 4 row `[x]` + 변경 이력 row. | `chore/260616-sprint-a-tests-followup` (PR #625) |
+| 2026-06-16 | **Sprint D 1차 진입 — Sidebar `analyticsMenu` 분리 + 글로벌 페이지 도메인 picker** — branch `chore/260616-sprint-d-sidebar-picker` 작업 중. (1) `frontend/shared/ui-foundation/layout/Sidebar.tsx` — `baseMenu` 에서 KPIs/Tests 제거 + `analyticsMenu` 별도 그룹 (Analytics 섹션 헤더 + 모든 사용자 접근). (2) `frontend/shared/ui-foundation/components/DomainPicker.tsx` (NEW) — scope tab (Platform/Project/Repository) + entity list + 미준비 scope 'sub-section 예정' 배지. Repository scope 만 ready=true (Sprint A 활성화), Project/Platform 은 Sprint B/C 와 함께 fetch 추가. (3) `/kpis` + `/tests` 페이지 상단에 picker 통합 (legacy 본문은 그대로 유지, 회귀 0). (4) DomainPicker unit test 8 case. (5) Sprint D status row 추가. 본 Sprint D 는 picker + Sidebar 의 1차 진입. Sprint B (Project sub-section) + Sprint C (Platform sub-section) + Sprint E (legacy 결정) 는 follow-up. | `chore/260616-sprint-d-sidebar-picker` (TBD) |
+| 2026-06-16 | **Sprint B 1차 진입 — Project 가중치 적용 rollup** — branch `chore/260616-sprint-b-project-kpi` 작업 중. (1) backend `GET /api/v1/projects/:project_id/kpi` (NEW) + `ComputeProjectWeightedKPI` + `CountProjectOpenAndMergedPRs` store method 2개 (PostgresStore, application.go 의 `domain.ProjectWeightedKPI` struct). (2) `routePermissionTable` 의 `/projects/:project_id/kpi` row 등록 (deny-by-default 회귀). (3) openapi.yaml +1 path (87 → 87, inline schema). (4) PlatformStore interface + 2 method + memoryPlatformStore + fakeViewPlatformStore override (PR #597 P1 #2 fix 회귀 정합). (5) backend handler test 2 case (TestProjectKPI_Happy / TestProjectKPI_InvalidWindow). (6) frontend `ProjectKPISection` component + `fetchProjectKPI` service + `project-kpi.types` schema. (7) ProjectView 통합 (`frontend/app/(dashboard)/projects/[id]/page.tsx` 의 left column 첫 child). (8) DomainPicker 의 Project scope `ready: true` 활성화. (9) Vitest 2 (service + component). projectTestResults + ProjectTestsSection + e2e 1 은 follow-up PR (Sprint B-Tests). | `chore/260616-sprint-b-project-kpi` (TBD) |
+| 2026-06-16 | **Sprint B-Tests 진입 — Project 가중치 적용 test results** — branch `chore/260616-sprint-b-project-tests` 작업 중. PR #627 (Sprint B 1차) 의 follow-up. (1) backend `GET /api/v1/projects/:project_id/test-results` (NEW) + `ListProjectTestResults` store method (PostgresStore) + `domain.ProjectWeightedTestResults` + `domain.ProjectBuildRun` struct (application.go) — CTE 3개 (linked_repos / weighted / totals_rows / recent_rows) 단일 round-trip + weighted_pass_rate + multi-repo recent. (2) `routePermissionTable` 의 `/projects/:project_id/test-results` row 등록 (deny-by-default 회귀). (3) openapi.yaml +1 path (87 → 88, inline schema). (4) PlatformStore interface + ListProjectTestResults + memoryPlatformStore + fakeViewPlatformStore override. (5) backend handler test 3 case (Happy / InvalidWindow / InvalidLimit). (6) frontend `ProjectTestsSection` component (Recharts 도넛 + status distribution + recent runs + window selector + (weighted) 라벨 + multi-repo `repository_full_name` 컬럼) + `fetchProjectTestResults` service + `project-tests.types` schema. (7) ProjectView 통합 (`ProjectKPISection` 다음 child). (8) Vitest 2 (service 5 case + component 5 case). (9) E2E 1 case (TC-PROJ-KPI-TESTS-01, `project-kpi-tests-section.spec.ts`). | `chore/260616-sprint-b-project-tests` (TBD) |
+| 2026-06-16 | **Sprint B-Projects Picker 활성화 — kpis page 의 project scope list 실 fetch** — branch `chore/260616-sprint-b-projects-picker` 작업 중. PR #626 (Sprint D) 의 placeholder 였던 `setProjects([])` → `projectService.listAllProjects()` (standalone + per-platform 통합) 실 fetch. kpis page 의 DomainPicker 가 이제 project entity list 표시. tests page 는 PR #626 에서 이미 listAllProjects 호출 중. `kpi-tests-per-domain-scope.md` §6.2 status 정합 — Project scope `ready: true` 그대로 유지. | `chore/260616-sprint-b-projects-picker` (TBD) |
+| 2026-06-16 | **Sprint E 1차 진입 — 옵션 B (Cross-Reference Picker) 결정 + legacy 본문 deprecation banner** — branch `chore/260616-sprint-e-legacy-picker-active` 작업 중. (1) §2.4 옵션 B 사용자 확정. (2) `frontend/shared/ui-foundation/components/AnalyticsDeprecationBanner.tsx` (NEW) — role=status + aria-live=polite + 4 unit test. (3) `/kpis` + `/tests` 페이지 상단에 banner 통합 (legacy 본문 유지, 회귀 0). (4) `frontend/tests/e2e/analytics-picker.spec.ts` (NEW) — 2 test (kpi + tests 각각 3 scope tab + entity list + redirect). (5) 본 §6.5 status = `done` 갱신. | `chore/260616-sprint-e-legacy-picker-active` (TBD) |

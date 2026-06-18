@@ -33,6 +33,201 @@
       "ended_at": "2026-05-13",
       "notes": "PR #89 (claude/work_260513-c) — docs/governance/ (README + document-standards.md) + docs/traceability/ (README + conventions.md + sync-checklist.md + report.md) + .github/pull_request_template.md + AGENTS/GEMINI 진입점 안내. 1차 종합 매트릭스: REQ-FR 105 + REQ-NFR 26 + ARCH 17 + API 40 + RM 28 + IMPL 79 + UT 47 + TC 37 = 412 항목, 도메인 그룹 13행. PR #90 (claude/work_260513-d) — §5 gap 표 형식 통일 + §5.2/§5.3 일부 closed + 메타 헤더 표준화 9 문서."
     },
+    "M-v0.2.0": {
+      "status": "in_progress",
+      "started_at": "2026-06-17",
+      "umbrella_doc": "docs/planning/release_v0-2_roadmap.md (accepted 2026-06-17)",
+      "child_doc": "docs/planning/external-integrations-agentic-rag-roadmap.md (accepted 2026-06-17, Q7 결정 기반 active 전환)",
+      "adr": [
+        "ADR-0034 OKF v0.1 채택",
+        "ADR-0035 backend-knowledge 신설"
+      ],
+      "external_system_5_categories_2026_06_17": {
+        "categories": {
+          "issue_tracker": {
+            "id": 1,
+            "gitea_subplugin": "gitea_issue",
+            "examples": [
+              "Jira",
+              "GitHub Issues",
+              "GitLab Issues",
+              "Linear"
+            ]
+          },
+          "wiki": {
+            "id": 2,
+            "gitea_subplugin": "gitea_wiki",
+            "examples": [
+              "Confluence",
+              "Notion",
+              "Docusaurus",
+              "GitBook"
+            ]
+          },
+          "scm": {
+            "id": 3,
+            "gitea_subplugin": "gitea_repo_pull",
+            "examples": [
+              "Bitbucket",
+              "GitHub",
+              "GitLab",
+              "Gitea"
+            ]
+          },
+          "cicd": {
+            "id": 4,
+            "gitea_subplugin": "gitea_action",
+            "examples": [
+              "Bamboo",
+              "Jenkins",
+              "GitHub Actions",
+              "GitLab CI",
+              "CircleCI",
+              "Argo CD"
+            ]
+          },
+          "code_quality": {
+            "id": 5,
+            "gitea_subplugin": "(1차 scope 외, 2차 wire)",
+            "examples": [
+              "SonarQube",
+              "Snyk",
+              "Codecov",
+              "Dependabot"
+            ]
+          }
+        },
+        "excluded_categories": [
+          "collaboration_messaging",
+          "auth_sso (Keycloak = backend-core 책임 — ADR-0019)",
+          "container_orchestration",
+          "monitoring (5 카테고리 외, metrics source plugin 별도)",
+          "hr (5 카테고리 외, hrdb source plugin 별도)"
+        ],
+        "category_display": "OKF type enum 8종 유지 + x_devhub_category 필드 (5 enum: issue_tracker / wiki / scm / cicd / code_quality, §3.2.1 / §3.3 정합)",
+        "m_v0_2_0_5_plugins": [
+          "gitea_repo_pull",
+          "gitea_issue",
+          "gitea_wiki",
+          "gitea_action",
+          "homelab_mock"
+        ]
+      },
+      "milestones": {
+        "M-v0.2.0-alpha": {
+          "status": "✅ published 2026-06-17 (umbrella + ADR-0034/0035 + Q&A 11/11 결정)"
+        },
+        "M-v0.2.0": {
+          "status": "⏳ planned (1차 standalone 구현, Gitea 통합 4 sub-plugin + homelab_mock = 5종 PoC, 5 카테고리 결정 기반 2026-06-17, 6 checklist)"
+        },
+        "M-v0.2.1": {
+          "status": "⏳ planned (1차 완성 + Gitea 4 정식 + homelab real = 5종 운영 + Curate + frontend 1 page)"
+        },
+        "M-v0.2.2": {
+          "status": "⏳ planned (외부 시스템 6종 wire = Gitea 4 + homelab + metrics + backend-ai 폐기)"
+        },
+        "M-v0.2.3": {
+          "status": "⏳ planned (+ hrdb = 7종 운영 + Pi LLM enrich 1 vendor)"
+        },
+        "M-v0.3.0": {
+          "status": "⏳ planned (풀 RAG)"
+        }
+      },
+      "notes": "v0.2.0 release umbrella + ADR-0034 OKF + ADR-0035 backend-knowledge + Q&A 11/11 결정 완료 (2026-06-17). 1차 in-scope sprint 진입 checklist 6 항목 중 4 항목 완료 (umbrella doc publish ✅ / child doc active ✅ / state.json M-v0.2.0 row ✅ / OKF SPEC.md 1차 정독 ✅ 2026-06-17) + 2 항목 별도 (backend-knowledge/ 디렉터리 skeleton = 별도 PR / GitHub milestone v0.2.0 = 별도). standalone 정책: 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 ❌, OIDC ❌, 외부 시스템 7종 source 만 단방향 (M-v0.2.3 운영 기준, 2026-06-17 A/A 결정 + 2026-06-18 cross-section 정합). backend-ai/ 폐기 (M-v0.2.2). 1차 source plugin = Gitea 통합 4 sub-plugin + homelab_mock = 5종 PoC (M-v0.2.0, 5 카테고리 결정 기반). Pi (pi.dev) v0.79.6 LLM enrich (M-v0.2.3+). 9 round cross-section 정합 완료 (round 1/1.1, round 2, §3/§3 5번, §4/§5/§6/§7/§8 self-review, Q&A 명시 결정, ADR-0034/0035 publish, sprint 진입 in-scope) + 2026-06-18 A/A 결정 cross-section 정합 follow-up (9 위치, §9 변경 이력 2026-06-18 row). tier: 사외 (OKF / Pi 정합, 다른 backend 연결 ❌). | 2026-06-18 sprint entry trigger: PR #645 MERGED + GitHub milestone v0.2.0 (#4) 생성 + state.json M-v0.2.0 row 갱신 (status: ready_to_sprint → in_progress, qa_decisions 11/11 → 18/18, 5종 source plugin status planned, e2e_smoke_step_6_reverse_index_poc planned, github_milestone + umbrella_pr + sprint_entry_post_sprint_p0_2026_06_18 추가) | §17.3 P0 2 row ✅ resolved (GitHub milestone + state.json row 발급)",
+      "round_summary": "9 round cross-section 정합 + 1 follow-up: (1) round 1 = Q1 결정 (backend-knowledge) + 5+1 fix; (2) round 1.1 = web_search snippet 추정 → pi.dev / GitHub README 1차 출처 정합 (Pi 4 package + 15+ provider + 4 mode 정확); (3) round 2 = B 결정 + OIDC 제외 + 외부 시스템 only cross-section 정합 (§3/§4/§5/§6/§7/§8); (4) §3 self-review 5+1 fix (모순 + endpoint 수 정합 + DevHub alias); (5) §3 5번 결정 (LLM enrich timing endpoint 별 inline, 4 endpoint); (6) §4 self-review + standalone 정책 강화 (9 edit cross-section, backend-core ❌ → 다른 backend ❌ general); (7) §5 self-review + frontend 결정 (web/ 디렉터리, devhub frontend 와 분리); (8) §6 self-review + docker-compose / dev-up.sh standalone 정합; (9) §7/§8 self-review + Q&A 명시 결정 (Q2·Q3·Q5~Q8 default 추천값 일괄) + ADR-0034/0035 publish + sprint 진입 in-scope (status/child doc/state.json). (10) 2026-06-18 follow-up = 5 카테고리 결정 + Gitea 통합 1차 wire + x_devhub_category 필드 의 cross-section 정합 (release_v0-2_roadmap.md §2.1 / §3.2 / §3.3 / §6.1 + ADR-0035 §2.3 / §3.1 / §3.8 / §4 + AGENTS.md ADR-0035 description + state.json M-v0.2.2 milestone, 9 위치 일괄 fix).",
+      "entered_in_progress_at": "2026-06-18",
+      "sprint_entry_trigger": "PR #645 MERGED 2026-06-18 (umbrella doc + ADR-0034 + ADR-0035 v0.2.0 release)",
+      "qa_decisions_18_of_18": {
+        "Q1_backend_name": "backend-knowledge",
+        "Q2_language": "Python 3.13+",
+        "Q3_first_llm_vendor": "rule-based 만 (M-v0.2.0~v0.2.2) + Pi (pi.dev) SDK or RPC (M-v0.2.3+)",
+        "Q4_frontend": "viz.html (자가 viewer) + frontend 관리/조회 page 1 (별도 standalone frontend, devhub frontend 와 분리)",
+        "Q5_bundle_storage": "file system only (1차, OKF 원리 정합)",
+        "Q6_first_source_plugin": "Gitea 통합 4종 (gitea_repo_pull / gitea_issue / gitea_wiki / gitea_action, 5 카테고리 중 4) + homelab_mock 1종 = 5종 PoC (M-v0.2.0, 5 카테고리 결정 기반 2026-06-17)",
+        "Q7_child_doc_status": "umbrella publish 시점 → active 전환",
+        "Q8_adr": "ADR-0034 + ADR-0035 2건 분리",
+        "Q9_backend_relationship": "❌ 전면 금지 (완전 standalone 시스템, 다른 backend 어떤 layer 든 import / 호출 / 공유 ❌)",
+        "Q10_api_auth": "internal-only, no auth (gateway / firewall / IP allowlist 별도 보호)",
+        "Q11_source_plugin_source_of_truth": "외부 시스템 공식 API spec 만 (backend-core Go adapter 참조 ❌)",
+        "Q12_raw_storage_mode": "dual mode per source (file + db, source_meta.storage_mode field, 2026-06-18 결정)",
+        "Q13_pi_sdk_mode_timing": "M-v0.2.0+ DB path periodic ingest + M-v0.2.3+ LLM enrich + M-v0.2.3+ cross-link 자동 resolution (변경 2026-06-18)",
+        "Q14_db_type": "M-v0.2.0~v0.2.2 sqlite + M-v0.2.3+ PostgreSQL option (2026-06-18 결정)",
+        "Q15_per_source_storage_mode_default": "gitea 4 = file + homelab/hrdb = db + metrics = file (decided mapping 2026-06-18)",
+        "Q16_pi_ingest_cron_interval": "*/5 (5분) default + M-v0.2.1+ per source custom 가능 (2026-06-18 결정)",
+        "Q17_pi_llm_fallback_policy": "rule-based 자동 fallback (Pi timeout 30초 OR invalid → source_meta.normalize_mode 자동 전환 + audit.pi_ingest_fallback event, 2026-06-18 결정)",
+        "Q18_backend_ai_deprecation_timing": "M-v0.2.2 와 동시 (placeholder 정리 + code-removed + 10 단계 폐기 절차, 2026-06-18 결정)"
+      },
+      "m_v0_2_0_5_plugins_status": {
+        "gitea_repo_pull": {
+          "status": "planned",
+          "category": "scm",
+          "storage_mode": "file",
+          "normalize_mode": "rule-based",
+          "milestone": "M-v0.2.0"
+        },
+        "gitea_issue": {
+          "status": "planned",
+          "category": "issue_tracker",
+          "storage_mode": "file",
+          "normalize_mode": "rule-based",
+          "milestone": "M-v0.2.0"
+        },
+        "gitea_wiki": {
+          "status": "planned",
+          "category": "wiki",
+          "storage_mode": "file",
+          "normalize_mode": "rule-based",
+          "milestone": "M-v0.2.0"
+        },
+        "gitea_action": {
+          "status": "planned",
+          "category": "cicd",
+          "storage_mode": "file",
+          "normalize_mode": "rule-based",
+          "milestone": "M-v0.2.0"
+        },
+        "homelab_mock": {
+          "status": "planned",
+          "category": "homelab",
+          "storage_mode": "file",
+          "normalize_mode": "rule-based",
+          "milestone": "M-v0.2.0"
+        }
+      },
+      "e2e_smoke_step_6_reverse_index_poc": {
+        "status": "planned",
+        "description": "§6.5.4 E2E smoke pipeline Step 6 reverse index PoC 검증 (M-v0.2.0 PoC 부터)",
+        "milestone": "M-v0.2.0",
+        "depends_on": "§3.5.6 cross-link reverse index 정공법 (PR #645 머지로 umbrella doc §3.5.6 정합 완료)",
+        "expected_completion": "M-v0.2.0 PoC 운영 +1주 이내"
+      },
+      "github_milestone": {
+        "number": 4,
+        "url": "https://github.com/ykylee/Devhub_example/milestone/4",
+        "title": "v0.2.0",
+        "created_at": "2026-06-18T07:06:15Z",
+        "due_on": "2026-07-14T00:00:00Z",
+        "state": "open"
+      },
+      "umbrella_pr": {
+        "number": 645,
+        "url": "https://github.com/ykylee/Devhub_example/pull/645",
+        "state": "MERGED",
+        "merged_at": "2026-06-18T07:03:48Z",
+        "merge_commit": "f6732a34"
+      },
+      "sprint_entry_post_sprint_p0_2026_06_18": {
+        "row_1_github_milestone": {
+          "status": "✅ done 2026-06-18",
+          "description": "GitHub milestone v0.2.0 생성 (#4, due 2026-07-14)",
+          "url": "https://github.com/ykylee/Devhub_example/milestone/4"
+        },
+        "row_2_state_json": {
+          "status": "✅ done 2026-06-18",
+          "description": "ai-workflow/memory/state.json M-v0.2.0 row 갱신: status ready_to_sprint → in_progress + qa_decisions 11/11 → 18/18 + 5종 source plugin status + e2e_smoke_step_6 + github_milestone + umbrella_pr + sprint_entry_post_sprint_p0_2026_06_18 추가"
+        }
+      }
+    },
     "M-v1.0": {
       "status": "in_progress",
       "started_at": "2026-05-20",
@@ -55,7 +250,7 @@
       "X 2 jira generic adapter PR 588 2026 06 13": "2026-06-13 — X-2 inbound webhook Jira + Generic adapter 3차 PR #588 MERGED (squash b026a53, main HEAD b026a53) — v0.1.1 milestone X-2 의 3차 commit. JiraWebhookAdapter (provider_type='alm') + GenericWebhookAdapter (provider_type='other') + init() 등록 dispatcher. 4 file 신규, 469 line. go build PASS + go test 22/22 PASS (9 Gitea + 6 Jira + 6 Generic + 1 init dispatcher). 정합: 1차 PR #586 의 auto_route.go pattern matcher 와 cross-ref (Jira key \"DEV-456\" → jiraExternalRefPattern) + 2차 PR #587 의 adapter registry dispatcher. 신규 ID 발급 2 row (IMPL-webhook-adapter-02 + UT-webhook-adapter-02). 잔여 (X-2 4~5차): openapi.yaml 정합 + frontend multi-provider 운영 UI + e2e + ADR-0033 + traceability/CHANGELOG/mirror-list. Tier: 사외.",
       "X 2 openapi PR 589 2026 06 13": "2026-06-13 — X-2 inbound webhook openapi 정합 4차 PR #589 MERGED (squash e26c58a, main HEAD e26c58a) — v0.1.1 milestone X-2 의 4차 commit. openapi.yaml 의 X-2 schema block 추가 (WebhookEvent + WebhookAdapterType + InboundSourceRoutingConfig). 2 file, 179 line (swaggerui 82 + docs 97). openapi lint PASS + schema reference 정합 docs 12 + swaggerui 12 + diff 0. 정합: 1차 PR #586 auto_route.go InboundSourceRoutingConfig ↔ openapi schema 1:1, 2차 PR #587 WebhookAdapter ↔ openapi WebhookEvent 1:1, 3차 PR #588 Jira/Generic adapter ↔ WebhookEvent.provider_type enum 1:1. 신규 ID 발급 1 row (API-108). 잔여 (X-2 5차): frontend multi-provider 운영 UI + e2e + ADR-0033 + traceability/CHANGELOG/mirror-list. Tier: 공용.",
       "X 2 frontend e2e PR 590 2026 06 13": "2026-06-13 — X-2 inbound webhook multi-provider 5차 PR #590 MERGED (squash e55f21d, main HEAD e55f21d) — **v0.1.1 milestone X-2 100% 완료**. 14 file, 1087 line. frontend 4 widget (InboundSourceTypeSelector/InboundSourceConfigEditor/PatternPreview/InboundSourceManager) + admin /admin/inbound-source page + admin landing 진입 강화 + 6 type/2 interface frontend + e2e 4 case (TC-ADMIN-X2-01/02/03/04) + ADR-0033 (11 section Multi-Provider Webhook Architecture) + traceability/CHANGELOG/mirror-list. 검증: openapi lint PASS + tier-separation PASS. 정합 (X-2 5 PR 의 1:1 cross-ref): Go struct ↔ TypeScript interface ↔ OpenAPI schema = WebhookAdapter/Event/InboundSourceRoutingConfig 5 layer 1:1 매핑. 신규 ID 발급 4 row (IMPL-1 + UT-1 + TC-3 + ADR-1, X-2 의 5 PR 종합 = 12 row). Tier: 사외.",
-      "X 5 follow up production wire PR 596 2026 06 15": "2026-06-15 — X-5 Gitea Hourly Pull production wire follow-up PR #596 MERGED (squash 3016bf7a, main HEAD 3016bf7a). X-5 1차 PR #592 + a49a5660 fix 의 `adapter.Store = nil` + `repoLister` placeholder → production wire 교체. **codex review 3 P1 substantive bug 발견 + fix**: (a) `UpsertPullActivity` 의 pr_activities INSERT 가 schema (migration 000001 L402) 에 없는 column (number/title/body/head_sha) 참조 → 모든 PR upsert fail. fix: 4 field 를 `payload jsonb` column 에 JSON object 로 묶어 저장. (b) Gitea Actions API 의 completed run `status=completed + conclusion=success/failure` 형식 → `build_runs_status_check` 가 "completed" reject. fix: `status==completed && conclusion != ""` 일 때 `normalized = conclusion`. (c) `GiteaClient.ListBuilds` 가 `[]GiteaBuild` 으로 decode 시도 → Gitea 1.21+ 의 `{ "workflow_runs": [...] }` wrapper 미지원. fix: dual shape decode. 5 file (gitea_pull.go + repository_pull_ingest.go + memory + docs). 신규 ID 4 row (IMPL-GITEA-PULL-STORE-01 + IMPL-GITEA-PULL-INGEST-01 + UT-GITEA-PULL-STORE-01 + TC-GITEA-PULL-STORE-01). Tier: 공용. 검증: go build + adapter test + Backend Integration Tests PASS (3 신규 integration test 가 Gitea scm provider seed 부재 시 t.Skip 으로 self-defensive).",
+      "X 5 follow up production wire PR 596 2026 06 15": "2026-06-15 — X-5 Gitea Hourly Pull production wire follow-up PR #596 MERGED (squash 3016bf7a, main HEAD 3016bf7a). X-5 1차 PR #592 + a49a5660 fix 의 `adapter.Store = nil` + `repoLister` placeholder → production wire 교체. **codex review 3 P1 substantive bug 발견 + fix**: (a) `UpsertPullActivity` 의 pr_activities INSERT 가 schema (migration 000001 L402) 에 없는 column (number/title/body/head_sha) 참조 → 모든 PR upsert fail. fix: 4 field 를 `payload jsonb` column 에 JSON object 로 묶어 저장. (b) Gitea Actions API 의 completed run `status=completed + conclusion=success/failure` 형식 → `build_runs_status_check` 가 \"completed\" reject. fix: `status==completed && conclusion != \"\"` 일 때 `normalized = conclusion`. (c) `GiteaClient.ListBuilds` 가 `[]GiteaBuild` 으로 decode 시도 → Gitea 1.21+ 의 `{ \"workflow_runs\": [...] }` wrapper 미지원. fix: dual shape decode. 5 file (gitea_pull.go + repository_pull_ingest.go + memory + docs). 신규 ID 4 row (IMPL-GITEA-PULL-STORE-01 + IMPL-GITEA-PULL-INGEST-01 + UT-GITEA-PULL-STORE-01 + TC-GITEA-PULL-STORE-01). Tier: 공용. 검증: go build + adapter test + Backend Integration Tests PASS (3 신규 integration test 가 Gitea scm provider seed 부재 시 t.Skip 으로 self-defensive).",
       "Sprint A Repository KPI Tests sub section PR 597 2026 06 15": "2026-06-15 — Sprint A (KPI/Tests 위치 정공법 1차 진입) PR #597 MERGED (squash 25f2262e, main HEAD 25f2262e). 컨셉 [`kpi-tests-per-domain-scope.md`](../planning/kpi-tests-per-domain-scope.md) (3 도메인 scope 정공법: Repository raw, Project contribution_weight 가중치, Platform sub-rollup) 의 1차 진입 (Repository sub-section, raw, weight=1). 23 file, ~1906 line. **codex review 2 P1 + 2 P2 fix**: (P1a) `ManagerView.tsx` 의 lucide-react import block 닫히지 않음 → TSX parser fail → FileText } from \"lucide-react\"; 닫음. (P1b) 신규 2 route 가 routePermissionTable 미매핑 → deny-by-default 403 → 2 entry 추가 (ResourcePlatformRepositories + ActionView). (P2a) `repositoryKPI` 가 `?window=Nd` parsing 안 함 → `parseTestResultsWindow` 재사용. (P2b) `repositoryTestResults` 의 build-runs query 에 window filter 부재 → `BuildRunListOptions.WindowFrom/WindowTo` + `ListRepositoryBuildRuns` SQL filter + `windowFromOrNil` helper. backend: 2 endpoint (kpi + test-results) + 1 interface method (CountOpenAndMergedPRs) + openapi 2 path (84→86). frontend: 2 schema + 2 service + 2 component (RepositoryKPISection + RepositoryTestsSection) + ManagerView 통합. 신규 ID 0건 (e2e spec 별도 PR + Sprint B/C/D/E 정합 시 일괄 발권). Tier: 공용. 잔여 follow-up: Sprint B (Project 가중치) + Sprint C (Platform sub-rollup) + Sprint D (Sidebar 재구성) + Sprint E (legacy 결정) + e2e spec 별도 PR.",
       "ci regression known pre existing 2026 06 15": "2026-06-15 — X-1/X-2 의 pre-existing 회귀 (본 PR 의 fix 후 CI 재실행 시 잔존). (a) Backend Unit Tests 의 `TestRoutePermissionTable_CoversAllProtectedV1Routes` FAIL — X-1 의 3 route (`/admin/integrations/sync-jobs`, `/:jobID`, `/summary`) 가 routePermissionTable 미매핑. (b) Frontend Unit Tests 의 pre-existing FAIL — `inbound-source-config.test.tsx` (X-2 5차 `pattern: ^CUSTOM-\\d+$` text) + `x1-widgets.test.tsx` (X-1 2차 `Found multiple elements with the text: /Provider Health/i`). (c) E2E Build FAIL — `domain/integration-registry/schema/integration.types.ts:9:13 Duplicate identifier 'IntegrationProviderType'` (X-2 5차). 모두 본 PR #596/#597 의 영향 0. **사용자 결정**: pre-existing 회귀는 별도 housekeeping sprint (X-1/X-2 housekeeping PR) 에서 처리. 본 세션 scope 외."
     }
@@ -63,6 +258,8 @@
   "components": {
     "frontend": {
       "phase": "v1.0 마감 및 굳히기(Hardening) 수행 중. NOW-3 (N-3) SCM Draft/Publish E2E 통합 테스트 완결 (69개 시나리오 100% PASS) 및 NOW-4 (N-4) 프론트엔드 핵심 4대 모듈(store.ts, ProviderModal, MemberTable, PermissionEditor) 단위 테스트 90% 이상 상향 완료로 프론트엔드 총 962개 Vitest 유닛 테스트 100% PASS 성공.",
+      "x 6 keycloak groups docs only 2026 06 17": "2026-06-17 — X-6 (issue #214, P1-3 Keycloak group staging-prod 적용) 정공법 = docs only (sprint feat/260617-x6-keycloak-groups-docs, PR #640 MERGED, squash 8673dedc). X-6 의 backend/script 변경 0 — 이미 main 정합. (1) docs/setup/keycloak_operations.md §4.3 (group 4종 + composite realm role 1:1 매핑 SOP, keycloak_groups_mapping.md 옵션 B 채택) + §4.4 (scripts/verify-keycloak-groups.sh 자동 검증 4 항목) main 정합. (2) release_v0-1_roadmap.md §3.5 X-6 row status ⏳ planned → 🟡 in_progress (docs only, 2026-06-17) + Keycloak admin SOP mention. (3) CHANGELOG.md X-6 row 추가 + traceability/report.md X-6 row 추가. (4) gh issue close 214 + close comment 게시 완료. 검증: tsc --noEmit 본 PR 영향 0 + go build ./... silent (변경 0). Tier: 공용. 잔여 = 사내 Keycloak admin console 1회 작업 (사용자 결정) + 사내 staging/prod 적용 후 verify-keycloak-groups.sh 1회 실행 (사용자 결정). branch delete (auto).",
+      "x 8 keycloak event listener spi sop 2026 06 17": "2026-06-17 — X-8 (P2-6 + P3-5 Keycloak SPI realm events push 전환) 정공법 = compose + docs only (sprint feat/260617-x8-keycloak-event-listener-spi-sop, PR #641 MERGED, squash b49e50cc). X-8 의 backend 변경 0 — DevHubEventListenerProvider.java async sendAsync POST + DevHubEventListenerProviderFactory.java env-var wire + keycloak_events_webhook.go webhook handler + keycloak_event_puller.go polling cron (residual) + event_cursors.go dedup 모두 main 정합. (1) docker-compose.colima.yml + docker-compose.deploy.yml keycloak service 에 SPI JAR volume mount + env DEVHUB_BACKEND_SPI_WEBHOOK_URL + DEVHUB_KEYCLOAK_SPI_WEBHOOK_SECRET 추가. (2) docs/setup/keycloak_event_listener_spi.md 정공법 SOP 신규 (8.7KB) + scripts/verify-keycloak-spi.sh 자동 검증 4 항목 작성. (3) release_v0-1_roadmap.md X-8 row status + §9 변경 이력 + CHANGELOG.md + traceability X-8 row. 검증: tsc --noEmit 본 PR 영향 0 + go build ./... silent + compose YAML lint 정공법. Tier: 공용. 잔여 = 사내 빌드 (Java 21 + Maven 3.13+ 환경, 사용자 결정) + 사내 staging/prod 적용 후 verify-keycloak-spi.sh 1회 실행. branch delete (auto).",
       "auth": "Keycloak OIDC code flow with PKCE end-to-end (ADR-0019, 2026-05-19). tokenStore persists access/refresh/id; apiClient auto Authorization. AuthGuard 401 -> /login + system route gate. Header Sign Out drives Keycloak end_session_endpoint via id_token_hint. **e2e Kratos legacy 제거 및 dynamic idp_subject sync 도입 (PR #249 머지).**",
       "build_check": "PASS — Next.js 16.2.4, 18 static pages.",
       "rbac": "PermissionEditor at /admin/settings/permissions wired to /api/v1/rbac/policies. defaultLandingFor + isSystemAdmin + pathRequiresSystemAdmin in lib/auth/role-routing.ts."
