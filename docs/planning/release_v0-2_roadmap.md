@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + **§12 frontend page 상세화 (M-v0.2.1+ 관리/조회 page 1 + viz.html)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html 자가 viewer + 5 page + 3 role + 14 row API matrix + 7 step frontend cutover). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 monitoring cross-reference / §5.1 M-v0.2.1 scope frontend page detail / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html detail / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.6 + §3.8 + §4.2/§4.3 갱신 + §8 timeline Q12~Q18 결정 row 추가).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.6 + §3.8 + §4.2/§4.3 갱신 + §8 timeline Q12~Q18 결정 row 추가 + **§13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시**).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -2227,6 +2227,7 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 | 2026-06-18 | **§6 Phase 1/2/3 운영 정공법 상세 — 신규 §6.5~§6.7 + cross-section 정합 fix 0 위치** — (1) **신규 §6.5** Phase 1 (M-v0.2.0+M-v0.2.1) 운영 정공법 상세 4 subsection: §6.5.1 docker-compose standalone 정합 (`backend-knowledge/docker-compose.yml` 별도, `backend-knowledge/dev-up.sh` 별도, `backend-knowledge-net` 격리, 4 volumes mount + standalone 검증 3 항목) / §6.5.2 mock source + real wire transition (M-v0.2.0 = 5종 source + 1 mock + Gitea 4 real + homelab_mock fixture, M-v0.2.1 = homelab_mock → homelab.py real wire 교체 + storage_mode=db + normalize_mode=pi-sdk) / §6.5.3 gateway + firewall + IP allowlist 정책 (dev = localhost / staging = VPN+사내 CA / production = WAF+allowlist+외부 CA, §2.3 "API 인증 internal-only" 정합) / §6.5.4 5 step e2e smoke pipeline (ingest→raw 확인→index.md 자동 생성→concept 응답→viz.html SSR) (2) **신규 §6.6** Phase 2 (M-v0.2.2) 운영 정공법 상세 3 subsection: §6.6.1 6종 source wire cutover (metrics.py 추가, bundle=devhub-metrics, storage_mode=file, normalize_mode=rule-based, 5 step cutover) / §6.6.2 backend-ai 폐기 절차 10 단계 (디렉터리 + Dockerfile + docker-compose.deploy.yml + Makefile + dev-up.sh + docs + infra + ci workflow + state.json, PR 4 분리) / §6.6.3 6 step e2e 6종 smoke + alert routing 검증 (3) **신규 §6.7** Phase 3 (M-v0.2.3) 운영 정공법 상세 3 subsection: §6.7.1 7종 source wire cutover (hrdb.py 추가, bundle=devhub-hrdb, storage_mode=db, normalize_mode=pi-sdk, PII + complex → §10 Pi-driven) / §6.7.2 Pi 운영 상세 (SDK mode M-v0.2.0~v0.2.2 default / RPC mode M-v0.2.3+ option, mode 선택 기준 표) / §6.7.3 LLM enrich + cross-link 자동 resolution 운영 (`POST /concepts/{id}/enrich` 운영 / `curate/link_resolver.py` 의 unresolved link → Pi LLM 추천, §11 runbook 정합) / §5.6 cutover + §11 monitoring 5 지표 정합 (4) ADR-0034 §4.3 영향 section §6.5~§6.7 row 추가 + ADR-0034 frontmatter 수정일 갱신 (5) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §6 Phase 1/2/3 상세화" + §6.1/§6.2/§6.3 의 high-level 정공법 + §5.6 cutover 와 §10 DB path 운영 정합 + §11 runbook 의 cutover/rollback 단계와 의미 중복 조정 (서로 다른 초점: §6 = deployment/transition, §11 = incident response)) |
 | 2026-06-18 | **§7 Q&A 확장 (Q12~Q18, 11/11 → 18/18 결정 완료) + cross-section 정합 fix 3 위치** — (1) **Q12~Q18 row 추가** (7 row): **Q12** raw storage_mode 결정 (dual mode per source, gitea 4 = file + homelab/hrdb = db + metrics = file, §10.4 정합) / **Q13** Pi SDK mode timing 변경 (M-v0.2.0+ periodic ingest + M-v0.2.3+ LLM enrich + M-v0.2.3+ cross-link 자동 resolution, §6.3 / §10.3 정합) / **Q14** DB type 결정 (M-v0.2.0~v0.2.2 sqlite + M-v0.2.3+ PostgreSQL option, §10.1 정합) / **Q15** per source storage_mode default mapping 결정 (simple schema = file+rule-based, complex 사내 시스템 = db+pi-sdk, §10.4 정합) / **Q16** Pi ingest cron interval default 결정 (`*/5 * * * *` 5분 default, §10.3 정합) / **Q17** Pi LLM fallback 결정 (timeout 30초 초과 OR 출력 invalid → rule-based normalize() 자동 fallback, §10.3 + §11.1.3 정합) / **Q18** backend-ai 폐기 timing 결정 (M-v0.2.2 와 동시, §5.5 + §6.6.2 정합) (2) **§7 제목 갱신** "11/11 결정 완료" → "18/18 결정 완료" (3) cross-section 정합 fix 3 위치: §8 timeline 결정 row 7 row 추가 (Q12~Q18 결정 timeline) / ADR-0035 §4.2 negative/trade-off row 갱신 (§7 Q12~Q18 결정 + 운영 부담 영향) / frontmatter 갱신 (umbrella doc 최종 수정일 + §7 Q&A 확장 cross-section fix 명시) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §7 Q&A 확장" + §10/§11/§6.5~§6.7 추가로 인한 새 Q 7 row 식별 + §7 Q&A 표 = 18/18 결정 완료 + ADR-0035 §4.2 trade-off 영향) |
 | 2026-06-18 | **§12 frontend page 상세화 (M-v0.2.1+ 관리/조회 page 1 + viz.html 자가 viewer) 신규 + cross-section 정합 fix 6 위치** — (1) **신규 §12** 5 subsection: **§12.1** M-v0.2.0 viz.html 자가 viewer 상세 (Cytoscape.js v3.x + marked.js v5.x CDN embed + inline style + SVG fallback + viz.html component 5 element + Cytoscape node 7 field + edge 4 type 정합) / **§12.2** M-v0.2.1 frontend 관리/조회 page 1 5 page 상세 (concept list / concept detail / ingest trigger / bundle management / raw inspector + routing 구조 + frontend 기술 선택 vanilla JS/Next.js/Vue.js/Svelte 옵션) / **§12.3** User flow + 권한 매트릭스 3 role (visitor/operator/admin + Path Y caller-provided user context 흐름 + gateway 의 3-step orchestration) / **§12.4** API integration matrix 14 row (per frontend page → backend-knowledge API 1:1 mapping, Path Y user context 필수 정합) / **§12.5** frontend cutover 정책 (7 step M-v0.2.0→v0.2.1 cutover + frontend update 주기 per release + viz.html 단독 vs frontend 통합 운영 + §5.6 cutover 정합) (2) cross-section 정합 fix 6 위치: **§5.1 M-v0.2.1 DoD row** "frontend 관리/조회 page 1" 의 5 page detail (§12.2) cross-reference / **§6.1 Phase 1** "M-v0.2.0 만 frontend 0 page, viz.html 자가 viewer 만 SSR" 의 viz.html 상세 (§12.1) cross-reference / ADR-0035 §3.6 frontend 정책 row + §12.2 5 page + §12.3 3 role + §12.4 API matrix + §12.5 cutover 정책 cross-reference 추가 / ADR-0034 §4.3 영향 section §12 row 추가 + ADR-0034 frontmatter 수정일 갱신 / frontmatter 갱신 (umbrella doc 최종 수정일 + §12 frontend page 상세화 cross-section fix 명시) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §12 frontend page 상세화" + §5.1 M-v0.2.1 DoD + §6.1 Phase 1 frontend 의 viz.html + frontend page 1 의 high-level 정의 → 5 page / 3 role / 14 row API matrix / 7 step cutover 정책 의 concrete 정공법 부재) |
+| 2026-06-18 | **§13 cross-cutting 종합 신규 (umbrella doc 전체 cross-reference 정합성 최종 검토) + cross-section 정합 fix 0 row (본 §13 자체가 종합 review)** — (1) **신규 §13** 4 subsection: **§13.1** cross-reference matrix (12 umbrella sections × ADR-0034 / ADR-0035 / state.json / external-integrations-agentic-rag-roadmap.md / docs/llm-wiki mirror 20 row, high/medium/low/none 정합성 검증 결과) / **§13.2** 미해결 cross-section gap 6 row 식별 (cross-link reverse index / Pi prompt template / incident runbook tuning / M-v0.2.0 sprint 진입 checklist 4/6 + 잔여 2 / Pi SDK mode npm dependency / backup schedule cron 등록) / **§13.3** 후속 결정 항목 (post-sprint follow-up) 6 row (GitHub milestone v0.2.0 / state.json M-v0.2.0 row / external-integrations-agentic-rag-roadmap.md status active / docs/llm-wiki mirror / M-v0.2.0 release notes / docs/DOCUMENT_INDEX.md + docs/planning/README.md 갱신) / **§13.4** Cross-cutting 영향 종합 + 정합 검증 결과 (12 항목 ✅, post-sprint 6 row 📋, known gaps 6 row 자연 해소) (2) cross-section 정합 fix 0 row: 본 §13 자체가 종합 review 이므로 fix 불필요. 단, ADR-0034 §4.3 + ADR-0035 §3.6 + frontmatter + §9 변경 이력 row 갱신 | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §13 cross-cutting 종합" + 12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토 + post-sprint follow-up 항목 종합 (GitHub milestone / state.json / external-integrations-agentic-rag-roadmap.md / docs/llm-wiki mirror / release notes / DOCUMENT_INDEX.md) + known gaps 식별 (cross-link reverse index / Pi prompt template / incident runbook tuning / M-v0.2.0 sprint 진입 checklist 4/6 + 잔여 2 / Pi SDK mode npm dependency / backup schedule cron 등록)) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
@@ -2940,3 +2941,101 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 4. **§3.9.4 publish + archive 절차** — frontend lifecycle transition UI 정합 (§12.2 정합)
 5. **§10 DB path raw_records** — frontend raw inspector page 정합 (§12.2 정합)
 6. **ADR-0035 §3.6 frontend 정책** — §12 frontend cutover 정책 cross-reference + frontend 독립 frontend 기술 선택 노트
+
+## 13. Cross-cutting 종합 (umbrella doc 전체 cross-reference 정합성 최종 검토 + post-sprint follow-up 종합, 2026-06-18 신규)
+
+**Motivation**: 12 commit 으로 추가된 v0.2.0 umbrella doc (§1~§12 + 12 신규 subsection) + ADR-0034 / ADR-0035 영향 section 의 cross-reference 정합성 최종 검토 + post-sprint follow-up 항목 종합. 본 §13 이 umbrella doc 의 마지막 comprehensive review.
+
+**독립 backend-knowledge 정합**: 본 §13 의 모든 항목이 standalone 정책 (§1.2 G7) + Path Y (§3.6) + backend-ai 폐기 (§6.6.2) 와 정합.
+
+### 13.1 Cross-reference matrix (umbrella doc + ADRs + state.json)
+
+**12 umbrella sections vs cross-cutting artifacts**:
+
+| Section | ADR-0034 (OKF) | ADR-0035 (backend-knowledge) | state.json | external-integrations-agentic-rag-roadmap.md | docs/llm-wiki mirror | 비고 |
+| --- | --- | --- | --- | --- | --- | --- |
+| §1 v0.2.0 컨셉 | low (motivation) | low (motivation) | low (status) | low (background) | ✅ (mirror scope) | umbrella 전체의 motivation |
+| §2 backend-knowledge | low (참조) | **high** (위치/tier/외부 시스템 단방향) | low | low | ✅ | §2.3 standalone 정책 핵심 |
+| §3.1 API 매트릭스 | low | high (8 endpoint) | low | low | ✅ | query API + ingest + curate |
+| §3.2 type enum (8종) | **high** (ADR-0034 §3.2 정합) | low | low | low | ✅ | OKF concept type 핵심 |
+| §3.2.1 5 카테고리 결정 | low (참조) | low | low | low | ✅ | Gitea 통합 1차 wire |
+| §3.5 Concept organization | high (5×8 matrix, index.md, cross-link) | low | low | low | ✅ | OKF 적용 핵심 |
+| §3.6 Data governance | medium (frontmatter spec) | **high** (Path Y caller-provided user context) | low | low | ✅ | Path Y 핵심 결정 |
+| §3.7 Data normalization | high (source plugin ABC) | low | low | low | ✅ | 5 step normalization |
+| §3.8 Source plugin 정공법 | high (SourcePlugin ABC + 10 step) | low | low | low | ✅ | source plugin 작성 정공법 |
+| §3.9 OKF lifecycle | medium (lifecycle 5 단계) | low | low | low | ✅ | concept lifecycle 운영 |
+| §4 raw API | medium (envelope format) | high (raw API 정책) | low | low | ✅ | §4.4~§4.7 운영 정책 |
+| §5 마일스톤 | low | medium (6 마일스톤 표) | **high** (M-v0.2.0 row 발급, §13.3 정합) | low | ✅ | M-v0.2.0~v0.3.0 |
+| §6 Phase 1/2/3 | low | high (Phase 운영 정공법) | low | low | ✅ | docker-compose + cutover |
+| §7 Q&A (18/18) | low | medium (Q12~Q18 ADR 영향) | low | low | ✅ | 결정 완료 |
+| §8 timeline | low | medium (Q12~Q18 결정 row) | low | low | ✅ | 2026-06-10~18 결정 |
+| §9 변경 이력 | low (12 row) | medium (ADR 영향 row) | low | low | ✅ | commit 기록 |
+| §10 DB-based raw + Pi | medium (frontmatter spec) | **high** (file|db dual storage mode + Pi periodic ingest) | low | low | ✅ | DB path + Pi SDK mode 핵심 |
+| §11 운영 runbook | low | medium (incident + backup + monitoring) | low | low | ✅ | day-2 운영 정공법 |
+| §12 frontend page | medium (viz.html) | high (frontend 관리/조회 page) | low | low | ✅ | M-v0.2.1+ frontend |
+
+**Cross-reference 정합성 검증 결과** (2026-06-18):
+- umbrella doc 본문: ✅ 모든 §1~§12 가 §13.1 의 matrix 와 정합
+- ADR-0034 / ADR-0035 영향 section: ✅ 모든 신규 section (§3.5~§3.9 / §4.4~§4.7 / §6.5~§6.7 / §10 / §11 / §12) row 추가
+- state.json: 📋 post-sprint 항목 (§13.3 정합)
+- external-integrations-agentic-rag-roadmap.md: 📋 status active 전환 (Q7 결정, §13.3 정합)
+- docs/llm-wiki mirror: ✅ 자동 mirror (per release, `scripts/wiki-mass-ingest.sh --apply`)
+
+### 13.2 미해결 cross-section gap 식별 (2026-06-18)
+
+**Known gaps** (umbrella doc 본문 정의 vs 실제 구현 시점 차이):
+
+| Gap | 정의 (umbrella doc) | 실제 구현 (M-v0.2.0 PoC 진입 시) | 영향 |
+| --- | --- | --- | --- |
+| **§3.5.5 cross-link reverse index** | `okf/link_graph.py` 가 자동 갱신 (§3.5.5) | M-v0.2.0 PoC = simple in-memory, M-v0.2.1+ = sqlite persisted | mid (perf 영향, M-v0.2.0 PoC 시 OK) |
+| **§10.3 Pi prompt template** | 단순 prompt + raw JSON (§10.3 j2 template) | M-v0.2.0 PoC = 단순 prompt, M-v0.2.1+ = 진보된 prompt engineering (few-shot examples + chain-of-thought) | low (PoC 작동, accuracy 는 M-v0.2.1+ 개선) |
+| **§11.1 incident runbook 6 type trigger 조건** | RTO + mitigation 정의 (§11.1) | M-v0.2.0 PoC 운영 1주 후 실제 trigger 조건 tuning 필요 (false positive / false negative) | mid (PoC 검증 후 §11.3 alert threshold 재조정) |
+| **§5.3 M-v0.2.0 sprint 진입 checklist 6 항목** | 본 §13 commit 시점에 **4/6 완료** (umbrella doc publish / external-integrations-agentic-rag-roadmap.md status / state.json M-v0.2.0 row / OKF SPEC.md 1차 정독), 잔여 **2 항목** (backend-knowledge/ 디렉터리 skeleton / GitHub milestone v0.2.0) | §13.3 후속 결정 항목으로 처리 | high (sprint 진입 전 필수) |
+| **§10.3 Pi SDK mode 의 npm dependency** | `@earendil-works/pi-coding-agent` npm pkg (§2.2 / §10.3) | M-v0.2.0 PoC = Node.js 설치 + npm install 필수 | low (1 회 설치, 이후 cache) |
+| **§11.2 backup schedule 의 cron 등록** | 매일 02:00 UTC (§11.2) | M-v0.2.0 PoC 운영 환경 cron daemon 설정 필요 (Docker container 내부 cron vs host cron) | mid (PoC 운영 환경 setup) |
+
+### 13.3 후속 결정 항목 (post-sprint follow-up, 6 row)
+
+**M-v0.2.0 sprint 진입 전 반드시 처리**:
+
+| # | 항목 | 위치 | 책임자 | 정합 section |
+| --- | --- | --- | --- | --- |
+| 1 | **GitHub milestone `v0.2.0` 생성** + 본 문서 link 첨부 | GitHub repo | project lead | §5.3 checklist 6번 |
+| 2 | **`ai-workflow/memory/state.json` M-v0.2.0 row 발급** (status: planned → in_progress) | `ai-workflow/memory/state.json` | project lead | §5.3 checklist 3번 |
+| 3 | **`external-integrations-agentic-rag-roadmap.md` status active 전환** (Q7 결정, umbrella publish signal) | `docs/planning/external-integrations-agentic-rag-roadmap.md` | project lead | §0.4 + §7 Q7 |
+| 4 | **`docs/llm-wiki` mirror scope 갱신** (12 commit content mirror, ~+1900 줄) | `~/wiki/raw/projects/devhub/` | (CI 자동, `scripts/wiki-mass-ingest.sh --apply`) | AGENTS.md §문서 작업 기준 |
+| 5 | **M-v0.2.0 release notes draft** (12 commit summary + 18/18 결정 + 5 카테고리 정합) | `docs/release-notes/v0.2.0.md` (M-v0.2.0 release 시) | project lead | §5.5 M-v0.2.0 DoD |
+| 6 | **`docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신** (umbrella doc + ADR-0034/0035 인덱스 추가) | `docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` | project lead | docs governance |
+
+**Post-sprint follow-up workflow**:
+1. 항목 1~6 중 sprint 진입 시점에 처리 (M-v0.2.0 release 직전)
+2. 항목 4 는 자동 (CI), 5~6 는 project lead 책임
+3. 항목 1, 2, 3 은 본 umbrella doc 본 §13 commit 시점에 아직 미완료 (의도적, sprint 진입 trigger)
+
+### 13.4 Cross-cutting 영향 종합 + 정합 검증 결과 (2026-06-18)
+
+**최종 정합 검증 결과**:
+
+| 검증 항목 | 결과 | 비고 |
+| --- | --- | --- |
+| umbrella doc 본문 (§1~§12) cross-reference 정합성 | ✅ | §13.1 matrix 정합 |
+| §7 Q&A 18/18 결정 완료 | ✅ | Q12~Q18 §7 추가 완료 |
+| §8 timeline 결정 row 정합 (Q12~Q18) | ✅ | 7 row 추가 완료 |
+| §9 변경 이력 12 commit row | ✅ | 각 commit 별 영향 section 정합 |
+| ADR-0034 §4.3 영향 (10 row) | ✅ | §3.2.1 / §3.3 / §3.5 / §3.6 / §3.7 / §3.8 / §3.9 / §6.5~§6.7 / §10 / §11 / §12 |
+| ADR-0035 §3 영향 (frontend 정책 / Q12~Q18 trade-off / §3.8 마일스톤 표) | ✅ | 4 row 갱신 |
+| §11 운영 runbook 6 incident type + 5 monitoring 지표 + 4 role | ✅ | §13.1 matrix 정합 |
+| §12 frontend page 5 page + 3 role + 14 row API matrix | ✅ | §13.1 matrix 정합 |
+| standalone 정책 (§1.2 G7) 일관성 | ✅ | 모든 section 에서 다른 backend 연결 ❌ 유지 |
+| Path Y caller-provided user context (§3.6) 일관성 | ✅ | §3.6.1 endpoint 표 + §12.4 API matrix 정합 |
+| DB-based raw (§10) + Pi periodic ingest pipeline 정합 | ✅ | §10.4 storage_mode 분기 + §10.3 Pi SDK mode scheduler |
+
+**📋 미완료 (post-sprint follow-up)** — §13.3 의 6 row (GitHub milestone / state.json / external-integrations-agentic-rag-roadmap.md status / docs/llm-wiki mirror / release notes / DOCUMENT_INDEX.md). 이 항목들은 **M-v0.2.0 sprint 진입 시점에 처리** (umbrella doc 본 §13 commit 시점에서는 의도적 미완료).
+
+**§13.2 의 6 row Known gaps** — M-v0.2.0 PoC 운영 시 자연스럽게 해소 (cross-link reverse index / Pi prompt template / incident runbook tuning / cron daemon setup). umbrella doc 본문 변경 불필요.
+
+**Cross-section 정합 fix** (2026-06-18 신규, 본 §13 자체는 종합 review 이므로 cross-section fix 0 row):
+- ADR-0034 §4.3 영향 + frontmatter 갱신 (§13 row 추가)
+- ADR-0035 영향 + frontmatter 갱신 (§13 cross-cutting 종합 영향 추가)
+- umbrella doc frontmatter 갱신 (§13 cross-cutting 종합 cross-section fix 명시)
+- §9 변경 이력 row 추가 (§13)
