@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook — §3.2.1 보강 + 신규 §3.5~§3.9 (concept organization / governance / normalization / source plugin 작성 / lifecycle) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 + 신규 §5.4~§5.7 마일스톤 상세화 + 신규 §10 DB-based raw + Pi periodic ingest pipeline (file|db dual storage mode) + 신규 §11 운영 runbook (incident 6 type + backup/restore + monitoring 5 지표 + alert routing + on-call 4 role). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 monitoring cross-reference / §5.1 M-v0.2.0 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 day-2 운영 / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 — §3.2.1 보강 + 신규 §3.5~§3.9 (concept organization / governance / normalization / source plugin 작성 / lifecycle) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 + 신규 §5.4~§5.7 마일스톤 상세화 + 신규 §10 DB-based raw + Pi periodic ingest pipeline (file|db dual storage mode) + 신규 §11 운영 runbook (incident 6 type + backup/restore + monitoring 5 지표 + alert routing + on-call 4 role) + 신규 §6.5 Phase 1 docker-compose standalone + mock-real wire + gateway+firewall + e2e smoke + §6.6 Phase 2 6종 wire cutover + backend-ai 폐기 10 단계 + 6 step e2e 6종 smoke + §6.7 Phase 3 7종 wire cutover (hrdb) + Pi 운영 상세 (SDK/RPC mode) + LLM enrich + cross-link 자동 resolution). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 monitoring cross-reference / §5.1 M-v0.2.0 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 day-2 운영 / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -1917,6 +1917,220 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 - **§10 cross-section**: Pi 의 역할이 (a) db mode source 의 periodic ingest (M-v0.2.0+) + (b) LLM enrich (M-v0.2.3+) + (c) cross-link 자동 resolution (M-v0.2.3+) 의 3 가지로 확장. (a) 가 가장 먼저 activate.
 - **풀 RAG** (M-v0.3.0): chunking + embedding + vector index + retrieval + reranking
 
+### 6.5 Phase 1 운영 정공법 상세 (M-v0.2.0 + M-v0.2.1, 2026-06-18 신규)
+
+**§6.1 의 high-level 정공법 보강** — Phase 1 의 docker-compose standalone 정합 + gateway/firewall 정책 + e2e smoke pipeline 상세.
+
+#### 6.5.1 docker-compose standalone 정합 (§2.1 + §6.1 보강)
+
+**`backend-knowledge/docker-compose.yml` (별도, root 와 무관)**:
+- services:
+  - `backend-knowledge`: FastAPI app (port 8000), image: `backend-knowledge:v0.2.0` (PoC)
+  - `db` (M-v0.2.0 PoC = sqlite, M-v0.2.3+ = postgres): §10.1 정합
+- networks:
+  - `backend-knowledge-net` (별도, backend-core-net 와 격리, §1.2 G7 + §2.3 standalone 정합)
+- volumes:
+  - `./var/bundles:/app/var/bundles` (git 가능)
+  - `./var/raw:/app/var/raw` (file mode 일 때, .gitignore 정합 §4.4)
+  - `./var/raw_index.db:/app/var/raw_index.db` (db mode 일 때, §10.1)
+  - `./var/fixtures:/app/var/fixtures` (homelab_mock PoC)
+
+**`backend-knowledge/dev-up.sh` (별도 스크립트)**:
+```bash
+#!/bin/bash
+# dev-up.sh: backend-knowledge 만 단독 기동 (root level 무관)
+set -euo pipefail
+docker compose -f backend-knowledge/docker-compose.yml up -d
+echo "backend-knowledge started at http://localhost:8000"
+echo "viz.html: http://localhost:8000/viz.html"
+echo "API docs: http://localhost:8000/docs"
+```
+
+**Standalone 정합 검증** (per release):
+- (a) `docker compose up -d` 시 backend-core 와의 네트워크 격리 확인 (`docker network ls`)
+- (b) root level 의 `docker-compose.colima.yml` / `docker-compose.deploy.yml` / `dev-up.sh` 사용 ❌ (no docker compose from root)
+- (c) port 충돌 없음 (backend-core 가 8001+ 사용 가정)
+
+#### 6.5.2 Mock source + real wire transition (M-v0.2.0 → M-v0.2.1)
+
+**M-v0.2.0 PoC = 5종 source + 1 mock**:
+- `gitea_repo_pull.py` / `gitea_issue.py` / `gitea_wiki.py` / `gitea_action.py` = **real wire** (Gitea 1 instance, PoC 단계)
+- `homelab_mock.py` = **filesystem fixture** (`var/fixtures/homelab/*.json`)
+
+**M-v0.2.1** = `homelab_mock.py` → `homelab.py` (real wire) 교체:
+- homelab.py 의 SourceMeta.storage_mode = `db` (Pi-driven normalize, §10.4 default)
+- homelab.py 의 SourceMeta.normalize_mode = `pi-sdk` (M-v0.2.0 PoC SDK mode, §10.3)
+- mock.py 는 deprecated (M-v0.2.1+ source plugin registry 에서 제거, but backward compat 유지)
+- `homelab` 의 source plugin ABC 의 `connect()` method 가 HTTP API 호출 (homelab agent 의 /api/v1/nodes, /api/v1/services)
+
+**§10.4 storage_mode 전환 정책**:
+- M-v0.2.0 PoC: `homelab_mock` = file (fixture 기반), `homelab` 도입 시 db 모드 (§10.4 default mapping)
+- M-v0.2.1+: `homelab` = db (Pi-driven), `homelab_mock` = 운영 종료 (단, fallback 용도 유지, M-v0.3.0+ deprecated)
+
+#### 6.5.3 Gateway + firewall + IP allowlist 정책
+
+**gateway 책임** (caller, §3.6.1 Path Y 정합):
+- (a) Keycloak 인증 + user context 추출 (DevHub backend-core 의 Keycloak federation 정합)
+- (b) `X-DevHub-User-Context` header 생성 (base64url(json) format)
+- (c) backend-knowledge 호출 (HTTP)
+- (d) backend-knowledge 응답의 envelope filter 결과를 user 에게 반환
+
+**firewall / IP allowlist 정책** (per environment):
+
+| Environment | 정책 | IP allowlist | TLS |
+| --- | --- | --- | --- |
+| **dev** (local) | localhost 만 | 127.0.0.1, ::1 | ❌ (plaintext) |
+| **staging** (사내) | VPN or bastion host | 10.0.0.0/8 (사내) | ✅ (self-signed or 사내 CA) |
+| **production** (외부) | WAF + IP allowlist | 화이트리스트 (운영자 결정) | ✅ (Let's Encrypt or 사외 CA) |
+
+**§2.3 의 "API 인증: internal-only, no auth + gateway/firewall/IP allowlist"** 정합. backend-knowledge 자체는 firewall 보호 + gateway caller 책임 인증 (Path Y, §3.6.1).
+
+#### 6.5.4 E2E smoke pipeline (M-v0.2.0 PoC, 5종)
+
+**5 step e2e smoke** (per source):
+```
+Step 1: POST /api/v0-2/ingest/gitea_repo_pull/sync (real Gitea instance)
+Step 2: raw_records / var/raw/ 확인 (storage_mode 별)
+Step 3: bundle/index.md 자동 생성 확인
+Step 4: GET /api/v0-2/concepts/integration_gitea_repo_puller 정상 응답
+Step 5: viz.html SSR 확인 (cross-link node 표시)
+```
+
+**5종 PoC source plugin** e2e smoke 1 cycle = ~5분 (real Gitea + fixture). CI e2e lane = PR merge 시 자동 실행 (M-v0.2.1+).
+
+### 6.6 Phase 2 운영 정공법 상세 (M-v0.2.2, 2026-06-18 신규)
+
+**§6.2 의 high-level 정공법 보강** — Phase 2 의 6종 source wire cutover + backend-ai 폐기 절차 + e2e 6종 smoke 상세.
+
+#### 6.6.1 6종 source wire cutover (5 → 6종, metrics 추가)
+
+**metrics.py 추가** (Prometheus scrape API):
+- SourceMeta:
+  - bundle = `devhub-metrics`
+  - category = `(5 카테고리 외)`
+  - storage_mode = `file` (§10.4 default, operational metric 단순)
+  - normalize_mode = `rule-based`
+- Endpoint: `/api/v1/query?query=...` (Prometheus HTTP API)
+- Emit types: `metric`, `reference`, `api_endpoint` (§3.7.2 정합)
+- Credential: bearer token (optional, M-v0.2.2+ Prometheus scrape config 정합)
+
+**Cutover 절차** (M-v0.2.1 → M-v0.2.2):
+```
+Step 1: metrics.py 작성 + 단위 테스트 (§3.8.4 10 step 절차)
+Step 2: e2e smoke (5종 → 5종 + metrics = 6종)
+Step 3: §5.6 cutover checklist 8 항목 통과
+Step 4: metrics.py merge + docker-compose 재기동
+Step 5: 운영 검증 (1주 monitoring 지표 정상)
+```
+
+#### 6.6.2 backend-ai 폐기 절차 (단계별, M-v0.2.2 정공법)
+
+**폐기 단계** (per file/directory):
+
+| 단계 | 대상 | 작업 | 영향 |
+| --- | --- | --- | --- |
+| 1 | `backend-ai/main.py` | ADR-0035 §6 supersession 에 따라 제거 | (no backend reference) |
+| 2 | `backend-ai/Dockerfile` | 제거 | docker image 빌드 제외 |
+| 3 | `backend-ai/.venv` / `.build` | git rm | repo size 감소 |
+| 4 | `docker-compose.deploy.yml` 의 backend-ai service | 제거 (root level) | root `dev-up.sh` 영향 |
+| 5 | root `Makefile` 의 backend-ai target | 제거 | root Makefile 영향 |
+| 6 | root `dev-up.sh` 의 backend-ai target | 제거 | root dev script 영향 |
+| 7 | `docs/` 의 backend-ai reference (있는 경우) | 제거 | docs 영향 |
+| 8 | `infra/` 의 backend-ai config (있는 경우) | 제거 | infra 영향 |
+| 9 | ci workflow (`ci-internal.yml`) 의 backend-ai job | 제거 | CI 영향 |
+| 10 | `ai-workflow/memory/state.json` 의 backend-ai row | 제거 (archive) | state 정합 |
+
+**PR 분리** (per AGENTS.md / §5.7):
+- PR 1: backend-ai/ 디렉터리 + Dockerfile + main.py 제거
+- PR 2: root level 정리 (docker-compose, Makefile, dev-up.sh)
+- PR 3: docs + infra + ci 정리
+- PR 4: state.json archive
+
+**각 PR 의 DoD**:
+- (a) grep `backend-ai` 결과 = 0 (단, archive reference 제외)
+- (b) docker compose 가동 정상 (backend-knowledge 만)
+- (c) ADR-0035 §6 supersession row 추가
+
+#### 6.6.3 E2E 6종 smoke + alert routing 검증
+
+**6 step e2e smoke** (per source, M-v0.2.2):
+```
+Step 1: POST /api/v0-2/ingest/{gitea_repo_pull|gitea_issue|gitea_wiki|gitea_action|homelab|metrics}/sync
+Step 2: raw_records / var/raw/ 확인 (storage_mode 별, §10.4)
+Step 3: bundle/index.md 자동 생성 (per-bundle/per-category 6 bundle)
+Step 4: GET /api/v0-2/concepts/{type}/{name} 정상 응답 (per source 1+ concept)
+Step 5: viz.html SSR 확인 (6 source 의 concept 표시)
+Step 6: alert routing 검증 (Slack #backend-knowledge-critical 채널, 1 test alert 발송)
+```
+
+**6종 smoke 1 cycle = ~10분**. CI e2e lane = PR merge 시 자동 실행.
+
+### 6.7 Phase 3 운영 정공법 상세 (M-v0.2.3, 2026-06-18 신규)
+
+**§6.3 의 high-level 정공법 보강** — Phase 3 의 hrdb 추가 + Pi 운영 상세 + LLM enrich 운영 상세.
+
+#### 6.7.1 7종 source wire cutover (6 → 7종, hrdb 추가)
+
+**hrdb.py 추가** (사내 HR DB PostgreSQL):
+- SourceMeta:
+  - bundle = `devhub-hrdb`
+  - category = `(5 카테고리 외, x_devhub_category 미설정)`
+  - storage_mode = `db` (§10.4 default, PII + 복잡)
+  - normalize_mode = `pi-sdk` (Pi-driven normalize, §10.3)
+- Endpoint: PostgreSQL connection string + SELECT query (사내 schema)
+- Emit types: `dataset`, `reference`, `metric` (§3.7.2 정합, PII → Pi 가 semantic 처리)
+- Credential: PostgreSQL connection (봉투 암호화, ADR-0025 정합)
+
+**Cutover 절차** (M-v0.2.2 → M-v0.2.3):
+```
+Step 1: hrdb.py 작성 + §3.8.4 10 step 절차 (storage_mode=db 정합)
+Step 2: §10.3 Pi ingest pipeline 검증 (homelab_mock → hrdb 전환)
+Step 3: §5.6 cutover checklist 8 항목 통과
+Step 4: hrdb.py + §10.3 변경사항 merge + docker-compose 재기동
+Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
+```
+
+#### 6.7.2 Pi 운영 상세 (SDK mode M-v0.2.0~v0.2.2 + RPC mode M-v0.2.3+)
+
+**SDK mode** (M-v0.2.0~v0.2.2, default):
+- `@earendil-works/pi-coding-agent` npm pkg (Node.js subprocess)
+- Python `subprocess.Popen` 으로 `node` 실행
+- stdin/stdout JSON message passing
+- 매 ingest job 마다 subprocess 시작/종료 (latency 1~3초 overhead)
+- 장점: 단순, stateless, 실패 isolation
+- 단점: latency, resource (Node 매번 시작)
+
+**RPC mode** (M-v0.2.3+, option):
+- long-running JSON-RPC connection (Node server 시작 후 stdin/stdout 으로 message passing)
+- 한 번 Node 시작 후 여러 ingest job 처리
+- 장점: latency 감소 (~100ms), resource 효율
+- 단점: stateful (실패 시 connection 관리 필요)
+
+**Mode 선택 기준**:
+- M-v0.2.0 PoC: SDK mode (단순)
+- M-v0.2.1+: SDK mode 유지 (1 source 만 Pi-driven = homelab_mock)
+- M-v0.2.3+: RPC mode option 추가 (hrdb 추가 + 2 source Pi-driven)
+- §11.1.3 Pi ingest pipeline timeout/degraded runbook 정합
+
+#### 6.7.3 LLM enrich + cross-link 자동 resolution 운영 (M-v0.2.3+)
+
+**POST /api/v0-2/concepts/{id}/enrich** 운영 (§3.1 + §6.3 정합):
+- Trigger: 운영자 또는 frontend 관리자가 concept ID 지정
+- Pi SDK mode (default) 또는 RPC mode 호출
+- Input: 기존 concept 의 frontmatter + body
+- Output: Pi 가 LLM enrich 한 새 concept (audit log)
+- 새 version 의 concept emit (`x_devhub_version` increment, §3.9 정합)
+
+**cross-link 자동 resolution** 운영 (§3.5.5 + §6.3 정합):
+- `curate/link_resolver.py` 가 unresolved link 발견 시 Pi LLM 호출
+- Pi 가 "가장 유사한 concept 추천" (vector similarity + LLM semantic)
+- 추천 결과 운영자 승인 시 cross-link 자동 추가 (M-v0.2.3+ frontend)
+
+**§11 운영 runbook 정합**:
+- §11.1.3 Pi ingest pipeline timeout/degraded runbook = 본 §6.7.2 정합
+- §11.1.6 archive trigger 실패 = 본 §6.7.3 LLM enrich 의 superseded trigger 정합
+- §11.3 monitoring 5 지표 = 본 §6.7 운영 지표 (sync / Query p95 / integrity / Pi ingest success / archive trigger) 정합
+
 ### 6.4 source plugin 작성 표 (외부 시스템 API spec 기반, 0에서 Python 작성)
 
 | 외부 시스템 API | 카테고리 | 신규 위치 | 작성 시점 | 비고 |
@@ -1996,6 +2210,7 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 | 2026-06-18 | **§5 마일스톤 상세화 — 신규 §5.4~§5.7 + cross-section 정합 fix 3 위치** — (1) **신규 §5.4** dependency graph + critical path (6 마일스톤 linear 의존 표 + critical path linear 표시 + 병렬 가능 sprint 4 case + risk analysis 3 case) / **§5.5** 마일스톤별 DoD (M-v0.2.0-alpha/M-v0.2.0/M-v0.2.1/M-v0.2.2/M-v0.2.3/M-v0.3.0 별 5 항목 DoD: 코드/문서 / 검증 / ADR 영향 / 운영 / cross-section 정합) / **§5.6** cutover 절차 + rollback plan (6 step cutover + 4 trigger rollback 표 + RTO + 5 monitoring 지표 + 8 항목 cutover checklist) / **§5.7** parallel sprint + PR 전략 (per 마일스톤 권장 PR 수 6 row + PR 의존성 정합 + branch prefix 전략 + PR template + 머지 후 처리) (2) cross-section 정합 fix 3 위치: §5.1 마일스톤 표 cross-reference (각 마일스톤 scope 가 §5.5 DoD 와 1:1 정합) / §5.3 sprint 진입 checklist 6 항목 cross-reference (§5.5 M-v0.2.0 DoD 의 (e) cross-section 정합) / ADR-0035 §3.8 마일스톤 표 cross-reference note 추가 (§5 정합, §5.5 DoD 의 (a) 코드/문서 + (b) 검증 정합) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §5 마일스톤 상세화" + §5.1/§5.2/§5.3 의 high-level 정의 + M-v0.2.0~v0.3.0 6 마일스톤 별 DoD + cutover + rollback + parallel sprint PR 전략 정의) |
 | 2026-06-18 | **§10 DB-based raw + Pi periodic ingest pipeline 신규 + cross-section 정합 fix 5 위치** — (1) **신규 §10** 4 subsection: **§10.1** DB storage + schema (`raw_records` table 14 field + sqlite M-v0.2.0 PoC / PostgreSQL M-v0.2.3+ + 봉투 암호화 ADR-0025 + 4 index idx_raw_records_source_received/visibility/ingested/ingest_lock + `storage_mode` per source_meta 정합) / **§10.2** DB CRUD + 데이터 처리 API 8 endpoint (POST/GET/PATCH/DELETE + list(filter+sort+pagination) + aggregate(group_by/count/sum/avg) + full-text search + ingest-status, Path Y caller-provided user context 필수, OpenAPI security scheme) / **§10.3** Periodic Pi ingest pipeline (SDK mode M-v0.2.0 PoC + 8 step pipeline: scheduler → SELECT raw_records → set ingest_lock → decrypt → Pi LLM normalize → validate → emit OKF concept → update raw_records + trigger lifecycle §3.9 / Pi prompt template j2 / failure handling: timeout 30초 + degraded flag + Pi LLM unreachable → rule-based fallback) / **§10.4** Source path vs DB path 분기 (per source `storage_mode: file|db` + `normalize_mode: rule-based|pi-sdk|pi-rpc` + default mapping 표 7 row: gitea_repo_pull = file/rule-based, gitea_issue = file/rule-based, gitea_wiki = file/rule-based, gitea_action = file/rule-based, homelab_mock = db/pi-sdk, metrics = file/rule-based, hrdb = db/pi-sdk, 운영자 override 가능) (2) cross-section 정합 fix 5 위치: §4.1 정책 정의 표 "저장 위치" + "API" row 갱신 (file path + DB path dual mode 명시) / §3.7 normalization pipeline 에 DB path + Pi driver 추가 (§10.4 storage_mode 분기 명시) / §3.8.1 SourceMeta 에 `storage_mode` + `normalize_mode` + `ingest_schedule` 3 field 추가 + §3.8.4 Step 2 SourceMeta 정의 의 storage_mode 결정 단계 추가 / §6.3 Phase 3 LLM enrich 의 Pi 의 역할 갱신 (Pi 의 3 역할: db mode source periodic ingest M-v0.2.0+ / LLM enrich M-v0.2.3+ / cross-link 자동 resolution M-v0.2.3+) / ADR-0034 §4.3 영향 section §10 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "추가 컨셉 정리해보자. raw에 해당하는 1차 데이터는 종전의 시스템들과 동일하게 db에 데이터를 수집하고 crud를 비롯한 데이터 처리 용 api를 제공할거야. db에 저장된 데이터는 주기적으로 ai (여기서는 pi 경유)를 통하여 ingest하도록 구성해보자." 결정 + 4-option 질문 응답 "(A) default 추천값" (gitea 4 = file/rule-based + homelab/hrdb = db/pi-sdk + metrics = file, Pi SDK mode M-v0.2.0 PoC + sqlite M-v0.2.0 / PostgreSQL M-v0.2.3+ + source_meta 의 storage_mode + normalize_mode field 추가 + 8 DB CRUD endpoint + 8 step Pi ingest pipeline + per source default mapping) |
 | 2026-06-18 | **§11 운영 runbook (day-2 운영 정공법) 신규 + cross-section 정합 fix 4 위치** — (1) **신규 §11** 4 subsection: **§11.1** Incident 대응 runbook 6 type (source plugin sync 실패 §11.1.1 / credential 만료 §11.1.2 / Pi ingest pipeline timeout-degraded §11.1.3 / retention cron 실패 §11.1.4 / integrity violation §11.1.5 / archive trigger 실패 §11.1.6 — per trigger / detection / triage / mitigation / recovery 구조, RTO < 30분/< 1시간/< 4시간/< 15분/< 1시간) / **§11.2** Backup + restore 절차 (5 backup 대상: DB / var/bundles/ / var/raw/ / .env-KEK / governance field + per storage mode backup 방법 + retention 정책 일별 7일 / 주별 4주 / 월별 12개월 + restore 5 step 절차 + RTO 5 target + 분기 1회 restore drill) / **§11.3** Monitoring + alert routing (5 monitoring 지표: source plugin sync 성공률 / Query API p95 latency / raw 정합성 violation rate / Pi ingest pipeline success rate / concept archive trigger 정상 작동 + 3 tier alert routing info/warning/critical + alert message template + alert deduplication 5분) / **§11.4** On-call 운영 + role 정의 (4 role: backend-knowledge operator / source plugin developer / Pi LLM curator / security auditor + M-v0.2.0 1 person / M-v0.2.1+ 1주 rotation + Operator training per release) (2) cross-section 정합 fix 4 위치: §1.2 G7 standalone 유지 정책 노트 보강 ("day-2 운영도 standalone — §11 의 운영 runbook 다른 backend 모니터링 도구 공유 ❌") / §4.7 raw 정합성 검증 의 audit log 7 event 표 + §11.3 monitoring 5 지표 cross-reference / §5.6 cutover checklist 8 항목 + §11 운영 runbook 정합 (cutover rollback trigger → §11.1 incident runbook 자동 활성화) / §6.1 Phase 1 운영 정공법 에 "day-2 운영 = §11 운영 runbook 정공법 적용 (M-v0.2.0 PoC = 1 operator, §11.4)" 추가 / ADR-0034 §4.3 영향 section §11 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §11 운영 runbook" + §4.7 raw 정합성 검증 + §5.6 cutover/rollback 의 운영 연속 + §6 Phase 운영 정공법 + day-2 운영 정공법 (incident 대응 + backup/restore + monitoring/alert + on-call) 의 umbrella doc 본문 정공법 부재) |
+| 2026-06-18 | **§6 Phase 1/2/3 운영 정공법 상세 — 신규 §6.5~§6.7 + cross-section 정합 fix 0 위치** — (1) **신규 §6.5** Phase 1 (M-v0.2.0+M-v0.2.1) 운영 정공법 상세 4 subsection: §6.5.1 docker-compose standalone 정합 (`backend-knowledge/docker-compose.yml` 별도, `backend-knowledge/dev-up.sh` 별도, `backend-knowledge-net` 격리, 4 volumes mount + standalone 검증 3 항목) / §6.5.2 mock source + real wire transition (M-v0.2.0 = 5종 source + 1 mock + Gitea 4 real + homelab_mock fixture, M-v0.2.1 = homelab_mock → homelab.py real wire 교체 + storage_mode=db + normalize_mode=pi-sdk) / §6.5.3 gateway + firewall + IP allowlist 정책 (dev = localhost / staging = VPN+사내 CA / production = WAF+allowlist+외부 CA, §2.3 "API 인증 internal-only" 정합) / §6.5.4 5 step e2e smoke pipeline (ingest→raw 확인→index.md 자동 생성→concept 응답→viz.html SSR) (2) **신규 §6.6** Phase 2 (M-v0.2.2) 운영 정공법 상세 3 subsection: §6.6.1 6종 source wire cutover (metrics.py 추가, bundle=devhub-metrics, storage_mode=file, normalize_mode=rule-based, 5 step cutover) / §6.6.2 backend-ai 폐기 절차 10 단계 (디렉터리 + Dockerfile + docker-compose.deploy.yml + Makefile + dev-up.sh + docs + infra + ci workflow + state.json, PR 4 분리) / §6.6.3 6 step e2e 6종 smoke + alert routing 검증 (3) **신규 §6.7** Phase 3 (M-v0.2.3) 운영 정공법 상세 3 subsection: §6.7.1 7종 source wire cutover (hrdb.py 추가, bundle=devhub-hrdb, storage_mode=db, normalize_mode=pi-sdk, PII + complex → §10 Pi-driven) / §6.7.2 Pi 운영 상세 (SDK mode M-v0.2.0~v0.2.2 default / RPC mode M-v0.2.3+ option, mode 선택 기준 표) / §6.7.3 LLM enrich + cross-link 자동 resolution 운영 (`POST /concepts/{id}/enrich` 운영 / `curate/link_resolver.py` 의 unresolved link → Pi LLM 추천, §11 runbook 정합) / §5.6 cutover + §11 monitoring 5 지표 정합 (4) ADR-0034 §4.3 영향 section §6.5~§6.7 row 추가 + ADR-0034 frontmatter 수정일 갱신 (5) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §6 Phase 1/2/3 상세화" + §6.1/§6.2/§6.3 의 high-level 정공법 + §5.6 cutover 와 §10 DB path 운영 정합 + §11 runbook 의 cutover/rollback 단계와 의미 중복 조정 (서로 다른 초점: §6 = deployment/transition, §11 = incident response)) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
