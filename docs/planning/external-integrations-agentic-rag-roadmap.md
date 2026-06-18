@@ -3,7 +3,8 @@
 - **문서 목적**: 현재 `backend-core/internal/infrastructure/` (Gitea, CI, commandworker, HRDB, serviceaction) + `backend-core/internal/integrations/adapters/` (homelab, task_item_puller, metrics) 의 **외부 시스템 연동** 기능을 (1) `agentic-integrations/` 로 명명 재구성 + (2) agentic RAG 기반 long-term 진화 방향을 정리한다. **Keycloak 은 제외** — Keycloak 은 사내 IdP 인프라 (DevHub 가 인증받는 곳) 로서 **외부 시스템이 아님**. Keycloak 의 port interface 는 §0.5 재정의 참조.
 - **범위**: backend domain layer 와의 의존 방향, adapter 패턴, agentic RAG 통합 비전, P0~P3 마일스톤.
 - **대상 독자**: backend / frontend / AI / ops 트랙 담당자, 후속 sprint 작업자, owner.
-- **상태**: accepted (2026-06-17 publish, umbrella doc `release_v0-2_roadmap.md` §0.1 child + Q7 결정 기반 active 전환)
+- **상태**: **active** (2026-06-18, §17.3 post-sprint follow-up P0 row 3 처리 — Q7 결정 기반 umbrella publish signal trigger: PR #645 MERGED 2026-06-18 + GitHub milestone v0.2.0 #4 생성 + state.json M-v0.2.0 row 갱신)
+- **status history**: planned (draft, 2026-06-10 결정) → accepted (2026-06-17 publish, umbrella doc `release_v0-2_roadmap.md` §0.1 child) → **active (2026-06-18, §17.3 P0 row 3 처리)**
 - **결정 근거**: [PR #531 §6.7 명명 재검토](../governance/worker_division.md#67-명명-재검토-2026-06-10) + 사용자 2026-06-10 결정 (외부 시스템 연동 = agentic RAG 와 함께 발전).
 - **관련 문서**: [`docs/governance/worker_division.md` §6 사외/사내 2-tier 분업](../governance/worker_division.md), [`docs/governance/worker_division.md` §6.3.3 directory tier SoT](../governance/worker_division.md#633-tier-매핑-sot--1차-분류), [`docs/planning/external_integration_capability_matrix.md`](./external_integration_capability_matrix.md), [`docs/planning/external_system_integration_concept.md`](./external_system_integration_concept.md), [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md), [ADR-0025 봉투 암호화](../adr/0025-envelope-encryption-key-management.md).
 
