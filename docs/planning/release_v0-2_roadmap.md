@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 — §3.2.1 보강 (대표 concept frontmatter 예시) + 신규 §3.5 "Concept organization" (5 subsection: orthogonal axes 원칙 / 5×8 matrix / bundle 디렉터리 + concept 예시 / index.md 3종 자동 생성 규칙 / cross-link 4종 rule) + 신규 §3.6 "Data governance & query scoping" (5 subsection: caller-provided user context schema+trust model / curation governance model / 4-tier query scope priority / frontmatter 5 governance field extension / cross-section 정합 fix 8 위치) + 신규 §3.7 "Data normalization pipeline" (5 subsection: 5 step normalization 원칙 / per-source type mapping 7 source / cross-source 동질화 / normalize algorithm pseudocode / edge cases + degraded) + 신규 §3.8 "Source plugin 작성 정공법" (5 subsection: SourcePlugin ABC 인터페이스 / Gitea 4 sub-plugin 정공법 / homelab_mock 정공법 / 신규 source 추가 10 step 절차 / 3 tier 검증) + cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + curate/enricher.py / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.7.2 per-source mapping + §3.8 cross-reference / §4.1 정책 정의 인증 row / §5.1 M-v0.2.0 scope / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §4.2/§4.3 갱신).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + §4 1차 raw API 심화 — §3.2.1 보강 + 신규 §3.5 "Concept organization" + 신규 §3.6 "Data governance & query scoping" + 신규 §3.7 "Data normalization pipeline" + 신규 §3.8 "Source plugin 작성 정공법" + 신규 §4.4~§4.7 raw 운영/API 권한/정합성 정책 (봉투 암호화 ADR-0025 + .gitignore per source + retention default 90일 + storage quota 1GB/bundle + endpoint 별 권한 + 1 raw → N concepts + raw 삭제 시 concept 처리 3 mode + sha256 정합성 검증 + audit 7 event) + cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 raw 4 row / §3.7.2 per-source mapping / §4.1 정책 정의 표 9 row 보강 / §5.1 M-v0.2.0 scope / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -128,8 +128,8 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 │   ├── admin/                             # 관리 page (raw 등록 / ingest trigger / rebuild)
 │   └── ...
 ├── var/
-│   ├── raw/                               # 1차 raw 데이터 (§4 API 정책) — 봉투 암호화 (ADR-0025), .gitignore 권장
-│   │   └── {source}/{slug}.json           # 예: homelab/2026-06-17-foo.json
+│   ├── raw/                               # 1차 raw 데이터 (§4 API 정책 + §4.4 raw 운영 정책) — 봉투 암호화 (ADR-0025) + .gitignore (민감 source, §4.4 표) + retention default 90일 + storage quota default 1GB/bundle
+│   │   └── {source}/{slug}.json           # 예: homelab/2026-06-17-foo.json (sha256 + received_at + visibility)
 │   └── bundles/                           # OKF bundle 저장 (git 가능, Markdown + frontmatter)
 │       ├── devhub-homelab/                # homelab source 의 OKF bundle (M-v0.2.1 정식 운영)
 │       ├── devhub-gitea/                  # gitea 4 sub-plugin 의 OKF bundle (M-v0.2.0 PoC / v0.2.1 정식, Gitea 1 instance 단일 bundle)
@@ -645,8 +645,10 @@ X-DevHub-User-Context: <base64url(json)>
 | `POST /api/v0-2/concepts/{id}/enrich` | **권장** (LLM enrich usage attribution) | 200 (anonymous curator) |
 | `POST /api/v0-2/bundles/{bundle}/rebuild` | **권장** (audit attribution) | 200 (system rebuild) |
 | `POST /api/v0-2/ingest/{source}/sync` | **권장** (audit attribution) | 200 (system sync) |
-| `POST /api/v0-2/raw` (1차 raw 등록) | **권장** (provenance attribution) | 200 (anonymous raw) |
-| `GET /api/v0-2/raw/{type}/{name}` | **권장** (raw 데이터의 경우 caller 책임 audit) | 200 (caller 책임 access control) |
+| `POST /api/v0-2/raw` (1차 raw 등록) | **필수** (provenance attribution + 권한 check, §4.5 정합) | 400 `E_VALIDATION` (X-DevHub-User-Context missing) or 403 `E_FORBIDDEN` (raw.register_denied) |
+| `GET /api/v0-2/raw/{type}/{name}` | **필수** (raw 의 visibility 정합, §4.5 정합) | 400 `E_VALIDATION` or 403 `E_FORBIDDEN` (visibility mismatch) or 404 `E_NOT_FOUND` |
+| `GET /api/v0-2/raw?source=...&since=...` (list) | **필수** (caller scope filter, §4.5 정합) | 400 `E_VALIDATION` (filtered list 반환) |
+| `DELETE /api/v0-2/raw/{id}` | **필수** (raw 삭제 권한, §4.5 정합) | 400 `E_VALIDATION` or 403 `E_FORBIDDEN` (raw.delete_denied) |
 | `GET /api/v0-2/bundles/{bundle}/index.md` | **권장** (bundle-level visibility check) | 200 (visibility default 적용) |
 | `GET /api/v0-2/bundles/{bundle}/viz.html` | **권장** | 200 |
 | `GET /api/v0-2/bundles` (list) | **권장** | 200 (public bundle 만) |
@@ -1299,13 +1301,15 @@ Step 10: ADR-0034 / ADR-0035 영향 section 갱신 (선택, 영향 시)
 
 | 항목 | 정책 |
 | --- | --- |
-| **저장 위치** | `backend-knowledge/var/raw/{source}/{slug}.json` (file system, **봉투 암호화 후 git 가능**, ADR-0025 정합. raw 자체는 민감 정보일 수 있어 **민감 source 의 경우 .gitignore 권장**) |
-| **메타** | sqlite `raw_index` table (id, source, slug, path, ingested_at, byte_size) |
-| **API** | `POST /api/v0-2/raw` + `GET /api/v0-2/raw/{type}/{name}` + `GET /api/v0-2/raw?source=...&since=...` (list) + `DELETE /api/v0-2/raw/{id}` |
+| **저장 위치** | `backend-knowledge/var/raw/{source}/{slug}.json` (file system, **봉투 암호화 후 git 가능**, ADR-0025 정합. raw 자체는 민감 정보일 수 있어 **민감 source 의 경우 .gitignore 권장**, §4.4 raw 운영 정책 + retention + storage quota 정합) |
+| **메타** | sqlite `raw_index` table (id, source, slug, path, ingested_at, byte_size, sha256, visibility, retention_days, registered_by, concept_ids, last_verified_at) (§4.7 정합성 검증 field 추가) |
+| **API** | `POST /api/v0-2/raw` + `GET /api/v0-2/raw/{type}/{name}` + `GET /api/v0-2/raw?source=...&since=...` (list) + `DELETE /api/v0-2/raw/{id}` (§4.5 endpoint 별 권한 + visibility 정합) |
 | **envelope** | **독립 정의** (자체, backend-core 의 `docs/api/conventions.md` 와 format 호환 유지, **import ❌**, cross-reference 만, §3.4 정합) |
-| **인증** | **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, §3.6.1 정합)** (gateway / firewall / IP allowlist 별도 보호, §2.3). OIDC ❌, Keycloak ❌, backend-core 인증 위임 ❌. caller 가 `X-DevHub-User-Context` header 전달 시 backend-knowledge 가 filter / curation ownership check 수행 (§3.6.1) |
+| **인증** | **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, §3.6.1 정합)** (gateway / firewall / IP allowlist 별도 보호, §2.3). OIDC ❌, Keycloak ❌, backend-core 인증 위임 ❌. caller 가 `X-DevHub-User-Context` header 전달 시 backend-knowledge 가 filter / curation ownership check 수행 (§3.6.1). **raw API 4 endpoint 모두 user context 필수 (§4.5 정합)** |
 | **동기** | 동기 응답 (단일 raw concept 추가/조회). 비동기 sync 는 `/ingest/{source}/sync` 의 별도 endpoint |
 | **idempotency** | `(source, slug)` unique. 중복 POST → 기존 id 반환 (201 대신 200) |
+| **정합성** | sha256 hash 저장 + 매 조회 시 재검증 (§4.7). 불일치 시 `E_INTERNAL` ("raw.integrity_violation") + audit |
+| **lifecycle** | raw 삭제 시 concept 처리 정책 (§4.6): M-v0.2.0 = hard_delete, M-v0.2.1+ = soft_archive (default). 1 raw → N concepts 관계 추적 (sqlite `raw_index.concept_ids`) |
 
 ### 4.2 다른 backend 와의 정합 — ❌ standalone 정책 (2026-06-17 결정)
 
@@ -1325,6 +1329,119 @@ Step 10: ADR-0034 / ADR-0035 영향 section 갱신 (선택, 영향 시)
 | **Phase 3 — LLM enrich (Pi) + hrdb 운영** | M-v0.2.3 | **+ 외부 시스템 7종 wire** (+ hrdb) + Pi `pi-coding-agent` SDK or RPC mode 로 LLM enrich 활성화 (1 vendor, §2.2). 장기 multi-vendor (M-v0.3.0+). 풀 RAG 는 M-v0.3.0 |
 
 > **standalone 유지 정책 (2026-06-17 결정)**: 모든 Phase 에서 `backend-knowledge` 는 **완전 standalone 시스템**. 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 / API 호출 / envelope / repository / 어떤 layer 든 공유 / import ❌. 외부 시스템 **7종** source 만 단방향 (M-v0.2.3 운영 기준, §1.2 G3 / G7, §2.3, §7 Q9 정합)
+
+### 4.4 raw 운영 정책 (저장 · 암호화 · gitignore · retention · quota, 2026-06-18 신규)
+
+**봉투 암호화** ([ADR-0025 §3](../adr/0025-envelope-encryption-key-management.md) 정합):
+- format: `$env$v0.1$<wrapped_dek_b64>$<nonce_b64>$<ciphertext_b64>`
+- KEK(32B master key, `DEVHUB_ENCRYPTION_KEY` env) + DEK(AES-GCM-256)
+- **raw file on disk = ciphertext**. 평문은 메모리에서만 사용
+- **민감 source** (homelab / hrdb / metrics) 는 default 암호화 + .gitignore 권장
+- **일반 source** (gitea_public_repo) 는 default 암호화 (raw 자체는 API response 가 잠재적으로 민감)
+
+**.gitignore 정책** (per source, source_meta 의 `gitignore: bool` 필드):
+| Source | gitignore 권장 | 근거 |
+| --- | --- | --- |
+| `gitea_repo_pull` (public repo) | ❌ (commit 가능) | Gitea public repo 의 metadata 는 비공개 정보 아님. 단, internal Gitea instance 의 경우 ✅ |
+| `gitea_issue` | ⚠️ (사내 Gitea 한정 ✅, public ✅) | 사내 Gitea 의 issue 는 잠재적 민감 (assignee/label) |
+| `gitea_wiki` | ⚠️ (사내 Gitea 한정 ✅, public ✅) | 위키 본문이 민감할 수 있음 |
+| `gitea_action` | ⚠️ (사내 Gitea 한정 ✅, public ✅) | CI workflow 가 사내 시스템 정보 포함 |
+| `homelab_mock` | ✅ | 사내 시스템 inventory |
+| `homelab` (M-v0.2.1+ real wire) | ✅ | 사내 시스템 inventory |
+| `metrics` | ⚠️ (Prometheus scrape URL 의 secret 포함 시 ✅, otherwise ❌) | scrape config 의 basic auth credential |
+| `hrdb` | ✅ | 사내 인사 데이터 (전형적 PII) |
+
+**Retention 정책** (per source, default 90일):
+- raw file 의 `received_at` 으로 N일 경과 시 자동 삭제
+- source_meta 의 `retention_days: int = 90` 필드로 override 가능
+- **예외**: `metrics` raw = retention 30일 (운영 metric 은 1개월 보관 후 압축 archive)
+- **예외**: `hrdb` raw = retention 365일 (인사 데이터 보존 의무, 사내 정책)
+- **자동 삭제 시점**: 매일 03:00 UTC cron (M-v0.2.1+ 스케줄러)
+- **삭제 전 audit log**: `audit.raw_deleted` event + raw 의 hash + 삭제 시각 + 사유
+
+**Storage quota** (per bundle, default 1GB):
+- bundle 별 raw_size 합계가 quota 초과 시 oldest raw 부터 삭제 (LRU policy)
+- `bundle_quota_bytes: int = 1GB` (default)
+- quota 초과 시 audit log + alert (caller 의 caller 가 notify)
+- M-v0.2.0 PoC: quota 미적용 (filesystem 충분). M-v0.2.1+ quota 적용
+
+### 4.5 raw API 권한 + visibility (§3.6 governance 정합, 2026-06-18 신규)
+
+**endpoint 별 권한 matrix** (§3.6.1 endpoint 표 정합 + §3.6.2 curation ownership 정합):
+
+| Endpoint | 인증 | 권한 | 응답 (권한 부족 시) |
+| --- | --- | --- | --- |
+| `POST /api/v0-2/raw` | user context **필수** (§3.6.1) | caller 가 raw 등록 대상 bundle 의 owner_org_unit_ids 에 속하거나 system_admin | 403 `E_FORBIDDEN` ("raw.register_denied") |
+| `GET /api/v0-2/raw/{type}/{name}` | user context **필수** | concept 의 `x_devhub_visibility` 와 동일 (§3.6.4): `org` → caller.org_id ∈ owner_org_unit_ids / `personal` → caller.user_id == owner_user_id / `project` → caller.project_ids ∩ owner_project_ids / `public` → all | 403 `E_FORBIDDEN` (visibility mismatch) or 404 `E_NOT_FOUND` |
+| `GET /api/v0-2/raw?source=...&since=...` (list) | user context **필수** | caller 가 조회 가능한 raw 전체 (visibility 정합) + filter by source / since | 200 with caller-visible only (filtered) |
+| `DELETE /api/v0-2/raw/{id}` | user context **필수** | system_admin OR raw 등록자 (caller.user_id == raw.registered_by) OR caller 가 raw 의 bundle owner_org_unit_ids 에 속함 | 403 `E_FORBIDDEN` ("raw.delete_denied") |
+
+**Visibility enum 재사용** (§3.6.2 의 4 enum: `org` / `personal` / `project` / `public`):
+- raw file 의 frontmatter (또는 sqlite `raw_index` table 의 `visibility` column) 에 저장
+- default: source plugin 자동 emit raw = `org` (bundle owner org 기준)
+- manual 등록 raw = `org` (caller 등록 시 명시, override 가능)
+
+**caller-provided user context** (§3.6.1) 가 raw API 의 모든 endpoint 에 필수. **missing 시 400 `E_VALIDATION`** ("X-DevHub-User-Context required"). 이 정책은 §3.6 의 caller-provided user context 패턴의 raw 도메인 적용.
+
+### 4.6 raw → concept 정합성 (1:N 관계 · orphan 처리 · update 정책, 2026-06-18 신규)
+
+**1 raw → N concepts 관계** (§3.7.4 normalize() 정합):
+- 1 raw file 이 여러 concept emit 가능. 예: homelab 의 `node_inventory.json` 1개 → `dataset_homelab_nodes`, `metric_homelab_node_count`, `reference_homelab_node_specs` 등 3+ concepts.
+- sqlite `raw_index` table 의 `concept_ids: str` (comma-separated) 로 추적
+- raw 삭제 시 해당 concept 들도 archive 또는 delete (§4.6 orphan 처리)
+
+**raw 삭제 시 concept 처리 정책** (3 mode):
+
+| Mode | 동작 | 사용 시점 |
+| --- | --- | --- |
+| **hard_delete** | raw + 연관 concept 모두 삭제 | M-v0.2.0 PoC default. file system 직접 삭제 + sqlite `raw_index` + `concept_index` row 삭제 |
+| **soft_archive** | raw 삭제 + 연관 concept 는 `x_devhub_status: archived` 로 archive (concept file 유지) | M-v0.2.1+ default. 감사 추적 가능. bundle 별 archive directory 로 이동 or frontmatter status 변경 |
+| **retain_concept** | raw 만 삭제, concept 는 유지 (raw_ref dangling) | M-v0.2.3+ 옵션. raw 가 일시적 미러링 (e.g., homelab fixture) 일 때 |
+
+**M-v0.2.0 PoC**: hard_delete (단순화). **M-v0.2.1+**: soft_archive (default), source_meta 의 `on_raw_delete: Enum[hard_delete|soft_archive|retain_concept]` 필드로 설정.
+
+**Orphan concept** (raw 삭제됐는데 concept 만 남은 상태):
+- hard_delete mode: 발생 안 함 (raw 와 함께 삭제)
+- soft_archive mode: 발생 안 함 (concept 도 archive)
+- retain_concept mode: **발생 가능** — `curate/link_resolver.py` 가 `x_devhub_raw_ref: "raw://..."` unresolved link 로 보고 (§3.5.5 정공법)
+- 운영 policy: orphan concept 의 `x_devhub_status: orphaned` 자동 설정 + audit + bundle owner_org_unit_ids 내 caller 에 notify
+
+**raw 변경 시 concept update** (raw file 의 source 가 변경된 경우, 예: Gitea 의 issue update):
+- source plugin 의 `POST /api/v0-2/ingest/{source}/sync` 가 새 raw emit
+- normalize() 가 새 version 의 concept emit (`x_devhub_version` increment, §3.3 정합)
+- 이전 version 의 concept 처리:
+  - M-v0.2.0 PoC: overwrite (같은 slug 의 .md 파일 덮어쓰기)
+  - M-v0.2.1+: `x_devhub_status: superseded` 로 변경 + 새 concept 만 active (viz.html 에서 active 만 표시)
+  - M-v0.2.3+: history 보존 (`.md.prev` suffix 로 archived)
+
+### 4.7 raw 정합성 검증 (hash · timestamp · audit, 2026-06-18 신규)
+
+**Hash 검증** (저장 시 + 조회 시):
+- 저장 시: sha256 hash 계산 후 sqlite `raw_index.sha256` column 저장
+- 조회 시: 매번 hash 재계산 → 불일치 시 `E_INTERNAL` ("raw.integrity_violation") + audit log
+- **source-of-truth**: var/raw/ 의 file system vs sqlite metadata → file system 우선 (file 이 source of truth, sqlite 는 index)
+
+**Timestamp 검증**:
+- raw 의 `received_at` (caller 측 or source plugin 측) vs `x_devhub_timestamp` (frontmatter) 일치 확인
+- 불일치 시 degraded flag (§3.7.5 정합) + audit
+
+**Source timestamp 검증** (외부 시스템 source_timestamp vs raw received_at):
+- 외부 시스템 응답의 `updated_at` (또는 equivalent) vs `received_at` 의 차이 = **ingestion lag**
+- lag > threshold (default 5분): `ingestion_stale` flag + audit
+- M-v0.2.0 PoC: timestamp 기록만 (verification 없음). M-v0.2.1+: threshold 검증 + alert
+
+**Audit log** (raw lifecycle 전체):
+| Event | 발생 시점 | Audit log field |
+| --- | --- | --- |
+| `raw.received` | POST /api/v0-2/raw 성공 or source plugin sync | `{raw_id, source, sha256, size, caller_user_id}` |
+| `raw.read` | GET /api/v0-2/raw/{type}/{name} | `{raw_id, caller_user_id, visibility_scope}` |
+| `raw.deleted` | DELETE /api/v0-2/raw/{id} | `{raw_id, mode: hard_delete\|soft_archive\|retain_concept, caller_user_id}` |
+| `raw.integrity_violation` | hash 재검증 실패 | `{raw_id, expected_sha256, actual_sha256, severity: high}` |
+| `raw.ingestion_stale` | timestamp lag > threshold | `{raw_id, source, lag_seconds, threshold_seconds}` |
+| `raw.retention_deleted` | 자동 cron retention 만료 | `{raw_id, source, retention_days, age_days}` |
+| `raw.quota_evicted` | LRU eviction | `{raw_id, bundle, bundle_size_bytes, quota_bytes}` |
+
+**M-v0.2.0 PoC 범위**: hash 검증 (sha256) + audit log (raw.received / raw.read / raw.deleted) 만. timestamp verification + retention cron + quota eviction + integrity_violation alert 는 M-v0.2.1+.
 
 ## 5. 마일스톤 + 우선순위 (P0~P3)
 
@@ -1469,3 +1586,4 @@ sprint 진입 시 다음 6 항목 확인:
 | 2026-06-18 | **Path Y caller-provided user context — 신규 §3.6 "Data governance & query scoping" + cross-section 정합 fix 8 위치** — (1) **신규 §3.6** 5 subsection: §3.6.1 caller-provided user context (X-DevHub-User-Context HTTP header, base64url(json) 의 user_id/org_id/org_unit_ids/project_ids/roles/request_id/issued_at 7 field schema + DevHub `AppUser`/RBAC 모델 format 호환 + trust model: caller 책임 인증 + backend-knowledge 책임 format 검증만 + endpoint 별 필수/권장/없음 13개 endpoint 표 + OpenAPI security scheme) / §3.6.2 curation governance model (`x_devhub_curator` 별 manual edit permission: rule-based ❌ / llm system_admin 만 with curator=human 승격 / human owner-user self or org_head scope or system_admin) / §3.6.3 query scope priority 4-tier (org > personal > project > public, priority 1 = highest, same concept multiple instances → highest priority 만 노출) / §3.6.4 frontmatter extension 5 field (`x_devhub_owner_org_id` / `_user_id` / `_org_unit_ids` / `_project_ids` / `x_devhub_visibility` 4 enum) / §3.6.5 cross-section 정합 fix 8 위치 (2) cross-section 정합 fix: §1.2 G7 standalone 정책 + caller-provided user context 1줄 추가 / §2.3 시스템 경계 표 "다른 backend 연결 (general)" row + "OIDC / Keycloak" row + "API 인증" row 3 row 갱신 / §3.1 API 매트릭스 인증 정책 노트 갱신 (Path Y 추가) / §3.3 frontmatter spec 정책 노트 마지막에 "> **Path Y governance 필드 (2026-06-18 신규, §3.6.4 정합)**" 1줄 추가 / §4.1 정책 정의 표 "인증" row 갱신 (Path Y 추가) / ADR-0034 §4.3 영향 section 에 §3.6 row 추가 + ADR-0034 frontmatter 수정일 2026-06-18 갱신 / ADR-0035 §3.4 1차 raw API 정책 row caller-provided user context (gateway 책임) 명시 + §3.6.1 cross-reference + ADR-0035 frontmatter 수정일 2026-06-18 갱신 + §4.2 negative/trade-off row 추가 + §4.3 영향 row 추가 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "다음 컨셉 정리 이어서 하자. 카테고리 나눴고 카테고리 별로 데이터 관리... 데이터 정리는 조직에 따라, 사람에 따라 관리... 조회 우선순위는 사용자 조직 > 개인 > 프로젝트" 결정 + explore agent 2 병렬 검색 (user/org/project RBAC + 데이터 정규화/envelope/governance) + Path Y 권장 (caller-provided user context) + 사용자 "Path Y" 결정 + "1 진행하자" 후속) |
 | 2026-06-18 | **Data normalization pipeline — 신규 §3.7 "Data normalization pipeline" + cross-section 정합 fix 6 위치** — (1) **신규 §3.7** 5 subsection: §3.7.1 5 step normalization 원칙 (Step 1 외부 시스템 API 호출 + Step 2 raw JSON 봉투 암호화 저장 + Step 3 raw → OKF concept 변환 + Step 4 concept .md emit + Step 5 index.md 자동 생성, 책임 분리 표 6 module: source plugin / 1차 raw storage / OKF bundle storage / rule-based enricher / index_builder / link_resolver) / §3.7.2 per-source type mapping (7 source × types emitted: Gitea 4 sub-plugin + homelab + metrics + hrdb, 5종 PoC = 약 35개 concept 자동 emit) / §3.7.3 cross-source 동질화 (Jira/Gitea/GitHub 모두 `integration_*_issue_puller.md` 형, query 시 cross-source aggregation, viz.html cross-source cluster) / §3.7.4 normalize algorithm pseudocode (`sources/{source}.py` 의 normalize() method 4 step: parse → extract frontmatter → emit body → attach cross-links, `SourceMeta` 11 field) / §3.7.5 edge cases + degraded handling (6 case 표: Partial failure / Schema drift / Source-specific custom transform / Duplicate concept / Large raw / Auth failure, M-v0.2.0 PoC 범위 명시) (2) cross-section 정합 fix 6 위치: §1.3 producer 다중 row 갱신 (rule-based enricher §3.7.1/§3.7.4 명시) / §2.1 sources/ 트리 `sources/{source}.py` + `curate/enricher.py` 코멘트 보강 (§3.7.1 5 step 정합) / §3.2 concept type enum 하단 cross-reference 추가 (§3.7.2 per-source mapping) / §3.5.3 bundle 디렉터리 layout 의 §3.7.1 reference 추가 / ADR-0034 §4.3 영향 section §3.7 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행하자" (다음 concept organization) + §3.7 "data normalization pipeline (category × system → OKF concept)" 자연스러운 다음 영역 (사용자 명시 "(b) 카테고리별 정규화" 잔여) + DevHub backend-core 의 NormalizeSnapshot() / stateToEventType() / REQ-FR-INT-004/005 패턴 참고 + 사용자 "진행하자" 승인 후속) |
 | 2026-06-18 | **Source plugin 작성 정공법 — 신규 §3.8 "Source plugin 작성 정공법" + cross-section 정합 fix 4 위치** — (1) **신규 §3.8** 5 subsection: §3.8.1 SourcePlugin ABC 인터페이스 명세 (Pydantic v2 + 12 type: Credential/SourceMeta/Connection/RawResponse/Concept/FetchQuery/HealthStatus + ABC 의 5 abstract method: connect/fetch/normalize/emit_concept/health_check + registry register/get/list 3 function, `sources/_base.py` 1차 작성 정공법) / §3.8.2 Gitea 4 sub-plugin 정공법 (real wire, M-v0.2.0 PoC 부터, 4 sub-plugin × 5~7 type = 약 26 concept emit, Gitea access token `type=bearer, value=<token>` credential schema, REST API 호출 + normalize() 4 step 공통 패턴) / §3.8.3 homelab_mock 정공법 (filesystem fixture `var/fixtures/homelab/*.json` 기반, 4 type, M-v0.2.0 PoC 단순화, M-v0.2.1+ real wire 교체) / §3.8.4 신규 source 추가 10 step 절차 (Step 1 외부 API spec 정독 → Step 2 SourceMeta 정의 → Step 3 5 method 구현 → Step 4 credential schema Pydantic 모델 → Step 5 body_template per type → Step 6 단위 테스트 → Step 7 e2e smoke → Step 8 bundle layout 결정 + §3.7.2 갱신 → Step 9 representative concept .md 발췌 → Step 10 ADR 영향 section 갱신 + Quality gate 5 항목) / §3.8.5 3 tier 검증 (단위 pytest + 통합 real Gitea instance + e2e smoke pytest + FastAPI TestClient, M-v0.2.0 PoC = 단위 + e2e smoke) (2) cross-section 정합 fix 4 위치: §3.7.2 per-source mapping 표 하단 "**작성 정공법**: source plugin 작성 시 §3.8 정공법 따름" 1줄 추가 / §5.1 M-v0.2.0 scope row 에 "Gitea 통합 4종 (§3.8.2 정공법) + homelab_mock (§3.8.3 정공법) = 5종 PoC, §3.7.2 / §3.8 정합" 갱신 / ADR-0034 §4.3 영향 section §3.8 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §3.8 Source plugin 작성 정공법" + §3.7 의 abstract 5 step normalization pipeline + ADR-0035 §3.2/§6.4 의 high-level 결정을 구현 가능 정공법으로 구체화 + 5종 PoC source plugin (Gitea 4 sub-plugin + homelab_mock) 의 작성 절차 + 신규 source 추가 절차 + 3 tier 검증 절차 정의) |
+| 2026-06-18 | **§4 1차 raw 데이터 API 심화 — 신규 §4.4~§4.7 "raw 운영/API/정합성 정책" + cross-section 정합 fix 4 위치** — (1) **신규 §4.4** raw 운영 정책 (봉투 암호화 `$env$v0.1$...` ADR-0025 + .gitignore per source 8 row 표 + retention default 90일, 예외: metrics 30일/hrdb 365일, 매일 03:00 UTC cron 자동 삭제 + LRU storage quota default 1GB/bundle) / **§4.5** raw API 권한 + visibility (endpoint 별 권한 matrix 4 row: POST = bundle owner_org member / GET = visibility 정합 / list = caller scope filter / DELETE = system_admin OR 등록자 OR owner_org member, visibility 4 enum 재사용 §3.6.2) / **§4.6** raw → concept 정합성 (1 raw → N concepts 관계, sqlite `raw_index.concept_ids` 추적, raw 삭제 시 concept 처리 3 mode: M-v0.2.0 hard_delete / M-v0.2.1+ soft_archive default / M-v0.2.3+ retain_concept 옵션, orphan concept = `x_devhub_status: orphaned` + audit, raw 변경 시 concept update: M-v0.2.0 overwrite / M-v0.2.1+ superseded / M-v0.2.3+ .md.prev history) / **§4.7** raw 정합성 검증 (sha256 hash 저장 + 매 조회 시 재검증, file system source-of-truth, timestamp lag threshold default 5분, audit log 7 event 표) (2) cross-section 정합 fix 4 위치: §2.1 `var/raw/` 트리 코멘트 보강 (봉투 암호화 + .gitignore + retention 90일 + quota 1GB 정합) / §3.6.1 endpoint 표 raw 4 row 갱신 (권장 → 필수, §4.5 정합) / §4.1 정책 정의 표 9 row 보강 (저장 위치 + 메타 + API + 인증 + 정합성 + lifecycle 6 row 신규, sqlite `raw_index` field 6개 추가 sha256/visibility/retention_days/registered_by/concept_ids/last_verified_at) / ADR-0035 §3.4 1차 raw API 정책 row 갱신 (§4.4~§4.7 reference 추가) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §4 1차 raw API 심화" + §4.1 정책 정의 표 의 high-level 정의 + ADR-0025 봉투 암호화 + 사용자 명시 'API 로 조회/추가 가능' 정책 + §3.6 governance 정합 raw visibility + 1 raw → N concepts 관계 추적 필요성 + sha256 정합성 검증 + audit log 운영 정책) |

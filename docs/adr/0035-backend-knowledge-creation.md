@@ -4,7 +4,7 @@
 
 - **상태**: Accepted
 - **작성일**: 2026-06-17
-- **수정일**: 2026-06-18 (umbrella doc §3.6 Path Y caller-provided user context 신규에 따른 §3.4 1차 raw API 정책 row 갱신 — internal-only no auth + caller-provided user context 명시)
+- **수정일**: 2026-06-18 (umbrella doc §3.6 Path Y caller-provided user context + §4.4~§4.7 raw 운영/API/정합성 정책 신규에 따른 §3.4 1차 raw API 정책 row 갱신 — internal-only no auth + caller-provided user context + raw 운영 정책 + endpoint 권한 + 정합성 검증 명시)
 - **결정 근거 sprint**: `docs/work_260617-v0-2-umbrella-concept`
 - **supersedes**: 없음 (신규)
 - **Tier**: 사외 (vendor-neutral 정책, 다른 backend 연결 ❌)
@@ -79,6 +79,7 @@
 - 봉투 암호화 후 git 가능, 민감 source .gitignore 권장 (ADR-0025 정합)
 - envelope: **자체 정의** (backend-core 의 `docs/api/conventions.md` 와 format 호환, **import ❌**)
 - **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, [release_v0-2_roadmap.md §3.6.1](../planning/release_v0-2_roadmap.md) 정합)**: bearer/API key 자체 검증 ❌. caller (gateway / 별도 agent) 가 `X-DevHub-User-Context` header 로 user/org/project/roles 전달 시, backend-knowledge 는 filter / curation ownership check 만 수행. **auth 책임 = caller (DevHub backend-core Keycloak federation 정합), governance 책임 = backend-knowledge**.
+- **raw 운영 정책 (2026-06-18 신규, [release_v0-2_roadmap.md §4.4~§4.7](../planning/release_v0-2_roadmap.md) 정합)**: 봉투 암호화 format (`$env$v0.1$...` ADR-0025) + .gitignore per source 정책 + retention default 90일 + storage quota 1GB/bundle + endpoint 별 권한 (POST = bundle owner_org member / GET = visibility 정합 / DELETE = system_admin OR 등록자 OR owner_org member) + 1 raw → N concepts 관계 + raw 삭제 시 concept 처리 (M-v0.2.0 = hard_delete / M-v0.2.1+ = soft_archive) + sha256 정합성 검증 + audit log 7 event.
 
 ### 3.5 운영 환경 (standalone 정합)
 
