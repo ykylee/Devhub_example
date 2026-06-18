@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline — §3.2.1 보강 + 신규 §3.5~§3.9 (concept organization / governance / normalization / source plugin 작성 / lifecycle) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 + 신규 §5.4~§5.7 마일스톤 상세화 (dependency graph + critical path + per-milestone DoD + cutover 절차 + rollback plan + parallel sprint + PR 전략) + 신규 §10 DB-based raw + Pi periodic ingest pipeline (file|db dual storage mode + pi-sdk normalize M-v0.2.0 PoC + 8 DB CRUD endpoint + per-source storage_mode mapping + Pi SDK mode scheduler + 8 step ingest pipeline). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta storage_mode+normalize_mode + §3.8.4 Step 2 / §4.1 정책 정의 표 9 row / §5.1 M-v0.2.0 scope / §6.3 Phase 3 Pi 의 3 역할 + M-v0.2.0+ periodic ingest / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook — §3.2.1 보강 + 신규 §3.5~§3.9 (concept organization / governance / normalization / source plugin 작성 / lifecycle) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 + 신규 §5.4~§5.7 마일스톤 상세화 + 신규 §10 DB-based raw + Pi periodic ingest pipeline (file|db dual storage mode) + 신규 §11 운영 runbook (incident 6 type + backup/restore + monitoring 5 지표 + alert routing + on-call 4 role). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 monitoring cross-reference / §5.1 M-v0.2.0 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 day-2 운영 / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -1482,7 +1482,7 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 | **Phase 2 — 외부 시스템 6종 wire + backend-ai 폐기** | M-v0.2.2 | 외부 시스템 **6종** source plugin wire (**Gitea 4 sub-plugin** gitea_repo_pull / gitea_issue / gitea_wiki / gitea_action + homelab + metrics, §6.4 정합). backend-ai/ 폐기 (단독 결정, placeholder). backend-core 와 wire ❌ |
 | **Phase 3 — LLM enrich (Pi) + hrdb 운영** | M-v0.2.3 | **+ 외부 시스템 7종 wire** (+ hrdb) + Pi `pi-coding-agent` SDK or RPC mode 로 LLM enrich 활성화 (1 vendor, §2.2). 장기 multi-vendor (M-v0.3.0+). 풀 RAG 는 M-v0.3.0 |
 
-> **standalone 유지 정책 (2026-06-17 결정)**: 모든 Phase 에서 `backend-knowledge` 는 **완전 standalone 시스템**. 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 / API 호출 / envelope / repository / 어떤 layer 든 공유 / import ❌. 외부 시스템 **7종** source 만 단방향 (M-v0.2.3 운영 기준, §1.2 G3 / G7, §2.3, §7 Q9 정합)
+> **standalone 유지 정책 (2026-06-17 결정)**: 모든 Phase 에서 `backend-knowledge` 는 **완전 standalone 시스템**. 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 / API 호출 / envelope / repository / 어떤 layer 든 공유 / import ❌. 외부 시스템 **7종** source 만 단방향 (M-v0.2.3 운영 기준, §1.2 G3 / G7, §2.3, §7 Q9 정합). **day-2 운영 (incident / backup / monitoring) 도 standalone — §11 의 운영 runbook 다른 backend 모니터링 도구 공유 ❌**.
 
 ### 4.4 raw 운영 정책 (저장 · 암호화 · gitignore · retention · quota, 2026-06-18 신규)
 
@@ -1588,12 +1588,18 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 | Event | 발생 시점 | Audit log field |
 | --- | --- | --- |
 | `raw.received` | POST /api/v0-2/raw 성공 or source plugin sync | `{raw_id, source, sha256, size, caller_user_id}` |
-| `raw.read` | GET /api/v0-2/raw/{type}/{name} | `{raw_id, caller_user_id, visibility_scope}` |
-| `raw.deleted` | DELETE /api/v0-2/raw/{id} | `{raw_id, mode: hard_delete\|soft_archive\|retain_concept, caller_user_id}` |
+| `raw.read` | GET /api-v0-2/raw/{type}/{name} | `{raw_id, caller_user_id, visibility_scope}` |
+| `raw.deleted` | DELETE /api-v0-2/raw/{id} | `{raw_id, mode: hard_delete\|soft_archive\|retain_concept, caller_user_id}` |
 | `raw.integrity_violation` | hash 재검증 실패 | `{raw_id, expected_sha256, actual_sha256, severity: high}` |
 | `raw.ingestion_stale` | timestamp lag > threshold | `{raw_id, source, lag_seconds, threshold_seconds}` |
 | `raw.retention_deleted` | 자동 cron retention 만료 | `{raw_id, source, retention_days, age_days}` |
 | `raw.quota_evicted` | LRU eviction | `{raw_id, bundle, bundle_size_bytes, quota_bytes}` |
+
+**§11 monitoring 5 지표 정합** (2026-06-18 신규):
+- raw 정합성 violation rate (per day) = `audit.raw.integrity_violation` event count / day (§11.3 monitoring #3)
+- raw retention_deleted 정상 작동 = `audit.raw.retention_deleted` event count / day (§11.3 monitoring #5 일부)
+- §11.1.5 integrity violation runbook → audit log + monitoring alert 자동 trigger (§11.3 routing)
+- §11.2 backup + restore drill 시 raw 정합성 검증 자동 수행 (§11.2 Step 4)
 
 **M-v0.2.0 PoC 범위**: hash 검증 (sha256) + audit log (raw.received / raw.read / raw.deleted) 만. timestamp verification + retention cron + quota eviction + integrity_violation alert 는 M-v0.2.1+.
 
@@ -1839,6 +1845,12 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 - [ ] 운영자 notification (cutover 시작/완료)
 - [ ] Rollback plan 검증 (dry-run)
 
+**§11 운영 runbook 과의 정합** (2026-06-18 신규):
+- cutover rollback trigger 발동 시 §11.1 의 incident runbook 중 해당 type 즉시 활성화 (예: cutover 후 source plugin sync 실패 → §11.1.1)
+- on-call operator (§11.4) 가 cutover rollback + incident 대응 동시 수행
+- cutover 후 monitoring 지표 5 항목 중 1 이상 임계 초과 시 incident 등록 (§11.3 routing)
+- §11.2 backup = cutover 직전 backup 필수 (8 번째 cutover checklist 와 정합)
+
 ### 5.7 Parallel sprint + PR 전략 (2026-06-18 신규)
 
 **PR 단위 분리 전략** (per 마일스톤):
@@ -1882,6 +1894,7 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 - **인증**: **internal-only, no auth** (gateway / firewall / IP allowlist 별도 보호, §2.3). OIDC / Keycloak / backend-core 인증 위임 ❌.
 - **테스트**: unit (OKF spec / enricher / link_graph) + e2e (ingest → curate → query) 의 **신규 백엔드 단독**.
 - **frontend**: **M-v0.2.0 만 frontend 0 page** (1차 backend 단독 구현). **M-v0.2.1 부터 frontend 관리/조회 page 1 추가** (§5.1 M-v0.2.1 / §5.2 P1 정합, `backend-knowledge/web/` 별도 standalone frontend, devhub frontend 와 분리, §1.2 G7 standalone 정책 정합). viz.html 자체 viewer (자가 graph viewer) 는 backend-knowledge 가 SSR (모든 Phase 공통)
+- **day-2 운영**: §11 운영 runbook 정공법 적용 (incident 대응 + backup + monitoring, M-v0.2.0 PoC = 1 operator, §11.4)
 
 ### 6.2 Phase 2 — 외부 시스템 6종 source wire + backend-ai 폐기 (M-v0.2.2)
 
@@ -1982,6 +1995,7 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 | 2026-06-18 | **OKF concept 운영 lifecycle — 신규 §3.9 "OKF concept 운영 lifecycle" + cross-section 정합 fix 3 위치** — (1) **신규 §3.9** 4 subsection: §3.9.1 lifecycle 5 단계 state machine (created → reviewed → published → active → archived, transition + 책임자 + 정합 section 표, frontmatter status field M-v0.2.1+ 추가) / §3.9.2 frontmatter template per 8 type (dataset/metric/api_endpoint/runbook/integration/event/reference/decision 의 필수 + 권장 field + 예시 표, §3.7.4 normalize() 정합) / §3.9.3 review checklist 5 항목 (frontmatter validation 7 sub / body validation 3 sub / governance validation 2 sub / bundle validation 3 sub / cross-link validation 3 sub, rule-based 자동 + human 수동 review M-v0.2.1+) / §3.9.4 publish + archive 절차 + 운영 정책 (publish trigger 3 mode: rule-based 자동 / human 수동 / system_admin override, archive trigger 3 mode: superseded 자동 / obsolete 수동 / orphan 자동, M-v0.2.0~v0.3.0+ 별 lifecycle 지원 범위 표 5 row) (2) cross-section 정합 fix 3 위치: §3.6.2 curation permission 코드 블록 상단에 §3.9 lifecycle cross-reference note 추가 (created state 의 concept 는 curator 직접 control 불가, archived state 는 write 불가) / §3.8.4 신규 source 추가 10 step 절차의 Step 9 "representative concept .md 발췌 작성" 의 §3.9 cross-reference 추가 (§3.9.2 frontmatter template per 8 type 권장 field 채움 + §3.9.3 review checklist 1~4 항목 자동 validate) / ADR-0034 §4.3 영향 section §3.9 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행" (다음 concept organization) + 4-option 질문 응답 "(a) §3.9 OKF concept 운영 lifecycle" + §3.5/§3.6/§3.7/§3.8 완료 후 lifecycle 운영 정공법 부재 + M-v0.2.0 PoC = rule-based 자동 publish (frontend 0 page) / M-v0.2.1+ = human 작성 + review workflow (frontend 관리 page) + created/reviewed/published/active/archived 5 단계 state machine + frontmatter template + review checklist + publish/archive trigger 정책) |
 | 2026-06-18 | **§5 마일스톤 상세화 — 신규 §5.4~§5.7 + cross-section 정합 fix 3 위치** — (1) **신규 §5.4** dependency graph + critical path (6 마일스톤 linear 의존 표 + critical path linear 표시 + 병렬 가능 sprint 4 case + risk analysis 3 case) / **§5.5** 마일스톤별 DoD (M-v0.2.0-alpha/M-v0.2.0/M-v0.2.1/M-v0.2.2/M-v0.2.3/M-v0.3.0 별 5 항목 DoD: 코드/문서 / 검증 / ADR 영향 / 운영 / cross-section 정합) / **§5.6** cutover 절차 + rollback plan (6 step cutover + 4 trigger rollback 표 + RTO + 5 monitoring 지표 + 8 항목 cutover checklist) / **§5.7** parallel sprint + PR 전략 (per 마일스톤 권장 PR 수 6 row + PR 의존성 정합 + branch prefix 전략 + PR template + 머지 후 처리) (2) cross-section 정합 fix 3 위치: §5.1 마일스톤 표 cross-reference (각 마일스톤 scope 가 §5.5 DoD 와 1:1 정합) / §5.3 sprint 진입 checklist 6 항목 cross-reference (§5.5 M-v0.2.0 DoD 의 (e) cross-section 정합) / ADR-0035 §3.8 마일스톤 표 cross-reference note 추가 (§5 정합, §5.5 DoD 의 (a) 코드/문서 + (b) 검증 정합) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §5 마일스톤 상세화" + §5.1/§5.2/§5.3 의 high-level 정의 + M-v0.2.0~v0.3.0 6 마일스톤 별 DoD + cutover + rollback + parallel sprint PR 전략 정의) |
 | 2026-06-18 | **§10 DB-based raw + Pi periodic ingest pipeline 신규 + cross-section 정합 fix 5 위치** — (1) **신규 §10** 4 subsection: **§10.1** DB storage + schema (`raw_records` table 14 field + sqlite M-v0.2.0 PoC / PostgreSQL M-v0.2.3+ + 봉투 암호화 ADR-0025 + 4 index idx_raw_records_source_received/visibility/ingested/ingest_lock + `storage_mode` per source_meta 정합) / **§10.2** DB CRUD + 데이터 처리 API 8 endpoint (POST/GET/PATCH/DELETE + list(filter+sort+pagination) + aggregate(group_by/count/sum/avg) + full-text search + ingest-status, Path Y caller-provided user context 필수, OpenAPI security scheme) / **§10.3** Periodic Pi ingest pipeline (SDK mode M-v0.2.0 PoC + 8 step pipeline: scheduler → SELECT raw_records → set ingest_lock → decrypt → Pi LLM normalize → validate → emit OKF concept → update raw_records + trigger lifecycle §3.9 / Pi prompt template j2 / failure handling: timeout 30초 + degraded flag + Pi LLM unreachable → rule-based fallback) / **§10.4** Source path vs DB path 분기 (per source `storage_mode: file|db` + `normalize_mode: rule-based|pi-sdk|pi-rpc` + default mapping 표 7 row: gitea_repo_pull = file/rule-based, gitea_issue = file/rule-based, gitea_wiki = file/rule-based, gitea_action = file/rule-based, homelab_mock = db/pi-sdk, metrics = file/rule-based, hrdb = db/pi-sdk, 운영자 override 가능) (2) cross-section 정합 fix 5 위치: §4.1 정책 정의 표 "저장 위치" + "API" row 갱신 (file path + DB path dual mode 명시) / §3.7 normalization pipeline 에 DB path + Pi driver 추가 (§10.4 storage_mode 분기 명시) / §3.8.1 SourceMeta 에 `storage_mode` + `normalize_mode` + `ingest_schedule` 3 field 추가 + §3.8.4 Step 2 SourceMeta 정의 의 storage_mode 결정 단계 추가 / §6.3 Phase 3 LLM enrich 의 Pi 의 역할 갱신 (Pi 의 3 역할: db mode source periodic ingest M-v0.2.0+ / LLM enrich M-v0.2.3+ / cross-link 자동 resolution M-v0.2.3+) / ADR-0034 §4.3 영향 section §10 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "추가 컨셉 정리해보자. raw에 해당하는 1차 데이터는 종전의 시스템들과 동일하게 db에 데이터를 수집하고 crud를 비롯한 데이터 처리 용 api를 제공할거야. db에 저장된 데이터는 주기적으로 ai (여기서는 pi 경유)를 통하여 ingest하도록 구성해보자." 결정 + 4-option 질문 응답 "(A) default 추천값" (gitea 4 = file/rule-based + homelab/hrdb = db/pi-sdk + metrics = file, Pi SDK mode M-v0.2.0 PoC + sqlite M-v0.2.0 / PostgreSQL M-v0.2.3+ + source_meta 의 storage_mode + normalize_mode field 추가 + 8 DB CRUD endpoint + 8 step Pi ingest pipeline + per source default mapping) |
+| 2026-06-18 | **§11 운영 runbook (day-2 운영 정공법) 신규 + cross-section 정합 fix 4 위치** — (1) **신규 §11** 4 subsection: **§11.1** Incident 대응 runbook 6 type (source plugin sync 실패 §11.1.1 / credential 만료 §11.1.2 / Pi ingest pipeline timeout-degraded §11.1.3 / retention cron 실패 §11.1.4 / integrity violation §11.1.5 / archive trigger 실패 §11.1.6 — per trigger / detection / triage / mitigation / recovery 구조, RTO < 30분/< 1시간/< 4시간/< 15분/< 1시간) / **§11.2** Backup + restore 절차 (5 backup 대상: DB / var/bundles/ / var/raw/ / .env-KEK / governance field + per storage mode backup 방법 + retention 정책 일별 7일 / 주별 4주 / 월별 12개월 + restore 5 step 절차 + RTO 5 target + 분기 1회 restore drill) / **§11.3** Monitoring + alert routing (5 monitoring 지표: source plugin sync 성공률 / Query API p95 latency / raw 정합성 violation rate / Pi ingest pipeline success rate / concept archive trigger 정상 작동 + 3 tier alert routing info/warning/critical + alert message template + alert deduplication 5분) / **§11.4** On-call 운영 + role 정의 (4 role: backend-knowledge operator / source plugin developer / Pi LLM curator / security auditor + M-v0.2.0 1 person / M-v0.2.1+ 1주 rotation + Operator training per release) (2) cross-section 정합 fix 4 위치: §1.2 G7 standalone 유지 정책 노트 보강 ("day-2 운영도 standalone — §11 의 운영 runbook 다른 backend 모니터링 도구 공유 ❌") / §4.7 raw 정합성 검증 의 audit log 7 event 표 + §11.3 monitoring 5 지표 cross-reference / §5.6 cutover checklist 8 항목 + §11 운영 runbook 정합 (cutover rollback trigger → §11.1 incident runbook 자동 활성화) / §6.1 Phase 1 운영 정공법 에 "day-2 운영 = §11 운영 runbook 정공법 적용 (M-v0.2.0 PoC = 1 operator, §11.4)" 추가 / ADR-0034 §4.3 영향 section §11 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §11 운영 runbook" + §4.7 raw 정합성 검증 + §5.6 cutover/rollback 의 운영 연속 + §6 Phase 운영 정공법 + day-2 운영 정공법 (incident 대응 + backup/restore + monitoring/alert + on-call) 의 umbrella doc 본문 정공법 부재) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
@@ -2239,3 +2253,259 @@ class SourceMeta(BaseModel):
 4. **§6.3 Phase 3 LLM enrich** — Pi 의 역할 갱신: "M-v0.2.3+ LLM enrich (rule-based enricher 의 보강) + M-v0.2.0+ Pi periodic ingest pipeline (DB path source 의 정규화)". §6.3 의 M-v0.2.3 timing 이 M-v0.2.0 으로 option 이동
 5. **ADR-0034 §4.3 영향** — §10 row 추가 + §3.7/§3.8/§6.3 cross-reference 명시
 6. **ADR-0035 §3 영향** — §10 의 DB-based raw + Pi periodic ingest 가 ADR-0035 의 "외부 시스템 7종 source 만 단방향" 정책과 정합 (§10 의 DB path 는 외부 시스템 데이터 + Pi LLM 처리, backend-core wire ❌) 명시
+
+## 11. 운영 runbook (Day-2 운영 정공법, 2026-06-18 신규)
+
+**Motivation**: §4.7 raw 정합성 검증 (audit log 7 event) + §5.6 cutover + rollback plan (4 trigger rollback) + §6 Phase 운영 정공법 의 정공법이 incident 발생 시 **운영자가 즉시 대응 가능한 runbook 형태**로 정리되지 않음. 본 §11 이 day-2 운영 정공법 (incident 대응 + backup/restore + monitoring/alert + on-call) 을 정의.
+
+**독립 backend-knowledge 운영 정합** (§1.2 G7 + §2.3 standalone 정합):
+- backend-knowledge 자체 monitoring + alerting 만 정의 (다른 backend 의 monitoring 도구 공유 ❌)
+- 운영자 또는 별도 agent 가 대응 (backend-core 의 operator 호출 ❌, §2.3 정합)
+
+### 11.1 Incident 대응 runbook (6 type, per trigger/detection/triage/mitigation/recovery)
+
+**6 incident type** (severity + RTO 정의):
+
+| # | Incident type | Severity | Detection | RTO (Recovery Time Objective) | Runbook section |
+| --- | --- | --- | --- | --- | --- |
+| **1** | **Source plugin sync 실패** (HTTP 4xx/5xx, network timeout) | warning → critical (반복 시) | §4.7 `raw.received` audit log 의 `last_error` + source plugin health check endpoint (§3.1) | < 30분 | §11.1.1 |
+| **2** | **Credential 만료** (401/403 from external system) | critical | source plugin health check 의 401/403 + `raw.deleted` audit log | < 1시간 | §11.1.2 |
+| **3** | **Pi ingest pipeline timeout/degraded** (subprocess hang or LLM invalid) | warning | §10.3 `ingest_locked_until` 만료 + degraded flag + `ingest_locked_until > NOW()` index | < 30분 | §11.1.3 |
+| **4** | **Retention cron 실패** (DB write 실패 or storage quota 초과) | warning | 매일 03:00 UTC cron 의 audit log + storage quota 90% 임계 | < 4시간 | §11.1.4 |
+| **5** | **Integrity violation** (sha256 mismatch on raw query) | critical | §4.7 `raw.integrity_violation` audit log + 매 조회 시 hash 재계산 | < 15분 | §11.1.5 |
+| **6** | **Archive trigger 실패** (raw 변경 시 concept superseded 실패) | warning | §3.9 lifecycle `x_devhub_status` 자동 archive 실패 audit + 시각 비교 | < 1시간 | §11.1.6 |
+
+#### 11.1.1 Source plugin sync 실패
+
+- **Trigger**: `POST /api/v0-2/ingest/{source}/sync` 호출 시 HTTP 4xx/5xx 또는 network timeout
+- **Detection**:
+  - source plugin `health_check()` method 의 `last_error` 필드 (§3.8.1)
+  - `audit.raw.received` log 의 `last_error` 컬럼 (§4.7)
+  - GET `/api/v0-2/ingest/{source}/status` endpoint (§3.1)
+- **Triage**:
+  1. `last_error` 메세지 확인 (HTTP 401 → §11.1.2 credential 만료 / 429 → rate limit / 5xx → 외부 시스템 장애)
+  2. 외부 시스템 status page 확인 (Gitea / homelab / metrics / hrdb)
+  3. network connectivity 확인 (`curl`, `ping`)
+- **Mitigation**:
+  - 401/403 → §11.1.2 credential rotation
+  - 429 → source plugin 의 retry policy 확인 (`§3.7.5 partial failure` 의 degraded flag 활용)
+  - 5xx → external system incident → 일시적 정지 + 다음 cron cycle 대기
+- **Recovery**:
+  - sync 성공 시 audit log 에 `raw.received` success event
+  - 5회 연속 실패 시 critical alert (§11.3 routing) + on-call page
+
+#### 11.1.2 Credential 만료
+
+- **Trigger**: source plugin health check 의 401/403 응답
+- **Detection**:
+  - `audit.raw.received.last_error` 에 "401 Unauthorized" 또는 "403 Forbidden"
+  - health_check endpoint 의 `healthy: false`
+- **Triage**:
+  1. 외부 시스템의 credential 유효성 확인 (Gitea access token / homelab agent token / Prometheus scrape credential / hrdb DB password)
+  2. credential 만료 / 회수 여부 확인 (운영자 또는 외부 시스템 admin)
+- **Mitigation**:
+  - **M-v0.2.0 PoC**: credential rotation 절차 (운영자 수동, 외부 시스템 admin 의 새 credential 발급 + backend-knowledge 의 source plugin 의 credential config 업데이트)
+  - **M-v0.2.1+**: credential 자동 rotation (외부 시스템 API 지원 시)
+- **Recovery**:
+  - 새 credential 로 sync 성공 시 audit log success
+  - 1시간 이내 미복구 시 escalation (§11.4)
+
+#### 11.1.3 Pi ingest pipeline timeout/degraded
+
+- **Trigger**: Pi subprocess hang (>30초 timeout) or Pi LLM 출력 invalid (§10.3 step 5 validation 실패)
+- **Detection**:
+  - `raw_records.ingest_locked_until > NOW()` index → lock 풀리지 않은 raw
+  - degraded flag (`x_devhub_degraded_fields`) 증가
+  - §10.3 fallback 발동 (Pi LLM unreachable → rule-based fallback)
+- **Triage**:
+  1. Pi subprocess 상태 확인 (`pgrep`, `top`)
+  2. Pi LLM 출력 샘플 확인 (마지막 5개 ingest 의 output)
+  3. Pi vendor 의 status page 확인 (`pi.dev` / vendor API)
+- **Mitigation**:
+  - Pi subprocess timeout → `ingest_locked_until = NULL` (수동, 다음 cycle 에서 retry)
+  - Pi LLM invalid → §10.3 fallback 으로 rule-based normalize 자동 전환
+  - Pi vendor outage → §10.3 fallback 으로 rule-based 일시 운영
+- **Recovery**:
+  - Pi 복귀 시 자동 detect → fallback 해제 + rule-based 로 이미 처리된 raw 는 Pi 로 재처리 옵션
+
+#### 11.1.4 Retention cron 실패
+
+- **Trigger**: 매일 03:00 UTC cron 의 retention_days 초과 raw 자동 삭제 실패
+- **Detection**:
+  - cron audit log 미기록 (cron 자체 fail)
+  - storage quota 90% 임계 초과 alert (§11.3 monitoring)
+- **Triage**:
+  1. cron daemon 상태 확인 (`crontab -l`, `systemctl status cron`)
+  2. retention_days 컬럼 / WHERE 조건 검증
+  3. raw_records 의 received_at + retention_days < NOW() row count
+- **Mitigation**:
+  - cron daemon 재시작
+  - retention_days 값 잘못 설정된 raw 수동 삭제 (`DELETE FROM raw_records WHERE received_at + retention_days < NOW()`)
+- **Recovery**:
+  - cron 정상 작동 시 다음 03:00 UTC 부터 자동 retention 재개
+  - storage quota 90% 이하 회복 시 alert 해제
+
+#### 11.1.5 Integrity violation
+
+- **Trigger**: §4.7 raw 정합성 검증 의 sha256 hash mismatch
+- **Detection**:
+  - `audit.raw.integrity_violation` event (severity: high)
+  - GET `/api/v0-2/raw/{type}/{name}` 응답의 `E_INTERNAL` ("raw.integrity_violation")
+- **Triage**:
+  1. source_timestamp vs received_at 비교 (외부 시스템 응답 시점 vs DB write 시점)
+  2. fs vs sqlite 의 mtime 비교 (file mode 의 경우)
+  3. raw_records 의 sha256 vs file 재계산 비교 (db mode 의 경우)
+- **Mitigation**:
+  - source plugin 의 sync 재실행 (`POST /api/v0-2/ingest/{source}/sync` 로 raw 재-emit)
+  - DB mode 의 경우: `UPDATE raw_records SET data_json_encrypted = ?, data_json_hash_sha256 = ? WHERE id = ?` (운영자 수동, source_plugin 의 fetch 결과로)
+- **Recovery**:
+  - hash 일치 후 audit log success
+  - integrity violation alert 해제
+  - 1시간 이내 미복구 시 critical alert
+
+#### 11.1.6 Archive trigger 실패
+
+- **Trigger**: §3.9 lifecycle 의 superseded 자동 archive 실패 (raw 변경 시)
+- **Detection**:
+  - `x_devhub_status: superseded` 로 변경 안 된 previous concept 발견 (audit log + sqlite `concept_index.status` 비교)
+- **Triage**:
+  1. source plugin 의 sync 결과 + normalized concept 비교
+  2. `x_devhub_version` 비교 (이전 version 이 active 상태로 남았는지)
+  3. bundle/index.md 의 archive 표시 정합
+- **Mitigation**:
+  - 운영자 수동 archive (`POST /api/v0-2/concepts/{id}/enrich` + curator="human" 승격)
+  - bundle/index.md 재생성 (`POST /api/v0-2/bundles/{bundle}/rebuild`)
+- **Recovery**:
+  - archive 정상 적용 후 audit log success
+  - viz.html 에서 superseded concept 가 archived 표시
+
+### 11.2 Backup + restore 절차
+
+**Backup 대상** (per storage mode, 2026-06-18 결정):
+
+| 대상 | file mode | db mode | Backup 방법 | Schedule |
+| --- | --- | --- | --- | --- |
+| **DB (raw_records)** | (사용 안 함) | sqlite `.db` file (M-v0.2.0~v0.2.2) / PostgreSQL `pg_dump` (M-v0.2.3+) | 파일 copy / pg_dump | 일별 (cron 02:00 UTC) + 매 cutover 직전 |
+| **var/bundles/** | git push 가능 (Markdown + frontmatter) | 동일 | git push | 매 commit (CI 자동) |
+| **var/raw/** (file mode) | 봉투 암호화 후 git push 가능 OR .gitignore + 별도 backup | (사용 안 함) | git push OR tar + S3 upload | 일별 + 매 ingest 직후 (snapshot) |
+| **.env** / **KEK** | 봉투 암호화 키 / 외부 시스템 credential | 동일 | 별도 secure storage (1Password / HashiCorp Vault) | 수동 (즉시) |
+| **bundle_owner_org_id / governance field** | git push (var/bundles/ 안) | 동일 | git push | 매 commit |
+
+**Backup retention**:
+- 일별 backup: 7일 보관 (rolling)
+- 주별 backup: 4주 보관
+- 월별 backup: 12개월 보관
+- KEK / .env: 별도 secure storage 의 backup 정책 따름
+
+**Restore 절차** (per target):
+
+```
+Step 1: 최신 backup 파일 확인
+  - DB: ls -lt backups/db/ | head -5
+  - bundles: git log --oneline var/bundles/ | head -5
+  - raw (file mode): ls -lt backups/raw/ | head -5
+
+Step 2: 백업 시점의 dependencies 정합 확인
+  - .env / KEK 가 백업 시점과 동일한지 (credential 회전 후 잘못된 credential 사용 방지)
+  - bundle layout / source plugin metadata 가 백업 시점과 일치하는지
+
+Step 3: Restore 실행
+  - DB (sqlite): cp backup.sqlite var/raw_index.db
+  - DB (PostgreSQL): psql -f backup.sql
+  - bundles: git checkout <commit> -- var/bundles/
+  - raw (file mode): tar -xzf backup.tar.gz -C var/raw/
+
+Step 4: Restore 검증
+  - sha256 hash 재계산 (§4.7 정합)
+  - source plugin health check
+  - query API 의 smoke test (3개 endpoint)
+
+Step 5: Audit log 기록
+  - audit.restore.executed event (timestamp + backup_file + operator)
+  - audit.restore.verified event
+```
+
+**Restore RTO** (per target):
+- DB (sqlite): < 5분 (file copy + verify)
+- DB (PostgreSQL): < 30분 (pg_dump + psql)
+- bundles (git): < 5분 (git checkout)
+- raw (file mode tar): < 15분 (untar + verify sha256)
+- KEK / .env: < 1시간 (별도 secure storage 에서 retrieve)
+
+**Restore drill** (per quarter):
+- 월 1회 dry-run restore (운영 staging 환경에서)
+- 분기 1회 실 restore drill (production 환경 test data 로)
+
+### 11.3 Monitoring + alert routing
+
+**5 monitoring 지표** (§5.6 cutover monitoring 과 정합):
+
+| # | 지표 | 측정 방법 | Threshold (warning) | Threshold (critical) |
+| --- | --- | --- | --- | --- |
+| **1** | **Source plugin sync 성공률** (per source) | `audit.raw.received` event 의 success/failure ratio (24h sliding window) | < 99% | < 95% |
+| **2** | **Query API p95 latency** | FastAPI middleware 의 response time histogram | > 500ms (M-v0.2.0 PoC), > 200ms (M-v0.2.1+) | > 1s |
+| **3** | **Raw 정합성 violation rate** (per day) | `audit.raw.integrity_violation` event count | > 0.01% | > 0.1% |
+| **4** | **Pi ingest pipeline success rate** | `audit.pi_ingest` event 의 success/failure ratio (1h sliding window, §10.3) | < 95% | < 80% |
+| **5** | **Concept archive trigger 정상 작동** | §3.9 superseded archive 실패 audit count | > 0/day | > 5/day |
+
+**Monitoring 도구** (M-v0.2.0 PoC default):
+- FastAPI middleware + structlog (JSON log)
+- Prometheus exporter (`/metrics` endpoint, M-v0.2.1+)
+- Grafana dashboard (5 지표 panel, M-v0.2.1+)
+- 외부: Datadog / Sentry (M-v0.2.3+ 옵션)
+
+**Alert routing** (3 tier):
+
+| Severity | Channel | Response time | Escalation |
+| --- | --- | --- | --- |
+| **info** | Slack `#backend-knowledge-info` (M-v0.2.1+) | 1 business day | (없음) |
+| **warning** | Slack `#backend-knowledge-alerts` | 1시간 | on-call responder (§11.4) |
+| **critical** | Slack `#backend-knowledge-critical` + on-call page (PagerDuty / Opsgenie) | 15분 | on-call responder → 30분 미대응 시 team lead → 1시간 미대응 시 director |
+
+**Alert message template**:
+```
+[SEVERITY] backend-knowledge incident
+
+Incident: {incident_type}
+Source: {source_plugin or N/A}
+Trigger: {trigger_description}
+Detection time: {timestamp}
+Affected scope: {raw_count affected, concept_count affected}
+Suggested runbook: §11.1.{N}
+On-call: @{responder}
+
+#backend-knowledge #v0.2.0
+```
+
+**Alert deduplication**: 같은 incident type + 같은 source 가 5분 이내 반복 발생 시 1개 alert 만 발송 (노이즈 방지)
+
+### 11.4 On-call 운영 + role 정의
+
+**4 role** (M-v0.2.0~v0.2.1+):
+
+| Role | 책임 | 권한 | On-call schedule |
+| --- | --- | --- | --- |
+| **backend-knowledge operator** | backend-knowledge 의 day-2 운영 전체 (incident 대응, restore, monitoring 확인) | system_admin role + §11.3 의 alert 수신 + restore 권한 | M-v0.2.0 = 1 person (project lead), M-v0.2.1+ = 1주 rotation (4 person team) |
+| **source plugin developer** | per source 의 fetch / normalize / sync 구현 (incident 발생 시 code fix) | source_meta 의 bundle owner_org_unit_ids 의 org_head scope + source plugin 코드 read/write | (없음, 필요 시 on-call) |
+| **Pi LLM curator** (M-v0.2.3+) | Pi ingest pipeline 의 prompt + vendor 관리 | system_admin role + Pi 의 vendor API key | M-v0.2.3+ = 1 person |
+| **security auditor** | incident 중 보안 관련 (credential leak, supply chain) 의 escalation | `audit.integrity_violation` + `audit.security` event 수신 | (없음, 필요 시 page) |
+
+**On-call rotation 정책** (M-v0.2.1+):
+- 1주 rotation (월요일 09:00 ~ 다음주 월요일 09:00 KST)
+- backup on-call: rotation 의 다음 사람 (즉시 응답 불가 시)
+- handoff 절차: rotation 시작 시 §11.3 의 dashboard snapshot + 진행 중인 incident list 공유
+
+**Operator training** (per release):
+- M-v0.2.0 release 직전: §11.1 incident runbook walkthrough (1 hour)
+- M-v0.2.1 release 직전: §11.2 backup/restore drill + §11.3 monitoring dashboard 사용법
+- M-v0.2.3 release 직전: §10.3 Pi ingest pipeline 운영 + fallback 절차
+
+**Communication channel** (M-v0.2.0 PoC):
+- Slack `#backend-knowledge` (운영 channel)
+- email `backend-knowledge-alerts@example.com` (alert routing, M-v0.2.1+)
+- GitHub Issues (incident tracking)
+
+**§5.6 cutover 와의 정합**:
+- §5.6 의 cutover 절차 중 rollback trigger 발동 시 본 §11.1 의 incident runbook 중 해당 type 의 runbook 즉시 활성화
+- on-call operator 가 cutover rollback + incident 대응 동시 수행
+- cutover 후 monitoring 지표 5 항목 중 1 이상 임계 초과 시 incident 등록
