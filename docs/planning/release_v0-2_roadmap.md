@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 — §3.2.1 보강 + 신규 §3.5 "Concept organization" + 신규 §3.6 "Data governance & query scoping" + 신규 §3.7 "Data normalization pipeline" + 신규 §3.8 "Source plugin 작성 정공법" + 신규 §3.9 "OKF concept 운영 lifecycle" (lifecycle 5 단계 state machine + frontmatter template per 8 type + review checklist 5 항목 + publish + archive 절차 + M-v0.2.0~v0.2.3+ 운영 정책 표) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 (봉투 암호화 ADR-0025 + .gitignore per source + retention default 90일 + storage quota 1GB/bundle + endpoint 별 권한 + 1 raw → N concepts + raw 삭제 시 concept 처리 3 mode + sha256 정합성 검증 + audit 7 event) + cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 raw 4 row / §3.6.2 curation governance lifecycle cross-reference / §3.7.2 per-source mapping / §3.8.4 Step 9 lifecycle cross-reference / §4.1 정책 정의 표 9 row 보강 / §5.1 M-v0.2.0 scope / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §4.2/§4.3 갱신).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 — §3.2.1 보강 + 신규 §3.5~§3.9 (concept organization / governance / normalization / source plugin 작성 / lifecycle) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 + 신규 §5.4~§5.7 마일스톤 상세화 (dependency graph + critical path + per-milestone DoD + cutover 절차 + rollback plan + parallel sprint + PR 전략). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7.2 per-source mapping / §3.8.4 Step 9 lifecycle / §4.1 정책 정의 표 9 row / §5.1 M-v0.2.0 scope / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -1630,6 +1630,242 @@ sprint 진입 시 다음 6 항목 확인:
 5. [ ] OKF `SPEC.md` 1차 정독 (vendor-neutral 정책 + frontmatter 정확한 spec 확인)
 6. [ ] 신규 GitHub milestone `v0.2.0` 생성 + 본 문서 link 첨부
 
+### 5.4 Milestone dependency graph + critical path (2026-06-18 신규)
+
+**6 마일스톤 의존 관계** (linear, 단 §5.7 parallel sprint 가능):
+
+```
+M-v0.2.0-alpha
+    │
+    ▼ (의존)
+M-v0.2.0
+    │
+    ▼ (의존)
+M-v0.2.1
+    │
+    ▼ (의존)
+M-v0.2.2
+    │
+    ▼ (의존)
+M-v0.2.3
+    │
+    ▼ (의존)
+M-v0.3.0
+```
+
+| 마일스톤 | 의존 (직전) | 의존 (병렬 가능) | 산출물 | 상태 |
+| --- | --- | --- | --- | --- |
+| **M-v0.2.0-alpha** | (없음) | ADR-0034/0035 publish + state.json M-v0.2.0 row | umbrella doc + child doc active 전환 | planned |
+| **M-v0.2.0** | alpha | OKF SPEC.md 1차 정독 (M-v0.2.0 이전) | skeleton + OKF spec model + Gitea 4 + homelab_mock + Ingest/Query + raw API + OpenAPI | planned |
+| **M-v0.2.1** | v0.2.0 | frontend page 1 design + Pi LLM vendor 결정 (M-v0.2.3 이전) | Gitea 정식 + homelab real + Curate + viz.html + frontend 관리 page 1 + e2e smoke | planned |
+| **M-v0.2.2** | v0.2.1 | backend-ai/ 디렉터리 제거 PR | metrics + 6종 운영 + backend-ai 폐기 | planned |
+| **M-v0.2.3** | v0.2.2 | hrdb schema spec + Pi SDK/RPC mode 결정 | + hrdb + Pi LLM enrich + cross-link 자동 resolution + 7종 운영 | planned |
+| **M-v0.3.0** | v0.2.3 | embedding model 결정 (sentence-transformers or 외부) | chunking + embedding + vector index + reranking + multi-vendor LLM | planned |
+
+**Critical path** (linear, parallel 불가능):
+```
+M-v0.2.0 (skeleton + 5종 source)
+  → M-v0.2.1 (Gitea 정식 + frontend page 1)
+    → M-v0.2.2 (metrics + backend-ai 폐기)
+      → M-v0.2.3 (hrdb + Pi LLM enrich)
+        → M-v0.3.0 (RAG)
+```
+
+**병렬 가능 sprint** (§5.7 parallel sprint + PR 전략):
+- `backend-knowledge/` skeleton PR + umbrella doc PR = 별도 PR (동시 가능)
+- ADR-0034 + ADR-0035 publish = 별도 PR (동시 가능, ADR-0035 가 ADR-0034 영향 받지만 publish 는 parallel)
+- 5종 source plugin (Gitea 4 + homelab_mock) = 1 batch PR (M-v0.2.0) 또는 5개 PR (M-v0.2.1 의 정식 wire 시)
+- frontend page 1 = 별도 PR (M-v0.2.1)
+- backend-ai/ 폐기 = 별도 PR (M-v0.2.2)
+- Pi LLM enrich = 별도 PR (M-v0.2.3)
+
+**Risk analysis** (병렬 시 의존성 충돌):
+- (a) skeleton PR + ADR PR 동시 진행: ADR 이 skeleton 의 okf/ 디렉터리 영향 받으므로, skeleton 의 okf/spec.py commit 후 ADR 영향 section 갱신 필요 (sequential within PR chain, but PR 자체는 parallel)
+- (b) frontend page 1 + 5종 source plugin 동시 진행: frontend 가 source plugin 의 normalize() 결과 (viz.html) 사용 → frontend 는 source plugin PR merge 이후 진행 권장
+- (c) Pi LLM enrich + hrdb source 동시 진행: hrdb source 의 normalize() 결과가 Pi LLM 의 enrich input → hrdb 먼저 commit 후 Pi 진행
+
+### 5.5 마일스톤별 DoD (Definition of Done, 2026-06-18 신규)
+
+**M-v0.2.0-alpha DoD**:
+- (a) umbrella doc (`release_v0-2_roadmap.md`) status = `accepted` + cross-link 정합
+- (b) child doc (`external-integrations-agentic-rag-roadmap.md`) status = `active` + §8 변경 이력 row 추가
+- (c) `ai-workflow/memory/state.json` M-v0.2.0 row 발급
+- (d) ADR-0034 + ADR-0035 publish
+- (e) GitHub milestone `v0.2.0` 생성 + umbrella doc link 첨부
+
+**M-v0.2.0 DoD** (PoC, 1차 standalone):
+- (a) **코드/문서**:
+  - `backend-knowledge/` 디렉터리 skeleton: Dockerfile + pyproject.toml + main.py + `okf/spec.py` + `okf/frontmatter.py` + `okf/link_graph.py` + `curate/enricher.py` + `curate/index_builder.py` + `curate/link_resolver.py` + `sources/_base.py`
+  - 5종 PoC source plugin: `gitea_repo_pull.py` + `gitea_issue.py` + `gitea_wiki.py` + `gitea_action.py` + `homelab_mock.py`
+  - 4 API module: `api/ingest.py` + `api/curate.py` + `api/query.py` + `api/raw.py` + `api/bundles.py`
+  - dev script: `backend-knowledge/dev-up.sh` + `backend-knowledge/docker-compose.yml` (standalone)
+- (b) **검증** (per §3.8.5):
+  - 단위 테스트: pytest, 5종 source plugin + curate modules, ≥80% coverage
+  - e2e smoke: POST /ingest/{source}/sync → real Gitea instance 또는 homelab fixture → GET /concepts/{type}/{name} → 정상 응답
+- (c) **ADR 영향**:
+  - ADR-0034 §4.3 영향 section §3.5~§3.9 row 모두 정합
+  - ADR-0035 §3.8 마일스톤 표 와 §5 정합
+- (d) **운영**:
+  - docker-compose.yml 단독 기동 (backend-core 와 별도 docker network)
+  - viz.html 자가 viewer SSR (frontend 0 page, viz.html 만)
+- (e) **cross-section 정합**:
+  - umbrella doc §9 변경 이력 row 추가
+  - 본 §5.3 checklist 6/6 통과
+
+**M-v0.2.1 DoD** (1차 완성 + Gitea 정식 + frontend):
+- (a) **코드/문서**:
+  - `gitea_repo_pull.py` / `gitea_issue.py` / `gitea_wiki.py` / `gitea_action.py` 정식 wire (PoC → real)
+  - `homelab.py` (real wire, `homelab_mock.py` 대체)
+  - 3 Curate endpoint: `POST /concepts/{id}/enrich` + `PUT /concepts/{id}` + `POST /bundles/{bundle}/rebuild`
+  - frontend 관리/조회 page 1: `backend-knowledge/web/` (별도 standalone frontend, devhub frontend 와 분리)
+- (b) **검증**:
+  - 5종 source plugin 정식 wire e2e smoke
+  - frontend 페이지 관리/조회 happy path e2e
+  - 검토 workflow (human 작성) e2e (M-v0.2.1 PoC 의 frontend 1 page)
+- (c) **ADR 영향**:
+  - ADR-0035 §4.1 positive 갱신 (frontend page 1 추가)
+- (d) **운영**:
+  - standalone 유지 (gateway/firewall 보호)
+  - viz.html 정식 viewer + per-bundle/per-category/index.md 자동 생성
+- (e) **cross-section 정합**:
+  - §3.9 lifecycle reviewed/published state 정합 (human 작성 review workflow)
+  - §6.1 Phase 1 운영 정합
+
+**M-v0.2.2 DoD** (5 카테고리 외 추가 wire + backend-ai 폐기):
+- (a) **코드/문서**:
+  - `metrics.py` (Prometheus scrape API)
+  - 6종 운영 (Gitea 4 + homelab + metrics)
+  - `backend-ai/` 디렉터리 제거 (placeholder 정리)
+  - root `docker-compose.deploy.yml` 의 `backend-ai` service 제거
+  - root `Makefile` / `dev-up.sh` 의 backend-ai target 제거
+- (b) **검증**:
+  - 6종 source 운영 e2e smoke
+  - backend-ai reference 0 (grep / find 결과)
+- (c) **ADR 영향**:
+  - ADR-0035 §6 supersession 갱신 (backend-ai 폐기 결정 명시)
+- (d) **운영**:
+  - root level 정리 + backend-knowledge 독립 유지
+- (e) **cross-section 정합**:
+  - §6.2 Phase 2 운영 정합
+  - §3.7.2 per-source mapping 6 row 정합
+
+**M-v0.2.3 DoD** (hrdb + Pi LLM enrich + cross-link 자동):
+- (a) **코드/문서**:
+  - `hrdb.py` (사내 HR DB PostgreSQL)
+  - 7종 운영 (Gitea 4 + homelab + metrics + hrdb)
+  - Pi LLM enrich (`pi_bridge/rpc_client.py` 또는 `sdk_client.py`)
+  - cross-link 자동 resolution (`curate/link_resolver.py` Pi LLM 연동)
+- (b) **검증**:
+  - 7종 source 운영 e2e smoke
+  - Pi LLM enrich 단위 테스트 (mock Pi response)
+  - cross-link 자동 resolution e2e smoke (orphan link 해소)
+- (c) **ADR 영향**:
+  - ADR-0034 §3 (Pi 의 RPC mode / SDK mode 결정) 갱신
+- (d) **운영**:
+  - 1 vendor Pi 정합 (vendor-agnostic, Q3 결정)
+  - long-running connection (RPC mode) or subprocess (SDK mode) 운영
+- (e) **cross-section 정합**:
+  - §6.3 Phase 3 운영 정합
+  - §3.7.5 edge cases (Pi LLM 다운시 rule-based fallback) 정합
+
+**M-v0.3.0 DoD** (풀 RAG):
+- (a) **코드/문서**:
+  - chunking module (`backend-knowledge/curate/chunker.py`)
+  - embedding module (`backend-knowledge/curate/embedder.py`, sentence-transformers or 외부)
+  - vector index (sqlite-vss or pgvector)
+  - reranker module
+  - multi-vendor LLM abstraction (Pi `pi-ai` 의 15+ provider)
+- (b) **검증**:
+  - RAG happy path e2e smoke (query → retrieval → reranking → answer)
+  - benchmark (precision/recall on sample corpus)
+- (c) **ADR 영향**:
+  - ADR-0034 §3 OKF + vector index reference 갱신
+  - ADR-0035 §3.3 (Query API 의 LLM answer 합성) 갱신
+- (d) **운영**:
+  - vector index 백업 + restore procedure
+  - multi-vendor fallback (1 vendor 다운시 다른 vendor 사용)
+- (e) **cross-section 정합**:
+  - §3.7.5 edge cases (vector index 손상 시 fallback) 정합
+
+### 5.6 Cutover 절차 + rollback plan (per milestone, 2026-06-18 신규)
+
+**Cutover 절차** (per milestone 의 deployment 전환):
+
+```
+Step 1: 이전 milestone 의 docker-compose 가동 상태 확인 (health check)
+Step 2: 새 milestone 의 docker 이미지 빌드 + push (CI/CD)
+Step 3: 새 milestone 의 docker-compose 가동 (별도 docker network, parallel 가동)
+Step 4: smoke test (새 milestone 의 핵심 endpoint 1~2개)
+Step 5: 이전 milestone 의 docker-compose 종료
+Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
+```
+
+**Cutover trigger**:
+- M-v0.2.0 → M-v0.2.1: frontend page 1 deploy + viz.html 정식 viewer 활성화
+- M-v0.2.1 → M-v0.2.2: metrics source 추가 + backend-ai 제거
+- M-v0.2.2 → M-v0.2.3: hrdb source 추가 + Pi LLM enrich 활성화
+- M-v0.2.3 → M-v0.3.0: chunking + embedding + vector index 추가
+
+**Rollback plan** (cutover 실패 시):
+
+| Trigger | Rollback | RTO (Recovery Time Objective) |
+| --- | --- | --- |
+| 새 milestone 의 health check 실패 (5분 내) | `docker-compose down` + 이전 milestone 의 `docker-compose up` | < 10분 |
+| smoke test 실패 (1 endpoint 이상) | 새 milestone 의 docker-compose 종료 + 이전 milestone 복원 | < 30분 |
+| 운영 중 data corruption (raw integrity violation, §4.7) | 이전 milestone 로 rollback + raw 백업본으로 복원 | < 1시간 |
+| 보안 incident (credential leak 등) | 모든 milestone 즉시 정지 + credential 회전 + ADR emergency §5 amendment | < 24시간 |
+
+**Cutover 후 monitoring** (per milestone):
+- (a) source plugin sync 성공률 (per source): ≥99%
+- (b) Query API p95 latency: ≤500ms (M-v0.2.0 PoC), ≤200ms (M-v0.2.1+)
+- (c) raw 정합성 violation: ≤0.01% (per day)
+- (d) Concept archive 자동 trigger 정상 작동 (raw 변경 → concept superseded, §4.6 정합)
+- (e) Audit log 정상 기록 (7 event type, §4.7 정합)
+
+**Cutover checklist** (per milestone, 8 항목):
+- [ ] 이전 milestone 의 docker image backup 완료
+- [ ] 새 milestone 의 docker image CI build 성공
+- [ ] 새 milestone 의 unit test 100% (or 명시적 skip 사유)
+- [ ] 새 milestone 의 e2e smoke 통과
+- [ ] ADR 영향 section 갱신 (해당 milestone 의 DoD 정합)
+- [ ] umbrella doc §9 변경 이력 row 추가
+- [ ] 운영자 notification (cutover 시작/완료)
+- [ ] Rollback plan 검증 (dry-run)
+
+### 5.7 Parallel sprint + PR 전략 (2026-06-18 신규)
+
+**PR 단위 분리 전략** (per 마일스톤):
+
+| 마일스톤 | 권장 PR 수 | PR 목록 (예시) |
+| --- | --- | --- |
+| M-v0.2.0-alpha | 3 PR | (1) umbrella doc publish + ADR-0034 + ADR-0035 / (2) state.json M-v0.2.0 row + GitHub milestone 생성 / (3) child doc status active 전환 |
+| M-v0.2.0 | 4 PR | (1) backend-knowledge/ skeleton (Dockerfile + pyproject + main + okf/) / (2) 5종 PoC source plugin (sources/) / (3) 4 API module + OpenAPI / (4) dev-up.sh + docker-compose |
+| M-v0.2.1 | 3 PR | (1) Gitea 4 정식 wire + homelab real / (2) 3 Curate endpoint + lifecycle state / (3) frontend 관리 page 1 (`backend-knowledge/web/`) |
+| M-v0.2.2 | 2 PR | (1) metrics source + 6종 운영 / (2) backend-ai/ 폐기 + root level 정리 |
+| M-v0.2.3 | 3 PR | (1) hrdb source / (2) Pi LLM enrich (RPC mode 또는 SDK mode) / (3) cross-link 자동 resolution |
+| M-v0.3.0 | 4 PR | (1) chunking / (2) embedding + vector index / (3) reranker / (4) multi-vendor LLM abstraction |
+
+**PR 의존성 정합** (sequential merge 필요):
+- dependency 가 있는 PR 은 순차 merge (rebase on main + merge)
+- dependency 가 없는 PR 은 parallel 가능 (각각 별도 branch + squash merge)
+
+**Branch prefix 전략** (per AGENTS.md 2026-06-09 결정의 free prefix 허용):
+- `chore/<scope>` — doc / ADR / config 변경 (umbrella doc, ADR)
+- `feat/<scope>` — 신규 기능 (source plugin, endpoint)
+- `fix/<scope>` — bug fix
+- 예: `chore/v0-2-umbrella`, `feat/backend-knowledge-skeleton`, `feat/gitea-source-plugin`, `fix/raw-integrity-bug`
+
+**PR template** (per AGENTS.md 추적성):
+- PR body: "추적성 영향" 섹션 (REQ/ARCH/API/RM/IMPL/UT/TC ID)
+- label: tier (사외/사내/공용) + milestone (M-v0.2.0 등) + scope (v0.2-umbrella / backend-knowledge 등)
+- reviewer: AGENTS.md §0.4 Owner 권한 기준
+
+**PR 머지 후 처리** (per milestone release):
+- GitHub milestone close
+- umbrella doc §9 변경 이력 row 추가 (release commit)
+- ADR 영향 section 갱신 (해당 milestone 정합)
+- state.json status update (`planned` → `in_progress` → `done`)
+
 ## 6. 1차 독립 개발 → 연동 단계 (Phase 1 / 2 / 3)
 
 ### 6.1 Phase 1 — 1차 standalone (M-v0.2.0 + M-v0.2.1)
@@ -1735,3 +1971,4 @@ sprint 진입 시 다음 6 항목 확인:
 | 2026-06-18 | **Source plugin 작성 정공법 — 신규 §3.8 "Source plugin 작성 정공법" + cross-section 정합 fix 4 위치** — (1) **신규 §3.8** 5 subsection: §3.8.1 SourcePlugin ABC 인터페이스 명세 (Pydantic v2 + 12 type: Credential/SourceMeta/Connection/RawResponse/Concept/FetchQuery/HealthStatus + ABC 의 5 abstract method: connect/fetch/normalize/emit_concept/health_check + registry register/get/list 3 function, `sources/_base.py` 1차 작성 정공법) / §3.8.2 Gitea 4 sub-plugin 정공법 (real wire, M-v0.2.0 PoC 부터, 4 sub-plugin × 5~7 type = 약 26 concept emit, Gitea access token `type=bearer, value=<token>` credential schema, REST API 호출 + normalize() 4 step 공통 패턴) / §3.8.3 homelab_mock 정공법 (filesystem fixture `var/fixtures/homelab/*.json` 기반, 4 type, M-v0.2.0 PoC 단순화, M-v0.2.1+ real wire 교체) / §3.8.4 신규 source 추가 10 step 절차 (Step 1 외부 API spec 정독 → Step 2 SourceMeta 정의 → Step 3 5 method 구현 → Step 4 credential schema Pydantic 모델 → Step 5 body_template per type → Step 6 단위 테스트 → Step 7 e2e smoke → Step 8 bundle layout 결정 + §3.7.2 갱신 → Step 9 representative concept .md 발췌 → Step 10 ADR 영향 section 갱신 + Quality gate 5 항목) / §3.8.5 3 tier 검증 (단위 pytest + 통합 real Gitea instance + e2e smoke pytest + FastAPI TestClient, M-v0.2.0 PoC = 단위 + e2e smoke) (2) cross-section 정합 fix 4 위치: §3.7.2 per-source mapping 표 하단 "**작성 정공법**: source plugin 작성 시 §3.8 정공법 따름" 1줄 추가 / §5.1 M-v0.2.0 scope row 에 "Gitea 통합 4종 (§3.8.2 정공법) + homelab_mock (§3.8.3 정공법) = 5종 PoC, §3.7.2 / §3.8 정합" 갱신 / ADR-0034 §4.3 영향 section §3.8 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §3.8 Source plugin 작성 정공법" + §3.7 의 abstract 5 step normalization pipeline + ADR-0035 §3.2/§6.4 의 high-level 결정을 구현 가능 정공법으로 구체화 + 5종 PoC source plugin (Gitea 4 sub-plugin + homelab_mock) 의 작성 절차 + 신규 source 추가 절차 + 3 tier 검증 절차 정의) |
 | 2026-06-18 | **§4 1차 raw 데이터 API 심화 — 신규 §4.4~§4.7 "raw 운영/API/정합성 정책" + cross-section 정합 fix 4 위치** — (1) **신규 §4.4** raw 운영 정책 (봉투 암호화 `$env$v0.1$...` ADR-0025 + .gitignore per source 8 row 표 + retention default 90일, 예외: metrics 30일/hrdb 365일, 매일 03:00 UTC cron 자동 삭제 + LRU storage quota default 1GB/bundle) / **§4.5** raw API 권한 + visibility (endpoint 별 권한 matrix 4 row: POST = bundle owner_org member / GET = visibility 정합 / list = caller scope filter / DELETE = system_admin OR 등록자 OR owner_org member, visibility 4 enum 재사용 §3.6.2) / **§4.6** raw → concept 정합성 (1 raw → N concepts 관계, sqlite `raw_index.concept_ids` 추적, raw 삭제 시 concept 처리 3 mode: M-v0.2.0 hard_delete / M-v0.2.1+ soft_archive default / M-v0.2.3+ retain_concept 옵션, orphan concept = `x_devhub_status: orphaned` + audit, raw 변경 시 concept update: M-v0.2.0 overwrite / M-v0.2.1+ superseded / M-v0.2.3+ .md.prev history) / **§4.7** raw 정합성 검증 (sha256 hash 저장 + 매 조회 시 재검증, file system source-of-truth, timestamp lag threshold default 5분, audit log 7 event 표) (2) cross-section 정합 fix 4 위치: §2.1 `var/raw/` 트리 코멘트 보강 (봉투 암호화 + .gitignore + retention 90일 + quota 1GB 정합) / §3.6.1 endpoint 표 raw 4 row 갱신 (권장 → 필수, §4.5 정합) / §4.1 정책 정의 표 9 row 보강 (저장 위치 + 메타 + API + 인증 + 정합성 + lifecycle 6 row 신규, sqlite `raw_index` field 6개 추가 sha256/visibility/retention_days/registered_by/concept_ids/last_verified_at) / ADR-0035 §3.4 1차 raw API 정책 row 갱신 (§4.4~§4.7 reference 추가) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §4 1차 raw API 심화" + §4.1 정책 정의 표 의 high-level 정의 + ADR-0025 봉투 암호화 + 사용자 명시 'API 로 조회/추가 가능' 정책 + §3.6 governance 정합 raw visibility + 1 raw → N concepts 관계 추적 필요성 + sha256 정합성 검증 + audit log 운영 정책) |
 | 2026-06-18 | **OKF concept 운영 lifecycle — 신규 §3.9 "OKF concept 운영 lifecycle" + cross-section 정합 fix 3 위치** — (1) **신규 §3.9** 4 subsection: §3.9.1 lifecycle 5 단계 state machine (created → reviewed → published → active → archived, transition + 책임자 + 정합 section 표, frontmatter status field M-v0.2.1+ 추가) / §3.9.2 frontmatter template per 8 type (dataset/metric/api_endpoint/runbook/integration/event/reference/decision 의 필수 + 권장 field + 예시 표, §3.7.4 normalize() 정합) / §3.9.3 review checklist 5 항목 (frontmatter validation 7 sub / body validation 3 sub / governance validation 2 sub / bundle validation 3 sub / cross-link validation 3 sub, rule-based 자동 + human 수동 review M-v0.2.1+) / §3.9.4 publish + archive 절차 + 운영 정책 (publish trigger 3 mode: rule-based 자동 / human 수동 / system_admin override, archive trigger 3 mode: superseded 자동 / obsolete 수동 / orphan 자동, M-v0.2.0~v0.3.0+ 별 lifecycle 지원 범위 표 5 row) (2) cross-section 정합 fix 3 위치: §3.6.2 curation permission 코드 블록 상단에 §3.9 lifecycle cross-reference note 추가 (created state 의 concept 는 curator 직접 control 불가, archived state 는 write 불가) / §3.8.4 신규 source 추가 10 step 절차의 Step 9 "representative concept .md 발췌 작성" 의 §3.9 cross-reference 추가 (§3.9.2 frontmatter template per 8 type 권장 field 채움 + §3.9.3 review checklist 1~4 항목 자동 validate) / ADR-0034 §4.3 영향 section §3.9 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행" (다음 concept organization) + 4-option 질문 응답 "(a) §3.9 OKF concept 운영 lifecycle" + §3.5/§3.6/§3.7/§3.8 완료 후 lifecycle 운영 정공법 부재 + M-v0.2.0 PoC = rule-based 자동 publish (frontend 0 page) / M-v0.2.1+ = human 작성 + review workflow (frontend 관리 page) + created/reviewed/published/active/archived 5 단계 state machine + frontmatter template + review checklist + publish/archive trigger 정책) |
+| 2026-06-18 | **§5 마일스톤 상세화 — 신규 §5.4~§5.7 + cross-section 정합 fix 3 위치** — (1) **신규 §5.4** dependency graph + critical path (6 마일스톤 linear 의존 표 + critical path linear 표시 + 병렬 가능 sprint 4 case + risk analysis 3 case) / **§5.5** 마일스톤별 DoD (M-v0.2.0-alpha/M-v0.2.0/M-v0.2.1/M-v0.2.2/M-v0.2.3/M-v0.3.0 별 5 항목 DoD: 코드/문서 / 검증 / ADR 영향 / 운영 / cross-section 정합) / **§5.6** cutover 절차 + rollback plan (6 step cutover + 4 trigger rollback 표 + RTO + 5 monitoring 지표 + 8 항목 cutover checklist) / **§5.7** parallel sprint + PR 전략 (per 마일스톤 권장 PR 수 6 row + PR 의존성 정합 + branch prefix 전략 + PR template + 머지 후 처리) (2) cross-section 정합 fix 3 위치: §5.1 마일스톤 표 cross-reference (각 마일스톤 scope 가 §5.5 DoD 와 1:1 정합) / §5.3 sprint 진입 checklist 6 항목 cross-reference (§5.5 M-v0.2.0 DoD 의 (e) cross-section 정합) / ADR-0035 §3.8 마일스톤 표 cross-reference note 추가 (§5 정합, §5.5 DoD 의 (a) 코드/문서 + (b) 검증 정합) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §5 마일스톤 상세화" + §5.1/§5.2/§5.3 의 high-level 정의 + M-v0.2.0~v0.3.0 6 마일스톤 별 DoD + cutover + rollback + parallel sprint PR 전략 정의) |

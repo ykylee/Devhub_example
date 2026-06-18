@@ -111,6 +111,8 @@
 | **M-v0.2.3** | hrdb 운영 + Pi LLM enrich + cross-link 자동 resolution | + hrdb = **7종 운영** + Pi `pi-coding-agent` SDK or RPC mode 로 LLM enrich 활성화 + cross-link 자동 resolution | M-v0.2.2 | ⏳ planned (v0.2.3) |
 | **M-v0.3.0** | 풀 RAG | chunking + embedding + vector index + retrieval + reranking | M-v0.2.3 | ⏳ planned (v0.3.0) |
 
+**§5 정합** (2026-06-18 추가, [release_v0-2_roadmap.md §5.4~§5.7](../planning/release_v0-2_roadmap.md)): 본 §3.8 표의 각 마일스톤 scope 가 §5.5 per-milestone DoD 의 (a) 코드/문서 column 과 1:1 정합. M-v0.2.0 의 (b) 검증 = §5.5 의 pytest + e2e smoke. M-v0.2.1 의 frontend page 1 = §5.7 parallel sprint PR (3). M-v0.2.3 의 Pi LLM enrich = §5.7 PR (2).
+
 ## 4. 결과
 
 ### 4.1 positive
