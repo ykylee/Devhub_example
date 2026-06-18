@@ -48,3 +48,21 @@
 
 ---
 *모든 신규 문서는 `docs/` 하위의 적절한 카테고리에 생성되어야 하며, PR 리뷰를 통해 승인되어야 합니다.*
+
+## 5. v0.2.0 신규 문서 (2026-06-18, deprecated index 에 후속 추가 — 거버넌스 진입점 [`docs/governance/README.md`](./governance/README.md) 의 정공법 따라 문서 관리)
+
+> 본 §5 는 DOCUMENT_INDEX.md 가 deprecated (2026-05-13) 이후 의 v0.2.0 신규 문서 4 종을 참조용으로만 추가. 진짜 SoT = [`docs/planning/README.md`](./planning/README.md) §5.2 + [`docs/governance/README.md`](./governance/README.md) + [`docs/traceability/report.md`](./traceability/report.md).
+
+- **[v0.2.0 umbrella doc — `release_v0-2_roadmap.md`](./planning/release_v0-2_roadmap.md)**: 18 main section (§0~§17) + 80+ subsection, 5459 lines, 18/18 Q&A, 28 metrics M-v0.2.3+ production, 4 cross-cutting 정공법. **accepted 2026-06-17 publish, PR #645 MERGED 2026-06-18**.
+- **[v0.2.0 child doc — `external-integrations-agentic-rag-roadmap.md`](./planning/external-integrations-agentic-rag-roadmap.md)**: umbrella doc 의 child, Q7 결정 기반 status active 전환 (2026-06-18, §17.3 P1 row 3 처리, PR #647 MERGED).
+- **[ADR-0034 OKF v0.1 채택 — `0034-okf-adoption.md`](./adr/0034-okf-adoption.md)**: Google OKF v0.1 채택. **accepted 2026-06-17 publish, §6 Supersession section 신규 (M-v0.2.3+ 부터 supersession 가능)**.
+- **[ADR-0035 backend-knowledge 신설 — `0035-backend-knowledge-creation.md`](./adr/0035-backend-knowledge-creation.md)**: 신규 백엔드 `backend-knowledge` 신설 (Python 3.13+ / FastAPI / OKF / Pi v0.79.6, 완전 standalone). **accepted 2026-06-17 publish, §6 Supersession row 추가**.
+
+**§5 v0.2.0 문서 진입 시**:
+- §0~§1~§2: 컨셉 + 신규 백엔드 → umbrella doc §1~§2
+- §3~§4: 3가지 기본 기능 API + 1차 raw API → umbrella doc §3~§4
+- §5~§6: 마일스톤 + 1차 독립→연동 → umbrella doc §5~§6
+- §7~§8: Q&A + timeline → umbrella doc §7~§8
+- §10~§12: DB raw + runbook + frontend → umbrella doc §10~§12
+- §13~§16: cross-cutting + release notes + ADR supersession + API versioning → umbrella doc §13~§16
+- §17: 종합 review → umbrella doc §17

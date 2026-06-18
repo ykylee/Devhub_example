@@ -3,8 +3,8 @@
 - **문서 목적**: `ai-workflow/wiki/` Obsidian vault (out-of-repo, in-repo (v0.7.17+)) 의 DevHub mirror 운영 SOP. `scripts/wiki-sync-devhub.sh` 의 실행 trigger / frequency / dry-run 절차 + wiki-lint 의 L01~L10 검증 trigger + **위키만으로 코드 maintenance 가능 정공법** (Phase 1.5 추가) + **mass ingest 정공법** (Phase 3 추가).
 - **범위**: Phase 1 (in-repo 변경) + **Phase 1.5 (소스코드 + workflow + scripts + branch memory + traceability mirror scope, 본 저장소 한정 + 위키만으로 maintenance 가능)** + **Phase 3 (mass ingest = docs/domain + architecture + infrastructure + validation + 위키 page 자동 생성 ~78 file)** + Phase 1 mirror 실행 (out-of-repo) + v2.0 (full compile) 진입 시점.
 - **대상 독자**: yklee (owner), DevHub 의 LLM agent (wiki page 작성자 + **코드 maintenance 작업 시 RAG source**), my_harness 작업 에이전트 (D-73 wiki-lint 옵션 추가 시).
-- **상태**: active (D-72 Phase 1 + Phase 1.5 + Phase 3, 2026-06-13)
-- **최종 수정일**: 2026-06-13 (Phase 3 추가: docs/domain + architecture + infrastructure + validation ~78 file mirror + 78 wiki page 신규 생성 + index.md 78 line append, scripts 갱신, lint-config.toml 갱신, 위키 본문 1:1 mirror 정공법, mass ingest SOP)
+- **상태**: active (D-72 Phase 1 + Phase 1.5 + Phase 3, 2026-06-13 + **2026-06-18 v0.2.0 mirror 갱신 (PR #645/#646/#647/#648 머지 trigger)**)
+- **최종 수정일**: 2026-06-18 (v0.2.0 mirror 갱신: PR #645 umbrella doc + ADR-0034 + ADR-0035 + PR #646 state.json M-v0.2.0 row + PR #647 child doc status active + PR #648 wiki mirror sync — `bash scripts/wiki-sync-devhub.sh` 978 file 11M + `bash scripts/wiki-mass-ingest.sh --apply` 79 신규 wiki page)
 - **관련 문서**:
   - [`./README.md`](../README.md) (5 file root index)
   - [`./scope-and-rationale.md`](../scope-and-rationale.md) (Phase 1+1.5+3 scope + D-72 Q1~Q6 적용)
