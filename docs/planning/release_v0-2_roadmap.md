@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + §4 1차 raw API 심화 — §3.2.1 보강 + 신규 §3.5 "Concept organization" + 신규 §3.6 "Data governance & query scoping" + 신규 §3.7 "Data normalization pipeline" + 신규 §3.8 "Source plugin 작성 정공법" + 신규 §4.4~§4.7 raw 운영/API 권한/정합성 정책 (봉투 암호화 ADR-0025 + .gitignore per source + retention default 90일 + storage quota 1GB/bundle + endpoint 별 권한 + 1 raw → N concepts + raw 삭제 시 concept 처리 3 mode + sha256 정합성 검증 + audit 7 event) + cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 raw 4 row / §3.7.2 per-source mapping / §4.1 정책 정의 표 9 row 보강 / §5.1 M-v0.2.0 scope / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §4.2/§4.3 갱신).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 — §3.2.1 보강 + 신규 §3.5 "Concept organization" + 신규 §3.6 "Data governance & query scoping" + 신규 §3.7 "Data normalization pipeline" + 신규 §3.8 "Source plugin 작성 정공법" + 신규 §3.9 "OKF concept 운영 lifecycle" (lifecycle 5 단계 state machine + frontmatter template per 8 type + review checklist 5 항목 + publish + archive 절차 + M-v0.2.0~v0.2.3+ 운영 정책 표) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 (봉투 암호화 ADR-0025 + .gitignore per source + retention default 90일 + storage quota 1GB/bundle + endpoint 별 권한 + 1 raw → N concepts + raw 삭제 시 concept 처리 3 mode + sha256 정합성 검증 + audit 7 event) + cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 raw 4 row / §3.6.2 curation governance lifecycle cross-reference / §3.7.2 per-source mapping / §3.8.4 Step 9 lifecycle cross-reference / §4.1 정책 정의 표 9 row 보강 / §5.1 M-v0.2.0 scope / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -710,6 +710,8 @@ x_devhub_visibility: "org"
 
 **Curation permission** (write/edit, `PUT /concepts/{id}`):
 
+> **§3.9 lifecycle 정합**: 본 §3.6.2 의 curation permission 은 `x_devhub_status: reviewed` 또는 `published` state 의 concept 에만 적용 (§3.9.1 lifecycle 5 단계 정합). `created` state 의 concept 는 자동 normalize 의 부산물로 curator 직접 control 불가. `archived` state 의 concept 는 write 불가 (superseded 또는 obsolete).
+
 ```python
 def check_curation_permission(concept, caller_context):
     curator = concept.frontmatter.get("x_devhub_curator", "rule-based")
@@ -1256,8 +1258,10 @@ Step 8: bundle 디렉터리 layout 결정 + §3.7.2 per-source mapping table 업
   - umbrella doc §3.7.2 표 에 row 추가
 
 Step 9: representative concept .md 발췌 작성
-  - §3.5.3 / §3.6.2 정합: 5 카테고리별 1+ concept frontmatter 예시
+  - §3.5.3 / §3.6.2 / **§3.9 lifecycle** 정합: 5 카테고리별 1+ concept frontmatter 예시
   - bundle owner org + governance field 채움
+  - **§3.9.2 frontmatter template (per 8 type) 의 권장 field 모두 채움** (e.g., `dataset` type → `x_devhub_table_name`, `x_devhub_columns` 등)
+  - **§3.9.3 review checklist 의 1~4 항목 자동 validate 통과** (5번 cross-link 은 optional)
 
 Step 10: ADR-0034 / ADR-0035 영향 section 갱신 (선택, 영향 시)
   - 새 type 추가 시: ADR-0034 §3.2 type enum 표 갱신
@@ -1292,6 +1296,149 @@ Step 10: ADR-0034 / ADR-0035 영향 section 갱신 (선택, 영향 시)
 - 모두 §3.8.2 + §3.8.3 정공법 따름
 - §3.8.4 의 10 step 중 Step 1~7 필수, Step 8~9 는 §3.5.3 / §3.7.2 정합, Step 10 은 optional
 - §3.8.5 의 3 tier 검증 중 단위 테스트 + e2e smoke (M-v0.2.0 = 5종 source, 1 Gitea instance)
+
+### 3.9 OKF concept 운영 lifecycle (Created → Reviewed → Published → Active → Archived, 2026-06-18 신규)
+
+**Motivation**: §3.5 (concept organization) + §3.6 (governance) + §3.7 (normalization) + §3.8 (source plugin 작성) 완료 후, **concept 의 lifecycle 운영 정공법** 부재. 1 concept .md 가 어떤 단계를 거쳐 운영되는지, 각 단계의 책임자/정책/audit, archive 정책 등 정의. **M-v0.2.0 PoC = rule-based 자동 publish (frontend 0 page)**, **M-v0.2.1+ = human 작성 + review workflow** (frontend 관리/조회 page).
+
+#### 3.9.1 Lifecycle 5 단계 state machine
+
+```
+        created
+           ↓
+       [Reviewed] ←─────┐
+           ↓             │
+       Published         │
+           ↓             │ (rejected)
+        Active ──────────┘
+           ↓
+       Archived
+```
+
+| State | 정의 | 진입 조건 | 책임자 | 정합 section |
+| --- | --- | --- | --- | --- |
+| **created** | concept .md 파일이 처음 disk 에 쓰여진 상태 (frontmatter + body 존재, validate 전) | rule-based: source plugin 의 normalize() + emit_concept() 완료 / human: frontend "new concept" form 제출 | rule-based: source plugin / human: frontend user | §3.7.4 + §3.8.4 Step 9 |
+| **reviewed** | frontmatter + body 검증 통과 (또는 skip) | rule-based: source plugin 자동 emit 시 즉시 reviewed (validate 통과 시) / human: reviewer 승인 (M-v0.2.1+) | rule-based: source plugin (auto) / human: reviewer (system_admin or org_head) | §3.9.3 review checklist |
+| **published** | bundle/index.md + viz.html graph 에 노출 | reviewed 통과 시 자동 publish (rule-based) OR 수동 publish 버튼 (human, M-v0.2.1+) | 자동 | §3.5.4 index.md + §3.5.5 viz.html |
+| **active** | published 후 정상 운영 상태 (조회 가능) | published 직후 자동 진입 | 자동 | §3.6.3 query scope priority + §3.6 visibility 정합 |
+| **archived** | superseded or obsolete. 조회 시 hidden (viz.html 에서도 hidden). raw 는 유지 (§4.6 soft_archive 정합) | superseded (raw 변경 시 자동, §4.6 정합) OR 운영자 수동 결정 (M-v0.2.1+) | 자동 (raw 변경) + 수동 (operator) | §4.6 raw 삭제 시 concept 처리 |
+
+**frontmatter status field** (lifecycle state 명시):
+- M-v0.2.0 PoC = status field 미사용 (5 state 가 sqlite 의 `concept_index.status` column 으로만 추적, file 변경 없음)
+- M-v0.2.1+ = `x_devhub_status: created|reviewed|published|active|archived` frontmatter field 추가 (5 state 명시 + viz.html / frontend 표시용)
+
+**Default lifecycle 단축** (rule-based 자동화):
+- rule-based source plugin: created → reviewed → published → active 가 source plugin 의 `POST /api/v0-2/ingest/{source}/sync` 완료 시 1 cycle 내 자동 진행
+- human 작성: created → reviewed (수동) → published (수동) → active (자동)
+- archive: superseded 자동 OR 운영자 수동 결정
+
+#### 3.9.2 Frontmatter template (per 8 type)
+
+§3.3 frontmatter spec 의 `type` field 별 권장 frontmatter template. concept 작성 시 (rule-based: normalize() / human: frontend form) 다음 template 참고.
+
+| Type | 필수 field | 권장 field | 예시 |
+| --- | --- | --- | --- |
+| **`dataset`** | `type: dataset, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_table_name` (외부 DB table), `x_devhub_columns: [{name, type, description}]`, `x_devhub_primary_key` | `hrdb.persons` |
+| **`metric`** | `type: metric, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_metric_type: counter\|gauge\|histogram\|summary`, `x_devhub_unit` (seconds/bytes/count), `x_devhub_labels: [key=value]` | `repo_kpi_sync_duration_seconds` |
+| **`api_endpoint`** | `type: api_endpoint, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_method: GET\|POST\|...`, `x_devhub_path`, `x_devhub_params: [{name, type, required}]`, `x_devhub_response_schema: {ref}` | `gitea_api_v1_repos_list` |
+| **`runbook`** | `type: runbook, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_trigger: condition`, `x_devhub_steps: [step]`, `x_devhub_rollback: [step]`, `x_devhub_owner_org_unit_ids` (runbook 책임 org) | `gitea_repo_pull_failure_recovery` |
+| **`integration`** | `type: integration, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_external_system` (예: "Gitea v1.20"), `x_devhub_auth_type: bearer\|basic\|oauth2\|api_key`, `x_devhub_connection_config_ref` (raw link) | `homelab_file_puller` |
+| **`event`** | `type: event, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_source_event` (예: "gitea.push"), `x_devhub_payload_schema: {ref}`, `x_devhub_trigger_event` | `gitea_push_event` |
+| **`reference`** | `type: reference, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_vendor` (예: "Gitea"), `x_devhub_url` (vendor docs URL), `x_devhub_mirror_version` (raw link 의 mirror version) | `keycloak_admin_rest_api_v1` |
+| **`decision`** | `type: decision, title, x_devhub_source, x_devhub_bundle, x_devhub_category` | `x_devhub_decision_status: proposed\|accepted\|deprecated`, `x_devhub_supersedes` (deprecated 시 이전 decision ID), `x_devhub_decision_date` | `decision_2026_06_18_gitea_pull_strategy` |
+
+**공통 OKF 표준 field** (§3.3 정합):
+- `type` (필수, 8 enum)
+- `title` (human-readable)
+- `description` (1-2 sentence 요약)
+- `resource` (외부 resource URL, 있으면)
+- `tags` (검색/필터)
+- `timestamp` (마지막 갱신)
+
+**공통 DevHub 확장 field** (§3.3 + §3.6.4 정합):
+- `x_devhub_source`, `x_devhub_raw_ref`, `x_devhub_bundle`, `x_devhub_version`, `x_devhub_curator`, `x_devhub_category`
+- `x_devhub_owner_org_id`, `x_devhub_owner_user_id`, `x_devhub_owner_org_unit_ids`, `x_devhub_owner_project_ids`, `x_devhub_visibility`
+
+**§3.7.4 normalize() 정합**: source plugin 의 `SourceMeta.body_template` 가 본 §3.9.2 type 별 권장 field 의 일부분을 body 에 자동 emit (e.g., `dataset` type 의 columns → Markdown table).
+
+#### 3.9.3 Review checklist
+
+concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule-based 자동 validate) 다음 5 항목 체크리스트:
+
+**1. Frontmatter validation** (필수):
+- [ ] `type` ∈ 8 enum (§3.2)
+- [ ] `x_devhub_category` ∈ 5 enum (또는 미설정, §3.2.1)
+- [ ] `x_devhub_curator` ∈ {rule-based, llm, human} (§3.6.2)
+- [ ] `x_devhub_visibility` ∈ {org, personal, project, public} (§3.6.4)
+- [ ] `x_devhub_owner_org_id` / `x_devhub_owner_org_unit_ids` 일치 (org_unit_ids 가 owner_org_id 의 subtree 인지 validate)
+- [ ] `x_devhub_version` ≥ 1
+- [ ] `timestamp` 가 ISO 8601 형식
+
+**2. Body validation** (권장):
+- [ ] body 최소 길이 100자 (rule-based 자동 emit 의 경우 보통 만족)
+- [ ] body 가 Markdown 형식 (heading / list / table 등)
+- [ ] cross-link 의 target 이 실제 존재 (`okf/link_resolver.py` 의 reverse index, §3.5.5 정합)
+
+**3. Governance validation** (필수, M-v0.2.1+):
+- [ ] owner_user 가 source plugin 자동 emit 의 경우 null (rule-based) / human 작성의 경우 명시
+- [ ] visibility 가 source plugin 자동 emit 의 경우 `org` / human 작성의 경우 명시 (default `org`)
+
+**4. Bundle validation** (필수):
+- [ ] bundle 디렉터리 layout 정합 (`var/bundles/{bundle}/{category}/{slug}.md`, §3.5.3 정합)
+- [ ] slug 가 `{type}_{name}` 형식 (e.g., `integration_gitea_repo_puller`, §3.5.3 정합)
+- [ ] file path 가 bundle owner_org 의 subtree 에 속함
+
+**5. Cross-link validation** (권장):
+- [ ] intra-bundle link 의 target 이 같은 bundle 내 존재
+- [ ] cross-bundle link 가 명시적 의미가 있는 경우만 (§3.5.5 정공법)
+- [ ] unresolved link 가 0개 (또는 명시적 사유)
+
+**자동 validate (rule-based)**: source plugin 의 normalize() + emit_concept() 가 본 §3.9.3 의 1~4 항목 자동 validate. 실패 시 `x_devhub_status: created` 로 멈춤 (reviewed 진입 안 함). M-v0.2.0 PoC = 5번 (cross-link) 만 optional.
+
+**수동 review (human 작성)**: frontend 의 "submit for review" 버튼 클릭 시 자동 validate + reviewer (system_admin OR org_head scope) 의 수동 승인. M-v0.2.1+ frontend 관리 page.
+
+#### 3.9.4 Publish + archive 절차 + 운영 정책
+
+**Publish 절차**:
+
+| Trigger | 동작 | 시점 |
+| --- | --- | --- |
+| **rule-based 자동** | reviewed 통과 시 `curate/index_builder.py` 가 자동 publish → bundle/index.md + viz.html 갱신 | M-v0.2.0 PoC |
+| **human 수동** | frontend "publish" 버튼 → reviewed → published state 전이 + index.md 갱신 | M-v0.2.1+ |
+| **system_admin override** | admin 이 reviewed skip 후 publish 강제 (긴급 patch 시) | M-v0.2.0+ (API endpoint: `POST /api/v0-2/concepts/{id}/publish` with `?skip_review=true`) |
+
+**Publish 시 side effect**:
+- `curate/index_builder.py` 가 `{bundle}/index.md` + per-category `{bundle}/{category}/index.md` 갱신 (§3.5.4 정합)
+- `okf/link_graph.py` 가 reverse index 갱신 (§3.5.5 정합)
+- `sqlite concept_index` table 의 `published_at` timestamp 갱신
+- viz.html 자동 SSR (M-v0.2.0 = viz.html 만, frontend page 없음)
+
+**Archive 절차**:
+
+| Trigger | 동작 | 시점 |
+| --- | --- | --- |
+| **superseded (raw 변경)** | source plugin 의 sync 가 새 version 의 concept emit 시 이전 version 의 concept `x_devhub_status: archived` 로 자동 archive (§4.6 raw 삭제 시 concept 처리 3 mode 정합) | M-v0.2.0 PoC (overwrite) / M-v0.2.1+ (superseded 명시) / M-v0.2.3+ (.md.prev history) |
+| **obsolete (operator 결정)** | frontend "archive" 버튼 → 운영자 (system_admin OR owner_org_unit_ids 의 org_head) 의 수동 결정 | M-v0.2.1+ |
+| **orphan (raw 삭제, §4.6)** | `x_devhub_status: orphaned` 자동 설정 + audit + bundle owner_org_unit_ids 내 caller 에 notify | M-v0.2.0+ |
+
+**Archive 시 side effect**:
+- `curate/index_builder.py` 가 archived concept 를 bundle/index.md 에서 제거 (active concept 만 표시)
+- viz.html 에서 archived concept 의 node 색상 변경 (gray) 또는 hidden (default)
+- raw 의 `concept_ids` 에서 archived concept ID 제거 (raw 는 유지, §4.4 retention 정합)
+
+**운영 정책 (M-v0.2.0~v0.2.3+)**:
+
+| Milestone | Lifecycle 지원 범위 |
+| --- | --- |
+| **M-v0.2.0 PoC** | rule-based 자동 publish 만. human 작성 없음 (frontend 0 page). archive 는 superseded 자동 (overwrite). viz.html 자가 viewer 만 SSR. |
+| **M-v0.2.1** | human 작성 지원 (frontend 관리/조회 page 1 추가, §5.1 정합). review workflow (system_admin 또는 org_head scope). manual archive 버튼. |
+| **M-v0.2.2** | soft_archive mode default (raw 변경 시 superseded 명시). review checklist 자동화 강화. `x_devhub_status` frontmatter field 추가. |
+| **M-v0.2.3** | .md.prev history 보존. cross-bundle cross-link 자동화 강화. anomaly detection (이상 상태 concept 자동 flag). |
+| **M-v0.3.0+** | AI-assisted review (Pi LLM enrichment, §6.3). multi-reviewer 승인 (e.g., system_admin + org_head scope 둘 다). |
+
+**§3.7.5 edge cases 정합**:
+- normalize() 실패 시 concept 는 `created` state 에서 멈춤 (reviewed 진입 안 함). `x_devhub_degraded_fields` + audit log.
+- cross-link unresolved 시 concept `created` state 가능 (orphan link 허용), `reviewed` 진입 시 §3.9.3 의 5번 cross-link validation 으로 reject.
 
 ## 4. 1차 raw 데이터의 API 정책 (사용자 강조)
 
@@ -1587,3 +1734,4 @@ sprint 진입 시 다음 6 항목 확인:
 | 2026-06-18 | **Data normalization pipeline — 신규 §3.7 "Data normalization pipeline" + cross-section 정합 fix 6 위치** — (1) **신규 §3.7** 5 subsection: §3.7.1 5 step normalization 원칙 (Step 1 외부 시스템 API 호출 + Step 2 raw JSON 봉투 암호화 저장 + Step 3 raw → OKF concept 변환 + Step 4 concept .md emit + Step 5 index.md 자동 생성, 책임 분리 표 6 module: source plugin / 1차 raw storage / OKF bundle storage / rule-based enricher / index_builder / link_resolver) / §3.7.2 per-source type mapping (7 source × types emitted: Gitea 4 sub-plugin + homelab + metrics + hrdb, 5종 PoC = 약 35개 concept 자동 emit) / §3.7.3 cross-source 동질화 (Jira/Gitea/GitHub 모두 `integration_*_issue_puller.md` 형, query 시 cross-source aggregation, viz.html cross-source cluster) / §3.7.4 normalize algorithm pseudocode (`sources/{source}.py` 의 normalize() method 4 step: parse → extract frontmatter → emit body → attach cross-links, `SourceMeta` 11 field) / §3.7.5 edge cases + degraded handling (6 case 표: Partial failure / Schema drift / Source-specific custom transform / Duplicate concept / Large raw / Auth failure, M-v0.2.0 PoC 범위 명시) (2) cross-section 정합 fix 6 위치: §1.3 producer 다중 row 갱신 (rule-based enricher §3.7.1/§3.7.4 명시) / §2.1 sources/ 트리 `sources/{source}.py` + `curate/enricher.py` 코멘트 보강 (§3.7.1 5 step 정합) / §3.2 concept type enum 하단 cross-reference 추가 (§3.7.2 per-source mapping) / §3.5.3 bundle 디렉터리 layout 의 §3.7.1 reference 추가 / ADR-0034 §4.3 영향 section §3.7 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행하자" (다음 concept organization) + §3.7 "data normalization pipeline (category × system → OKF concept)" 자연스러운 다음 영역 (사용자 명시 "(b) 카테고리별 정규화" 잔여) + DevHub backend-core 의 NormalizeSnapshot() / stateToEventType() / REQ-FR-INT-004/005 패턴 참고 + 사용자 "진행하자" 승인 후속) |
 | 2026-06-18 | **Source plugin 작성 정공법 — 신규 §3.8 "Source plugin 작성 정공법" + cross-section 정합 fix 4 위치** — (1) **신규 §3.8** 5 subsection: §3.8.1 SourcePlugin ABC 인터페이스 명세 (Pydantic v2 + 12 type: Credential/SourceMeta/Connection/RawResponse/Concept/FetchQuery/HealthStatus + ABC 의 5 abstract method: connect/fetch/normalize/emit_concept/health_check + registry register/get/list 3 function, `sources/_base.py` 1차 작성 정공법) / §3.8.2 Gitea 4 sub-plugin 정공법 (real wire, M-v0.2.0 PoC 부터, 4 sub-plugin × 5~7 type = 약 26 concept emit, Gitea access token `type=bearer, value=<token>` credential schema, REST API 호출 + normalize() 4 step 공통 패턴) / §3.8.3 homelab_mock 정공법 (filesystem fixture `var/fixtures/homelab/*.json` 기반, 4 type, M-v0.2.0 PoC 단순화, M-v0.2.1+ real wire 교체) / §3.8.4 신규 source 추가 10 step 절차 (Step 1 외부 API spec 정독 → Step 2 SourceMeta 정의 → Step 3 5 method 구현 → Step 4 credential schema Pydantic 모델 → Step 5 body_template per type → Step 6 단위 테스트 → Step 7 e2e smoke → Step 8 bundle layout 결정 + §3.7.2 갱신 → Step 9 representative concept .md 발췌 → Step 10 ADR 영향 section 갱신 + Quality gate 5 항목) / §3.8.5 3 tier 검증 (단위 pytest + 통합 real Gitea instance + e2e smoke pytest + FastAPI TestClient, M-v0.2.0 PoC = 단위 + e2e smoke) (2) cross-section 정합 fix 4 위치: §3.7.2 per-source mapping 표 하단 "**작성 정공법**: source plugin 작성 시 §3.8 정공법 따름" 1줄 추가 / §5.1 M-v0.2.0 scope row 에 "Gitea 통합 4종 (§3.8.2 정공법) + homelab_mock (§3.8.3 정공법) = 5종 PoC, §3.7.2 / §3.8 정합" 갱신 / ADR-0034 §4.3 영향 section §3.8 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §3.8 Source plugin 작성 정공법" + §3.7 의 abstract 5 step normalization pipeline + ADR-0035 §3.2/§6.4 의 high-level 결정을 구현 가능 정공법으로 구체화 + 5종 PoC source plugin (Gitea 4 sub-plugin + homelab_mock) 의 작성 절차 + 신규 source 추가 절차 + 3 tier 검증 절차 정의) |
 | 2026-06-18 | **§4 1차 raw 데이터 API 심화 — 신규 §4.4~§4.7 "raw 운영/API/정합성 정책" + cross-section 정합 fix 4 위치** — (1) **신규 §4.4** raw 운영 정책 (봉투 암호화 `$env$v0.1$...` ADR-0025 + .gitignore per source 8 row 표 + retention default 90일, 예외: metrics 30일/hrdb 365일, 매일 03:00 UTC cron 자동 삭제 + LRU storage quota default 1GB/bundle) / **§4.5** raw API 권한 + visibility (endpoint 별 권한 matrix 4 row: POST = bundle owner_org member / GET = visibility 정합 / list = caller scope filter / DELETE = system_admin OR 등록자 OR owner_org member, visibility 4 enum 재사용 §3.6.2) / **§4.6** raw → concept 정합성 (1 raw → N concepts 관계, sqlite `raw_index.concept_ids` 추적, raw 삭제 시 concept 처리 3 mode: M-v0.2.0 hard_delete / M-v0.2.1+ soft_archive default / M-v0.2.3+ retain_concept 옵션, orphan concept = `x_devhub_status: orphaned` + audit, raw 변경 시 concept update: M-v0.2.0 overwrite / M-v0.2.1+ superseded / M-v0.2.3+ .md.prev history) / **§4.7** raw 정합성 검증 (sha256 hash 저장 + 매 조회 시 재검증, file system source-of-truth, timestamp lag threshold default 5분, audit log 7 event 표) (2) cross-section 정합 fix 4 위치: §2.1 `var/raw/` 트리 코멘트 보강 (봉투 암호화 + .gitignore + retention 90일 + quota 1GB 정합) / §3.6.1 endpoint 표 raw 4 row 갱신 (권장 → 필수, §4.5 정합) / §4.1 정책 정의 표 9 row 보강 (저장 위치 + 메타 + API + 인증 + 정합성 + lifecycle 6 row 신규, sqlite `raw_index` field 6개 추가 sha256/visibility/retention_days/registered_by/concept_ids/last_verified_at) / ADR-0035 §3.4 1차 raw API 정책 row 갱신 (§4.4~§4.7 reference 추가) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §4 1차 raw API 심화" + §4.1 정책 정의 표 의 high-level 정의 + ADR-0025 봉투 암호화 + 사용자 명시 'API 로 조회/추가 가능' 정책 + §3.6 governance 정합 raw visibility + 1 raw → N concepts 관계 추적 필요성 + sha256 정합성 검증 + audit log 운영 정책) |
+| 2026-06-18 | **OKF concept 운영 lifecycle — 신규 §3.9 "OKF concept 운영 lifecycle" + cross-section 정합 fix 3 위치** — (1) **신규 §3.9** 4 subsection: §3.9.1 lifecycle 5 단계 state machine (created → reviewed → published → active → archived, transition + 책임자 + 정합 section 표, frontmatter status field M-v0.2.1+ 추가) / §3.9.2 frontmatter template per 8 type (dataset/metric/api_endpoint/runbook/integration/event/reference/decision 의 필수 + 권장 field + 예시 표, §3.7.4 normalize() 정합) / §3.9.3 review checklist 5 항목 (frontmatter validation 7 sub / body validation 3 sub / governance validation 2 sub / bundle validation 3 sub / cross-link validation 3 sub, rule-based 자동 + human 수동 review M-v0.2.1+) / §3.9.4 publish + archive 절차 + 운영 정책 (publish trigger 3 mode: rule-based 자동 / human 수동 / system_admin override, archive trigger 3 mode: superseded 자동 / obsolete 수동 / orphan 자동, M-v0.2.0~v0.3.0+ 별 lifecycle 지원 범위 표 5 row) (2) cross-section 정합 fix 3 위치: §3.6.2 curation permission 코드 블록 상단에 §3.9 lifecycle cross-reference note 추가 (created state 의 concept 는 curator 직접 control 불가, archived state 는 write 불가) / §3.8.4 신규 source 추가 10 step 절차의 Step 9 "representative concept .md 발췌 작성" 의 §3.9 cross-reference 추가 (§3.9.2 frontmatter template per 8 type 권장 field 채움 + §3.9.3 review checklist 1~4 항목 자동 validate) / ADR-0034 §4.3 영향 section §3.9 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행" (다음 concept organization) + 4-option 질문 응답 "(a) §3.9 OKF concept 운영 lifecycle" + §3.5/§3.6/§3.7/§3.8 완료 후 lifecycle 운영 정공법 부재 + M-v0.2.0 PoC = rule-based 자동 publish (frontend 0 page) / M-v0.2.1+ = human 작성 + review workflow (frontend 관리 page) + created/reviewed/published/active/archived 5 단계 state machine + frontmatter template + review checklist + publish/archive trigger 정책) |
