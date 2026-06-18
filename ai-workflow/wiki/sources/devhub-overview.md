@@ -5,12 +5,12 @@ last_ingested_from: ai-workflow/wiki/concepts/devhub-overview.md
 related_pages: [sources/devhub-overview]
 created: 2026-06-15
 updated: 2026-06-15
-last_touched: 2026-06-18T07:25:00Z
-git_commit: 01f1969c
+last_touched: 2026-06-18T12:08:55Z
+git_commit: 6c434887
 git_branch: main
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-mirror_dirty: false
+mirror_dirty: (dirty: uncommitted changes) |
 ---
 
 # DevHub Overview (L2 dense, in-repo)

@@ -3,12 +3,12 @@ title: task_api
 type: source
 tags: [domain, task_api.md, project-devhub]
 sources: [raw/projects/devhub/docs/domain/integration-registry/task_api.md]
-git_commit: 01f1969c
+git_commit: 6c434887
 git_branch: main
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-18T07:11:15Z
-mirror_dirty: |
+last_touched: 2026-06-18T12:08:55Z
+mirror_dirty: (dirty: uncommitted changes) |
 related: [none]
 status: draft
 contradictions: [none]
