@@ -4,7 +4,7 @@
 
 - **상태**: Accepted
 - **작성일**: 2026-06-17
-- **수정일**: 2026-06-18 (umbrella doc §3.5 concept organization + §3.6 Path Y caller-provided user context + §3.7 data normalization pipeline 신규 + path pattern 정합 fix 에 따른 §4.3 영향 section 갱신 — §3.2.1 5 카테고리 결정 + §3.3 `x_devhub_category` + §3.5 concept organization + §3.6 data governance & query scoping + §3.7 data normalization pipeline 5 row 추가)
+- **수정일**: 2026-06-18 (umbrella doc §3.5 concept organization + §3.6 Path Y caller-provided user context + §3.7 data normalization pipeline + §3.8 source plugin 작성 정공법 신규 + path pattern 정합 fix 에 따른 §4.3 영향 section 갱신 — §3.2.1 5 카테고리 결정 + §3.3 `x_devhub_category` + §3.5 concept organization + §3.6 data governance & query scoping + §3.7 data normalization pipeline + §3.8 source plugin 작성 정공법 6 row 추가)
 - **결정 근거 sprint**: `docs/work_260617-v0-2-umbrella-concept`
 - **supersedes**: 없음 (신규)
 - **Tier**: 사외 (vendor-neutral 정책)
@@ -101,6 +101,7 @@
 - **§3.5 concept organization (5 카테고리 + 8 type orthogonal axes + 5×8 matrix + per-bundle/per-category index.md 3종 자동 생성 + cross-link 4종 rule + bundle 디렉터리 구조 + representative concept frontmatter 예시, 2026-06-18 신규)**
 - **§3.6 data governance & query scoping (Path Y caller-provided user context, 2026-06-18 신규) — 5 subsection: §3.6.1 caller-provided user context schema+trust model / §3.6.2 curation governance model (`x_devhub_curator` 별 manual edit permission) / §3.6.3 query scope priority 4-tier (org > personal > project > public) / §3.6.4 frontmatter 5 governance field extension (`x_devhub_owner_org_id` / `_user_id` / `_org_unit_ids` / `_project_ids` / `x_devhub_visibility`) / §3.6.5 cross-section 정합 fix 7 위치**
 - **§3.7 data normalization pipeline (category × system → OKF concept, 2026-06-18 신규) — 5 subsection: §3.7.1 5 step normalization 원칙 (raw → concept + 책임 분리) / §3.7.2 per-source type mapping (7 source × types emitted) / §3.7.3 cross-source 동질화 (same type across multiple sources, Jira/Gitea/GitHub 모두 integration_*_issue_puller.md) / §3.7.4 normalize algorithm pseudocode (`sources/{source}.py` 의 normalize() method 4 step) / §3.7.5 edge cases + degraded handling (Partial failure / Schema drift / Source-specific custom transform / Duplicate concept / Large raw / Auth failure)**
+- **§3.8 source plugin 작성 정공법 (How to write a source plugin, 2026-06-18 신규) — 5 subsection: §3.8.1 SourcePlugin ABC 인터페이스 (Pydantic v2 + Credential/SourceMeta/Connection/RawResponse/Concept/FetchQuery/HealthStatus 12 type + registry) / §3.8.2 Gitea 4 sub-plugin 정공법 (real wire, M-v0.2.0 PoC 부터) / §3.8.3 homelab_mock 정공법 (filesystem fixture) / §3.8.4 신규 source 추가 10 step 절차 (외부 시스템 API spec 정독 → SourceMeta 정의 → 5 method 구현 → credential schema → body_template → 단위 테스트 → e2e smoke → bundle layout → concept 발췌 → ADR 영향 section) / §3.8.5 source plugin 검증 3 tier (단위 + 통합 + e2e smoke)**
 - §6.4 source plugin 작성 (외부 시스템 API spec 만 참조, OKF 형 concept emit)
 
 ## 5. 후속 작업
