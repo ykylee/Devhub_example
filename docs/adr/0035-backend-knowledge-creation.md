@@ -4,7 +4,7 @@
 
 - **상태**: Accepted
 - **작성일**: 2026-06-17
-- **수정일**: 2026-06-18 (umbrella doc §3.6 Path Y caller-provided user context + §4.4~§4.7 raw 운영/API/정합성 정책 신규에 따른 §3.4 1차 raw API 정책 row 갱신 — internal-only no auth + caller-provided user context + raw 운영 정책 + endpoint 권한 + 정합성 검증 명시)
+- **수정일**: 2026-06-18 (umbrella doc §3.6 Path Y caller-provided user context + §4.4~§4.7 raw 운영/API/정합성 정책 + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 trade-off 한계 = Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표 7 row)** 신규에 따른 §3.4 1차 raw API 정책 row 갱신 — internal-only no auth + caller-provided user context + raw 운영 정책 + endpoint 권한 + 정합성 검증 명시 + **한계 4~7 의 §1.1 명시 + §1.3 정당화 cross-reference 추가, §4.3 영향 row 갱신**)
 - **결정 근거 sprint**: `docs/work_260617-v0-2-umbrella-concept`
 - **supersedes**: 없음 (신규)
 - **Tier**: 사외 (vendor-neutral 정책, 다른 backend 연결 ❌)
@@ -144,6 +144,7 @@
 - 사내 한정 tier (`Makefile`, `docker-compose.deploy.yml`, `docker-compose.colima.yml`, root `dev-up.sh`) 의 backend-ai reference 정리
 - 사외 tier (이 ADR + release_v0-2_roadmap.md + 신규 `backend-knowledge/` + 신규 `backend-knowledge/web/`) 신규
 - `external-integrations-agentic-rag-roadmap.md` status draft → active 전환 (Q7 결정)
+- **§1.1 한계 4~7 추가 + §1.3 How 정당화 강화 (2026-06-18 신규)** — 한계 4 (caller-provided user context 신뢰, Path Y 의 trust model) / 한계 5 (dual storage mode 운영 복잡도) / 한계 6 (backup DR transactional 정합성) / 한계 7 (frontend standalone 유지보수 부담) 의 4가지를 v0.2.0 PoC 의 trade-off 로 명시적 식별. §1.3 에 한계 7개 (1~3 = v0.1.x 한계 + 4~7 = 2026-06-18 식별 trade-off) → §3~§12 해결책 cross-reference 표 7 row. 본 backend-knowledge 의 정책 (§3.6 / §10 / §11 / §12) 이 한계 4~7 의 mitigation 기반. 능동적 강화 (HMAC signature / CLI tool / transactional backup / CI contract test) 는 M-v0.2.1+~M-v0.3.0+ scope 외, §1.1 한계 식별 + §13.2 known gaps 와 정합. §12 frontend 정책 (코드 공유 ❌, viz.html 자가 viewer + M-v0.2.1+ frontend 5 page) 이 한계 7 의 baseline mitigation, 후속 sprint 의 contract test 추가 가 본 한계의 능동적 강화.
 
 ## 5. 후속 작업 (M-v0.2.0 sprint 진입 checklist)
 
