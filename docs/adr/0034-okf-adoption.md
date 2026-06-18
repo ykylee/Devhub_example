@@ -4,7 +4,7 @@
 
 - **상태**: Accepted
 - **작성일**: 2026-06-17
-- **수정일**: 2026-06-17
+- **수정일**: 2026-06-18 (umbrella doc §3.5 concept organization 신규 + path pattern 정합 fix 에 따른 §4.3 영향 section 갱신 — §3.2.1 5 카테고리 결정 + §3.3 `x_devhub_category` + §3.5 concept organization 3 row 추가)
 - **결정 근거 sprint**: `docs/work_260617-v0-2-umbrella-concept`
 - **supersedes**: 없음 (신규)
 - **Tier**: 사외 (vendor-neutral 정책)
@@ -95,8 +95,10 @@
 - §2.2 LLM row (Pi 의 RPC mode / SDK mode 와 정합)
 - §2.1 `okf/` (spec.py / frontmatter.py / link_graph.py)
 - §3.2 concept type enum (8종)
-- §3.3 frontmatter spec (`x_devhub_*` prefix)
+- §3.2.1 5 카테고리 결정 (이슈 트래커 / 위키 / SCM / CI-CD / 코드 품질, 2026-06-17)
+- §3.3 frontmatter spec (`x_devhub_*` prefix + `x_devhub_category` 5 enum)
 - §3.4 envelope (자체 정의, OKF 와 cross-reference 만)
+- **§3.5 concept organization (5 카테고리 + 8 type orthogonal axes + 5×8 matrix + per-bundle/per-category index.md 3종 자동 생성 + cross-link 4종 rule + bundle 디렉터리 구조 + representative concept frontmatter 예시, 2026-06-18 신규)**
 - §6.4 source plugin 작성 (외부 시스템 API spec 만 참조, OKF 형 concept emit)
 
 ## 5. 후속 작업

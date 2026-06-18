@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (cross-section 정합 fix — A/A 결정 (Gitea 4 sub-plugin + x_devhub_category + 5 카테고리) 의 9 위치 cross-section 정합 일괄 반영, §2.1 sources/var/bundles 트리 + §3.2/§3.3 예시 + §6.1 mock count + §1.2 G3/G7 + §2.3 + §4.2/§4.3 + §5.2 P2 + §6.2 + §7 Q9).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 — §3.2.1 보강 (대표 concept frontmatter 예시 subsection) + 신규 §3.5 "Concept organization" (5 subsection: orthogonal axes 원칙 / 5×8 matrix / bundle 디렉터리 + concept 예시 / index.md 3종 자동 생성 규칙 / cross-link 4종 rule) + cross-section 정합 fix 5 위치: §1.3 progressive disclosure + graph row + path pattern row / §2.1 `curate/index_builder.py` + `link_resolver.py` 코멘트 / §3.3 frontmatter spec 1줄 추가 / §3.5.5 cross-link syntax 정합 / ADR-0034 §4.3 영향 section + §3.2.1/§3.3/§3.5 4 row 추가).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -70,13 +70,13 @@
 
 | OKF 원리 | DevHub v0.2.0 적용 |
 | --- | --- |
-| 1 concept = 1 .md | `backend-knowledge/var/bundles/{bundle}/{type}/{slug}.md` (예: `metric/repo_kpi_sync_duration.md`) |
+| 1 concept = 1 .md | `backend-knowledge/var/bundles/{bundle}/{category}/{slug}.md` (예: `scm/integration_gitea_repo_puller.md` — slug prefix = type, `x_devhub_category` = dir 이름, `type` 은 frontmatter + slug prefix 에 동시 명시, §3.5.3 정합) |
 | frontmatter `type` 필수 | 본 프로젝트 `type` enum = `dataset` / `metric` / `api_endpoint` / `runbook` / `integration` / `event` / `reference` / `decision` (8종, §3.2) |
 | vendor-neutral | OKF 그대로 채택 (자체 dialect 만들지 않음) |
 | producer 다중 | **1차 (M-v0.2.0~v0.2.2)**: human curator + **rule-based enricher** + 외부 system adapter 1~2종 (source plugin, Q6). **후속 (M-v0.2.3)**: + LLM enrichment agent (1 vendor, 시점 결정). **장기 (M-v0.3.0+)**: + multi-vendor LLM (vendor-neutral) |
 | consumer 다중 | 신규 API (Query) + frontend 위키 viewer + Obsidian 호환 + LLM context |
-| progressive disclosure | `index.md` 자동 생성 (per bundle + per type) |
-| graph | cross-link 자동 추출 + `viz.html` 자가 viewer (Cytoscape.js) |
+| progressive disclosure | `index.md` 자동 생성 (**per-bundle** + **per-type** + **per-category**, §3.5.4 정합) |
+| graph | cross-link 자동 추출 (**intra-bundle** / **cross-bundle** / **source-external** 4종 rule, §3.5.5 정합) + **reverse index** (`okf/link_graph.py`) + `viz.html` 자가 viewer (Cytoscape.js) |
 
 **자주 묻는 차이점**:
 
@@ -114,8 +114,8 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 │   └── hrdb.py                            # §3 source plugin — 사내 HR DB PostgreSQL, **HR/조직 (5 카테고리 외)**, M-v0.2.3 운영 wire
 ├── curate/                                # raw → OKF concept 정형화
 │   ├── enricher.py                        # rule-based enrich (LLM-optional, 1차 rule-based 만)
-│   ├── index_builder.py                   # bundle 별 index.md + viz.html 동시 생성
-│   └── link_resolver.py                   # unresolved cross-link 추적
+│   ├── index_builder.py                   # per-bundle/per-type/per-category index.md + viz.html 동시 생성 (§3.5.4 정합)
+│   └── link_resolver.py                   # unresolved cross-link 추적 (1차 rule-based, M-v0.2.3+ Pi LLM cross-link 자동 resolution, §3.5.5 정합)
 ├── api/                                   # §3 3가지 기본 기능 + §4 1차 raw API + Bundle management (envelope 정합)
 │   ├── ingest.py                          # §3.1 Ingest 3 endpoint (POST /ingest/{source}/sync, GET /ingest/{source}/status, ...)
 │   ├── curate.py                          # §3.1 Curate 3 endpoint (POST /concepts/{id}/enrich, PUT /concepts/{id}, POST /bundles/{bundle}/rebuild)
@@ -220,6 +220,67 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 
 **5 카테고리 표시 방식**: OKF `type` enum 8종 유지 + `x_devhub_category` 필드 추가 (§3.3 정합). OKF spec 의 "extra keys 자유" 원칙 정합, vendor-neutral 유지. type enum 자체에 `issue_tracker` / `wiki` / `scm` / `cicd` / `code_quality` 추가 안 함 (1차 wire 부담 회피, §3.3 `x_devhub_category` 단일 enum 으로 카테고리 표현).
 
+#### 3.2.1.1 5 카테고리별 대표 concept 예시 (frontmatter 발췌, 2026-06-18 신규)
+
+5 카테고리별 1개 concept 의 frontmatter 발췌 (5 카테고리 = 5 concept 1:1 mapping 으로 카테고리 자체의 의미를 명확히 함). 전체 concept 예시 + 5×8 matrix + bundle 디렉터리 구조는 §3.5 정합.
+
+**1. 이슈 트래커 (`issue_tracker`)** — `gitea_issue` source:
+```yaml
+---
+type: integration
+title: "Gitea issue puller"
+description: "Pulls Gitea issue list + comments + labels into backend-knowledge via REST"
+tags: ["gitea", "issue_tracker", "integration"]
+x_devhub_source: "gitea_issue"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_category: "issue_tracker"
+---
+```
+
+**2. 위키 (`wiki`)** — `gitea_wiki` source:
+```yaml
+---
+type: reference
+title: "Gitea wiki page mirror"
+description: "Mirror of Gitea wiki page content for offline query"
+tags: ["gitea", "wiki", "reference"]
+x_devhub_source: "gitea_wiki"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_category: "wiki"
+---
+```
+
+**3. SCM (`scm`)** — `gitea_repo_pull` source:
+```yaml
+---
+type: integration
+title: "Gitea repository puller"
+description: "Pulls Gitea repository list + metadata into backend-knowledge via REST + git HTTP"
+tags: ["gitea", "scm", "integration"]
+x_devhub_source: "gitea_repo_pull"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_category: "scm"
+---
+```
+
+**4. CI-CD (`cicd`)** — `gitea_action` source:
+```yaml
+---
+type: event
+title: "Gitea Actions workflow run event"
+description: "Webhook payload schema for Gitea Actions workflow_run events (queued/in_progress/completed)"
+tags: ["gitea", "cicd", "event", "webhook"]
+x_devhub_source: "gitea_action"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_category: "cicd"
+---
+```
+
+**5. 코드 품질 (`code_quality`)** — (1차 scope 외, 2차 wire, M-v0.2.4+ 검토):
+- 2차 wire 후보: SonarQube, Snyk, Codecov, Dependabot
+- M-v0.2.0~v0.2.3 scope 외 (5 카테고리 5번째 = 2차 wire 결정, 2026-06-17 §3.2.1 정합)
+- 2차 PoC 시 `code_quality` category 의 concept 예시 추가 (예: SonarQube project analysis metric = `metric_sonarqube_code_coverage_pct.md`)
+
 ### 3.3 Frontmatter spec (본 프로젝트 적용)
 
 ```yaml
@@ -245,6 +306,7 @@ x_devhub_category: "scm"              # 5 카테고리 enum (§3.2.1): issue_tra
 ```
 
 > **정책**: `x_devhub_*` prefix 로 본 프로젝트 확장을 명시. OKF spec 의 "extra keys 자유" 원칙 정합. consumer 가 OKF 만 보면 unknown key 무시 가능.
+> **5 카테고리 × 8 type 의 valid combination**: §3.5.2 정합 (5×8 matrix + 5종 PoC source plugin mapping). 모든 조합이 가능하나 일부는 uncommon (△, §3.5.2 범례 정합).
 
 ### 3.4 Envelope (독립 정의)
 
@@ -254,6 +316,267 @@ x_devhub_category: "scm"              # 5 카테고리 enum (§3.2.1): issue_tra
   ```
 - **common enum**: `error.code` (`E_OK`, `E_NOT_FOUND`, `E_CONFLICT`, `E_VALIDATION`, `E_UNAUTHORIZED`, `E_FORBIDDEN`, `E_RATE_LIMIT`, `E_INTERNAL`) — backend-core 와 format 호환 (cross-backend client 가 envelope parser 재사용 가능)
 - **OpenAPI**: `/openapi.json` (FastAPI 자동 생성) — `docs/openapi.yaml` 와는 별도 (`x-internal: backend-knowledge` 표기)
+
+### 3.5 Concept organization (5 카테고리 + 8 type + index.md + cross-link) — 2026-06-18 신규
+
+OKF 형 concept 를 실제로 디렉터리에 배치하고 navigation 가능하게 만드는 **운영 정공법**. §1.3 의 "progressive disclosure + graph" 원칙 + §3.2.1 의 5 카테고리 결정 + §3.3 의 frontmatter spec 의 **실제 적용 규칙**. 본 §3.5 가 ADR-0034 (OKF 채택) 의 §4.3 영향 section 의 운영 정합 기준.
+
+#### 3.5.1 원칙 (orthogonal axes)
+
+| 축 | 정의 | 값 |
+| --- | --- | --- |
+| **type** (8종, §3.2) | concept 의 **본질적 종류** — 무엇에 대한 knowledge 인가 | `dataset` / `metric` / `api_endpoint` / `runbook` / `integration` / `event` / `reference` / `decision` |
+| **`x_devhub_category`** (5종, §3.2.1) | concept 의 **출처 분류** — 어느 외부 시스템 영역의 knowledge 인가 | `issue_tracker` / `wiki` / `scm` / `cicd` / `code_quality` (5 카테고리 외 시스템은 `x_devhub_category` 미설정 또는 별도 tag) |
+
+- **두 축은 orthogonal**. 모든 type × category 조합이 가능 (일부는 uncommon, §3.5.2 정합).
+- **bundle** = 1 외부 시스템 단위 (예: `devhub-gitea`) 또는 cross-cutting 주제 단위. 5종 PoC source plugin 은 **Gitea 1 instance = 1 bundle (`devhub-gitea`, Gitea 4 sub-plugin 통합)** + homelab_mock = 1 bundle (`devhub-homelab`). **M-v0.2.0 5종 PoC = 2 bundle** (Q6 결정 정합, §6.4 / §3.5.3 정합).
+- **분류 (categorization) 의 1차**: rule-based (frontmatter `x_devhub_*` 직접 read, `curate/enricher.py`). **2차**: M-v0.2.3+ Pi LLM 분류 가능 (frontmatter 가 비어있을 때 LLM 추천, §6.3).
+- **§1.1 의 "내부 knowledge 가 산만하여 AI agent 가 참조할 표준 부재"** 한계의 해법 = 5 카테고리 + 8 type 의 orthogonal 분류 + 일관된 bundle 구조 (§1.1 정합).
+
+#### 3.5.2 5×8 matrix (valid combinations)
+
+**범례**: ○ = common (해당 카테고리에서 자주 등장) / △ = uncommon (특수 상황에서만) / ✗ = 비권장 (이해관계자 혼선 유발)
+
+| type \\ category | 이슈 트래커 | 위키 | SCM | CI-CD | 코드 품질 |
+| --- | --- | --- | --- | --- | --- |
+| `dataset` | ○ (gitea.issues table) | ○ (gitea.wiki_pages table) | ○ (gitea.repositories table) | △ (gitea.action_runs table) | ○ (analysis_results table) |
+| `metric` | △ (issue_throughput) | △ (wiki_search_duration) | ○ (repo_sync_duration_seconds) | ○ (workflow_duration_seconds) | ○ (code_coverage_pct) |
+| `api_endpoint` | ○ (gitea_issue_api_list) | ○ (gitea_wiki_api_list) | ○ (gitea_repo_pull_api) | ○ (gitea_action_api) | ○ (sonarqube_api) |
+| `runbook` | ○ (issue_triage_runbook) | △ (wiki_maintenance_runbook) | ○ (repo_pull_failure_recovery) | ○ (cicd_failure_recovery) | ○ (code_quality_alert_runbook) |
+| `integration` | ○ (gitea_issue_puller) | △ (gitea_wiki_puller) | ○ (gitea_repo_puller) | ○ (gitea_action_runner) | △ (sonarqube_scanner) |
+| `event` | ○ (gitea_issue_event) | △ (gitea_wiki_page_event) | ○ (gitea_push_event) | ○ (gitea_action_run_event) | ✗ |
+| `reference` | ○ (gitea_issue_api_doc) | ○ (gitea_wiki_doc_mirror) | ○ (gitea_repo_api_doc) | ○ (gitea_action_doc_mirror) | ○ (sonarqube_doc_mirror) |
+| `decision` | △ (in-bundle ADR) | △ (in-bundle ADR) | △ (in-bundle ADR) | △ (in-bundle ADR) | △ (in-bundle ADR) |
+
+**5종 PoC source plugin 의 category × type mapping** (M-v0.2.0 PoC, Q6 결정 정합):
+
+| Source plugin | Bundle | Category | 주로 등장하는 type (representative) |
+| --- | --- | --- | --- |
+| `gitea_repo_pull` | `devhub-gitea` | `scm` | `integration`, `api_endpoint`, `metric`, `runbook`, `event`, `dataset`, `reference` |
+| `gitea_issue` | `devhub-gitea` | `issue_tracker` | `integration`, `api_endpoint`, `event`, `dataset`, `runbook`, `metric`, `reference` |
+| `gitea_wiki` | `devhub-gitea` | `wiki` | `integration`, `api_endpoint`, `reference`, `dataset`, `metric` |
+| `gitea_action` | `devhub-gitea` | `cicd` | `integration`, `api_endpoint`, `event`, `metric`, `runbook`, `dataset`, `reference` |
+| `homelab_mock` | `devhub-homelab` | (5 카테고리 외, `x_devhub_category` 미설정 또는 `homelab_internal` tag) | `reference`, `metric`, `runbook`, `api_endpoint` |
+
+> **Gitea 1 instance = 1 bundle** (Q6 결정 정합): Gitea 의 4 sub-plugin (`gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action`) 은 **모두 `devhub-gitea` bundle** 안에서 4개 category (`scm` / `issue_tracker` / `wiki` / `cicd`) directory 로 분리. **bundle = 1 외부 시스템 단위** 원칙 정합. 운영 시 Gitea 1 instance 의 인증/연결 config 를 1번만 관리.
+
+#### 3.5.3 Bundle 디렉터리 구조 + concept 예시
+
+**Bundle 디렉터리 layout** (§2.1 `var/bundles/` 정합, M-v0.2.0 PoC 기준):
+
+```
+backend-knowledge/var/bundles/
+├── devhub-gitea/                          # Gitea 1 instance 의 bundle (M-v0.2.0 PoC)
+│   ├── index.md                           # per-bundle index (§3.5.4)
+│   ├── viz.html                           # self-contained Cytoscape viewer (§1.3 / §3.1 정합)
+│   ├── scm/                               # x_devhub_category = scm
+│   │   ├── index.md                       # per-category index (§3.5.4)
+│   │   ├── integration_gitea_repo_puller.md
+│   │   ├── api_endpoint_gitea_repo_pull.md
+│   │   ├── metric_repo_kpi_sync_duration_seconds.md
+│   │   ├── runbook_gitea_repo_pull_failure_recovery.md
+│   │   ├── event_gitea_push_event.md
+│   │   ├── dataset_gitea_repositories.md
+│   │   └── reference_gitea_repo_api_doc.md
+│   ├── issue_tracker/                     # x_devhub_category = issue_tracker
+│   │   ├── index.md
+│   │   ├── integration_gitea_issue_puller.md
+│   │   ├── api_endpoint_gitea_issue_api_list.md
+│   │   ├── event_gitea_issue_event.md
+│   │   ├── runbook_issue_triage.md
+│   │   ├── metric_issue_throughput.md
+│   │   └── dataset_gitea_issues.md
+│   ├── wiki/                              # x_devhub_category = wiki
+│   │   ├── index.md
+│   │   ├── integration_gitea_wiki_puller.md
+│   │   ├── api_endpoint_gitea_wiki_api_list.md
+│   │   └── reference_gitea_wiki_page_doc.md
+│   ├── cicd/                              # x_devhub_category = cicd
+│   │   ├── index.md
+│   │   ├── integration_gitea_action_runner.md
+│   │   ├── api_endpoint_gitea_action_api_list.md
+│   │   ├── event_gitea_action_run_event.md
+│   │   ├── metric_workflow_duration_seconds.md
+│   │   ├── runbook_cicd_failure_recovery.md
+│   │   └── dataset_gitea_action_runs.md
+│   └── decision/                          # in-bundle ADR
+│       ├── index.md
+│       └── decision_2026_06_18_gitea_pull_strategy.md
+└── devhub-homelab/                        # homelab 1 instance 의 bundle (M-v0.2.0 PoC, mock)
+    ├── index.md
+    ├── viz.html
+    └── homelab_internal/                  # 5 카테고리 외 — `x_devhub_category` 미설정 또는 tag "homelab_internal" 으로 grouping
+        ├── index.md
+        ├── reference_homelab_node_inventory.md
+        ├── metric_homelab_pull_duration.md
+        ├── runbook_homelab_recovery.md
+        └── api_endpoint_homelab_node_api.md
+```
+
+**Representative concept frontmatter 예시** (5 카테고리 + 8 type 중 대표, §3.2.1.1 보강 + 추가):
+
+```yaml
+---
+# integration (scm) — gitea_repo_pull
+type: integration
+title: "Gitea repository puller"
+description: "Pulls Gitea repository list + metadata into backend-knowledge via REST + git HTTP"
+resource: "https://docs.gitea.io/api-1.20/"
+tags: ["gitea", "scm", "integration", "pull"]
+timestamp: "2026-06-18T10:00:00+09:00"
+x_devhub_source: "gitea_repo_pull"
+x_devhub_raw_ref: "raw://gitea/2026-06-18-repo-pull.json"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_version: 1
+x_devhub_curator: "rule-based"
+x_devhub_category: "scm"
+---
+```
+
+```yaml
+---
+# event (issue_tracker) — gitea_issue
+type: event
+title: "Gitea issue event payload"
+description: "Webhook payload schema for Gitea issue events (opened/closed/labeled)"
+resource: "https://docs.gitea.io/api-1.20/#tag-issue"
+tags: ["gitea", "issue_tracker", "event", "webhook"]
+timestamp: "2026-06-18T10:00:00+09:00"
+x_devhub_source: "gitea_issue"
+x_devhub_raw_ref: "raw://gitea/2026-06-18-issue-event.json"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_version: 1
+x_devhub_curator: "rule-based"
+x_devhub_category: "issue_tracker"
+---
+```
+
+```yaml
+---
+# metric (cicd) — gitea_action
+type: metric
+title: "Workflow run duration (Gitea Actions)"
+description: "Histogram of Gitea Actions workflow run duration in seconds, labeled by repo + workflow"
+tags: ["gitea", "cicd", "metric", "duration", "kpi"]
+timestamp: "2026-06-18T10:00:00+09:00"
+x_devhub_source: "gitea_action"
+x_devhub_raw_ref: "raw://metrics/2026-06-18-workflow-duration.json"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_version: 1
+x_devhub_curator: "rule-based"
+x_devhub_category: "cicd"
+---
+```
+
+```yaml
+---
+# runbook (wiki) — gitea_wiki
+type: runbook
+title: "Wiki page sync failure recovery"
+description: "Steps to recover from gitea_wiki sync failure: retry policy, fallback, manual trigger"
+tags: ["gitea", "wiki", "runbook", "recovery"]
+timestamp: "2026-06-18T10:00:00+09:00"
+x_devhub_source: "gitea_wiki"
+x_devhub_raw_ref: "raw://gitea/2026-06-18-wiki-recovery.txt"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_version: 1
+x_devhub_curator: "rule-based"
+x_devhub_category: "wiki"
+---
+```
+
+```yaml
+---
+# decision (in-bundle ADR) — cross-cutting
+type: decision
+title: "Gitea 1 instance = 1 bundle (4 sub-plugin 통합)"
+description: "ADR-style decision: Gitea 의 4 sub-plugin (gitea_repo_pull / gitea_issue / gitea_wiki / gitea_action) 은 1 bundle 로 통합. 인증/연결 config 1번만 관리. 4 카테고리 (scm/issue_tracker/wiki/cicd) 별 directory 분리."
+tags: ["decision", "bundle", "gitea", "2026-06-18"]
+timestamp: "2026-06-18T10:00:00+09:00"
+x_devhub_source: "rule-based-curator"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_version: 1
+x_devhub_curator: "human"
+x_devhub_category: "scm"  # primary category; or omit for cross-cutting decisions
+---
+```
+
+#### 3.5.4 index.md 자동 생성 규칙
+
+**3종 index.md** — bundle rebuild 시 `curate/index_builder.py` 가 자동 생성:
+
+| 종류 | 위치 | 생성 시점 | 내용 | 활성화 시점 |
+| --- | --- | --- | --- | --- |
+| **per-bundle** | `{bundle}/index.md` | 모든 rebuild | bundle 의 전체 concept 를 **category → type → slug** 순으로 grouping. 각 concept = title + 1-line description + path link. footer: `Last rebuild: {ts} \| Sources: {N} \| Categories: {M} \| Total: {K} concepts` | M-v0.2.0 (PoC) |
+| **per-category** | `{bundle}/{category}/index.md` | 모든 rebuild | category 내 모든 concept. **type → slug** 순. footer: `Category: {category} \| Total: {K}` | M-v0.2.0 (PoC, category directory 가 곧 grouping 단위) |
+| **per-type** | 생략 가능 (per-bundle index 가 type 으로 grouping 함) 또는 `{bundle}/{type}/index.md` 별도 | 선택적 | type 내 모든 concept. alphabetical by slug. | M-v0.2.1+ (type 단독 navigation 필요 시) |
+
+**Per-bundle index.md 예시 발췌** (`devhub-gitea/index.md`):
+
+```markdown
+# devhub-gitea bundle
+
+- Last rebuild: 2026-06-18T10:00:00+09:00
+- Sources: 4 (gitea_repo_pull, gitea_issue, gitea_wiki, gitea_action)
+- Categories: 4 (scm, issue_tracker, wiki, cicd)
+- Total: 25 concepts
+
+## scm (8 concepts)
+
+### integration (1)
+- [Gitea repository puller](scm/integration_gitea_repo_puller.md) — Pulls Gitea repository list + metadata into backend-knowledge via REST + git HTTP
+
+### api_endpoint (1)
+- [Gitea repo pull API](scm/api_endpoint_gitea_repo_pull.md) — REST + git HTTP endpoints for repository pull
+
+### metric (1)
+- [Repo KPI sync duration seconds](scm/metric_repo_kpi_sync_duration_seconds.md) — Histogram of repository KPI sync duration
+
+... (이하 scm 의 나머지 type 별 listing 생략)
+
+## issue_tracker (6 concepts)
+...
+
+## wiki (3 concepts)
+...
+
+## cicd (6 concepts)
+...
+
+## decision (1)
+- [Gitea 1 instance = 1 bundle decision](decision/decision_2026_06_18_gitea_pull_strategy.md) — ADR-style decision
+```
+
+**구현 정공법** (`curate/index_builder.py`):
+
+1. bundle directory 의 모든 `.md` file 을 scan (recursive glob `{bundle}/**/*.md`, 단 `index.md` / `viz.html` 제외)
+2. 각 file 의 frontmatter parse (PyYAML + python-frontmatter, §2.2 정합)
+3. (concept_path, type, category, source, bundle, title, description, timestamp) tuple 추출
+4. sort: category → type → slug (안정 sort)
+5. group by category → within group, group by type
+6. emit Markdown table-of-contents 형식 (per-bundle index)
+7. category directory 의 `index.md` 도 동시 emit (per-category index)
+
+**Timing**: M-v0.2.0 = rule-based 만 (frontmatter 직접 read). M-v0.2.3+ = Pi LLM cross-link 자동 resolution (M-v0.2.0~v0.2.2 = rule-based 만, §3.1 `POST /bundles/{bundle}/rebuild` 정합, §6.3).
+
+#### 3.5.5 cross-link 규칙
+
+**4종 link 종류**:
+
+| Link 종류 | Syntax | 언제 사용 | 예시 |
+| --- | --- | --- | --- |
+| **intra-bundle** (가장 일반적) | 같은 `{category}` dir: `[title]({slug}.md)` / 다른 `{category}` dir: `[title](../{category}/{slug}.md)` | 같은 bundle 내 concept 간 | 같은 dir: `[Gitea repository puller](integration_gitea_repo_puller.md)` from `devhub-gitea/scm/api_endpoint_gitea_repo_pull.md`. 다른 dir: `[Gitea issue event payload](../issue_tracker/event_gitea_issue_event.md)` from `devhub-gitea/scm/api_endpoint_gitea_repo_pull.md` |
+| **cross-bundle** (드묾) | `[title](../../{other-bundle}/{category}/{slug}.md)` | 다른 bundle 의 concept 참조 시 (명시적 의미만) | devhub-gitea 의 metric → devhub-metrics 의 metric |
+| **source/external** (vendor docs) | `[title](https://...)` 또는 frontmatter `resource:` | vendor 공식 docs / OpenAPI / schema 참조 | `<https://docs.gitea.io/api-1.20/>` |
+| **reverse index** (incoming link 추적) | 자동 생성 (`okf/link_graph.py`) | 모든 link 의 target 추적 | `{concept_path: [incoming_link_1, incoming_link_2, ...]}` |
+
+**Cross-link 정책 (정공법)**:
+
+1. **Intra-bundle link 가 default**. 같은 bundle 내 concept 간 link 는 자유롭게 (단, 의미 있는 link 만).
+2. **Cross-bundle link 는 최소화**. cross-bundle link 가 많은 concept → bundle 통합 검토. "bundle = 1 외부 시스템 단위" 원칙 정합.
+3. **Source/external link 는 vendor docs**. OKF 의 `reference` type concept 는 본문에 vendor docs 발췌 포함 가능 (mirror).
+4. **Reverse index 는 자동**. `okf/link_graph.py` 가 bundle rebuild 시 전체 link scan → reverse index 생성. Incoming link 0 = orphan, unresolved link = target 부재. `curate/link_resolver.py` 가 보고.
+5. **Resolution timing**: M-v0.2.0~v0.2.2 = rule-based 보고 (orphan list + unresolved link list). M-v0.2.3+ = Pi LLM 이 unresolved link 에 대해 "가장 유사한 concept 추천" (cross-link 자동 resolution, §3.1 정합).
 
 ## 4. 1차 raw 데이터의 API 정책 (사용자 강조)
 
@@ -429,3 +752,4 @@ sprint 진입 시 다음 6 항목 확인:
 | 2026-06-17 | **5 카테고리 결정 + Gitea 통합 1차 wire + `x_devhub_category` 필드 추가** (사용자 결정 A/A) — 5 카테고리 (이슈 트래커 / 위키 / 형상관리 / CI-CD / 코드 품질) 확정. Gitea 1 instance 의 4 sub-plugin (gitea_repo_pull / gitea_issue / gitea_wiki / gitea_action) 으로 1차 PoC (M-v0.2.0) + `homelab_mock` 1종 = 5종. §3.2.1 신규 subsection (5 카테고리 결정) + §3.3 frontmatter spec 에 `x_devhub_category` 필드 추가 (5 enum) + §5.1 M-v0.2.0 scope 정합 (Gitea 통합 4종 + homelab_mock) + §5.1 M-v0.2.1/M-v0.2.2 정합 (Gitea 4 정식 + homelab real + metrics) + §6.4 source plugin 표 8 row 정합 (Gitea 4 + homelab 2 + metrics/hrdb) + §7 Q6 정합 (Gitea 통합 4종 + homelab_mock 1종 = 5종 PoC) + state.json M-v0.2.0 row 의 external_system_5_categories + m_v0_2_0_5_plugins 추가 | self-review (사용자 "A/A" + 5 카테고리 결정 + Gitea 통합 1차 wire + x_devhub_category 필드 추가) |
 | 2026-06-17 | **§4 self-review 3 fix (모두 수정) + standalone 정책 강화 (사용자 strong guidance)** — (1) §4.1 "envelope" row `docs/api/conventions.md 정합` → "독립 정의 (import ❌, cross-reference 만, §3.4 정합)" (모순 fix) (2) §4.1 "저장 위치" row "git 가능" → "봉투 암호화 후 git 가능, ADR-0025 정합, 민감 source .gitignore 권장" (3) §4.2 "다른 backend 와의 정합" → "다른 backend 와의 정합 — ❌ standalone 정책" 으로 전면 재작성 (다른 backend 연결 전면 금지, standalone 명시) (4) §4.3 표 제목 "다른 backend 와의 관계 (Phase 1 vs Phase 2)" → "Phase 별 backend-knowledge 의 위치 (standalone 유지)" + 표 아래 standalone 유지 정책 노트 추가 (5) **standalone 정책 cross-section 강화**: §1.2 G7 "완전 standalone 운영" 으로 일반화, §2.3 정책 표 "backend-core 참조" → "다른 backend 연결 (general)" 로 일반화, §7 Q9 "기존 backend-core 와의 관계" → "다른 backend 와의 관계 (general, standalone 정책)" 으로 일반화 | self-review (사용자 "일단 섹션 4로 넘어가자" + "모두 수정해주고, 참고해야할 사항은 이 backend-knowledge는 standalone이야. 다른 백엔드와는 연결이 없어야해." strong guidance) |
 | 2026-06-18 | **A/A 결정 cross-section 정합 일괄 fix (9 위치)** — §2.1 `sources/` 트리: 구 `gitea_pull.py` 단일 (v0.2.1) → Gitea 4 sub-plugin (`gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action`, M-v0.2.0 PoC) + `homelab.py` / `homelab_mock.py` / `metrics.py` / `hrdb.py` 정합 + `task_item_puller.py` 제거 (A/A 결정에서 gitea_issue 가 대체) + §2.1 `var/bundles/` 트리에서 `devhub-task-item/` 제거 + §3.2 `runbook` 예시 `gitea_pull_failure_recovery` → `gitea_repo_pull_failure_recovery` + §3.3 `x_devhub_source` 예시 `gitea_pull` → `gitea_repo_pull` + §6.1 mock source "1~2개" → "1개 (homelab_mock)" + Gitea 4 sub-plugin M-v0.2.0 부터 real Gitea 1 instance PoC wire (mock 없이) 명시 + §1.2 G3 "source plugin 5종" → "7종 (Gitea 4 + homelab + metrics + hrdb, M-v0.2.3 운영 기준)" + §1.2 G7 M-v0.2.2 "5종" → "6종", M-v0.2.3 "Pi enrich" → "+ hrdb = 7종 + Pi enrich" + §2.3 "외부 시스템 5종" → "7종 (M-v0.2.3 운영 기준)" + Phase 2 의미 변경 5종 → 6종 + §4.2 "5종" → "7종" + §4.3 Phase 2 "5종 wire" → "6종 wire" + Phase 2 list `homelab + gitea_pull + metrics + task_item_puller + hrdb` → `Gitea 4 + homelab + metrics` + Phase 3 정합 (+hrdb 7종 + Pi enrich) + standalone 유지 정책 5종 → 7종 + §5.2 P2 "5종" → "6종" + §6.2 "5종" → "6종" + list 정합 + e2e 5종 → 6종 + §7 Q9 "5종" → "7종 (M-v0.2.3 운영 기준)" | self-review (사용자 "1 진행하고 3은 별도의 gitea 서버를 연결할거야" + A/A 결정 cross-section 정합 follow-up) |
+| 2026-06-18 | **5 카테고리 정합 — §3.2.1 보강 + 신규 §3.5 (concept organization) + cross-section 정합 fix 5 위치** — (1) §3.2.1 에 신규 subsection §3.2.1.1 "5 카테고리별 대표 concept frontmatter 예시" 추가 (5 카테고리 = 5 concept 1:1 mapping: issue_tracker/gitea_issue integration / wiki/gitea_wiki reference / scm/gitea_repo_pull integration / cicd/gitea_action event / code_quality 2차 wire placeholder) (2) **신규 §3.5 "Concept organization"** 5 subsection: §3.5.1 원칙 (orthogonal axes — type 8종 + x_devhub_category 5종) / §3.5.2 5×8 matrix (○/△/✗ valid combinations + 5종 PoC source plugin 의 category × type mapping) / §3.5.3 Bundle 디렉터리 구조 (devhub-gitea = 4 category directory + devhub-homelab 5 카테고리 외) + 5개 representative concept frontmatter 예시 (integration/event/metric/runbook/decision) / §3.5.4 index.md 자동 생성 규칙 (per-bundle/per-category/per-type 3종 + `curate/index_builder.py` 구현 정공법 + per-bundle index.md 발췌) / §3.5.5 cross-link 4종 rule (intra-bundle / cross-bundle / source-external / reverse index) + 5개 정책 정공법 (3) cross-section 정합 fix 5 위치: §1.3 progressive disclosure row 보강 (per-bundle/per-type/per-category 명시) + graph row 보강 (4종 cross-link rule + reverse index 명시) + path pattern row `{bundle}/{type}/{slug}.md` → `{bundle}/{category}/{slug}.md` (slug prefix = type, §3.5.3 정합) / §2.1 `curate/index_builder.py` 코멘트 "bundle 별 index.md" → "per-bundle/per-type/per-category index.md (§3.5.4 정합)" + `link_resolver.py` 코멘트 보강 (1차 rule-based / M-v0.2.3+ Pi LLM cross-link 자동 resolution, §3.5.5 정합) / §3.3 frontmatter spec 마지막에 "> **5 카테고리 × 8 type 의 valid combination**: §3.5.2 정합" 1줄 추가 / §3.5.5 intra-bundle link syntax 정합 (현재 dir vs sibling dir 케이스 분리 + 동일 예시 source/target 일관성) / ADR-0034 §4.3 영향 section 에 §3.2.1 + §3.5 row 추가 + §3.3 row 갱신 (`x_devhub_category` 5 enum mention) + ADR-0034 frontmatter 수정일 2026-06-18 갱신 (4) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행하자. 컨셉 정리를 계속 할거야" + "5 카테고리 정합" 결정 (C 옵션) + "좋아 일단 초안은 이렇게 가져가자" 후속 + path pattern 정합 fix follow-up) |
