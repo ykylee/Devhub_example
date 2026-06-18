@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** + **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved, 5 subsection + 3 graph endpoint + 7 cross-section fix 위치)** + **§2.4 standalone 검증 매트릭스 (10 row 검증 항목 + 운영자 onboarding SOP + 자동화 tool, §1.2 G7 + §3.5 의 standalone 정책의 구체적 검증 정공법)** + **§14 M-v0.2.0 release notes draft (umbrella doc 본문 release notes, §13.3 #5 ✅ partial resolved, 7 subsection: highlight / 16 commit summary / breaking change 4 row / per-source plugin 7종 / per-milestone 5 M / §13 정합 / template / contributor, M-v0.2.0 release 시점에 `docs/release-notes/v0.2.0.md` 로 copy + post-process)** + **§8 timeline 보강 (4 subsection: §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 17 commit × 5 artifacts + §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + §8.4 4 layer 정합 L1~L4, §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** + **§2.6 backend-knowledge network 정책 (5 subsection: §2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose networks 3 단계 + §2.6.3 iptables rule + §2.6.4 WAF 3 option + 10 rule + §2.6.5 검증 절차 정밀화 8 row 자동화 tool, §2.4 item 1 + §6.5.3 + §11.1.1 정합, 사외/사내 2-tier 정합)** + **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 6 subsection: §15.1 정의 + 사용 시나리오 4 종 + §15.2 5 step 정공법 + §15.3 row format + §15.4 cross-reference 4~5 file + §15.5 deprecation policy 12개월 + §15.6 umbrella doc §13~§15 cross-cutting 정공법 3 종 정합, docs/governance/worker_division.md §4.2 1:1 정합)** + **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 5 subsection: §3.5.7.1 목적 (unresolved link 자동 recommend + operator confirm + §3.5.6.4 auto-fix strategy 구현) / §3.5.7.2 j2 prompt template design (input unresolved link context ±2 lines + output 3 row recommendation + reason + confidence 0~1) / §3.5.7.3 SDK/RPC mode 선택 §10.3 정합, M-v0.2.3+ default SDK mode + production RPC mode option / §3.5.7.4 3 mode confirm workflow (dry-run/confirm/auto-apply ≥ 0.9) + `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run|confirm|auto-apply}&selected_rank={1|2|3}&confidence_threshold=0.9` endpoint / §3.5.7.5 audit log + 5 metrics MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) + `cli/fix_unresolved.py` 4 CLI tool, §13.2 known gap 2 ✅ resolved** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + §1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표 + §3.5.6 cross-link reverse index 정공법 (5 subsection + 3 graph endpoint) + §2.4 standalone 검증 매트릭스 (10 row + 운영자 onboarding SOP) + §14 M-v0.2.0 release notes draft (7 subsection + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge) + §8 timeline 보강 (4 subsection + 17 commit 결정 timeline + cross-reference 매트릭스 + 향후 결정 row 10 row + 4 layer 정합 L1~L4) + §2.6 backend-knowledge network 정책 (5 subsection + 3 단계 + docker-compose networks + iptables + WAF 10 rule + 8 row 자동화 tool + 사외/사내 2-tier) + §15 ADR supersession 정공법 (6 subsection + 5 step + deprecation policy 12개월 + docs/governance/worker_division.md §4.2 1:1 정합). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.1 `okf/link_graph.py` 코멘트 갱신 / §2.3 3 row / §2.4 신규 / §2.4 item 1 (network 격리) 의 "상세 정공법" → §2.6 cross-reference 추가 / §3.1 API 매트릭스 / §3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.5.5 reverse index row 4 보강 / §3.5.6 신규 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §3.9.4 archive 거부 정책 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / §6.5.4 E2E smoke Step 6 / §11.1.7 stale link runbook / §13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 / §1.2 G7 cross-reference + §6.5.1 docker-compose standalone 정합 검증 cross-reference + §11.4 on-call Operator training cross-reference (§2.4 매트릭스 정공법) / §13.3 #5 release notes draft ✅ partial resolved (본 §14) + §13.4 정합 검증 row 추가 (release notes) + §14 자체가 종합 review 이므로 fix 0 row + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge + contributor placeholder / §8 timeline 보강 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능 / §2.6 backend-knowledge network 정책 — 4 cross-section fix 위치 (§2.4 item 1 "상세 정공법" cross-reference / §6.5.3 "상세 정공법" cross-reference / §11.1.1 "Network 진단" 4 row / §13.4 정합 검증 row 추가 (network 정책)) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) / **§15 ADR supersession 정공법 — 3 cross-section fix 위치 (§13.4 정합 검증 row 추가 (ADR supersession) / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가 / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ 부터 supersession 가능 + docs/governance/worker_division.md §4.2 1:1 정합 + deprecation policy 12개월 + release notes 정합** / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.5 + §3.6 + §3.8 + §4.2/§4.3 갱신 + **ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가** + ADR-0034/0035 frontmatter 갱신 (19 row / 10 row 영향) + §8 timeline Q12~Q18 결정 row 추가 + §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 + §8.3 향후 결정 row 10 row + §8.4 4 layer 정합 + §13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시 + §1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 + §3.5.6 cross-link reverse index 정공법 신규 — 7 cross-section fix 위치 + §2.4 standalone 검증 매트릭스 신규 — 3 cross-section fix 위치 + §14 M-v0.2.0 release notes draft 신규 — 3 cross-section fix 위치 (§13.3 #5 / §13.4 정합 검증 / ADR-0034/0035 영향) + release 시점 post-process 10 step SOP + §8 timeline 보강 신규 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + §2.6 backend-knowledge network 정책 신규 — 4 cross-section fix 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / §13.4) + 사외/사내 2-tier 정합 + **§15 ADR supersession 정공법 신규 — 3 cross-section fix 위치 (§13.4 정합 검증 / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ supersession 가능 + deprecation policy 12개월**).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** + **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved, 5 subsection + 3 graph endpoint + 7 cross-section fix 위치)** + **§2.4 standalone 검증 매트릭스 (10 row 검증 항목 + 운영자 onboarding SOP + 자동화 tool, §1.2 G7 + §3.5 의 standalone 정책의 구체적 검증 정공법)** + **§14 M-v0.2.0 release notes draft (umbrella doc 본문 release notes, §13.3 #5 ✅ partial resolved, 7 subsection: highlight / 16 commit summary / breaking change 4 row / per-source plugin 7종 / per-milestone 5 M / §13 정합 / template / contributor, M-v0.2.0 release 시점에 `docs/release-notes/v0.2.0.md` 로 copy + post-process)** + **§8 timeline 보강 (4 subsection: §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 17 commit × 5 artifacts + §8.3 향후 결정 row 10 row (Q-N1~Q-N6 sprint 진입 시점 + Q-F1~Q-F4 후속 sprint) + §8.4 4 layer 정합 L1~L4, §13.1 cross-reference matrix + §14.2 16 commit summary 정합)** + **§2.6 backend-knowledge network 정책 (5 subsection: §2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose networks 3 단계 + §2.6.3 iptables rule + §2.6.4 WAF 3 option + 10 rule + §2.6.5 검증 절차 정밀화 8 row 자동화 tool, §2.4 item 1 + §6.5.3 + §11.1.1 정합, 사외/사내 2-tier 정합)** + **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 6 subsection: §15.1 정의 + 사용 시나리오 4 종 + §15.2 5 step 정공법 + §15.3 row format + §15.4 cross-reference 4~5 file + §15.5 deprecation policy 12개월 + §15.6 umbrella doc §13~§15 cross-cutting 정공법 3 종 정합, docs/governance/worker_division.md §4.2 1:1 정합)** + **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 5 subsection: §3.5.7.1 목적 (unresolved link 자동 recommend + operator confirm + §3.5.6.4 auto-fix strategy 구현) / §3.5.7.2 j2 prompt template design (input unresolved link context ±2 lines + output 3 row recommendation + reason + confidence 0~1) / §3.5.7.3 SDK/RPC mode 선택 §10.3 정합, M-v0.2.3+ default SDK mode + production RPC mode option / §3.5.7.4 3 mode confirm workflow (dry-run/confirm/auto-apply ≥ 0.9) + `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run|confirm|auto-apply}&selected_rank={1|2|3}&confidence_threshold=0.9` endpoint / §3.5.7.5 audit log + 5 metrics MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) + `cli/fix_unresolved.py` 4 CLI tool, §13.2 known gap 2 ✅ resolved** + **§16 API versioning 정책 (M-v0.3.0+ 부터 v0-3 도입, 6 subsection: §16.1 API versioning 정의 + /api/v0-2/ prefix 의의 (URL prefix 기반 semver + v0.x pre-1.0 + 12개월 deprecation policy) / §16.2 deprecation policy 12개월 + dual endpoint support (M-v0.3.0 release 시 /api/v0-2/ + /api/v0-3/ 동시 운영 + 6개월 warning + 12개월 제거 + client migration SOP 5 step) / §16.3 API gateway deprecation header (Sunset RFC 8594 + Deprecation + Link successor-version) / §16.4 monitoring 2개 버전 동시 운영 4 metrics (per endpoint request count + error rate + client identification + migration progress) + §11.3 monitoring 5 + 4 = 9 metrics / §16.5 breaking change 정의 5 종 (a) path 변경 / (b) method 변경 / (c) schema 변경 / (d) auth 변경 / (e) default 변경 + release notes 정합 §14.7 + §14.3 / §16.6 §3.1 API 매트릭스 versioning 영향 + future deprecation timing (M-v0.2.0~v0.3.0 / M-v0.3.0+ deprecation / M-v0.3.0+ 제거) + 운영 runbook 영향 §11.1 incident + §11.3 monitoring + §11.4 on-call role API curator 6번째) + §15.5 deprecation policy 12개월 1:1 정합 + umbrella doc 본 §13~§16 cross-cutting 정공법 4 종 (cross-reference / release notes / ADR supersession / API versioning)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + §1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표 + §3.5.6 cross-link reverse index 정공법 (5 subsection + 3 graph endpoint) + §2.4 standalone 검증 매트릭스 (10 row + 운영자 onboarding SOP) + §14 M-v0.2.0 release notes draft (7 subsection + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge) + §8 timeline 보강 (4 subsection + 17 commit 결정 timeline + cross-reference 매트릭스 + 향후 결정 row 10 row + 4 layer 정합 L1~L4) + §2.6 backend-knowledge network 정책 (5 subsection + 3 단계 + docker-compose networks + iptables + WAF 10 rule + 8 row 자동화 tool + 사외/사내 2-tier) + §15 ADR supersession 정공법 (6 subsection + 5 step + deprecation policy 12개월 + docs/governance/worker_division.md §4.2 1:1 정합). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.1 `okf/link_graph.py` 코멘트 갱신 / §2.3 3 row / §2.4 신규 / §2.4 item 1 (network 격리) 의 "상세 정공법" → §2.6 cross-reference 추가 / §3.1 API 매트릭스 / §3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.5.5 reverse index row 4 보강 / §3.5.6 신규 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §3.9.4 archive 거부 정책 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / §6.5.4 E2E smoke Step 6 / §11.1.7 stale link runbook / §13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 / §1.2 G7 cross-reference + §6.5.1 docker-compose standalone 정합 검증 cross-reference + §11.4 on-call Operator training cross-reference (§2.4 매트릭스 정공법) / §13.3 #5 release notes draft ✅ partial resolved (본 §14) + §13.4 정합 검증 row 추가 (release notes) + §14 자체가 종합 review 이므로 fix 0 row + breaking change 4 row + per-source plugin 7종 + per-milestone 5 M + release notes template per backend-knowledge + contributor placeholder / §8 timeline 보강 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + 운영자 / contributor 가 §8 어느 layer 를 봐도 결정 timeline + 영향 + 향후 결정 row 파악 가능 / §2.6 backend-knowledge network 정책 — 4 cross-section fix 위치 (§2.4 item 1 "상세 정공법" cross-reference / §6.5.3 "상세 정공법" cross-reference / §11.1.1 "Network 진단" 4 row / §13.4 정합 검증 row 추가 (network 정책)) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) / **§15 ADR supersession 정공법 — 3 cross-section fix 위치 (§13.4 정합 검증 row 추가 (ADR supersession) / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가 / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ 부터 supersession 가능 + docs/governance/worker_division.md §4.2 1:1 정합 + deprecation policy 12개월 + release notes 정합** / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.5 + §3.6 + §3.8 + §4.2/§4.3 갱신 + **ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row 추가** + ADR-0034/0035 frontmatter 갱신 (19 row / 10 row 영향) + §8 timeline Q12~Q18 결정 row 추가 + §8.1 17 commit 결정 timeline + §8.2 cross-reference 매트릭스 + §8.3 향후 결정 row 10 row + §8.4 4 layer 정합 + §13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시 + §1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 + §3.5.6 cross-link reverse index 정공법 신규 — 7 cross-section fix 위치 + §2.4 standalone 검증 매트릭스 신규 — 3 cross-section fix 위치 + §14 M-v0.2.0 release notes draft 신규 — 3 cross-section fix 위치 (§13.3 #5 / §13.4 정합 검증 / ADR-0034/0035 영향) + release 시점 post-process 10 step SOP + §8 timeline 보강 신규 — 4 cross-section fix 위치 (§8.0 high-level 결정 row / §13.4 정합 검증 row 추가 (timeline) / ADR-0034/0035 영향 + frontmatter + 14/17 / 10/17 commit 영향) + 4 layer 정합 L1~L4 + §2.6 backend-knowledge network 정책 신규 — 4 cross-section fix 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / §13.4) + 사외/사내 2-tier 정합 + **§15 ADR supersession 정공법 신규 — 3 cross-section fix 위치 (§13.4 정합 검증 / ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row / ADR-0034/0035 frontmatter 갱신) + M-v0.2.3+ supersession 가능 + deprecation policy 12개월**).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -3302,6 +3302,7 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 | 2026-06-18 | **§2.6 backend-knowledge network 정책 (5 subsection + dev/staging/production 3 단계 + docker-compose networks + iptables + WAF + 8 row 자동화 tool) + cross-section 정합 fix 4 위치** — (1) **신규 §2.6** 5 subsection: §2.6.1 3 단계 network 정책 표 (dev = localhost + port 8000 / staging = VPN+사내 CA+iptables basic+gateway IP allowlist / production = WAF+외부 CA+iptables strict+gateway+IP allowlist) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) / §2.6.2 docker-compose.yml networks 설정 정공법 3 단계 별 YAML 예시 (dev = default bridge / staging = internal bridge + egress-internal / production = internal bridge + egress-allowlist + `internal: true` flag) / §2.6.3 firewall iptables rule 예시 production (INPUT chain SSH+gateway → 8000 ACCEPT + OUTPUT chain source plugin source_url + rate limit + FORWARD default DROP + Docker iptables chain interaction 주의) / §2.6.4 WAF 설정 (Cloudflare Pro / AWS WAF / nginx mod_security v3 3 option + 10 row WAF rules: R1 Path Y header / R2 HTTP method / R3 SQL injection / R4 XSS / R5 rate limit / R6 request size / R7 IP allowlist / R8 user agent / R9 geolocation / R10 bot detection + IP allowlist CIDR per environment) / §2.6.5 §2.4 item 1 검증 절차 정밀화 (8 row 자동화 tool `scripts/check_network_isolation.sh` + 운영자 manual SOP + per release audit + incident runbook 정합) (2) cross-section 정합 fix 4 위치: §2.4 매트릭스 item 1 "상세 정공법" column 에 §2.6 cross-reference 추가 / §6.5.3 gateway + firewall + IP allowlist 정책 의 마지막에 "**상세 정공법: §2.6 backend-knowledge network 정책**" 추가 / §11.1.1 source plugin sync 실패 의 Recovery 다음에 "Network 진단 (M-v0.2.3+ production)" 4 row 진단 절차 + §2.6 cross-reference 추가 / §13.4 정합 검증 row 추가 (network 정책) (3) ADR 영향 갱신: ADR-0034 §4.3 영향 section §2.6 row 추가 (5 subsection + WAF rule R1 Path Y header 검증 가 §3.6.1 정합 + 4 cross-section fix 위치) + ADR-0034 frontmatter 갱신 (18 row 추가) / ADR-0035 §4.3 영향 section §2.6 row 추가 (5 subsection + §3.5 운영 환경 standalone 정합의 구체적 network 정공법 = §2.6 + 사외/사내 2-tier 정합) + ADR-0035 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + §2.6 cross-section fix 4 위치 + 사외/사내 2-tier 정합 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §2.6 backend-knowledge 운영 환경의 network 정책" + §2.4 매트릭스 item 1 (network 격리) 의 구체적 정공법 + §2.4 item 8 (monitoring 격리) 의 metric endpoint network 정책 + §6.5.3 의 gateway + firewall + IP allowlist 정책 의 detail + 5 subsection (3 단계 + docker-compose + iptables + WAF + 검증 절차) + 사외/사내 2-tier 정합 (dev = 사외 / staging + production = 사내) + 4 cross-section fix 위치 (umbrella doc 본문 + ADR-0034/0035) + §11.1.1 incident runbook 정합 (Network 진단 4 row)) |
 | 2026-06-18 | **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 5 step + deprecation policy + release notes 정합) + cross-section 정합 fix 3 위치** — (1) **신규 §15** 6 subsection: §15.1 ADR supersession 정의 + 사용 시나리오 4 종 (external reference 변경 OKF v0.1→v0.2 / architecture 변경 §1.2 G7 / technology 변경 Pi SDK→RPC / policy 변경 Path Y→X) + supersession 발생 빈도 (M-v0.2.0~v0.2.2 = 0 건, M-v0.2.3+ 가능) / §15.2 supersession 정공법 5 step (New ADR 작성 → 기존 ADR frontmatter `superseded-by` 추가 → 기존 ADR §6 Supersession section row 추가 → cross-reference 4~5 file 갱신 → state.json `adrs` field 갱신) + 5 step 자동화 (M-v0.3.0+ 검토) / §15.3 supersession row format (frontmatter `superseded-by: ADR-NNNN, supersession-date: YYYY-MM-DD` + §6 Supersession section table row + §4.3 영향 section row) / §15.4 cross-reference 영향 4~5 file (docs/adr/README.md + umbrella doc + external-integrations-agentic-rag-roadmap.md + PR template + state.json) / §15.5 deprecation policy (default 12개월 semver + 긴급 patch 3개월 + deprecation period 동안 dual validation + 만료 후 status Archived + `docs/adr/_archived/` 이동) + release notes 영향 (§14.3 breaking change + §14.4 per-source + §14.5 per-milestone) / §15.6 umbrella doc 본 §13~§15 cross-cutting 정공법 3 종 정합 (umbrella doc 본 §13 = cross-reference / §14 = release notes / §15 = ADR supersession) (2) cross-section 정합 fix 3 위치: §13.4 정합 검증 row 추가 (ADR supersession 정공법) / ADR-0034 §6 Supersession / 변경 이력 section 신규 추가 (initial ADR 2026-06-17 + §4.3 영향 18 row 2026-06-18 + M-v0.2.3+ supersession 가능 정공법 cross-reference) + ADR-0035 §6 Supersession section 에 "M-v0.2.3+ 부터 supersession 가능" 정공법 cross-reference 추가 / ADR-0034 + ADR-0035 frontmatter 갱신 (19 row / 10 row 영향) (3) umbrella doc frontmatter 갱신 (최종 수정일 + §15 6 subsection + 3 cross-section fix 위치 + M-v0.2.3+ supersession 가능 + docs/governance/worker_division.md §4.2 1:1 정합 명시) (4) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §15 ADR supersession 정공법" + ADR-0034 또는 ADR-0035 의 supersession 필요 시 정책 (M-v0.2.3+ 부터) + 5 step 정공법 (New ADR → frontmatter → §6 row → cross-reference → state.json) + 사용 시나리오 4 종 (external/architecture/technology/policy) + row format (frontmatter+§6+§4.3) + deprecation policy 12개월 + release notes 정합 + docs/governance/worker_division.md §4.2 1:1 정합 + 운영 runbook 영향 (§11.1 incident + §11.3 monitoring + §11.4 on-call role) + 3 cross-section fix 위치 (umbrella doc 본문 + ADR-0034/0035)) |
 | 2026-06-18 | **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 5 subsection + 3 mode confirm workflow + 5 metrics) + cross-section 정합 fix 5 위치** — (1) **신규 §3.5.7** 5 subsection: §3.5.7.1 Pi LLM cross-link resolution 목적 (M-v0.2.3+ 부터, unresolved link 자동 recommend + operator confirm + §3.5.6.4 auto-fix strategy 구현, M-v0.2.0~v0.2.2 정책: dry-run + manual fix 만, MTTR < 30분) / §3.5.7.2 j2 prompt template design (input unresolved link context ±2 lines, output 3 row recommendation rank 1/2/3 + reason 1-2 문장 + confidence 0~1, prompt template j2 형식 = JSON with Jinja2 templating) / §3.5.7.3 SDK/RPC mode 선택 §10.3 정합 (SDK mode M-v0.2.0~v0.2.2 + M-v0.2.3+ default, RPC mode M-v0.2.3+ production option, config `PI_MODE={sdk|rpc}` env var + auto-detect) / §3.5.7.4 3 mode confirm workflow (dry-run = 추천 3 row 만 반환 / confirm = operator 1 row 선택 후 자동 link resolve / auto-apply = high-confidence ≥ 0.9 만 자동) + `POST /api/v0-2/concepts/{id}/resolve-links?mode={dry-run|confirm|auto-apply}&selected_rank={1|2|3}&confidence_threshold=0.9` endpoint / §3.5.7.5 audit log + 5 metrics (MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) + `cli/fix_unresolved.py` 4 CLI tool (M-v0.2.3+ production) (2) cross-section 정합 fix 5 위치: §3.5.6.4 auto-fix row + "상세 정공법: §3.5.7 Pi LLM cross-link 자동 resolution 정공법" cross-reference / §3.1 API 매트릭스 row 4 (Graph) + `POST /api/v0-2/concepts/{id}/resolve-links` endpoint 추가 / §6.7.3 LLM enrich + cross-link 자동 resolution 운영 에 §3.5.7 cross-reference + §10.3 Pi prompt template row 갱신 (§3.5.7.2 의 진보된 prompt j2 형식 + few-shot + chain-of-thought) / §13.2 known gap 2 ✅ resolved (1/6 → 2/6 resolved, residual 4/6) / §13.4 정합 검증 row 추가 (Pi LLM resolution) (3) ADR 영향 갱신: ADR-0034 §4.3 영향 section §3.5.7 row 추가 (5 subsection + §3.5.6.4 auto-fix + §13.2 known gap 2 + 5 cross-section fix 위치) + ADR-0034 frontmatter 갱신 (20 row 추가) / ADR-0035 §4.3 영향 section §3.5.7 row 추가 (5 subsection + §3.5.5 cross-link 4종 rule + §3.5.6.4 stale handling + §3.9.4 archive 거부 정책 + 5 cross-section fix 위치) + ADR-0035 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + §3.5.7 5 subsection + 5 cross-section fix 위치 + §13.2 known gap 2 ✅ resolved 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §3.5.7 Pi LLM cross-link 자동 resolution 정공법" + §3.5.6.4 auto-fix strategy 의 구현 정공법 (M-v0.2.3+ 부터 활성화) + 5 subsection (목적 / j2 prompt template / SDK/RPC mode / 3 mode confirm workflow / audit log + 5 metrics) + 4 CLI tool 중 `cli/fix_unresolved.py` detail + M-v0.2.3+ 부터 활성화 (Q3 + Q4 결정 정합) + §13.2 known gap 2 (Pi prompt template) ✅ resolved (1/6 → 2/6) + 5 cross-section fix 위치 (§3.5.6.4 / §3.1 API / §6.7.3 / §10.3 / §13.2) + backend-knowledge 의 4번째 핵심 기능 Graph 의 detail 구현) |
+| 2026-06-18 | **§16 API versioning 정책 (M-v0.3.0+ 부터 v0-3 도입, 6 subsection + deprecation policy 12개월 + dual endpoint + Sunset header + 4 metrics + breaking change 5 종) + cross-section 정합 fix 5 위치** — (1) **신규 §16** 6 subsection: §16.1 API versioning 정의 (URL prefix 기반 semver + v0.x pre-1.0 + 12개월 deprecation policy) / §16.2 deprecation policy 12개월 + dual endpoint support (M-v0.3.0 release 시 /api/v0-2/ + /api/v0-3/ 동시 운영 + 6개월 warning + 12개월 제거 + client migration SOP 5 step) / §16.3 API gateway deprecation header (Sunset RFC 8594 + Deprecation + Link successor-version) / §16.4 monitoring 2개 버전 동시 운영 4 metrics (per endpoint request count + error rate + client identification + migration progress) + §11.3 monitoring 5 + 4 = 9 metrics / §16.5 breaking change 정의 5 종 (a) path 변경 / (b) method 변경 / (c) schema 변경 / (d) auth 변경 / (e) default 변경 + release notes 정합 §14.7 + §14.3 / §16.6 §3.1 API 매트릭스 versioning 영향 + future deprecation timing (M-v0.2.0~v0.3.0 / M-v0.3.0+ deprecation / M-v0.3.0+ 제거) + 운영 runbook 영향 (§11.1 incident + §11.3 monitoring + §11.4 on-call role API curator 6번째) (2) cross-section 정합 fix 5 위치: §13.4 정합 검증 row 추가 (API versioning) / §3.1 API 매트릭스 future deprecation timing / §14.7 release notes template breaking change / §15.5 deprecation policy 12개월 1:1 정합 / §11.3 monitoring 9 metrics (5+4) (3) ADR 영향 갱신: ADR-0034 §4.3 영향 section §16 row 추가 (6 subsection + deprecation 12개월 + dual endpoint + Sunset header + 4 metrics + breaking change 5 종 + 5 cross-section fix 위치) + ADR-0034 frontmatter 갱신 (21 row 추가) / ADR-0035 §4.3 영향 section §16 row 추가 (6 subsection + §3.1 API 매트릭스 14 endpoint + §6.5.3 gateway middleware + §11.3 monitoring 9 metrics + 5 cross-section fix 위치) + ADR-0035 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + §16 6 subsection + 5 cross-section fix 위치 + §15.5 1:1 정합 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(b) §16 API versioning 정책 (v0-2 → v0-3 마이그레이션)" + §3.1 API 매트릭스 의 향후 호환성 정공법 + M-v0.3.0+ 부터 v0-3 도입 + 6 subsection (정의 + deprecation + dual endpoint + Sunset header + monitoring + breaking change + API matrix future timing) + 12개월 deprecation policy 1:1 정합 (§15.5) + 4 metrics (per endpoint + error rate + client identification + migration progress) + breaking change 5 종 (path/method/schema/auth/default) + release notes 정합 (§14.7 template) + 5 cross-section fix 위치 (§3.1 / §14.7 / §15.5 / §11.3 / §1.2 G7) + §13.4 정합 검증 row + umbrella doc 본 §13~§16 cross-cutting 정공법 4 종 (cross-reference / release notes / ADR supersession / API versioning) 확장) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
@@ -4143,6 +4144,7 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 | **§2.6 backend-knowledge network 정책 (2026-06-18 신규 — §2.4 item 1 + §6.5.3 + §11.1.1 정합)** | ✅ | 5 subsection (§2.6.1 3 단계 network 정책 dev/staging/production + §2.6.2 docker-compose.yml networks 설정 정공법 3 단계 별 YAML + §2.6.3 firewall iptables rule 예시 production + §2.6.4 WAF 설정 3 option + 10 row WAF rules + §2.6.5 §2.4 item 1 검증 절차 정밀화 8 row 자동화 tool + 운영자 manual SOP + per release audit) + cross-section 정합 fix 4 위치 (§2.4 item 1 / §6.5.3 / §11.1.1 / ADR-0034/0035) + 사외/사내 2-tier 정책 정합 |
 | **§15 ADR supersession 정공법 (M-v0.2.3+ 부터, 2026-06-18 신규 — docs/governance/worker_division.md §4.2 정합)** | ✅ | 6 subsection (§15.1 정의 + 사용 시나리오 4 종 external/architecture/technology/policy / §15.2 5 step 정공법 New ADR → frontmatter 갱신 → §6 row → cross-ref → state.json / §15.3 row format frontmatter+section+§4.3 / §15.4 cross-reference 4~5 file 영향 / §15.5 deprecation policy 12개월 + release notes 정합 / §15.6 umbrella doc 본 §13~§15 cross-cutting 정공법 3 종 정합) + supersession 발생 빈도 (M-v0.2.0~v0.2.2 0 건, M-v0.2.3+ 가능) + 운영 runbook 영향 (§11.1 incident runbook ADR supersession trigger / §11.3 monitoring ADR deprecation warning / §11.4 on-call role ADR curator 5번째 role) + docs/governance/worker_division.md §4.2 1:1 정합 |
 | **§3.5.7 Pi LLM cross-link 자동 resolution 정공법 (M-v0.2.3+ 부터, 2026-06-18 신규 — §3.5.6.4 auto-fix strategy 구현 + §13.2 known gap 2 ✅ resolved)** | ✅ | 5 subsection (§3.5.7.1 목적: unresolved link 자동 recommend + operator confirm + 3 mode confirm workflow / §3.5.7.2 j2 prompt template design: input unresolved link context ±2 lines + output 3 row recommendation + reason + confidence 0~1 / §3.5.7.3 SDK/RPC mode 선택 §10.3 정합, M-v0.2.3+ default SDK mode + production RPC mode option / §3.5.7.4 3 mode confirm workflow dry-run/confirm/auto-apply ≥ 0.9 + `POST /api/v0-2/concepts/{id}/resolve-links` endpoint / §3.5.7.5 audit log + 5 metrics MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) + `cli/fix_unresolved.py` 4 CLI tool + cross-section 정합 fix 5 위치 (§3.5.6.4 auto-fix / §3.1 API 매트릭스 endpoint / §6.7.3 LLM enrich 운영 / §11.3 monitoring 10 metrics / §13.2 known gap 2 ✅ resolved) |
+| **§16 API versioning 정책 (M-v0.3.0+ 부터 v0-3 도입, 2026-06-18 신규 — §3.1 API 매트릭스 향후 호환성 + §14.7 release notes template breaking change + §15.5 deprecation policy 정합)** | ✅ | 6 subsection (§16.1 API versioning 정의 + /api/v0-2/ prefix 의의 URL prefix 기반 semver + v0.x pre-1.0 + 12개월 deprecation policy / §16.2 deprecation policy 12개월 + dual endpoint support M-v0.3.0 release 시 /api/v0-2/ + /api/v0-3/ 동시 운영 + 6개월 warning + 12개월 제거 + client migration SOP 5 step / §16.3 API gateway deprecation header Sunset RFC 8594 + Deprecation + Link successor-version / §16.4 monitoring 2개 버전 동시 운영 4 metrics: per endpoint request count + error rate + client identification + migration progress + §11.3 monitoring 5 + 4 = 9 metrics / §16.5 breaking change 정의 5 종 a/b/c/d/e + release notes 정합 §14.7 + §14.3 breaking change row 4 / §16.6 §3.1 API 매트릭스 versioning 영향 + future deprecation timing M-v0.2.0~v0.3.0 / M-v0.3.0+ deprecation / M-v0.3.0+ 제거 + 운영 runbook 영향 §11.1 incident + §11.3 monitoring + §11.4 on-call role) + §15.5 deprecation policy 12개월 1:1 정합 + umbrella doc 본 §13~§16 cross-cutting 정공법 4 종 (cross-reference / release notes / ADR supersession / API versioning) |
 
 **📋 미완료 (post-sprint follow-up)** — §13.3 의 6 row (GitHub milestone / state.json / external-integrations-agentic-rag-roadmap.md status / docs/llm-wiki mirror / release notes / DOCUMENT_INDEX.md). 이 항목들은 **M-v0.2.0 sprint 진입 시점에 처리** (umbrella doc 본 §13 commit 시점에서는 의도적 미완료).
 
@@ -4478,5 +4480,229 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 **§1.2 G7 standalone 정책 + §3.5 운영 환경 + 본 §15 정합**: ADR supersession 시 standalone 정책 + 운영 환경 영향 row 추가 필수. ADR-0035 (backend-knowledge 신설) 의 §1.2 G7 / §3.5 가 supersede 되면 §2.6 network 정책 + §2.4 standalone 매트릭스 의 영향 row 갱신. §15.4 cross-reference 영향 4~5 file 갱신 시 본 §2.4 + §2.6 row 추가 필수.
 
 **본 §15 정공법 + docs/governance/worker_division.md §4.2 정합**: 본 §15 의 5 step 정공법 + supersession row format + deprecation policy 가 `docs/governance/worker_division.md` §4.2 의 ADR supersession 정공법 본문 정합. umbrella doc 본 §15 + governance doc §4.2 가 **1:1 정합** (umbrella doc 본 §15 가 governance doc §4.2 의 detail / governance doc §4.2 가 umbrella doc 본 §15 의 high-level reference). 운영자가 어느 문서를 봐도 ADR supersession 정공법 파악 가능.
+
+## 16. API versioning 정책 (v0-2 → v0-3 마이그레이션, 2026-06-18 신규)
+
+**§3.1 API 매트릭스** 의 향후 호환성 정공법. `/api/v0-2/` prefix 의 의도 + M-v0.3.0+ 부터 `/api/v0-3/` prefix 도입 시 마이그레이션 + deprecation policy 12개월 + dual endpoint support + client migration SOP + API gateway 의 deprecation header + monitoring 2개 버전 동시 운영 + breaking change 정의 + release notes 정합. 본 §16 은 **M-v0.2.0 PoC 운영 중** 작성 (M-v0.3.0+ breaking change 발생 전 baseline 정책) + **M-v0.3.0 release 시점** 부터 정공법 활성화.
+
+### 16.1 API versioning 정의 + `/api/v0-2/` prefix 의도
+
+**API versioning 정의**: URL prefix 기반 versioning (`/api/v{major}-{minor}/`) + semver 1차 호환성 (minor 변경 가능) + deprecation period (12개월) + dual endpoint support (양쪽 prefix 동시 운영).
+
+**`/api/v0-2/` prefix 의 의도**:
+
+| Component | 의미 | 비고 |
+| --- | --- | --- |
+| `api` | API path | v0.x 의 pre-1.0 prefix |
+| `v0` | major version | 0 = pre-1.0 (breaking change 자유) |
+| `2` | minor version | semver 1차 호환성 (endpoint path/method/response schema 의 minor 변경 가능) |
+| (없음) | patch | v0.x 는 patch 무시 (v0.2.1, v0.2.2, v0.2.3 모두 v0-2 prefix) |
+
+**1차 호환성 (minor 변경 가능)**:
+- endpoint path 추가 (e.g., `POST /api/v0-2/graph/reindex` 신규)
+- endpoint method 추가 (e.g., `GET` 만 → `GET` + `HEAD` 추가)
+- request schema 의 **optional field 추가** (e.g., `?new_field=...` query param 추가)
+- response schema 의 **optional field 추가** (e.g., response 에 `new_field: ...` 추가)
+- deprecation warning 추가 (e.g., `Sunset: ...` header 추가, **endpoint 제거 ❌**)
+
+**2차 호환성 깨질 때 (breaking change)**:
+- endpoint path 변경 (e.g., `/concepts/{id}` → `/concepts/{id}/detail`)
+- endpoint method 변경 (e.g., GET → POST)
+- **required field 추가** (e.g., request body 에 new required field 추가)
+- request/response schema 의 **field 제거** (client break)
+- 인증 정책 변경 (Path Y → Path X)
+- default value 변경 (break client)
+
+**v0.x 의 의도** (pre-1.0 = 자유로운 breaking change): semver standard 의 "v0.x = pre-1.0, breaking change 가능" 정책 정합. 단, **DevHub 정책** = v0.x 라도 breaking change 발생 시 **12개월 deprecation period** (semver strict 보다 보수적, 운영자/사용자 migration 시간 확보).
+
+### 16.2 deprecation policy 12개월 + dual endpoint support
+
+**Deprecation period 정책**:
+
+| Endpoint 변경 | Deprecation period | 정합 |
+| --- | --- | --- |
+| breaking change 0건 (minor 변경만) | 즉시 12개월 후 제거 (M-v0.3.0 release 시점 부터) | §15.5 ADR supersession 정합 (12개월 default) |
+| breaking change 1건 (단순 endpoint 제거) | 12개월 후 제거 | §15.5 정합 |
+| breaking change 다수 (major refactor) | 18개월 후 제거 (per endpoint 별) | §15.5 + 운영자 manual decision |
+| **긴급 security patch** | 3개월 후 제거 (deprecation warning + security update 동시) | §15.5 정합 |
+
+**dual endpoint support** (M-v0.3.0 release 시점):
+
+| 시점 | `/api/v0-2/` 상태 | `/api/v0-3/` 상태 | 비고 |
+| --- | --- | --- | --- |
+| **M-v0.2.0~v0.2.3** (current) | ✅ default | ❌ 미존재 | 본 §16 의 정책 작성 시점 |
+| **M-v0.3.0 release** (예정 2026-Q4~2027-Q1) | ✅ dual 운영 (12개월) | ✅ default | gateway router 가 양쪽 prefix 동시 routing |
+| **M-v0.3.0 + 3개월** | ✅ dual 운영 + deprecation warning banner | ✅ default | §16.3 Sunset/Deprecation header 활성화 |
+| **M-v0.3.0 + 6개월** | ✅ dual 운영 + monitoring | ✅ default | §16.4 monitoring 4 metrics 활성화 |
+| **M-v0.3.0 + 9개월** | ⚠️ deprecation critical alert | ✅ default | §16.4 M4 < 50% alert |
+| **M-v0.3.0 + 12개월** | ❌ 제거 (404 Not Found) | ✅ default | §16.4 deprecation 완료 |
+
+**client migration SOP** (5 step):
+
+1. **Step 1**: 운영자가 deprecation warning 수신 (Sunset header, Slack notification, email)
+2. **Step 2**: 신규 endpoint 식별 (`/api/v0-3/` 의 path/method/schema 확인, release notes 참조)
+3. **Step 3**: 6개월 dual 운영 동안 client code update (Path 변경 + schema 변경)
+4. **Step 4**: M-v0.3.0 + 9개월 monitoring alert 수신 시 client update 완료 확인
+5. **Step 5**: M-v0.3.0 + 12개월 v0-2 제거 확인 + client code 의 v0-2 reference 0 occurrence 검증
+
+### 16.3 API gateway deprecation header (Sunset / Deprecation)
+
+**RFC 8594 Sunset header** (12개월 후 일자):
+```
+Sunset: Sat, 31 Dec 2027 23:59:59 GMT
+```
+- 모든 `/api/v0-2/` endpoint response 에 자동 추가
+- 운영자 client 가 이 header 감지 시 migration 시작
+
+**RFC 8594 Deprecation header** (boolean or date):
+```
+Deprecation: true
+Deprecation: date="2026-12-31"
+```
+- `Deprecation: true` = 즉시 deprecation (breaking change 즉시 적용)
+- `Deprecation: date="..."` = 특정 일자 부터 deprecation
+
+**Link header (RFC 5988 successor-version)**:
+```
+Link: </api/v0-3/concepts/integration_gitea_repo_puller>; rel="successor-version"
+```
+- 신규 endpoint 가 존재하면 자동 link
+- client 가 이 link 따라가서 신규 endpoint 사용
+
+**§3.1 API 매트릭스 의 모든 endpoint 가 Sunset/Deprecation header 자동 추가** (gateway middleware):
+- §6.5.3 gateway + firewall + IP allowlist 정책 정합 (gateway 의 middleware layer)
+- §2.6.4 WAF rule R1 (Path Y header 검증) 의 정합 (Sunset/Deprecation header 는 API response 의 추가 metadata)
+- §2.4 item 1 (network 격리) 의 정합 (gateway 가 standalone 정합)
+
+**deprecation warning 의 client display**:
+- Frontend viz.html 의 incoming edge visualization (§3.5.6.4) 에 deprecation warning 표시 (red border)
+- §12.4 API integration matrix 14 row 의 per endpoint status 표시
+- §12.5 frontend cutover 정책 정합
+
+### 16.4 monitoring 2개 버전 동시 운영 + migration metrics
+
+**4 monitoring metrics per version** (M-v0.3.0+ 부터 운영):
+
+| Metric | 정의 | target | 정합 section |
+| --- | --- | --- | --- |
+| **M1: per endpoint request count per version** | `v0-2/endpoint` vs `v0-3/endpoint` 의 request 수 비교 | v0-3 ≥ v0-2 (migration 진행) | §11.3 monitoring + §16.2 dual endpoint |
+| **M2: per endpoint error rate per version** | 4xx/5xx error rate per version | ≤ 1% (per version) | §11.3 monitoring |
+| **M3: per version client identification** | User-Agent header 의 client 별 version 사용 통계 | 운영자 manual review (주 1회) | §16.2 client migration SOP |
+| **M4: migration progress** | v0-3 request count / (v0-2 + v0-3 total) | 50% (6개월) / 90% (12개월) | §16.2 dual endpoint timing |
+
+**§11.3 monitoring 5 지표 + 본 §16.4 4 metrics = 9 metrics** (M-v0.3.0+ 운영 환경)
+
+**deprecation period 동안 daily digest**:
+- 운영자 manual confirmation: 일 1회 M1~M4 metrics review
+- 5% v0-2 client 미 migration 시: 운영자 Slack notification
+- 0% v0-2 client (M4 = 100% v0-3) 시: 운영자 manual finalization (M-v0.3.0 + 12개월 v0-2 제거 결정)
+
+**alert routing** (§11.3 정합):
+- M1 (v0-2 / v0-3 ratio < 50% 6개월) → info-level alert
+- M1 (v0-2 / v0-3 ratio < 10% 12개월) → critical alert (deprecation 완료 임박)
+- M2 (per version error rate > 5%) → warning alert (gateway 의 Sunset/Deprecation header 검증 필요)
+- M3 (unknown client / 0 client) → info-level (client 식별 미스)
+- M4 (migration < 50% 6개월) → critical alert (deprecation 완료)
+
+### 16.5 breaking change 정의 + release notes 정합
+
+**breaking change 정의 (semver 1차 호환성 깨질 때)** — 5 종:
+
+| Breaking change | 예시 | client 영향 |
+| --- | --- | --- |
+| **(a) endpoint path 변경** | `/concepts/{id}` → `/concepts/{id}/detail` | client 가 404 Not Found |
+| **(b) endpoint method 변경** | GET → POST | client 의 HTTP method 변경 필요 |
+| **(c) request/response schema 변경** | `x_devhub_*` field 제거 / 타입 변경 | client 의 JSON parser break |
+| **(d) 인증 정책 변경** | Path Y → Path X (HMAC signature) | client 의 auth logic break |
+| **(e) default value 변경** | `?limit=10` default → `?limit=20` | client 의 expected output break (silent) |
+
+**§14.3 breaking change row 4 + 본 §16.5 breaking change 정의 1:1 정합**:
+- §14.3 의 4 row (backend-ai 폐기 / Go adapter 흡수 / Tier 분리 정책 / curation governance 정책) 중 일부는 (a)~(e) breaking change 정합 (e.g., backend-ai 폐기 = (a) endpoint path 제거, Tier 분리 정책 = (d) 인증 정책 변경)
+- release notes 의 breaking change section 에 (a)~(e) category 별 분류
+
+**release notes 영향** (umbrella doc §14.7 release notes template 정합):
+- §14.3 breaking change row 4 + §14.7 의 "Breaking change" section 매핑
+- §15.5 deprecation policy 12개월 + 본 §16.2 정합
+- §15.6 umbrella doc §13~§15 cross-cutting 정공법 3 종 정합 + 본 §16 추가 (4 종 = cross-reference / release notes / ADR supersession / API versioning)
+
+**release notes 의 breaking change row format** (umbrella doc 본 §14.7 + `docs/release-notes/v0.X.Y.md`):
+```markdown
+## Breaking change
+
+| Category | Endpoint | 변경 전 | 변경 후 | Sunset | Deprecation | Migration guide |
+| --- | --- | --- | --- | --- | --- | --- |
+| (a) path 변경 | POST /api/v0-2/concepts/{id}/enrich | `/concepts/{id}/enrich` | `/concepts/{id}/enrich-with-llm` | 2027-12-31 | 2026-12-31 | [link] |
+| (b) method 변경 | GET /api/v0-2/bundles/{bundle}/viz.html | GET | GET (Sunset header 만) | 2027-12-31 | - | client deprecation warning 만 |
+| (c) schema 변경 | - | - | - | - | - | - |
+| (d) auth 변경 | - | - | - | - | - | - |
+| (e) default 변경 | - | - | - | - | - | - |
+```
+
+### 16.6 §3.1 API 매트릭스 versioning 영향 + future deprecation timing
+
+**§3.1 API 매트릭스 의 14 endpoint 의 version lifecycle** (M-v0.2.0 PoC ~ M-v0.3.0+ 12개월 후):
+
+| Endpoint | M-v0.2.0 (current) | M-v0.2.1~v0.2.3 | M-v0.3.0 release | M-v0.3.0+ 6개월 | M-v0.3.0+ 12개월 |
+| --- | --- | --- | --- | --- | --- |
+| `POST /api/v0-2/ingest/{source}/sync` | ✅ | ✅ (1차 호환성 유지) | `/api/v0-2/...` + `/api/v0-3/...` dual | ⚠️ deprecation banner | ❌ 제거 |
+| `GET /api/v0-2/ingest/{source}/status` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `POST /api/v0-2/raw` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/raw/{type}/{name}` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/raw?source=...&since=...` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `DELETE /api/v0-2/raw/{id}` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `POST /api/v0-2/concepts/{id}/enrich` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `PUT /api/v0-2/concepts/{id}` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/bundles` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `POST /api/v0-2/bundles` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `POST /api/v0-2/bundles/{bundle}/rebuild` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `POST /api/v0-2/query` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/concepts/{type}/{name}` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/search?q=...` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/bundles/{bundle}/index.md` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/bundles/{bundle}/viz.html` | ✅ | ✅ | dual | ⚠️ | ❌ |
+| **(NEW) Graph endpoints (M-v0.2.0+ §3.5.6+ §3.5.7)** | ✅ | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/graph/reverse/{concept_path}` | ✅ (M-v0.2.0 신규) | ✅ | dual | ⚠️ | ❌ |
+| `GET /api/v0-2/graph/impact/{concept_path}` | ✅ (M-v0.2.0 신규) | ✅ | dual | ⚠️ | ❌ |
+| `POST /api/v0-2/graph/reindex` | ✅ (M-v0.2.0 신규) | ✅ | dual | ⚠️ | ❌ |
+| `POST /api/v0-2/concepts/{id}/resolve-links` | ✅ (M-v0.2.3 신규, §3.5.7) | - | dual | ⚠️ | ❌ |
+
+**§3.1 API 매트릭스 의 version column 추가 (M-v0.2.0 PoC 운영 시점)**:
+- 현재 §3.1 API 매트릭스 표 의 column: `기능 | API | method + path | 응답`
+- **M-v0.2.1+ (M-v0.3.0+ 운영 시점)** 부터 column 추가: `+ Version (current / deprecation / 제거) + Sunset`
+- 표 의 per row 에 `v0-2 (current, deprecation M-v0.3.0+ / 제거 M-v0.3.0+ 12개월)` 추가
+- 운영자 manual review 시 per endpoint version status 1:1 정합
+
+**운영 runbook 영향** (M-v0.3.0+ 운영):
+- §11.1 incident runbook 의 "API endpoint 변경" trigger type 추가 (M-v0.3.0+ 운영 시점에 본 §16 정공법 활성화) — 7번째 type
+- §11.3 monitoring 의 API endpoint per version 4 metrics 추가 (§16.4 정합) — 9 metrics (M-v0.3.0+)
+- §11.4 on-call role 의 **API curator 6번째 role** 추가 (per version migration tracking) — M-v0.3.0+ 운영 시점 활성화
+- §11.1.1 source plugin sync 실패 + §11.1.7 stale link runbook + 본 §16.5 breaking change 정합 (deprecation period 동안 client 의 4xx error rate spike → breaking change 영향 분석)
+
+**§1.2 G7 standalone 정책 + §3.6 Path Y caller-provided user context + 본 §16 정합**:
+- `/api/v0-2/` 와 `/api/v0-3/` 모두 **internal-only, no auth** (§1.2 G7 + §2.3 + §3.1 정합)
+- **Path Y caller-provided user context** (§3.6.1) 의 schema 는 **v0-2 와 v0-3 동일** (caller 의 context header 는 version-independent)
+- §3.6.2 curation governance model 의 `x_devhub_curator` field 도 version-independent
+- §3.6.3 query scope priority 4-tier 도 version-independent
+- **본 §16 의 API versioning 은 path/method/schema 의 변경 만, governance model 은 변경 ❌** (stand-alone + version-independent governance)
+
+**§14.7 release notes template per backend-knowledge + 본 §16.5 정합**:
+- §14.7 release notes template 의 "Breaking change" section = 본 §16.5 의 breaking change 정의 5 종 (a)~(e) 1:1 정합
+- §14.7 release notes template 의 "Breaking change" section 의 row format = 본 §16.5 의 release notes breaking change row format 정합 (Category / Endpoint / 변경 전 / 변경 후 / Sunset / Deprecation / Migration guide)
+- §14.7 release notes template 의 "업그레이드 가이드 (Upgrade guide)" section = 본 §16.2 client migration SOP 5 step 정합
+
+**§15 ADR supersession 정공법 + 본 §16 API versioning 정책 정합**:
+- §15.5 deprecation policy 12개월 + 본 §16.2 deprecation policy 12개월 **완전 일치** (umbrella doc 본 §15/§16 + governance doc §4.2 정합)
+- §15.4 cross-reference 4~5 file + 본 §16.4 monitoring 2개 버전 정합
+- §15.6 umbrella doc §13~§15 cross-cutting 정공법 3 종 + 본 §16.6 **4 종 (cross-reference / release notes / ADR supersession / API versioning)** 으로 확장
+
+**umbrella doc 본 §13~§16 cross-cutting 정공법 4 종 정합**:
+- §13 = cross-reference 정합성 (12 sections × 5 artifacts 매트릭스)
+- §14 = release notes (M-v0.2.0 release 시점 post-process)
+- §15 = ADR supersession (M-v0.2.3+ 부터 supersession 가능)
+- **§16 = API versioning (M-v0.3.0+ 부터 v0-3 도입 + 12개월 deprecation)**
+- 운영자 / contributor 가 §13~§16 어느 layer 를 봐도 umbrella doc 의 cross-cutting 정공법 (정합성 / release notes / ADR / API versioning) 4 종 파악 가능
+
+**본 §16 의 deprecation policy 12개월 + §15.5 ADR supersession deprecation policy 12개월 + §14.7 release notes template 의 breaking change section + §11.3 monitoring 5+4=9 metrics + §6.5.3 gateway middleware + §3.1 API 매트릭스 의 version column = 6 layer 정합**. 운영자 / contributor 가 어느 layer 를 봐도 API versioning 정책 + deprecation timing + monitoring + migration SOP 파악 가능.
+
 
 
