@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 — §3.2.1 보강 (대표 concept frontmatter 예시 subsection) + 신규 §3.5 "Concept organization" (5 subsection: orthogonal axes 원칙 / 5×8 matrix / bundle 디렉터리 + concept 예시 / index.md 3종 자동 생성 규칙 / cross-link 4종 rule) + cross-section 정합 fix 5 위치: §1.3 progressive disclosure + graph row + path pattern row / §2.1 `curate/index_builder.py` + `link_resolver.py` 코멘트 / §3.3 frontmatter spec 1줄 추가 / §3.5.5 cross-link syntax 정합 / ADR-0034 §4.3 영향 section + §3.2.1/§3.3/§3.5 4 row 추가).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context — §3.2.1 보강 (대표 concept frontmatter 예시) + 신규 §3.5 "Concept organization" (5 subsection: orthogonal axes 원칙 / 5×8 matrix / bundle 디렉터리 + concept 예시 / index.md 3종 자동 생성 규칙 / cross-link 4종 rule) + 신규 §3.6 "Data governance & query scoping" (5 subsection: caller-provided user context schema+trust model / curation governance model / 4-tier query scope priority / frontmatter 5 governance field extension / cross-section 정합 fix 8 위치) + cross-section 정합 fix: §1.2 G7 standalone 정책 + caller-provided user context 명시 / §2.3 API 인증 row + 다른 backend 연결 row + OIDC row 갱신 / §3.1 API 매트릭스 인증 정책 노트 갱신 / §3.3 frontmatter spec Path Y 5 governance field 추가 / §4.1 정책 정의 인증 row 갱신 / ADR-0034 §4.3 영향 section + ADR-0035 §3.4 API 정책 row + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -48,7 +48,7 @@
 | G4 | OKF 형 knowledge bundle **rule-based + LLM-optional** 생성/관리 (1차 rule-based) | rule-based enricher (1차) + bundle 디렉터리 + index.md 자동 생성 + cross-link 자동 추출. LLM enrichment agent (Pi `pi-coding-agent` SDK / RPC mode) 는 v0.2.3+ 부터 활성화 (Q3 결정) |
 | G5 | 3가지 기본 기능 API 노출 (internal-only, no auth — §2.3) | Ingest / Curate / Query endpoint (envelope 정합). OIDC / Keycloak / backend-core 인증 위임 ❌ (본 시스템 scope 외) |
 | G6 | 1차 raw 데이터의 API 조회/추가 (외부 시스템 raw, internal-only) | `GET/POST /api/v0-2/raw/{type}/{name}`. 1차 raw 데이터 = **외부 시스템 데이터** (homelab JSON, gitea API response, prometheus scrape 등). backend-core 의 Repository / Domain 데이터 ❌ (본 시스템 scope 외) |
-| G7 | **완전 standalone 운영** — 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 ❌, OIDC ❌, **외부 시스템만 단방향** (2026-06-17 결정, §4 self-review 강화) | M-v0.2.0/v0.2.1: standalone (mock source + no auth + 별도 docker network) → M-v0.2.2: 외부 시스템 **6종** source wire (Gitea 4 + homelab + metrics, backend-core 와 무관) + backend-ai 폐기 (단독 결정) → M-v0.2.3: 외부 시스템 **7종** source wire (+ hrdb) + Pi (pi.dev) LLM enrich 활성화 |
+| G7 | **완전 standalone 운영** — 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 ❌, OIDC ❌, **외부 시스템만 단방향** (2026-06-17 결정, §4 self-review 강화) + **caller-provided user context** 로 governance 수행 (2026-06-18 Path Y 결정, §3.6.1 정합 — backend-knowledge 는 auth 자체 안 함, caller 가 X-DevHub-User-Context header 로 user/org/project/roles 전달 시 filter/curation ownership 만 backend-knowledge 책임) | M-v0.2.0/v0.2.1: standalone (mock source + no auth + 별도 docker network) → M-v0.2.2: 외부 시스템 **6종** source wire (Gitea 4 + homelab + metrics, backend-core 와 무관) + backend-ai 폐기 (단독 결정) → M-v0.2.3: 외부 시스템 **7종** source wire (+ hrdb) + Pi (pi.dev) LLM enrich 활성화 |
 
 ### 1.3 How — Google OKF 구조 차용
 
@@ -159,10 +159,10 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 
 | 항목 | 정책 |
 | --- | --- |
-| **다른 backend 연결 (general)** | ❌ **전면 금지**. `backend-knowledge` 는 **완전 standalone 시스템** (2026-06-17 결정, §4 self-review 강화). 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 의 Go/Python 코드 / API / domain model / database / cache / envelope / repository / 어떤 layer 든 import / 호출 / 공유 ❌. **외부 시스템 7종 source 만 단방향** (Gitea 4 + homelab + metrics + hrdb, M-v0.2.3 운영 기준, §1.2 G3 정합) |
-| **OIDC / Keycloak** | ❌ **OIDC 자체를 본 시스템에서 제외**. Keycloak 인증은 backend-core 의 책임 (변경 없음). `backend-knowledge` 는 bearer token / API key / session 어떤 인증 scheme 도 자체적으로 검증 안 함 |
+| **다른 backend 연결 (general)** | ❌ **전면 금지**. `backend-knowledge` 는 **완전 standalone 시스템** (2026-06-17 결정, §4 self-review 강화). 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 의 Go/Python 코드 / API / domain model / database / cache / envelope / repository / 어떤 layer 든 import / 호출 / 공유 ❌. **외부 시스템 7종 source 만 단방향** (Gitea 4 + homelab + metrics + hrdb, M-v0.2.3 운영 기준, §1.2 G3 정합). **단, caller-provided user context (X-DevHub-User-Context header) 의 schema 는 DevHub 의 user/org/project 모델과 format 호환** (cross-reference 만, import ❌, §3.6.1 정합) |
+| **OIDC / Keycloak** | ❌ **OIDC 자체를 본 시스템에서 제외**. Keycloak 인증은 backend-core 의 책임 (변경 없음). `backend-knowledge` 는 bearer token / API key / session 어떤 인증 scheme 도 자체적으로 검증 안 함. caller (gateway / 별도 agent) 가 Keycloak 인증 후 user context 만 전달 (§3.6.1) |
 | **외부 시스템** | ✅ **유일한 통신 대상**. Gitea 1 instance (4 sub-plugin) + homelab + metrics + hrdb 등 source plugin **7종** (M-v0.2.3 운영 기준) 의 외부 시스템 API 만 호출. 단방향 pull (외부 → backend-knowledge) |
-| **API 인증** | **internal-only, no auth**. `/api/v0-2/*` endpoint 는 인증 없이 호출 가능. 별도 gateway / firewall / IP allowlist 가 보호 (Phase 1~3 의 운영 책임). 운영자 또는 별도 agent 가 호출 (**backend-core 의 어떤 layer 든 호출 ❌**, 2026-06-17 결정, §1.2 G7 / §7 Q9 정합) |
+| **API 인증** | **internal-only, no auth** + **caller-provided user context (Path Y, §3.6.1, 2026-06-18 결정)**. `/api/v0-2/*` endpoint 는 bearer/API key 자체 검증 안 함. **단, caller 가 `X-DevHub-User-Context` header (base64url(json) 의 user/org/project/roles) 를 전달하면, backend-knowledge 는 그 context 로 filter / curation ownership check 만 수행** (gateway/firewall/IP allowlist 가 호출 자체 보호, Phase 1~3 의 운영 책임). 운영자 또는 별도 agent 가 호출 (**backend-core 의 어떤 layer 든 호출 ❌**, 2026-06-17 결정, §1.2 G7 / §7 Q9 정합). query / concept 직접 조회 / concept manual edit endpoint 는 user context 필수 (§3.6.1 표 정합) |
 | **Keycloak 분류 (재확인)** | [external-integrations-agentic-rag-roadmap.md §0.4](./external-integrations-agentic-rag-roadmap.md) 정합 — Keycloak 은 사내 IdP, 외부 시스템 아님, backend-core 의 `domain/auth-session/` 책임. 본 시스템 scope 외 |
 | **Phase 2 의 의미 변경** | ~~backend-core 와 wire~~ → **외부 시스템 6종 source plugin wire (M-v0.2.2: Gitea 4 + homelab + metrics, backend-core 와 무관)** + 7종 (M-v0.2.3: + hrdb). Phase 2 자체는 backend-core 와 분리되어 진행 |
 
@@ -189,7 +189,7 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 | | bundle index (progressive disclosure) | `GET /api/v0-2/bundles/{bundle}/index.md` | raw markdown |
 | | self-contained graph viewer | `GET /api/v0-2/bundles/{bundle}/viz.html` | raw HTML (Cytoscape.js CDN embed) |
 
-> **인증 정책 (모든 endpoint 공통)**: **internal-only, no auth**. `/api/v0-2/*` 전체가 인증 없이 호출 가능. 별도 gateway / firewall / IP allowlist 가 보호 (Phase 1~3 의 운영 책임, §2.3 참조). 운영자 또는 별도 agent 가 호출. OIDC / Keycloak / backend-core 인증 위임 ❌
+> **인증 정책 (모든 endpoint 공통)**: **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, §3.6.1 정합)**. `/api/v0-2/*` 전체가 인증 없이 호출 가능. 별도 gateway / firewall / IP allowlist 가 호출 자체 보호 (Phase 1~3 의 운영 책임, §2.3 참조). 운영자 또는 별도 agent 가 호출. OIDC / Keycloak / backend-core 인증 위임 ❌. **단, caller 가 `X-DevHub-User-Context` header (base64url(json)) 로 user/org/project/roles 를 전달하면, backend-knowledge 는 그 context 로 filter / curation ownership check 만 수행 (§3.6.1 endpoint 별 필수/권장 표 + OpenAPI security scheme 정합)**. 운영자 또는 별도 agent 가 호출.
 
 ### 3.2 Concept `type` enum (8종, 1차)
 
@@ -307,6 +307,7 @@ x_devhub_category: "scm"              # 5 카테고리 enum (§3.2.1): issue_tra
 
 > **정책**: `x_devhub_*` prefix 로 본 프로젝트 확장을 명시. OKF spec 의 "extra keys 자유" 원칙 정합. consumer 가 OKF 만 보면 unknown key 무시 가능.
 > **5 카테고리 × 8 type 의 valid combination**: §3.5.2 정합 (5×8 matrix + 5종 PoC source plugin mapping). 모든 조합이 가능하나 일부는 uncommon (△, §3.5.2 범례 정합).
+> **Path Y governance 필드 (2026-06-18 신규, §3.6.4 정합)**: 5 field 추가 — `x_devhub_owner_org_id` (string, FK → org_units.unit_id) / `x_devhub_owner_user_id` (string, FK → users.user_id, nullable) / `x_devhub_owner_org_unit_ids` (array of string, recursive subtree) / `x_devhub_owner_project_ids` (array of string) / `x_devhub_visibility` (enum: `org` \| `personal` \| `project` \| `public`). caller-provided user context (§3.6.1) 와 함께 backend-knowledge 의 curation governance + query scope priority (org > personal > project > public, §3.6.3) 의 기반. default: source plugin 자동 emit = `org` (bundle owner org 기준), human 작성 = `org` (manual override 가능).
 
 ### 3.4 Envelope (독립 정의)
 
@@ -578,6 +579,246 @@ x_devhub_category: "scm"  # primary category; or omit for cross-cutting decision
 4. **Reverse index 는 자동**. `okf/link_graph.py` 가 bundle rebuild 시 전체 link scan → reverse index 생성. Incoming link 0 = orphan, unresolved link = target 부재. `curate/link_resolver.py` 가 보고.
 5. **Resolution timing**: M-v0.2.0~v0.2.2 = rule-based 보고 (orphan list + unresolved link list). M-v0.2.3+ = Pi LLM 이 unresolved link 에 대해 "가장 유사한 concept 추천" (cross-link 자동 resolution, §3.1 정합).
 
+### 3.6 Data governance & query scoping (Path Y caller-provided user context, 2026-06-18 신규)
+
+**문제 (Motivation)**: §1.1 의 4번째 한계 "내부 knowledge 가 코멘트/구두/문서 산만하여 AI agent 가 참조할 표준 부재" + §3.5 의 5 카테고리 결정 이후 자연스러운 후속. 데이터가 (category, system) 단위로 수집된 후, **(a) 누가 어떤 데이터의 curation 책임지고**, **(b) 누가 어떤 데이터를 조회 우선순위로 보는지** governance 가 필요. 사용자 2026-06-18 결정.
+
+**Tension 인식**: §1.2 G7 + §2.3 standalone 정책은 backend-knowledge 를 "internal-only no auth" 로 명시. 이 standalone 정책과 user/org 기반 governance 사이 tension 을 다음 **Path Y** 로 해결 (2026-06-18 사용자 결정):
+
+- **backend-knowledge 는 auth 자체를 수행 안 함** (Keycloak / OIDC / bearer token 자체 검증 ❌, §2.3 정합).
+- **대신 caller (gateway / 별도 agent) 가 authenticated user context 를 전달**하면, backend-knowledge 는 그 context 로 **filter + governance 만 수행**.
+- 즉, **auth 책임 = caller** (DevHub backend-core 의 Keycloak federation 정합), **governance 책임 = backend-knowledge** (curation ownership + query scope filter).
+- backend-core 의 어떤 layer 도 호출 안 함 (standalone 정합, §1.2 G7). 단지 context schema 가 DevHub 의 user/org/project 모델과 format 호환 (cross-reference).
+
+**독립 backend-core RBAC 와의 정합**: DevHub backend-core 의 user/org/project 모델 + 2차원 RBAC + `enforceRowOwnership` 패턴 ([ADR-0011](../adr/0011-rbac-row-scoping.md) / [ADR-0013](../adr/0013-dreq-rbac-row-scoping.md) / [role-access-concept.md §2~4](./role-access-concept.md)) 의 **데이터 모델은 caller 가 채워서 전달**. backend-knowledge 는 이 context 로 filter / governance 만 수행. backend-core 코드/API 호출 ❌, format-only 정합.
+
+#### 3.6.1 Caller-provided user context (schema + trust model)
+
+**HTTP header 규약** (M-v0.2.0 PoC):
+
+```
+X-DevHub-User-Context: <base64url(json)>
+```
+
+**JSON schema** (M-v0.2.0 PoC, DevHub backend-core `AppUser` + RBAC 모델과 정합):
+
+```json
+{
+  "version": "v0",
+  "user_id": "u_abc123",
+  "org_id": "ou_root_dept_a",
+  "org_unit_ids": ["ou_root_dept_a", "ou_dept_b1", "ou_dept_b2"],
+  "project_ids": ["prj_x", "prj_y"],
+  "roles": ["developer", "project_leader:prj_x"],
+  "request_id": "req_20260618_xxx",
+  "issued_at": "2026-06-18T10:00:00+09:00"
+}
+```
+
+| Field | 정의 | 출처 (DevHub backend-core) |
+| --- | --- | --- |
+| `user_id` | DevHub internal user PK | `users.user_id` |
+| `org_id` | primary organization | `users.primary_unit_id` |
+| `org_unit_ids` | org_head scope 의 subtree (recursive CTE 결과) | `org_units` recursive CTE from `OrgUnit.LeaderUserID` |
+| `project_ids` | user 의 project memberships | `project_members.user_id` |
+| `roles` | system role + resource role 목록 | `users.role` + `project_members.project_role` |
+| `request_id` | trace id (envelope trace_id 와 동일값 권장) | cross-cutting |
+| `issued_at` | context 생성 시각 (caller 측) | caller 책임 |
+
+**Trust model**:
+
+- backend-knowledge 는 **context 의 진위를 검증하지 않음** (caller 신뢰). caller (gateway / 별도 agent) 가 authentication + context 구성 책임 (§2.3 "운영자 또는 별도 agent 가 호출" 정합).
+- **format 검증** 만 backend-knowledge 책임: JSON parse + schema check (`version`, `user_id`, `org_id` 필수) + `issued_at` 만료 (e.g., 5분) → 만료 시 401 `E_UNAUTHORIZED`.
+- 이상 context 탐지 (e.g., 존재하지 않는 org_id) 는 **out-of-scope for v0.2.0** (caller 책임). M-v0.3.0+ anomaly detection 검토 (rule-based audit log 기반).
+- backend-knowledge 측 audit log 에 `X-DevHub-User-Context` 의 hash + `request_id` 기록 (cross-trace 가능).
+
+**Required vs Optional (endpoint 별)**:
+
+| Endpoint | user context | 응답 (없을 때) |
+| --- | --- | --- |
+| `POST /api/v0-2/query` | **필수** (user-scoped query) | 400 `E_VALIDATION` ("X-DevHub-User-Context required") |
+| `GET /api/v0-2/concepts/{type}/{name}` | **필수** (visibility check) | 400 `E_VALIDATION` |
+| `GET /api/v0-2/search` | **필수** (full-text search 의 visibility filter) | 400 `E_VALIDATION` |
+| `POST /api/v0-2/concepts/{id}` (PUT, manual edit) | **필수** (curation ownership check, §3.6.2) | 400 `E_VALIDATION` |
+| `POST /api/v0-2/concepts/{id}/enrich` | **권장** (LLM enrich usage attribution) | 200 (anonymous curator) |
+| `POST /api/v0-2/bundles/{bundle}/rebuild` | **권장** (audit attribution) | 200 (system rebuild) |
+| `POST /api/v0-2/ingest/{source}/sync` | **권장** (audit attribution) | 200 (system sync) |
+| `POST /api/v0-2/raw` (1차 raw 등록) | **권장** (provenance attribution) | 200 (anonymous raw) |
+| `GET /api/v0-2/raw/{type}/{name}` | **권장** (raw 데이터의 경우 caller 책임 audit) | 200 (caller 책임 access control) |
+| `GET /api/v0-2/bundles/{bundle}/index.md` | **권장** (bundle-level visibility check) | 200 (visibility default 적용) |
+| `GET /api/v0-2/bundles/{bundle}/viz.html` | **권장** | 200 |
+| `GET /api/v0-2/bundles` (list) | **권장** | 200 (public bundle 만) |
+| `POST /api/v0-2/bundles` (create) | **필수** (bundle owner 설정) | 400 `E_VALIDATION` |
+
+**OpenAPI security scheme**:
+
+```yaml
+components:
+  securitySchemes:
+    DevHubUserContext:
+      type: apiKey
+      in: header
+      name: X-DevHub-User-Context
+      description: |
+        Caller-provided user context. backend-knowledge 는 auth 자체 수행 안 함 (§2.3,
+        §3.6.1). caller (gateway / agent) 가 Keycloak 인증 후 user/org/project/roles 를
+        base64url(json) 으로 전달. 권한 검증 (curation ownership, query scope filter) 만
+        backend-knowledge 책임.
+```
+
+#### 3.6.2 Curation governance model
+
+**Concept ownership 표현** (frontmatter extension, §3.3 + §3.6.4 정합):
+
+```yaml
+---
+type: metric
+title: "Workflow run duration (Gitea Actions)"
+description: "Histogram of Gitea Actions workflow run duration in seconds, labeled by repo + workflow"
+tags: ["gitea", "cicd", "metric", "duration", "kpi"]
+timestamp: "2026-06-18T10:00:00+09:00"
+x_devhub_source: "gitea_action"
+x_devhub_bundle: "devhub-gitea"
+x_devhub_version: 1
+x_devhub_curator: "rule-based"
+
+# Path Y curation governance (2026-06-18 신규, §3.6.2 정합)
+x_devhub_owner_org_id: "ou_root_devhub"
+x_devhub_owner_user_id: null
+x_devhub_owner_org_unit_ids: ["ou_root_devhub", "ou_devhub_gitea_team"]
+x_devhub_owner_project_ids: []
+x_devhub_visibility: "org"
+---
+```
+
+**Visibility enum** (4종, M-v0.2.0 PoC):
+
+| visibility | 정의 | 조회 가능 caller 조건 |
+| --- | --- | --- |
+| `public` | owner_org / owner_user 무관. 모든 user 조회 가능 | 모든 caller (user context 의 user_id 와 무관) |
+| `org` | owner_org 의 subtree 내 caller 만 조회 가능 | `caller.org_id ∈ caller.org_unit_ids` ∧ `caller.org_id` 가 `concept.x_devhub_owner_org_id` 의 subtree (`concept.x_devhub_owner_org_unit_ids`) 에 포함 |
+| `personal` | owner_user 본인 만 조회 가능 | `caller.user_id == concept.x_devhub_owner_user_id` |
+| `project` | owner_project 의 member 만 조회 가능 | `caller.user_id ∈ users JOIN project_members ON user_id WHERE project_id ∈ concept.x_devhub_owner_project_ids` |
+
+**Default visibility**:
+- **source plugin 자동 emit concept** (rule-based curator): `org` (bundle owner org 기준 자동 expand)
+- **human 작성 concept** (manual edit): `org` default, manual override 가능
+
+**Curation permission** (write/edit, `PUT /concepts/{id}`):
+
+```python
+def check_curation_permission(concept, caller_context):
+    curator = concept.frontmatter.get("x_devhub_curator", "rule-based")
+
+    if curator == "rule-based":
+        # rule-based 자동 생성, manual edit 불가 (source plugin 재실행 시 overwrite 됨)
+        return deny("E_FORBIDDEN", "rule-based curator 는 manual edit 불가")
+
+    if curator == "llm":
+        # LLM 자동 생성 (M-v0.2.3+), manual edit 시 curator="human" 으로 승격
+        if "system_admin" in caller_context.roles:
+            return allow_with_promotion("human")
+        return deny("E_FORBIDDEN", "llm curator manual edit 은 system_admin 만")
+
+    if curator == "human":
+        # manual edit 가능, caller 의 ownership check
+        owner_user = concept.frontmatter.get("x_devhub_owner_user_id")
+        owner_org_units = concept.frontmatter.get("x_devhub_owner_org_unit_ids", [])
+
+        if owner_user and caller_context.user_id == owner_user:
+            return allow()
+        if any(uid in caller_context.org_unit_ids for uid in owner_org_units):
+            return allow()  # org_head scope
+        if "system_admin" in caller_context.roles:
+            return allow()
+        return deny("E_FORBIDDEN", "auth.curation_denied")
+
+    return deny("E_INTERNAL", f"unknown curator type: {curator}")
+```
+
+#### 3.6.3 Query scope priority (org > personal > project > public)
+
+**4-tier priority** (사용자 결정, 2026-06-18, "사용자 조직 > 개인 데이터 > 소속 프로젝트" 의 M-v0.2.0 PoC 정합):
+
+```
+Priority 1: org scope      (caller.org_id 가 concept.x_devhub_owner_org_id 의 subtree)
+Priority 2: personal scope (caller.user_id == concept.x_devhub_owner_user_id)
+Priority 3: project scope  (caller.user_id ∈ concept.x_devhub_owner_project_ids 의 members)
+Priority 4: public scope   (모든 caller)
+```
+
+**Filter algorithm** (`POST /query`):
+
+```python
+def filter_concepts(query_result, caller_context):
+    visible = []  # list of (concept, priority)
+    for concept in query_result:
+        visibility = concept.frontmatter.get("x_devhub_visibility", "public")
+
+        if visibility == "public":
+            visible.append((concept, priority=4))
+        elif visibility == "org":
+            owner_org_units = set(concept.frontmatter.get("x_devhub_owner_org_unit_ids", []))
+            if owner_org_units.intersection(set(caller_context.org_unit_ids)):
+                visible.append((concept, priority=1))
+            # else: hidden
+        elif visibility == "personal":
+            owner_user = concept.frontmatter.get("x_devhub_owner_user_id")
+            if owner_user and owner_user == caller_context.user_id:
+                visible.append((concept, priority=2))
+            # else: hidden
+        elif visibility == "project":
+            owner_projects = set(concept.frontmatter.get("x_devhub_owner_project_ids", []))
+            if owner_projects.intersection(set(caller_context.project_ids)):
+                visible.append((concept, priority=3))
+            # else: hidden
+
+    # Sort by priority (1 = highest), stable sort
+    visible.sort(key=lambda x: x[1])
+    return [c for c, _ in visible]
+```
+
+**Aggregation policy**: 같은 concept (e.g., `gitea_repo_puller`) 가 여러 bundle 에 존재하는 경우:
+- 각 bundle 의 instance 별로 (visibility, priority) 가 다를 수 있음.
+- **가장 높은 priority 의 instance 만 노출** (priority 1 > 2 > 3 > 4).
+- 예: user 가 `gitea_repo_puller` query 시:
+  - (a) devhub-gitea 의 `org` visibility instance (priority 1, owner_org_unit_ids 에 caller 포함) → 노출
+  - (b) 다른 외부 시스템 mirror 의 `public` instance (priority 4) → hidden
+  - 결과: caller 는 1개 instance 만 봄 (priority 1).
+
+**Edge cases**:
+- Caller 가 priority 1 instance 의 owner_org_unit_ids 에 속하지 않으나 priority 2 (personal) instance 가 자기 것인 경우: 둘 다 노출 (priority 별로), highest 먼저.
+- 같은 priority 의 여러 instance: bundle 이름 alphabetical 순.
+
+#### 3.6.4 Frontmatter extension (5개 field 추가)
+
+§3.3 frontmatter spec 의 DevHub 확장 prefix `x_devhub_*` 에 5 field 추가:
+
+| Field | Type | 정의 | Default (자동) |
+| --- | --- | --- | --- |
+| `x_devhub_owner_org_id` | string (FK → org_units.unit_id) | concept 의 primary owner org | bundle owner org (source plugin 자동 emit) |
+| `x_devhub_owner_user_id` | string (FK → users.user_id, nullable) | human curator 의 경우 명시 | `null` (rule-based / llm curator) |
+| `x_devhub_owner_org_unit_ids` | array of string | org_head scope 의 subtree (recursive expand from owner_org_id) | `[x_devhub_owner_org_id]` |
+| `x_devhub_owner_project_ids` | array of string | project visibility 의 경우 project list | `[]` |
+| `x_devhub_visibility` | enum: `org` \| `personal` \| `project` \| `public` | 조회 scope 등급 | `org` (source plugin 자동) / `org` (human 작성 default) |
+
+**§3.3 정책 노트** 에 다음 추가 (cross-section 정합 fix §3.6.5 의 일환):
+
+> **Path Y governance 필드 (2026-06-18 신규)**: `x_devhub_owner_org_id` / `x_devhub_owner_user_id` / `x_devhub_owner_org_unit_ids` / `x_devhub_owner_project_ids` / `x_devhub_visibility` 5 field 추가 (§3.6.2 / §3.6.4 정합). OKF spec 의 "extra keys 자유" 원칙 정합, vendor-neutral 유지. caller-provided user context (§3.6.1) 와 함께 backend-knowledge 의 governance 모델의 핵심.
+
+#### 3.6.5 Cross-section 정합 fix
+
+본 §3.6 신규에 따른 정합 fix 위치:
+
+1. **§1.2 G7 standalone 정책** — "backend-knowledge 는 auth 자체 안 함 + caller 가 user context 전달하면 그 context 로 governance 만 수행 (§3.6.1 정합)" 1줄 추가.
+2. **§2.3 시스템 경계 표의 "API 인증" row** — "internal-only, no auth + **caller 가 X-DevHub-User-Context header 로 user context 전달 시 governance 수행 (§3.6.1)**".
+3. **§2.3 정책 표의 "다른 backend 연결 (general)" row** — "외부 시스템 + caller-provided user context 만 처리. backend-core 의 users/org_units/projects 어떤 layer 도 호출 ❌ (caller 가 context 구성해서 전달, §3.6.1)".
+4. **§3.1 API 매트릭스** — 인증 정책 노트에 Path Y 추가 + §3.6.1 표 cross-reference.
+5. **§3.3 frontmatter spec 정책 노트** — Path Y governance 필드 5종 추가 (§3.6.4 정합).
+6. **§4.1 정책 정의 표 "인증" row** — Path Y caller-provided user context 명시 + §3.6.1 cross-reference.
+7. **ADR-0034 §4.3 영향** — §3.6 row 추가.
+8. **ADR-0035 §3.4 1차 raw API 정책 row** — caller-provided user context (gateway 책임) 명시 + §3.6.1 cross-reference + ADR-0035 §4.2/§4.3 갱신.
+
 ## 4. 1차 raw 데이터의 API 정책 (사용자 강조)
 
 > **"1차 raw 데이터는 여타 백엔드의 데이터들과 동일하게 api를 통해서 조회하고 추가할 수 있어야 해."**
@@ -590,7 +831,7 @@ x_devhub_category: "scm"  # primary category; or omit for cross-cutting decision
 | **메타** | sqlite `raw_index` table (id, source, slug, path, ingested_at, byte_size) |
 | **API** | `POST /api/v0-2/raw` + `GET /api/v0-2/raw/{type}/{name}` + `GET /api/v0-2/raw?source=...&since=...` (list) + `DELETE /api/v0-2/raw/{id}` |
 | **envelope** | **독립 정의** (자체, backend-core 의 `docs/api/conventions.md` 와 format 호환 유지, **import ❌**, cross-reference 만, §3.4 정합) |
-| **인증** | **internal-only, no auth** (gateway / firewall / IP allowlist 별도 보호, §2.3). OIDC ❌, Keycloak ❌, backend-core 인증 위임 ❌ |
+| **인증** | **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, §3.6.1 정합)** (gateway / firewall / IP allowlist 별도 보호, §2.3). OIDC ❌, Keycloak ❌, backend-core 인증 위임 ❌. caller 가 `X-DevHub-User-Context` header 전달 시 backend-knowledge 가 filter / curation ownership check 수행 (§3.6.1) |
 | **동기** | 동기 응답 (단일 raw concept 추가/조회). 비동기 sync 는 `/ingest/{source}/sync` 의 별도 endpoint |
 | **idempotency** | `(source, slug)` unique. 중복 POST → 기존 id 반환 (201 대신 200) |
 
@@ -753,3 +994,4 @@ sprint 진입 시 다음 6 항목 확인:
 | 2026-06-17 | **§4 self-review 3 fix (모두 수정) + standalone 정책 강화 (사용자 strong guidance)** — (1) §4.1 "envelope" row `docs/api/conventions.md 정합` → "독립 정의 (import ❌, cross-reference 만, §3.4 정합)" (모순 fix) (2) §4.1 "저장 위치" row "git 가능" → "봉투 암호화 후 git 가능, ADR-0025 정합, 민감 source .gitignore 권장" (3) §4.2 "다른 backend 와의 정합" → "다른 backend 와의 정합 — ❌ standalone 정책" 으로 전면 재작성 (다른 backend 연결 전면 금지, standalone 명시) (4) §4.3 표 제목 "다른 backend 와의 관계 (Phase 1 vs Phase 2)" → "Phase 별 backend-knowledge 의 위치 (standalone 유지)" + 표 아래 standalone 유지 정책 노트 추가 (5) **standalone 정책 cross-section 강화**: §1.2 G7 "완전 standalone 운영" 으로 일반화, §2.3 정책 표 "backend-core 참조" → "다른 backend 연결 (general)" 로 일반화, §7 Q9 "기존 backend-core 와의 관계" → "다른 backend 와의 관계 (general, standalone 정책)" 으로 일반화 | self-review (사용자 "일단 섹션 4로 넘어가자" + "모두 수정해주고, 참고해야할 사항은 이 backend-knowledge는 standalone이야. 다른 백엔드와는 연결이 없어야해." strong guidance) |
 | 2026-06-18 | **A/A 결정 cross-section 정합 일괄 fix (9 위치)** — §2.1 `sources/` 트리: 구 `gitea_pull.py` 단일 (v0.2.1) → Gitea 4 sub-plugin (`gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action`, M-v0.2.0 PoC) + `homelab.py` / `homelab_mock.py` / `metrics.py` / `hrdb.py` 정합 + `task_item_puller.py` 제거 (A/A 결정에서 gitea_issue 가 대체) + §2.1 `var/bundles/` 트리에서 `devhub-task-item/` 제거 + §3.2 `runbook` 예시 `gitea_pull_failure_recovery` → `gitea_repo_pull_failure_recovery` + §3.3 `x_devhub_source` 예시 `gitea_pull` → `gitea_repo_pull` + §6.1 mock source "1~2개" → "1개 (homelab_mock)" + Gitea 4 sub-plugin M-v0.2.0 부터 real Gitea 1 instance PoC wire (mock 없이) 명시 + §1.2 G3 "source plugin 5종" → "7종 (Gitea 4 + homelab + metrics + hrdb, M-v0.2.3 운영 기준)" + §1.2 G7 M-v0.2.2 "5종" → "6종", M-v0.2.3 "Pi enrich" → "+ hrdb = 7종 + Pi enrich" + §2.3 "외부 시스템 5종" → "7종 (M-v0.2.3 운영 기준)" + Phase 2 의미 변경 5종 → 6종 + §4.2 "5종" → "7종" + §4.3 Phase 2 "5종 wire" → "6종 wire" + Phase 2 list `homelab + gitea_pull + metrics + task_item_puller + hrdb` → `Gitea 4 + homelab + metrics` + Phase 3 정합 (+hrdb 7종 + Pi enrich) + standalone 유지 정책 5종 → 7종 + §5.2 P2 "5종" → "6종" + §6.2 "5종" → "6종" + list 정합 + e2e 5종 → 6종 + §7 Q9 "5종" → "7종 (M-v0.2.3 운영 기준)" | self-review (사용자 "1 진행하고 3은 별도의 gitea 서버를 연결할거야" + A/A 결정 cross-section 정합 follow-up) |
 | 2026-06-18 | **5 카테고리 정합 — §3.2.1 보강 + 신규 §3.5 (concept organization) + cross-section 정합 fix 5 위치** — (1) §3.2.1 에 신규 subsection §3.2.1.1 "5 카테고리별 대표 concept frontmatter 예시" 추가 (5 카테고리 = 5 concept 1:1 mapping: issue_tracker/gitea_issue integration / wiki/gitea_wiki reference / scm/gitea_repo_pull integration / cicd/gitea_action event / code_quality 2차 wire placeholder) (2) **신규 §3.5 "Concept organization"** 5 subsection: §3.5.1 원칙 (orthogonal axes — type 8종 + x_devhub_category 5종) / §3.5.2 5×8 matrix (○/△/✗ valid combinations + 5종 PoC source plugin 의 category × type mapping) / §3.5.3 Bundle 디렉터리 구조 (devhub-gitea = 4 category directory + devhub-homelab 5 카테고리 외) + 5개 representative concept frontmatter 예시 (integration/event/metric/runbook/decision) / §3.5.4 index.md 자동 생성 규칙 (per-bundle/per-category/per-type 3종 + `curate/index_builder.py` 구현 정공법 + per-bundle index.md 발췌) / §3.5.5 cross-link 4종 rule (intra-bundle / cross-bundle / source-external / reverse index) + 5개 정책 정공법 (3) cross-section 정합 fix 5 위치: §1.3 progressive disclosure row 보강 (per-bundle/per-type/per-category 명시) + graph row 보강 (4종 cross-link rule + reverse index 명시) + path pattern row `{bundle}/{type}/{slug}.md` → `{bundle}/{category}/{slug}.md` (slug prefix = type, §3.5.3 정합) / §2.1 `curate/index_builder.py` 코멘트 "bundle 별 index.md" → "per-bundle/per-type/per-category index.md (§3.5.4 정합)" + `link_resolver.py` 코멘트 보강 (1차 rule-based / M-v0.2.3+ Pi LLM cross-link 자동 resolution, §3.5.5 정합) / §3.3 frontmatter spec 마지막에 "> **5 카테고리 × 8 type 의 valid combination**: §3.5.2 정합" 1줄 추가 / §3.5.5 intra-bundle link syntax 정합 (현재 dir vs sibling dir 케이스 분리 + 동일 예시 source/target 일관성) / ADR-0034 §4.3 영향 section 에 §3.2.1 + §3.5 row 추가 + §3.3 row 갱신 (`x_devhub_category` 5 enum mention) + ADR-0034 frontmatter 수정일 2026-06-18 갱신 (4) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행하자. 컨셉 정리를 계속 할거야" + "5 카테고리 정합" 결정 (C 옵션) + "좋아 일단 초안은 이렇게 가져가자" 후속 + path pattern 정합 fix follow-up) |
+| 2026-06-18 | **Path Y caller-provided user context — 신규 §3.6 "Data governance & query scoping" + cross-section 정합 fix 8 위치** — (1) **신규 §3.6** 5 subsection: §3.6.1 caller-provided user context (X-DevHub-User-Context HTTP header, base64url(json) 의 user_id/org_id/org_unit_ids/project_ids/roles/request_id/issued_at 7 field schema + DevHub `AppUser`/RBAC 모델 format 호환 + trust model: caller 책임 인증 + backend-knowledge 책임 format 검증만 + endpoint 별 필수/권장/없음 13개 endpoint 표 + OpenAPI security scheme) / §3.6.2 curation governance model (`x_devhub_curator` 별 manual edit permission: rule-based ❌ / llm system_admin 만 with curator=human 승격 / human owner-user self or org_head scope or system_admin) / §3.6.3 query scope priority 4-tier (org > personal > project > public, priority 1 = highest, same concept multiple instances → highest priority 만 노출) / §3.6.4 frontmatter extension 5 field (`x_devhub_owner_org_id` / `_user_id` / `_org_unit_ids` / `_project_ids` / `x_devhub_visibility` 4 enum) / §3.6.5 cross-section 정합 fix 8 위치 (2) cross-section 정합 fix: §1.2 G7 standalone 정책 + caller-provided user context 1줄 추가 / §2.3 시스템 경계 표 "다른 backend 연결 (general)" row + "OIDC / Keycloak" row + "API 인증" row 3 row 갱신 / §3.1 API 매트릭스 인증 정책 노트 갱신 (Path Y 추가) / §3.3 frontmatter spec 정책 노트 마지막에 "> **Path Y governance 필드 (2026-06-18 신규, §3.6.4 정합)**" 1줄 추가 / §4.1 정책 정의 표 "인증" row 갱신 (Path Y 추가) / ADR-0034 §4.3 영향 section 에 §3.6 row 추가 + ADR-0034 frontmatter 수정일 2026-06-18 갱신 / ADR-0035 §3.4 1차 raw API 정책 row caller-provided user context (gateway 책임) 명시 + §3.6.1 cross-reference + ADR-0035 frontmatter 수정일 2026-06-18 갱신 + §4.2 negative/trade-off row 추가 + §4.3 영향 row 추가 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "다음 컨셉 정리 이어서 하자. 카테고리 나눴고 카테고리 별로 데이터 관리... 데이터 정리는 조직에 따라, 사람에 따라 관리... 조회 우선순위는 사용자 조직 > 개인 > 프로젝트" 결정 + explore agent 2 병렬 검색 (user/org/project RBAC + 데이터 정규화/envelope/governance) + Path Y 권장 (caller-provided user context) + 사용자 "Path Y" 결정 + "1 진행하자" 후속) |

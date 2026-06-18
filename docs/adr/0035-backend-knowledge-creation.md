@@ -4,12 +4,13 @@
 
 - **상태**: Accepted
 - **작성일**: 2026-06-17
-- **수정일**: 2026-06-17
+- **수정일**: 2026-06-18 (umbrella doc §3.6 Path Y caller-provided user context 신규에 따른 §3.4 1차 raw API 정책 row 갱신 — internal-only no auth + caller-provided user context 명시)
 - **결정 근거 sprint**: `docs/work_260617-v0-2-umbrella-concept`
 - **supersedes**: 없음 (신규)
 - **Tier**: 사외 (vendor-neutral 정책, 다른 backend 연결 ❌)
 - **관련 문서**:
   - [release_v0-2_roadmap.md 전체](../planning/release_v0-2_roadmap.md) (umbrella 컨셉)
+  - [release_v0-2_roadmap.md §3.6 Data governance & query scoping](../planning/release_v0-2_roadmap.md) (caller-provided user context + curation governance + query scope priority)
   - [external-integrations-agentic-rag-roadmap.md](../planning/external-integrations-agentic-rag-roadmap.md) (외부 연동 분리 detail)
   - [ADR-0034 OKF 채택](./0034-okf-adoption.md) (knowledge bundle 형식)
   - [ADR-0025 봉투 암호화](../adr/0025-envelope-encryption-key-management.md) (credential 관리)
@@ -77,7 +78,7 @@
 - `POST /api/v0-2/raw` + `GET /api/v0-2/raw/{type}/{name}` + `GET /api/v0-2/raw?source=...&since=...` (list) + `DELETE /api/v0-2/raw/{id}`
 - 봉투 암호화 후 git 가능, 민감 source .gitignore 권장 (ADR-0025 정합)
 - envelope: **자체 정의** (backend-core 의 `docs/api/conventions.md` 와 format 호환, **import ❌**)
-- **internal-only, no auth** (gateway / firewall / IP allowlist 별도 보호)
+- **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, [release_v0-2_roadmap.md §3.6.1](../planning/release_v0-2_roadmap.md) 정합)**: bearer/API key 자체 검증 ❌. caller (gateway / 별도 agent) 가 `X-DevHub-User-Context` header 로 user/org/project/roles 전달 시, backend-knowledge 는 filter / curation ownership check 만 수행. **auth 책임 = caller (DevHub backend-core Keycloak federation 정합), governance 책임 = backend-knowledge**.
 
 ### 3.5 운영 환경 (standalone 정합)
 
@@ -128,11 +129,13 @@
 - **7 source plugin 의 Python 재구현** (Go 코드 이전 ❌, 로직 재작성) — 작업 부담
 - **standalone 정책** 으로 backend-core 와 직접 wire ❌ — gateway / cron / 별도 agent 가 cross-repository 호출 필요 (운영 부담)
 - **OIDC 제외** — `/api/v0-2/*` 전체 인증 없이 호출 가능. 별도 gateway / firewall / IP allowlist 가 보호 (운영 책임)
+- **Path Y caller-provided user context (2026-06-18 결정, [release_v0-2_roadmap.md §3.6](../planning/release_v0-2_roadmap.md) 추가)** — auth 자체 ❌, caller 가 user context 전달 시 governance 만 수행. **governance 책임 = backend-knowledge** (curation ownership + query scope filter) + **auth 책임 = caller** (DevHub backend-core Keycloak federation 정합). 운영 부담: caller (gateway / agent) 가 Keycloak 인증 + user context 구성 + backend-knowledge 호출 의 3-step orchestration 필요
 
 ### 4.3 영향
 
 - `backend-ai/` 디렉터리 제거 (M-v0.2.2, placeholder 정리)
 - `backend-core/internal/integrations/adapters/` 의 5종 source 의 backend-knowledge 의 source plugin 으로 점진적 흡수 (M-v0.2.2~v0.2.3) — backend-core 측의 Go adapter 제거는 별도 PR (backend-knowledge 책임 아님)
+- **Path Y caller-provided user context (2026-06-18 신규)** — [release_v0-2_roadmap.md §3.6](../planning/release_v0-2_roadmap.md) 에 5 subsection 정의 (§3.6.1 schema+trust model / §3.6.2 curation governance / §3.6.3 query scope priority 4-tier / §3.6.4 frontmatter 5 governance field / §3.6.5 cross-section 정합 fix 7 위치). concept organization 의 §3.5 와 §3.6 의 조합으로 backend-knowledge 의 운영 정공법 완성 (1 concept = 1 .md + 5 카테고리 + 8 type + 5 governance field + 4-tier query scope priority)
 - 사내 한정 tier (`Makefile`, `docker-compose.deploy.yml`, `docker-compose.colima.yml`, root `dev-up.sh`) 의 backend-ai reference 정리
 - 사외 tier (이 ADR + release_v0-2_roadmap.md + 신규 `backend-knowledge/` + 신규 `backend-knowledge/web/`) 신규
 - `external-integrations-agentic-rag-roadmap.md` status draft → active 전환 (Q7 결정)
