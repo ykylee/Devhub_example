@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 — §3.2.1 보강 + 신규 §3.5~§3.9 (concept organization / governance / normalization / source plugin 작성 / lifecycle) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 + 신규 §5.4~§5.7 마일스톤 상세화 (dependency graph + critical path + per-milestone DoD + cutover 절차 + rollback plan + parallel sprint + PR 전략). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7.2 per-source mapping / §3.8.4 Step 9 lifecycle / §4.1 정책 정의 표 9 row / §5.1 M-v0.2.0 scope / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline — §3.2.1 보강 + 신규 §3.5~§3.9 (concept organization / governance / normalization / source plugin 작성 / lifecycle) + 신규 §4.4~§4.7 raw 운영/API/정합성 정책 + 신규 §5.4~§5.7 마일스톤 상세화 (dependency graph + critical path + per-milestone DoD + cutover 절차 + rollback plan + parallel sprint + PR 전략) + 신규 §10 DB-based raw + Pi periodic ingest pipeline (file|db dual storage mode + pi-sdk normalize M-v0.2.0 PoC + 8 DB CRUD endpoint + per-source storage_mode mapping + Pi SDK mode scheduler + 8 step ingest pipeline). cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta storage_mode+normalize_mode + §3.8.4 Step 2 / §4.1 정책 정의 표 9 row / §5.1 M-v0.2.0 scope / §6.3 Phase 3 Pi 의 3 역할 + M-v0.2.0+ periodic ingest / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.8 + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -1018,7 +1018,7 @@ class Credential(BaseModel):
     type: str = Field(..., description="credential type: 'basic' | 'bearer' | 'api_key' | 'oauth2'")
     value: str = Field(..., description="type-agnostic string (id/pw or token/bearer/api_key)")
 
-# Source meta (§3.7.4 정합)
+# Source meta (§3.7.4 + §10.4 정합)
 class SourceMeta(BaseModel):
     bundle: str
     category: str
@@ -1031,7 +1031,11 @@ class SourceMeta(BaseModel):
     link_fields: List[str] = []
     tags: List[str] = []
     bundle_owner_org_id: str
-    bundle_owner_org_unit_ids: List[str]
+    bundle_owner_org_unit_ids: List[str] = []
+    # §10.4 storage_mode + normalize_mode (2026-06-18 신규)
+    storage_mode: Literal["file", "db"] = "file"
+    normalize_mode: Literal["rule-based", "pi-sdk", "pi-rpc"] = "rule-based"
+    ingest_schedule: Optional[str] = None  # cron expression, file mode 는 미설정
 
 # Connection state
 class Connection(BaseModel):
@@ -1223,6 +1227,9 @@ Step 2: SourceMeta 정의
   - source_plugin: {bundle-name}_{vendor} or {vendor}
   - emit_types: 8 type enum 중 subset
   - credential_schema: Pydantic v2 model
+  - **§10.4 storage_mode 결정**: `file` (default) / `db` (Pi-driven 정규화 필요 시)
+  - **§10.4 normalize_mode 결정**: `rule-based` (default) / `pi-sdk` (M-v0.2.0 PoC DB path) / `pi-rpc` (M-v0.2.3+ 옵션)
+  - **§10.4 ingest_schedule 결정**: cron expression (db mode 일 때만, default `*/5 * * * *`)
 
 Step 3: SourcePlugin ABC 의 5 method 구현
   - connect(credential) → Connection (외부 시스템 인증 + base_url)
@@ -1448,9 +1455,9 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 
 | 항목 | 정책 |
 | --- | --- |
-| **저장 위치** | `backend-knowledge/var/raw/{source}/{slug}.json` (file system, **봉투 암호화 후 git 가능**, ADR-0025 정합. raw 자체는 민감 정보일 수 있어 **민감 source 의 경우 .gitignore 권장**, §4.4 raw 운영 정책 + retention + storage quota 정합) |
+| **저장 위치** | `backend-knowledge/var/raw/{source}/{slug}.json` (file system, **봉투 암호화 후 git 가능**, ADR-0025 정합. raw 자체는 민감 정보일 수 있어 **민감 source 의 경우 .gitignore 권장**, §4.4 raw 운영 정책 + retention + storage quota 정합) **또는** `raw_records` table (DB, sqlite M-v0.2.0 PoC / PostgreSQL M-v0.2.3+, **per source `storage_mode: file\|db` field 로 분기**, §10.1 정합) |
 | **메타** | sqlite `raw_index` table (id, source, slug, path, ingested_at, byte_size, sha256, visibility, retention_days, registered_by, concept_ids, last_verified_at) (§4.7 정합성 검증 field 추가) |
-| **API** | `POST /api/v0-2/raw` + `GET /api/v0-2/raw/{type}/{name}` + `GET /api/v0-2/raw?source=...&since=...` (list) + `DELETE /api/v0-2/raw/{id}` (§4.5 endpoint 별 권한 + visibility 정합) |
+| **API** | `POST /api/v0-2/raw` + `GET /api/v0-2/raw/{type}/{name}` + `GET /api/v0-2/raw?source=...&since=...` (list) + `DELETE /api/v0-2/raw/{id}` (§4.5 endpoint 별 권한 + visibility 정합) **또는** `/api/v0-2/db/raw` 8 endpoint (DB path, §10.2 정합 — POST/GET/PATCH/DELETE/list/aggregate/search/ingest-status, SQL sort/filter/aggregate/search, Path Y caller-provided user context 필수) |
 | **envelope** | **독립 정의** (자체, backend-core 의 `docs/api/conventions.md` 와 format 호환 유지, **import ❌**, cross-reference 만, §3.4 정합) |
 | **인증** | **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, §3.6.1 정합)** (gateway / firewall / IP allowlist 별도 보호, §2.3). OIDC ❌, Keycloak ❌, backend-core 인증 위임 ❌. caller 가 `X-DevHub-User-Context` header 전달 시 backend-knowledge 가 filter / curation ownership check 수행 (§3.6.1). **raw API 4 endpoint 모두 user context 필수 (§4.5 정합)** |
 | **동기** | 동기 응답 (단일 raw concept 추가/조회). 비동기 sync 는 `/ingest/{source}/sync` 의 별도 endpoint |
@@ -1888,11 +1895,13 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 - **cross-backend 호출**: ❌. `backend-core/internal/integrations/adapters/` 의 source plugin 호출이 `backend-knowledge` API 로 전환되지 않음 (backend-core 참조 전면 금지). backend-knowledge 는 외부 시스템만 단방향
 - **e2e 통합 테스트**: `backend-knowledge/tests/e2e/` 에 `e2e-knowledge-*` spec 추가. backend-knowledge 단독 e2e (외부 시스템 6종 source → curate → query happy path, M-v0.2.2 기준)
 
-### 6.3 Phase 3 — LLM enrich (Pi) (M-v0.2.3 / M-v0.3.0)
+### 6.3 Phase 3 — LLM enrich (Pi) + Pi periodic ingest pipeline (2026-06-18 신규)
 
-- **Pi `pi-coding-agent` SDK or RPC mode**: M-v0.2.2 까지 rule-based enrich 만, M-v0.2.3 부터 Pi 의 SDK mode (Node subprocess via @earendil-works/pi-coding-agent npm pkg) or RPC mode (JSON over stdin/stdout) 로 LLM enrich 활성화 (§2.2)
+- **M-v0.2.0 PoC** (Pi 의 periodic ingest pipeline, §10.3 정합): Pi `pi-coding-agent` **SDK mode** (Node subprocess per call) 가 db mode source 의 raw 데이터를 주기적 ingest. 1차 source = `homelab_mock` (§10.4 default). source plugin 의 rule-based normalize 와 **병렬 운영** (file mode source 는 §3.7 정공법, db mode source 는 §10).
+- **M-v0.2.1+**: scheduler 고도화 (APScheduler), cron interval per source config
+- **M-v0.2.3+**: Pi **RPC mode** option 추가 (long-running JSON over stdin/stdout, 동일 process 내 multi-ingest 처리), cross-link 자동 resolution 활성화 (link_graph 가 unresolved link 발견 시 Pi LLM 호출). **추가로** LLM enrich (`POST /concepts/{id}/enrich`) 활성화 — §3.1 Curate 의 M-v0.2.3+ timing 정합.
 - **1차 vendor**: 1 vendor 선택 (운영자 결정 시점). `pi-ai` 의 15+ provider 중 (Anthropic / OpenAI / Google / Azure / Bedrock / Mistral / Groq / Cerebras / xAI / Hugging Face / Kimi For Coding / MiniMax / OpenRouter / Ollama). 장기 multi-vendor (M-v0.3.0+)
-- **cross-link 자동 resolution**: link_graph 가 unresolved link 발견 시 Pi LLM 에 "가장 유사한 concept 추천" 요청
+- **§10 cross-section**: Pi 의 역할이 (a) db mode source 의 periodic ingest (M-v0.2.0+) + (b) LLM enrich (M-v0.2.3+) + (c) cross-link 자동 resolution (M-v0.2.3+) 의 3 가지로 확장. (a) 가 가장 먼저 activate.
 - **풀 RAG** (M-v0.3.0): chunking + embedding + vector index + retrieval + reranking
 
 ### 6.4 source plugin 작성 표 (외부 시스템 API spec 기반, 0에서 Python 작성)
@@ -1972,3 +1981,261 @@ Step 6: 새 milestone 단독 가동 + monitoring dashboard 확인
 | 2026-06-18 | **§4 1차 raw 데이터 API 심화 — 신규 §4.4~§4.7 "raw 운영/API/정합성 정책" + cross-section 정합 fix 4 위치** — (1) **신규 §4.4** raw 운영 정책 (봉투 암호화 `$env$v0.1$...` ADR-0025 + .gitignore per source 8 row 표 + retention default 90일, 예외: metrics 30일/hrdb 365일, 매일 03:00 UTC cron 자동 삭제 + LRU storage quota default 1GB/bundle) / **§4.5** raw API 권한 + visibility (endpoint 별 권한 matrix 4 row: POST = bundle owner_org member / GET = visibility 정합 / list = caller scope filter / DELETE = system_admin OR 등록자 OR owner_org member, visibility 4 enum 재사용 §3.6.2) / **§4.6** raw → concept 정합성 (1 raw → N concepts 관계, sqlite `raw_index.concept_ids` 추적, raw 삭제 시 concept 처리 3 mode: M-v0.2.0 hard_delete / M-v0.2.1+ soft_archive default / M-v0.2.3+ retain_concept 옵션, orphan concept = `x_devhub_status: orphaned` + audit, raw 변경 시 concept update: M-v0.2.0 overwrite / M-v0.2.1+ superseded / M-v0.2.3+ .md.prev history) / **§4.7** raw 정합성 검증 (sha256 hash 저장 + 매 조회 시 재검증, file system source-of-truth, timestamp lag threshold default 5분, audit log 7 event 표) (2) cross-section 정합 fix 4 위치: §2.1 `var/raw/` 트리 코멘트 보강 (봉투 암호화 + .gitignore + retention 90일 + quota 1GB 정합) / §3.6.1 endpoint 표 raw 4 row 갱신 (권장 → 필수, §4.5 정합) / §4.1 정책 정의 표 9 row 보강 (저장 위치 + 메타 + API + 인증 + 정합성 + lifecycle 6 row 신규, sqlite `raw_index` field 6개 추가 sha256/visibility/retention_days/registered_by/concept_ids/last_verified_at) / ADR-0035 §3.4 1차 raw API 정책 row 갱신 (§4.4~§4.7 reference 추가) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §4 1차 raw API 심화" + §4.1 정책 정의 표 의 high-level 정의 + ADR-0025 봉투 암호화 + 사용자 명시 'API 로 조회/추가 가능' 정책 + §3.6 governance 정합 raw visibility + 1 raw → N concepts 관계 추적 필요성 + sha256 정합성 검증 + audit log 운영 정책) |
 | 2026-06-18 | **OKF concept 운영 lifecycle — 신규 §3.9 "OKF concept 운영 lifecycle" + cross-section 정합 fix 3 위치** — (1) **신규 §3.9** 4 subsection: §3.9.1 lifecycle 5 단계 state machine (created → reviewed → published → active → archived, transition + 책임자 + 정합 section 표, frontmatter status field M-v0.2.1+ 추가) / §3.9.2 frontmatter template per 8 type (dataset/metric/api_endpoint/runbook/integration/event/reference/decision 의 필수 + 권장 field + 예시 표, §3.7.4 normalize() 정합) / §3.9.3 review checklist 5 항목 (frontmatter validation 7 sub / body validation 3 sub / governance validation 2 sub / bundle validation 3 sub / cross-link validation 3 sub, rule-based 자동 + human 수동 review M-v0.2.1+) / §3.9.4 publish + archive 절차 + 운영 정책 (publish trigger 3 mode: rule-based 자동 / human 수동 / system_admin override, archive trigger 3 mode: superseded 자동 / obsolete 수동 / orphan 자동, M-v0.2.0~v0.3.0+ 별 lifecycle 지원 범위 표 5 row) (2) cross-section 정합 fix 3 위치: §3.6.2 curation permission 코드 블록 상단에 §3.9 lifecycle cross-reference note 추가 (created state 의 concept 는 curator 직접 control 불가, archived state 는 write 불가) / §3.8.4 신규 source 추가 10 step 절차의 Step 9 "representative concept .md 발췌 작성" 의 §3.9 cross-reference 추가 (§3.9.2 frontmatter template per 8 type 권장 field 채움 + §3.9.3 review checklist 1~4 항목 자동 validate) / ADR-0034 §4.3 영향 section §3.9 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행" (다음 concept organization) + 4-option 질문 응답 "(a) §3.9 OKF concept 운영 lifecycle" + §3.5/§3.6/§3.7/§3.8 완료 후 lifecycle 운영 정공법 부재 + M-v0.2.0 PoC = rule-based 자동 publish (frontend 0 page) / M-v0.2.1+ = human 작성 + review workflow (frontend 관리 page) + created/reviewed/published/active/archived 5 단계 state machine + frontmatter template + review checklist + publish/archive trigger 정책) |
 | 2026-06-18 | **§5 마일스톤 상세화 — 신규 §5.4~§5.7 + cross-section 정합 fix 3 위치** — (1) **신규 §5.4** dependency graph + critical path (6 마일스톤 linear 의존 표 + critical path linear 표시 + 병렬 가능 sprint 4 case + risk analysis 3 case) / **§5.5** 마일스톤별 DoD (M-v0.2.0-alpha/M-v0.2.0/M-v0.2.1/M-v0.2.2/M-v0.2.3/M-v0.3.0 별 5 항목 DoD: 코드/문서 / 검증 / ADR 영향 / 운영 / cross-section 정합) / **§5.6** cutover 절차 + rollback plan (6 step cutover + 4 trigger rollback 표 + RTO + 5 monitoring 지표 + 8 항목 cutover checklist) / **§5.7** parallel sprint + PR 전략 (per 마일스톤 권장 PR 수 6 row + PR 의존성 정합 + branch prefix 전략 + PR template + 머지 후 처리) (2) cross-section 정합 fix 3 위치: §5.1 마일스톤 표 cross-reference (각 마일스톤 scope 가 §5.5 DoD 와 1:1 정합) / §5.3 sprint 진입 checklist 6 항목 cross-reference (§5.5 M-v0.2.0 DoD 의 (e) cross-section 정합) / ADR-0035 §3.8 마일스톤 표 cross-reference note 추가 (§5 정합, §5.5 DoD 의 (a) 코드/문서 + (b) 검증 정합) + ADR-0035 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §5 마일스톤 상세화" + §5.1/§5.2/§5.3 의 high-level 정의 + M-v0.2.0~v0.3.0 6 마일스톤 별 DoD + cutover + rollback + parallel sprint PR 전략 정의) |
+| 2026-06-18 | **§10 DB-based raw + Pi periodic ingest pipeline 신규 + cross-section 정합 fix 5 위치** — (1) **신규 §10** 4 subsection: **§10.1** DB storage + schema (`raw_records` table 14 field + sqlite M-v0.2.0 PoC / PostgreSQL M-v0.2.3+ + 봉투 암호화 ADR-0025 + 4 index idx_raw_records_source_received/visibility/ingested/ingest_lock + `storage_mode` per source_meta 정합) / **§10.2** DB CRUD + 데이터 처리 API 8 endpoint (POST/GET/PATCH/DELETE + list(filter+sort+pagination) + aggregate(group_by/count/sum/avg) + full-text search + ingest-status, Path Y caller-provided user context 필수, OpenAPI security scheme) / **§10.3** Periodic Pi ingest pipeline (SDK mode M-v0.2.0 PoC + 8 step pipeline: scheduler → SELECT raw_records → set ingest_lock → decrypt → Pi LLM normalize → validate → emit OKF concept → update raw_records + trigger lifecycle §3.9 / Pi prompt template j2 / failure handling: timeout 30초 + degraded flag + Pi LLM unreachable → rule-based fallback) / **§10.4** Source path vs DB path 분기 (per source `storage_mode: file|db` + `normalize_mode: rule-based|pi-sdk|pi-rpc` + default mapping 표 7 row: gitea_repo_pull = file/rule-based, gitea_issue = file/rule-based, gitea_wiki = file/rule-based, gitea_action = file/rule-based, homelab_mock = db/pi-sdk, metrics = file/rule-based, hrdb = db/pi-sdk, 운영자 override 가능) (2) cross-section 정합 fix 5 위치: §4.1 정책 정의 표 "저장 위치" + "API" row 갱신 (file path + DB path dual mode 명시) / §3.7 normalization pipeline 에 DB path + Pi driver 추가 (§10.4 storage_mode 분기 명시) / §3.8.1 SourceMeta 에 `storage_mode` + `normalize_mode` + `ingest_schedule` 3 field 추가 + §3.8.4 Step 2 SourceMeta 정의 의 storage_mode 결정 단계 추가 / §6.3 Phase 3 LLM enrich 의 Pi 의 역할 갱신 (Pi 의 3 역할: db mode source periodic ingest M-v0.2.0+ / LLM enrich M-v0.2.3+ / cross-link 자동 resolution M-v0.2.3+) / ADR-0034 §4.3 영향 section §10 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "추가 컨셉 정리해보자. raw에 해당하는 1차 데이터는 종전의 시스템들과 동일하게 db에 데이터를 수집하고 crud를 비롯한 데이터 처리 용 api를 제공할거야. db에 저장된 데이터는 주기적으로 ai (여기서는 pi 경유)를 통하여 ingest하도록 구성해보자." 결정 + 4-option 질문 응답 "(A) default 추천값" (gitea 4 = file/rule-based + homelab/hrdb = db/pi-sdk + metrics = file, Pi SDK mode M-v0.2.0 PoC + sqlite M-v0.2.0 / PostgreSQL M-v0.2.3+ + source_meta 의 storage_mode + normalize_mode field 추가 + 8 DB CRUD endpoint + 8 step Pi ingest pipeline + per source default mapping) |
+
+## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
+
+**Motivation**: 기존 §4 (file-based raw) + §3.7 (rule-based normalization pipeline) 의 한계 보완. 사용자 결정 (2026-06-18): "raw 에 해당하는 1차 데이터는 종전의 시스템들과 동일하게 db 에 데이터를 수집하고 crud 를 비롯한 데이터 처리 용 api 를 제공할거야. db 에 저장된 데이터는 주기적으로 ai (여기서는 pi 경유) 를 통하여 ingest 하도록 구성해보자."
+
+**핵심 변화**:
+1. **raw storage = file system (기존 §4) + DB (신규 §10) dual mode** — per source `storage_mode: file|db` field
+2. **DB CRUD + 데이터 처리 API** — SQL CRUD (POST/GET/PATCH/DELETE) + sort/filter/aggregate/search (사용자 명시 "종전의 시스템들과 동일하게")
+3. **Periodic Pi ingest pipeline** — DB 의 raw 데이터를 Pi SDK mode (subprocess per call, M-v0.2.0 PoC simple) 로 **주기적** read → LLM normalize → OKF concept emit
+
+**독립 backend-core 정합**: backend-core 의 DB 사용 패턴 참고 (e.g., `backend-core/internal/store/`, sqlc/Pgx 구조). 단, **DB schema import / sqlc generated code 공유 ❌** (§1.2 G7 standalone 정합). backend-knowledge 자체 DB schema 작성 + SQL 직접 작성 (또는 자체 sqlc generated).
+
+**Source path vs DB path 분기** (per source `storage_mode`):
+- **gitea 4 sub-plugin**: `storage_mode=file` (rule-based normalize 적합, simple REST schema)
+- **homelab**: `storage_mode=db` (Pi-driven 적합, 복잡 + 사내 시스템)
+- **metrics**: `storage_mode=file` (operational metric, 단순)
+- **hrdb**: `storage_mode=db` (PII, complex, Pi-driven 정규화 필요)
+- 운영자 override 가능 (source_meta 의 `storage_mode` field)
+
+### 10.1 DB-based raw storage + schema
+
+**DB 선택** (per milestone):
+- **M-v0.2.0 PoC**: **sqlite** (단순, file-based, `var/raw_index.db` 위치). 단일 file 이므로 git 가능 시 `.gitignore` 권장 (§4.4 정합)
+- **M-v0.2.1+**: sqlite 유지 (운영 부담 적음)
+- **M-v0.2.3+**: **PostgreSQL** option 추가 (production-grade, 동시성, backup/restore 정합). 단, **backend-core 의 PostgreSQL 와 공유 ❌** (standalone 정합)
+
+**`raw_records` table schema** (sqlite / PostgreSQL 호환):
+
+```sql
+CREATE TABLE raw_records (
+    id BIGSERIAL PRIMARY KEY,                          -- internal PK
+    source TEXT NOT NULL,                              -- e.g., 'gitea_repo_pull'
+    slug TEXT NOT NULL,                                -- unique within source
+    bundle TEXT,                                       -- e.g., 'devhub-gitea'
+    category TEXT,                                     -- e.g., 'scm' (5 enum)
+    data_json_encrypted BLOB NOT NULL,                 -- 봉투 암호화된 raw JSON (ADR-0025 정합)
+    data_json_hash_sha256 TEXT NOT NULL,               -- sha256 hash (정합성 검증)
+    received_at TIMESTAMP NOT NULL,                    -- ingest 시각 (DB write 시점)
+    source_timestamp TIMESTAMP,                        -- 외부 시스템 응답의 updated_at (lag 계산용)
+    registered_by_user_id TEXT,                        -- POST /db/raw 시 caller
+    visibility TEXT NOT NULL DEFAULT 'org',            -- 4 enum (§3.6.4)
+    retention_days INT NOT NULL DEFAULT 90,            -- §4.4 retention 정합
+    -- DB path specific fields
+    storage_mode TEXT NOT NULL DEFAULT 'db',           -- 'file' or 'db' (per source_meta)
+    ingested_at TIMESTAMP,                             -- 마지막 Pi ingest 시각 (§10.3)
+    last_concept_id TEXT,                              -- 마지막 emit 된 concept ID (§10.3)
+    ingested_count INT NOT NULL DEFAULT 0,             -- Pi ingest 횟수
+    ingest_locked_until TIMESTAMP,                     -- 동시 ingest 방지 lock
+    UNIQUE (source, slug)
+);
+
+CREATE INDEX idx_raw_records_source_received ON raw_records (source, received_at DESC);
+CREATE INDEX idx_raw_records_visibility ON raw_records (visibility, source);
+CREATE INDEX idx_raw_records_ingested ON raw_records (ingested_at) WHERE ingested_at IS NULL;
+CREATE INDEX idx_raw_records_ingest_lock ON raw_records (ingest_locked_until) WHERE ingest_locked_until > NOW();
+```
+
+**§4 file-based raw 와의 정합**: `storage_mode=file` 인 source 는 §4 의 `var/raw/{source}/{slug}.json` + `sqlite raw_index` (메타만) 사용. `storage_mode=db` 인 source 는 본 §10.1 의 `raw_records` table 사용. **두 모드 동시 운영 가능** (per source 분기).
+
+**§3.6 governance 정합**: `visibility` 4 enum + `registered_by_user_id` = §3.6.2 curation governance 와 동일. caller-provided user context (§3.6.1) 필수.
+
+### 10.2 DB CRUD + 데이터 처리 API
+
+**8 endpoint** (Path Y caller-provided user context 필수, §3.6.1 + §4.5 정합):
+
+| Endpoint | Method | 권한 (§3.6.2 정합) | 응답 |
+| --- | --- | --- | --- |
+| `/api/v0-2/db/raw` | POST | caller 가 source 의 bundle owner_org member OR system_admin | 201 + raw_id |
+| `/api/v0-2/db/raw/{id}` | GET | visibility 정합 (§4.5) | 200 + raw record (data_json decrypted) |
+| `/api/v0-2/db/raw/{id}` | PATCH | registered_by_user_id == caller.user_id OR system_admin | 200 + updated raw_id |
+| `/api/v0-2/db/raw/{id}` | DELETE | system_admin OR registered_by_user_id == caller.user_id | 200 + `{deleted: true}` |
+| `/api/v0-2/db/raw?source=...&since=...&sort=...&limit=...&offset=...` | GET (list) | visibility 정합 (caller scope filter) | 200 + items (paginated) |
+| `/api/v0-2/db/raw/aggregate?group_by=...&agg=count\|sum\|avg&field=...` | GET (aggregate) | visibility 정합 | 200 + aggregate result |
+| `/api/v0-2/db/raw/search?q=...&field=data_json.key\|source\|slug` | GET (full-text search) | visibility 정합 | 200 + matching items |
+| `/api/v0-2/db/raw/ingest-status?source=...&since=...` | GET (Pi ingest status) | visibility 정합 | 200 + `{raw_id, ingested_at, last_concept_id, ingested_count}` |
+
+**SQL 데이터 처리 API** (사용자 명시 "데이터 처리용 API"):
+- **sort**: `?sort=received_at:desc` / `?sort=data_json_hash_sha256:asc` 등 multi-column
+- **filter**: `?filter=source.eq(gitea_repo_pull)&filter=visibility.eq(org)` (jsonpath 또는 SQL where 절)
+- **pagination**: `?limit=100&offset=0` (default limit 100, max 1000)
+- **aggregate**: `?group_by=source&agg=count` (count / sum / avg / min / max)
+- **full-text search**: sqlite FTS5 (M-v0.2.0 PoC) / PostgreSQL `tsvector` (M-v0.2.3+)
+
+**OpenAPI extension**:
+```yaml
+/api/v0-2/db/raw:
+  post:
+    summary: "Insert raw record into DB"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [source, slug, data_json]
+            properties:
+              source: {type: string}
+              slug: {type: string}
+              bundle: {type: string}
+              category: {type: string}
+              data_json: {type: object}
+              visibility: {type: string, enum: [org, personal, project, public]}
+              retention_days: {type: integer, default: 90}
+    responses:
+      '201':
+        description: "raw record inserted"
+      '403':
+        description: "E_FORBIDDEN (caller 가 owner_org member 아님)"
+```
+
+**§4 file-based raw API 와의 정합**: §4 의 4 endpoint (POST/GET/list/DELETE raw) 는 file-based 한정. 본 §10 의 8 endpoint 는 DB-based 한정. **API path prefix 로 구분** (`/api/v0-2/raw` vs `/api/v0-2/db/raw`).
+
+### 10.3 Periodic Pi ingest pipeline
+
+**Pi integration mode** (2026-06-18 결정):
+- **M-v0.2.0 PoC**: **SDK mode** (subprocess per call, `@earendil-works/pi-coding-agent` npm pkg via Node subprocess, §2.2 정합). 단순, stateless, 매 ingest job 마다 subprocess 시작/종료.
+- **M-v0.2.3+**: **RPC mode** option 추가 (long-running JSON over stdin/stdout, §2.2 정합). 동일 process 내에서 여러 ingest job 동시 처리, latency 감소.
+
+**Ingest pipeline** (`backend-knowledge/ingest/pipeline.py`):
+
+```
+Step 1: Scheduler cron (매 N 분, per source config)
+  ↓
+Step 2: SELECT raw_records WHERE ingested_at IS NULL OR ingested_at < threshold
+        AND ingest_locked_until IS NULL OR ingest_locked_until < NOW()
+        LIMIT batch_size (default 100)
+  ↓
+Step 3: Per raw record:
+  - Set ingest_locked_until = NOW() + 5 minutes (atomic, 동시 ingest 방지)
+  - Decrypt data_json (ADR-0025 봉투 암호화)
+  ↓
+Step 4: Pi LLM normalize (SDK mode: subprocess 호출, RPC mode: stdin/stdout)
+  - Prompt: "다음 raw JSON 을 OKF concept (type 8종 중 1, x_devhub_category 5종 중 1, x_devhub_* 5 governance field 포함) 으로 변환해주세요"
+  - Input: {raw_json, source_meta (bundle/category/type/credential/owner_org)}
+  - Output: {frontmatter, body, suggested_type, suggested_category}
+  ↓
+Step 5: Validate Pi output (§3.9.3 review checklist 의 1~4 자동)
+  - 8 type enum 정합
+  - x_devhub_category 5 enum 정합
+  - x_devhub_visibility 4 enum 정합
+  - x_devhub_owner_org_id 존재
+  ↓
+Step 6: Emit OKF concept (§3.5.3 path pattern)
+  - var/bundles/{bundle}/{category}/{type}_{slug}.md
+  - x_devhub_curator: "llm" (M-v0.2.3+ 부터, §3.6.2 정합)
+  ↓
+Step 7: Update raw_records
+  - ingested_at = NOW()
+  - last_concept_id = emitted concept slug
+  - ingested_count += 1
+  - ingest_locked_until = NULL
+  ↓
+Step 8: Trigger concept lifecycle (§3.9 정합)
+  - new concept = `x_devhub_status: active`
+  - supersede old concept (있으면) = `x_devhub_status: archived`
+```
+
+**Pi prompt template** (`backend-knowledge/ingest/prompts/{source}.j2`):
+
+```jinja2
+You are a backend-knowledge curator. Convert the following raw external system data into an OKF concept.
+
+## Source metadata
+- source: {{ source }}
+- bundle: {{ bundle }}
+- category: {{ category }}
+- expected type (one of 8 enums): {{ expected_type }}
+- owner_org_id: {{ owner_org_id }}
+
+## Raw JSON
+```json
+{{ raw_json }}
+```
+
+## Output format (Markdown frontmatter + body)
+```yaml
+---
+type: {{ expected_type }}  # or another from 8 enums if better
+title: "..."
+description: "..."
+# ... (full frontmatter spec per §3.3 + §3.6.4)
+---
+
+# Body in Markdown
+```
+
+## Constraints
+- Type MUST be one of: dataset, metric, api_endpoint, runbook, integration, event, reference, decision
+- x_devhub_category MUST be one of: issue_tracker, wiki, scm, cicd, code_quality
+- x_devhub_visibility MUST be one of: org, personal, project, public
+- x_devhub_curator MUST be "llm" (this is LLM-generated)
+- Body MUST be in Markdown with proper headings
+- Cross-links to related concepts MUST be valid path
+
+Return ONLY the OKF concept (frontmatter + body), no extra explanation.
+```
+
+**Scheduler** (per source `ingest_schedule` field):
+- default: 매 5분 cron (`*/5 * * * *`)
+- M-v0.2.0 PoC: simple cron (Python `schedule` lib, in-process)
+- M-v0.2.1+ : APScheduler (async, multi-worker)
+- M-v0.2.3+ : external scheduler (Celery + Redis, 또는 kubernetes cron job)
+
+**Failure handling** (Pi ingest 실패 시):
+- Pi subprocess timeout (default 30초) → `ingest_locked_until = NOW() + 5 minutes` (retry 후 다음 cycle)
+- Pi LLM 출력 invalid (§3.9.3 5번 cross-link validation 실패) → `x_devhub_degraded_fields` array 에 사유 기록, ingest_count 는 증가시키지 않음
+- Pi LLM unreachable → §3.7.5 fallback (rule-based normalize 로 자동 전환, audit log)
+
+### 10.4 Source path vs DB path 분기 + 운영 정책
+
+**Per source `storage_mode` 결정** (2026-06-18 default):
+
+| Source plugin | storage_mode | normalize mode | rationale |
+| --- | --- | --- | --- |
+| `gitea_repo_pull` | `file` | rule-based | Gitea REST API 가 well-documented, simple schema. rule-based 가 빠르고 deterministic |
+| `gitea_issue` | `file` | rule-based | 동일 |
+| `gitea_wiki` | `file` | rule-based | 동일 |
+| `gitea_action` | `file` | rule-based | 동일 |
+| `homelab_mock` (M-v0.2.0) / `homelab` (M-v0.2.1+ real) | `db` | Pi SDK | 사내 시스템 + 복잡한 nested data. Pi LLM 이 더 적합 |
+| `metrics` | `file` | rule-based | Prometheus scrape = 단순 time-series data |
+| `hrdb` | `db` | Pi SDK | PII + 복잡한 schema. Pi LLM 이 semantic context 풍부 |
+
+**Per source config** (`SourceMeta.storage_mode` + `SourceMeta.ingest_schedule`):
+
+```python
+class SourceMeta(BaseModel):
+    # ... (§3.8.1 정합)
+    storage_mode: Literal["file", "db"] = "file"
+    ingest_schedule: Optional[str] = None  # cron expression, file mode 는 미설정
+    normalize_mode: Literal["rule-based", "pi-sdk", "pi-rpc"] = "rule-based"
+```
+
+**M-v0.2.0 PoC 범위**:
+- `gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action` = file + rule-based (기존 §3.7 / §3.8 정합)
+- `homelab_mock` = **db + pi-sdk** (DB path 의 첫 PoC source)
+- `metrics` / `hrdb` = M-v0.2.2 / v0.2.3 까지 (DB path 정합 후 추가)
+
+**운영 정책** (per source storage_mode):
+
+| Mode | 파일 | DB | Cron | 정규화 |
+| --- | --- | --- | --- | --- |
+| **file + rule-based** (§3.7) | `var/raw/{source}/{slug}.json` | (사용 안 함) | POST /ingest/{source}/sync (수동) | source plugin 의 normalize() (§3.7.4) |
+| **db + pi-sdk** (§10) | (사용 안 함) | `raw_records` table | cron 자동 (매 5분 default) | Pi subprocess (§10.3) |
+| **db + rule-based** (M-v0.2.1+ 옵션) | (사용 안 함) | `raw_records` table | cron 자동 | source plugin 의 normalize() + DB read |
+
+**M-v0.2.0 PoC 운영 검증**:
+- (a) §3.7 의 5종 PoC source plugin (file + rule-based) 정상 작동 (4 Gitea sub-plugin + homelab_mock, **단 homelab_mock 만 db + pi-sdk 으로 분리**)
+- (b) §10 의 DB path + Pi SDK mode 정상 작동 (homelab 의 raw 를 Pi 가 ingest)
+- (c) 2 path 동시 운영 검증 (file path 와 DB path 의 concept 모두 var/bundles/ 에 emit)
+
+**Cross-section 정합 fix** (5 위치):
+1. **§4.1 정책 정의 표** — "저장 위치" row 갱신: "file path (file mode) OR DB `raw_records` table (db mode, §10.1 정합)"
+2. **§3.7 normalization pipeline** — §3.7.1 5 step 에 step 2 의 "raw JSON 봉투 암호화 저장" 보강: "file mode = var/raw/, db mode = raw_records table (봉투 암호화)"
+3. **§3.8 source plugin 작성 정공법** — §3.8.1 SourcePlugin ABC 의 SourceMeta 에 `storage_mode` + `normalize_mode` field 추가 (§10.4 정합). 신규 source 추가 10 step 절차의 Step 2 SourceMeta 정의 에 storage_mode 결정 단계 추가
+4. **§6.3 Phase 3 LLM enrich** — Pi 의 역할 갱신: "M-v0.2.3+ LLM enrich (rule-based enricher 의 보강) + M-v0.2.0+ Pi periodic ingest pipeline (DB path source 의 정규화)". §6.3 의 M-v0.2.3 timing 이 M-v0.2.0 으로 option 이동
+5. **ADR-0034 §4.3 영향** — §10 row 추가 + §3.7/§3.8/§6.3 cross-reference 명시
+6. **ADR-0035 §3 영향** — §10 의 DB-based raw + Pi periodic ingest 가 ADR-0035 의 "외부 시스템 7종 source 만 단방향" 정책과 정합 (§10 의 DB path 는 외부 시스템 데이터 + Pi LLM 처리, backend-core wire ❌) 명시
