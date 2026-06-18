@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + **§1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표**. cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.6 + §3.8 + §4.2/§4.3 갱신 + §8 timeline Q12~Q18 결정 row 추가 + **§13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시** + **§1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 (한계 4~7 의 §3~§12 해결책 모두 umbrella 본문 §1.2 G1~G7 + §3~§12 과 정합, 추가 fix 불필요)**).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline + source plugin 작성 정공법 + OKF concept 운영 lifecycle + §4 1차 raw API 심화 + §5 마일스톤 상세화 + §10 DB-based raw + Pi periodic ingest pipeline + §11 운영 runbook + §6.5~§6.7 Phase 1/2/3 운영 정공법 상세 + §7 Q&A 확장 (Q12~Q18) + §12 frontend page 상세화 (M-v0.2.1+) + **§13 cross-cutting 종합 (12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토)** + **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 4가지 한계 = caller-provided user context 신뢰 / dual storage mode 운영 복잡도 / backup DR transactional 정합성 / frontend standalone 유지보수) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표)** + **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved, 5 subsection + 3 graph endpoint + 7 cross-section fix 위치)** — §3.2.1 보강 + 신규 §3.5~§3.9 + §4.4~§4.7 + §5.4~§5.7 + §10 + §11 + §6.5~§6.7 + §7 Q12~Q18 + §12 (viz.html + 5 page) + §13 (cross-reference matrix 20 row + gap 6 row + post-sprint follow-up 6 row + 정합 검증 12 row ✅) + §1.1 한계 4~7 (Path Y trust model / dual mode 운영 / backup DR / frontend lifecycle) + §1.3 한계 7개 → 해결책 cross-reference 표 + **§3.5.6 cross-link reverse index 정공법 (5 subsection: §3.5.6.1 reverse index 목적 4 use case + §3.5.6.2 schema + layout `var/bundles/.index/reverse_index.json` + §3.5.6.3 `okf/link_graph.py reverse_index()` 3 step pseudocode + §3.5.6.4 stale handling 3 strategy + §3.5.6.5 Query API 3 graph endpoint + impact 분석 + archive 거부 정책 + viz.html incoming edge + 4 CLI tool) + 3 graph endpoint (GET /api/v0-2/graph/reverse + GET /api/v0-2/graph/impact + POST /api/v0-2/graph/reindex)**. cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row / §2.1 sources/ tree + var/raw 트리 / **§2.1 `okf/link_graph.py` 코멘트 갱신** / §2.3 3 row / §3.1 API 매트릭스 / **§3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가** / §3.2 type enum / §3.3 frontmatter spec / §3.5.3 bundle 디렉터리 / **§3.5.5 reverse index row 4 보강 (§3.5.6 cross-reference 추가)** / **§3.5.6 신규 (5 subsection)** / §3.6.1 endpoint 표 / §3.6.2 curation governance / §3.7 normalization pipeline + §10 storage_mode / §3.7.2 per-source mapping / §3.8.1 SourceMeta + §3.8.4 Step 2 / **§3.9.4 archive 거부 정책 (impact-based, §3.5.6.5 정합)** / §4.1 정책 정의 표 / §4.7 raw 정합성 검증 / §5.1 M-v0.2.1 scope / §5.6 cutover checklist §11 cross-reference / §6.1 Phase 1 viz.html / §6.3 Phase 3 Pi 3 역할 / **§6.5.4 E2E smoke Step 6 (reverse index PoC 검증)** / **§11.1.7 stale link runbook (신규, §3.5.6 정합)** / **§13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 (cross-link reverse index) ✅** / ADR-0034 §4.3 + ADR-0035 §3.4 + §3.6 + §3.8 + §4.2/§4.3 갱신 + **ADR-0034/0035 frontmatter 갱신 (14 row / 5 row 영향)** + §8 timeline Q12~Q18 결정 row 추가 + §13 자체는 종합 review 이므로 fix 0 row + post-sprint 6 row 명시 + §1.1 한계 4~7 추가 + §1.3 한계 → 해결책 cross-reference 표 + §1.2 의 "1차 raw 데이터" 정합 + **§3.5.6 cross-link reverse index 정공법 신규 — 7 cross-section fix 위치 (§3.5.5 / §2.1 / §3.1 / §3.9.4 / §6.5.4 / §11.1.7 / §13.2-§13.4) + ADR-0034 §4.3 + ADR-0035 §4.3 갱신 + frontmatter 갱신**).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -120,7 +120,7 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 ├── okf/                                   # OKF spec model (Pydantic + frontmatter parser)
 │   ├── spec.py                            # Concept, Frontmatter, Bundle dataclass
 │   ├── frontmatter.py                     # YAML frontmatter parse/emit
-│   └── link_graph.py                      # cross-link extract + reverse index
+│   └── link_graph.py                      # cross-link extract + reverse index (forward link scan + reverse index build, §3.5.6 정공법 — `reverse_index()` + `_classify_link_type()` function, M-v0.2.0 PoC)
 ├── pi_bridge/                             # Pi (pi.dev) integration — M-v0.2.3+ 부터 활성화 (1차 미사용)
 │   ├── __init__.py
 │   ├── rpc_client.py                      # Pi `pi-coding-agent` **RPC mode** client (JSON over stdin/stdout, non-Node integration)
@@ -212,6 +212,9 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 | | full-text search | `GET /api/v0-2/search?q=...` | `{envelope, data: {hits: [...]}}` |
 | | bundle index (progressive disclosure) | `GET /api/v0-2/bundles/{bundle}/index.md` | raw markdown |
 | | self-contained graph viewer | `GET /api/v0-2/bundles/{bundle}/viz.html` | raw HTML (Cytoscape.js CDN embed) |
+| **(4) Graph (cross-link reverse index, 2026-06-18 신규 — §3.5.6 정합)** | reverse link in-link list 조회 (concept B ← in-link source list) | `GET /api/v0-2/graph/reverse/{concept_path}` | `{envelope, data: {concept_path, inlinks: [{source, type, section, context}], count}}` |
+| | impact 분석 (in-link + out-link + orphan + rank) | `GET /api/v0-2/graph/impact/{concept_path}` | `{envelope, data: {concept_path, inlinks, outlinks, is_orphan, inlink_count, rank_score}}` |
+| | reverse index 수동 rebuild (full scan, §3.5.6.2 regen timing) | `POST /api/v0-2/graph/reindex` | `{envelope, data: {status, generated_at, stats}}` |
 
 > **인증 정책 (모든 endpoint 공통)**: **internal-only, no auth** + **Path Y caller-provided user context (2026-06-18 결정, §3.6.1 정합)**. `/api/v0-2/*` 전체가 인증 없이 호출 가능. 별도 gateway / firewall / IP allowlist 가 호출 자체 보호 (Phase 1~3 의 운영 책임, §2.3 참조). 운영자 또는 별도 agent 가 호출. OIDC / Keycloak / backend-core 인증 위임 ❌. **단, caller 가 `X-DevHub-User-Context` header (base64url(json)) 로 user/org/project/roles 를 전달하면, backend-knowledge 는 그 context 로 filter / curation ownership check 만 수행 (§3.6.1 endpoint 별 필수/권장 표 + OpenAPI security scheme 정합)**. 운영자 또는 별도 agent 가 호출.
 
@@ -602,8 +605,308 @@ x_devhub_category: "scm"  # primary category; or omit for cross-cutting decision
 1. **Intra-bundle link 가 default**. 같은 bundle 내 concept 간 link 는 자유롭게 (단, 의미 있는 link 만).
 2. **Cross-bundle link 는 최소화**. cross-bundle link 가 많은 concept → bundle 통합 검토. "bundle = 1 외부 시스템 단위" 원칙 정합.
 3. **Source/external link 는 vendor docs**. OKF 의 `reference` type concept 는 본문에 vendor docs 발췌 포함 가능 (mirror).
-4. **Reverse index 는 자동**. `okf/link_graph.py` 가 bundle rebuild 시 전체 link scan → reverse index 생성. Incoming link 0 = orphan, unresolved link = target 부재. `curate/link_resolver.py` 가 보고.
+4. **Reverse index 는 자동**. `okf/link_graph.py` 가 bundle rebuild 시 전체 link scan → reverse index 생성. Incoming link 0 = orphan, unresolved link = target 부재. `curate/link_resolver.py` 가 보고. **상세 정공법**: §3.5.6 (M-v0.2.0 PoC 부터 활성화 — reverse index schema + `okf/link_graph.py reverse_index()` implementation + stale handling + Query API `/api/v0-2/graph/reverse/{path}` + `/impact` + viz.html 의 incoming edge visualization + archive 거부 정책. §13.2 known gap 1 의 능동적 강화, §13.4 ✅ resolved).
 5. **Resolution timing**: M-v0.2.0~v0.2.2 = rule-based 보고 (orphan list + unresolved link list). M-v0.2.3+ = Pi LLM 이 unresolved link 에 대해 "가장 유사한 concept 추천" (cross-link 자동 resolution, §3.1 정합).
+
+#### 3.5.6 cross-link reverse index 정공법 (How to build reverse index, 2026-06-18 신규 — §13.2 known gap 1 능동적 강화)
+
+**§3.5.5 의 4종 link 중 4번째 (reverse index)** 를 M-v0.2.0 PoC 부터 능동적 강화로 advance. 본 §3.5.6 은 reverse index 의 **목적 + schema + implementation + stale handling + Query API integration** 을 구체화.
+
+##### 3.5.6.1 reverse index 목적 (forward vs reverse, 4 use case)
+
+**forward link** (기존, §3.5.5): concept A → concept B (A.md 안의 `[title](B.md)` cross-link, source → target 방향)
+
+**reverse link** (본 §3.5.6 신규): concept B ← A (B 가 누구에게 in-link 로 참조되는지, target ← source 방향)
+
+| Use case | 설명 | 적용 시점 | 정합 section |
+| --- | --- | --- | --- |
+| **(a) impact 분석** | concept B 삭제/이동/이름변경 시 in-link 가 있는 모든 concept (A1, A2, ...) 영향 + dangling link 자동 보고 | 운영자 / `curate/` 자동 | §3.9 archive 시점 (in-link ≥ 1 → soft archive 권장) |
+| **(b) importance / rank 측정** | in-link count = node rank score (외부 link / in-link / cross-bundle link 가중치). `POST /query` 의 결과 정렬에 활용 (M-v0.2.1+) | Query API 정렬 | §3.1 Query API |
+| **(c) viz.html visualization** | Cytoscape.js 의 incoming edge 시각화 (forward edge + reverse edge 구분). `viz.html` 의 "Concepts referenced from N places" badge | frontend viz.html | §12.1 viz.html |
+| **(d) archive 거부 정책** | in-link ≥ 1 인 concept 는 hard delete 거부 → soft archive 권장 (orphan 발생 방지). `x_devhub_inlink_count` ≥ 1 → 409 Conflict | §3.9 archive 정책 | §3.9.4 publish + archive |
+
+**본 §3.5.6 의 scope**: M-v0.2.0 PoC 부터 reverse index 의 **(a) impact 분석** + **(c) viz.html visualization** 활성화. **(b) rank** + **(d) archive 거부** 는 M-v0.2.1+ frontend 운영 시점 (in-link 기반 UX 가 frontend 에서만 의미가 있으므로).
+
+##### 3.5.6.2 reverse index schema + layout
+
+**파일 layout** (per-repository single file, 모든 bundle 의 reverse link 포함):
+
+```
+backend-knowledge/var/bundles/.index/
+├── reverse_index.json              # 본 §3.5.6 의 reverse link index (M-v0.2.0+)
+├── external_link_index.json        # §3.5.6.4 의 source-external link 별도 index (M-v0.2.1+)
+├── per-bundle_index/               # §3.5.4 의 per-bundle index.md 자동 생성 캐시
+│   ├── devhub-gitea_index.md
+│   ├── devhub-homelab_index.md
+│   └── ...
+└── per-type_index/                 # §3.5.4 의 per-type index.md 자동 생성 캐시
+    ├── api_endpoint_index.md
+    ├── runbook_index.md
+    └── ...
+```
+
+**`reverse_index.json` schema** (M-v0.2.0 PoC, schema_version=1):
+
+```json
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-18T10:00:00+09:00",
+  "generator": "okf/link_graph.py reverse_index() v0.2.0",
+  "stats": {
+    "total_concepts": 35,
+    "total_forward_links": 87,
+    "total_reverse_entries": 87,
+    "orphan_count": 2,
+    "unresolved_count": 1
+  },
+  "links": {
+    "devhub-gitea/scm/integration_gitea_repo_puller.md": [
+      {
+        "source": "devhub-gitea/cicd/event_gitea_action_failure.md",
+        "type": "intra-bundle",
+        "section": null,
+        "context": "fallback_runbook: see also [Gitea repository puller](../scm/integration_gitea_repo_puller.md)"
+      },
+      {
+        "source": "devhub-homelab/wiki/reference_homelab_node_status.md",
+        "type": "cross-bundle",
+        "section": null,
+        "context": "related external system: [Gitea repository puller](../../devhub-gitea/scm/integration_gitea_repo_puller.md)"
+      }
+    ],
+    "devhub-gitea/issue_tracker/event_gitea_issue_payload.md": [
+      {
+        "source": "devhub-gitea/issue_tracker/runbook_gitea_issue_recovery.md",
+        "type": "intra-bundle",
+        "section": "see-also",
+        "context": "see [Gitea issue payload](event_gitea_issue_payload.md)"
+      }
+    ]
+  }
+}
+```
+
+| Field | 정의 | 비고 |
+| --- | --- | --- |
+| `schema_version` | reverse index schema 버전 (정합성 검증 + 마이그레이션) | 1 = M-v0.2.0 PoC |
+| `generated_at` | 마지막 생성 시각 (ISO 8601) | §11.3 monitoring 의 alert 에 활용 (stale > 1시간 = warning) |
+| `generator` | 생성 tool 의 version string (`okf/link_graph.py reverse_index() v0.2.0`) | audit + 재현 |
+| `stats` | 집계 (total_concepts / total_forward_links / total_reverse_entries / orphan_count / unresolved_count) | §11.3 monitoring 5 지표 중 1개 = "concept orphan rate" |
+| `links.{concept_path}` | in-link list (source path + type + section + context) | concept_path = `var/bundles/{bundle}/{category}/{slug}.md` 의 repo-root 상대 경로 |
+| `links.{concept_path}[].source` | in-link 가 있는 source concept path | forward 방향의 source = reverse 방향의 in-link source |
+| `links.{concept_path}[].type` | link 종류 (intra-bundle / cross-bundle) | source-external link 는 reverse index 에 포함 ❌ (별도 `external_link_index.json`, §3.5.6.4) |
+| `links.{concept_path}[].section` | Markdown anchor (`#section-anchor`) | in-link 가 특정 section anchor 인 경우만 (그 외 null) |
+| `links.{concept_path}[].context` | source concept 의 본문 발췌 (in-link 주변 ±2 줄) | 디버깅 + impact 분석 시 "어떤 맥락에서 참조되는지" 표시 |
+
+**regen timing** (per 운영 정책, M-v0.2.0 PoC = simple full scan):
+
+| Trigger | Mode | 비고 |
+| --- | --- | --- |
+| `POST /bundles/{bundle}/rebuild` 시 (per-bundle rebuild) | full scan (해당 bundle 만) | §3.1 API |
+| cron `0 * * * *` (정시 hourly, §10.3 의 Pi ingest 와 별도) | full scan (all bundles) | §11.3 monitoring 의 stats 검증 |
+| `POST /ingest/{source}/sync` 후 (정상 ingest 완료 시) | incremental update (변경된 concept + 영향 bundle) | M-v0.2.1+, M-v0.2.0 PoC = full scan |
+| 운영자 manual trigger (`cli/rebuild_index.py`) | full scan (all bundles) | 운영 runbook §11.1 |
+
+##### 3.5.6.3 `okf/link_graph.py` `reverse_index()` implementation
+
+**3 step algorithm** (pseudocode, M-v0.2.0 PoC):
+
+```python
+# okf/link_graph.py
+from pathlib import Path
+import re
+import json
+from datetime import datetime, timezone
+
+# Forward link regex: [title](path.md) or [title](path.md#anchor)
+LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+\.md)(?:#([^)]+))?\)")
+
+def reverse_index(
+    repo_root: Path,
+    *,
+    include_external: bool = False,  # §3.5.6.4 의 external link 분리
+) -> dict:
+    """
+    §3.5.6.2 의 reverse_index.json 을 생성.
+
+    Args:
+        repo_root: `var/bundles/` 의 절대 path
+        include_external: True = https:// link 도 reverse index 에 포함 (M-v0.2.0 ❌, 별도)
+
+    Returns:
+        reverse_index.json 의 dict (write 는 caller 책임, atomic write 권장)
+    """
+    # Step 1: scan all .md files + extract forward links
+    forward: dict[str, list[dict]] = {}  # source -> [{target, section, context}]
+    for md_file in repo_root.glob("**/*.md"):
+        if "/.index/" in str(md_file):  # skip reverse index itself
+            continue
+        content = md_file.read_text(encoding="utf-8")
+        for match in LINK_PATTERN.finditer(content):
+            target = match.group(2)
+            section = match.group(3)  # anchor, None if not specified
+            # Skip external links (§3.5.6.4)
+            if target.startswith("http://") or target.startswith("https://"):
+                if not include_external:
+                    continue
+            # context = ±2 lines around the match
+            start = content.rfind("\n", 0, match.start()) + 1
+            end = content.find("\n", match.end())
+            context = content[start:end].strip()[:200]  # truncate
+            source = str(md_file.relative_to(repo_root))
+            forward.setdefault(source, []).append({
+                "target": target,
+                "section": section,
+                "context": context,
+            })
+
+    # Step 2: build reverse map
+    reverse: dict[str, list[dict]] = {}
+    for source, targets in forward.items():
+        for t in targets:
+            # classify link type (§3.5.5 4종 rule)
+            link_type = _classify_link_type(source, t["target"], repo_root)
+            if link_type == "source-external":
+                continue  # §3.5.6.4 의 external link index 에서 처리
+            reverse.setdefault(t["target"], []).append({
+                "source": source,
+                "type": link_type,
+                "section": t["section"],
+                "context": t["context"],
+            })
+
+    # Step 3: stats + emit
+    all_concepts = {str(p.relative_to(repo_root)) for p in repo_root.glob("**/*.md") if "/.index/" not in str(p)}
+    orphan_count = sum(1 for c in all_concepts if c not in reverse)
+    all_targets = {t["target"] for tgts in forward.values() for t in tgts}
+    unresolved_count = sum(1 for t in all_targets if t not in all_concepts and not t.startswith(("http://", "https://")))
+
+    return {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generator": "okf/link_graph.py reverse_index() v0.2.0",
+        "stats": {
+            "total_concepts": len(all_concepts),
+            "total_forward_links": sum(len(tgts) for tgts in forward.values()),
+            "total_reverse_entries": sum(len(srcs) for srcs in reverse.values()),
+            "orphan_count": orphan_count,
+            "unresolved_count": unresolved_count,
+        },
+        "links": reverse,
+    }
+
+
+def _classify_link_type(source: str, target: str, repo_root: Path) -> str:
+    """§3.5.5 의 4종 link 분류: intra-bundle / cross-bundle / source-external / (reverse index 는 forward link 가 없으므로 해당 ❌)"""
+    if target.startswith("http://") or target.startswith("https://"):
+        return "source-external"
+    source_bundle = source.split("/")[0] if "/" in source else None
+    target_bundle = target.split("/")[0] if "/" in target else None
+    if source_bundle and target_bundle and source_bundle == target_bundle:
+        return "intra-bundle"
+    if source_bundle and target_bundle and source_bundle != target_bundle:
+        return "cross-bundle"
+    return "unknown"  # malformed path
+```
+
+**핵심 design decision**:
+- **regex 단순화**: OKF 의 `[title](path.md)` 형식만 처리. `<url>` 형식 / 자동 link 형식 / reference-style link (`[title][ref]`) 는 M-v0.2.1+ (현재 M-v0.2.0 PoC = 80% 사용 case 만).
+- **full scan default**: M-v0.2.0 PoC = full scan (all .md file). 35~50 concept 규모 (5종 PoC source plugin) 에서 full scan < 1초, incremental update 의 복잡도 회피.
+- **in-memory dict**: 35~50 concept + 87 link 규모 에서 in-memory 충분. M-v0.2.3+ 7종 source + 100+ concept 시 sqlite 기반 incremental update 검토.
+- **atomic write 권장**: `tmpfile.write + os.rename` 패턴 (§11.1.1 incident runbook 의 file corruption mitigation).
+
+##### 3.5.6.4 stale handling + source-external link 검증
+
+**stale link 정의** (M-v0.2.0 PoC):
+- **unresolved**: forward link 의 target 이 더 이상 존재하지 않음 (concept 삭제/이름변경/typo)
+- **broken anchor**: target 은 존재하나 `#anchor` 가 그 concept 에 없음 (heading 이름변경/제거)
+- **orphan**: concept 가 in-link 0 (즉, 어떤 concept 도 이 concept 를 참조하지 않음)
+
+**3 strategy** (M-v0.2.0 PoC = warn, M-v0.2.1+ = cli tool, M-v0.2.3+ = auto-fix):
+
+| Strategy | M-v0.2.0 PoC | M-v0.2.1+ | M-v0.2.3+ (Pi LLM) |
+| --- | --- | --- | --- |
+| **tolerate** (시각화만 깨짐, 별도 처리 없음) | ✅ (default) | ✅ | ✅ |
+| **warn** (viz.html 에 dashed red edge + log + alert) | ✅ (`stats.unresolved_count > 0` 시 warning) | ✅ (alert routing) | ✅ |
+| **auto-fix** (Pi LLM 추천 → operator confirm → 자동 link resolve) | ❌ | ❌ (PoC) | ✅ (`POST /api/v0-2/concepts/{id}/resolve-links`, M-v0.2.3+) |
+
+**운영 runbook** (M-v0.2.0 PoC):
+- 매시 정각 cron `0 * * * *` full scan → `reverse_index.json` 갱신 + `stats` 검증
+- `unresolved_count > 0` → §11.3 monitoring warning (info-level, 일 1회 digest)
+- `orphan_count > 10` (configurable) → §11.3 monitoring warning (info-level, 일 1회 digest)
+- 운영자 수동 대응: `cli/list_unresolved.py` → unresolved link list → 수동 fix (concept .md 의 link path 수정 / concept 재생성 / link 제거)
+
+**source-external link** (https://, vendor docs):
+
+| 항목 | 정책 |
+| --- | --- |
+| reverse index 포함 여부 | ❌ (별도 `external_link_index.json`, M-v0.2.1+) |
+| 별도 index schema | `{vendor_url: [{source_concept, source_section, last_verified_at, http_status}]}` |
+| 검증 주기 | cron daily 02:00 UTC HTTP HEAD 검증 (M-v0.2.1+, M-v0.2.0 PoC = 검증 ❌) |
+| http_status != 200/301/302 | §11.3 monitoring warning (info-level, 주 1회 digest) |
+| 운영 runbook | §11.1.7 incident runbook (외부 link fail, M-v0.2.1+ 신규) |
+
+**M-v0.2.0 PoC 의 정책**: source-external link 는 `reverse_index.json` 에 포함 ❌. forward link 추출 시 `target.startswith("http")` 면 skip. 운영자 manual 로 vendor docs 의 availability 확인 (M-v0.2.1+ automation).
+
+##### 3.5.6.5 Query API + impact 분석 + viz.html integration
+
+**Query API extension** (M-v0.2.0 PoC, §3.1 API 매트릭스 추가):
+
+| Endpoint | Method | 설명 | Path Y 필수? | 응답 |
+| --- | --- | --- | --- | --- |
+| `/api/v0-2/graph/reverse/{concept_path}` | GET | reverse link in-link list 조회 | 권장 | `{concept_path, inlinks: [{source, type, section, context}], count}` |
+| `/api/v0-2/graph/impact/{concept_path}` | GET | impact 분석 (in-link + forward-link + orphan 여부 + rank score) | 권장 | `{concept_path, inlinks: [...], outlinks: [...], is_orphan: bool, inlink_count: int, rank_score: float}` |
+| `/api/v0-2/graph/reindex` | POST | reverse index 수동 rebuild (full scan) | 권장 (admin) | `{status, generated_at, stats}` |
+
+**impact analysis example** (M-v0.2.0 PoC, M-v0.2.1+ archive 거부 정책):
+
+```json
+// GET /api/v0-2/graph/impact/devhub-gitea/scm/integration_gitea_repo_puller.md
+{
+  "concept_path": "devhub-gitea/scm/integration_gitea_repo_puller.md",
+  "inlinks": [
+    {
+      "source": "devhub-gitea/cicd/event_gitea_action_failure.md",
+      "type": "intra-bundle",
+      "section": null,
+      "context": "fallback_runbook: see also [Gitea repository puller](../scm/integration_gitea_repo_puller.md)"
+    }
+  ],
+  "outlinks": [
+    {
+      "target": "devhub-gitea/issue_tracker/event_gitea_issue_payload.md",
+      "type": "intra-bundle",
+      "section": null
+    }
+  ],
+  "is_orphan": false,
+  "inlink_count": 1,
+  "rank_score": 0.6
+}
+```
+
+**archive 거부 정책** (M-v0.2.1+, 본 §3.5.6 PoC = 권장):
+- `DELETE /api/v0-2/concepts/{id}` 호출 시 impact analysis 자동 수행
+- `inlink_count == 0` → 200 OK, hard delete 진행
+- `inlink_count >= 1` → 409 Conflict + body: `{error: "concept has N in-links, use soft archive instead", inlinks: [...]}`
+- 운영자 확인 후 `POST /api/v0-2/concepts/{id}/archive` (soft archive, M-v0.2.1+) 로 우회
+
+**viz.html integration** (M-v0.2.0 PoC, §12.1 정합):
+- viz.html 의 Cytoscape.js 가 `var/bundles/.index/reverse_index.json` 자동 fetch
+- node 의 badge: `inlink_count >= 5` = "★ important" (gold border) / `1 <= inlink_count < 5` = "● linked" (blue border) / `inlink_count == 0` = "○ orphan" (gray border)
+- edge 의 style: forward edge = solid arrow / reverse edge (incoming) = dashed arrow (방향은 source → target 동일, 시각적 구분 만)
+- tooltips: node hover 시 inlink_count + inlink 의 source path 발췌
+
+**CLI tool** (M-v0.2.1+, 본 §3.5.6 PoC = manual):
+- `cli/rebuild_index.py` — full scan, `reverse_index.json` + 모든 `per-bundle/per-type index.md` regenerate
+- `cli/list_unresolved.py` — unresolved link list (source + target + context) → 운영자 fix 가이드
+- `cli/list_orphans.py` — orphan concept list (inlink_count == 0) → 운영자 검토 (정말 archive 가능? 또는 link 추가 필요?)
+- `cli/impact.py {concept_path}` — impact analysis 결과 + 권장 action (archive 가능/soft archive 권장/수동 fix 필요)
+
+**§13.2 known gap 1 advance**:
+- §13.2 의 known gap 1 ("cross-link reverse index — M-v0.2.1+ 검토에서 M-v0.2.0 PoC 로 advance") → 본 §3.5.6 으로 M-v0.2.0 PoC 부터 활성화
+- §13.2 row 1 의 status: 📋 → ✅ (resolved, 본 §3.5.6)
+- §13.4 정합 검증 row 1 (cross-link reverse index) 도 ✅ (resolved) 로 갱신
 
 ### 3.6 Data governance & query scoping (Path Y caller-provided user context, 2026-06-18 신규)
 
@@ -1457,6 +1760,17 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 - viz.html 에서 archived concept 의 node 색상 변경 (gray) 또는 hidden (default)
 - raw 의 `concept_ids` 에서 archived concept ID 제거 (raw 는 유지, §4.4 retention 정합)
 
+**Archive 거부 정책 (impact analysis 기반, 2026-06-18 신규 — §3.5.6.5 정합)**:
+
+`DELETE /api/v0-2/concepts/{id}` (M-v0.2.1+ frontend 운영) 호출 시 자동 impact analysis 수행:
+
+| 조건 | 응답 | 이유 |
+| --- | --- | --- |
+| `inlink_count == 0` (orphan) | 200 OK + hard delete | in-link 없음 → dangling link 위험 0 |
+| `inlink_count >= 1` | **409 Conflict** + body: `{error: "concept has N in-links, use soft archive instead", inlinks: [{source, type, context}, ...]}` | in-link 가 있는 concept 의 hard delete 는 다른 concept 의 dangling link 유발 → 운영자 soft archive (`POST /api/v0-2/concepts/{id}/archive`, §3.9.4 obsolete) 권장 |
+
+**rationale**: cross-link graph 의 integrity 보존. 운영자가 hard delete 의 영향 (in-link 가 dangling 이 되어 §3.5.6.4 의 unresolved link 발생) 을 인지한 후 soft archive 또는 in-link fix 결정. 본 정책은 M-v0.2.0 PoC 의 `superseded (raw 변경)` 자동 archive (line 1754) 에는 적용 ❌ (in-link 가 있어도 raw 변경 시 자동 archive 는 정공법, 단 archive 시 in-link 측 concept 에 dangling link warning 표시 권장, M-v0.2.1+ 검토). 운영자 manual `obsolete` archive 시에만 본 정책 적용.
+
 **운영 정책 (M-v0.2.0~v0.2.3+)**:
 
 | Milestone | Lifecycle 지원 범위 |
@@ -2011,13 +2325,19 @@ echo "API docs: http://localhost:8000/docs"
 
 #### 6.5.4 E2E smoke pipeline (M-v0.2.0 PoC, 5종)
 
-**5 step e2e smoke** (per source):
+**6 step e2e smoke** (per source, 2026-06-18 갱신 — §3.5.6 reverse index PoC 검증 단계 추가):
 ```
 Step 1: POST /api/v0-2/ingest/gitea_repo_pull/sync (real Gitea instance)
 Step 2: raw_records / var/raw/ 확인 (storage_mode 별)
 Step 3: bundle/index.md 자동 생성 확인
 Step 4: GET /api/v0-2/concepts/integration_gitea_repo_puller 정상 응답
 Step 5: viz.html SSR 확인 (cross-link node 표시)
+Step 6 (2026-06-18 신규, §3.5.6 정공법): reverse index PoC 검증
+  - POST /api/v0-2/graph/reindex (full scan, var/bundles/.index/reverse_index.json 생성)
+  - GET /api/v0-2/graph/reverse/devhub-gitea/scm/integration_gitea_repo_puller.md (in-link list 응답 확인)
+  - GET /api/v0-2/graph/impact/devhub-gitea/scm/integration_gitea_repo_puller.md (impact 분석 확인, is_orphan/rank_score 응답)
+  - viz.html 의 incoming edge visualization (Cytoscape.js badge) 표시 확인
+  - reverse_index.json 의 stats: total_concepts / total_forward_links / total_reverse_entries / orphan_count / unresolved_count 검증 (5종 source 의 35~50 concept, orphan ≤ 5, unresolved == 0 정합 검증)
 ```
 
 **5종 PoC source plugin** e2e smoke 1 cycle = ~5분 (real Gitea + fixture). CI e2e lane = PR merge 시 자동 실행 (M-v0.2.1+).
@@ -2253,6 +2573,7 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 | 2026-06-18 | **§12 frontend page 상세화 (M-v0.2.1+ 관리/조회 page 1 + viz.html 자가 viewer) 신규 + cross-section 정합 fix 6 위치** — (1) **신규 §12** 5 subsection: **§12.1** M-v0.2.0 viz.html 자가 viewer 상세 (Cytoscape.js v3.x + marked.js v5.x CDN embed + inline style + SVG fallback + viz.html component 5 element + Cytoscape node 7 field + edge 4 type 정합) / **§12.2** M-v0.2.1 frontend 관리/조회 page 1 5 page 상세 (concept list / concept detail / ingest trigger / bundle management / raw inspector + routing 구조 + frontend 기술 선택 vanilla JS/Next.js/Vue.js/Svelte 옵션) / **§12.3** User flow + 권한 매트릭스 3 role (visitor/operator/admin + Path Y caller-provided user context 흐름 + gateway 의 3-step orchestration) / **§12.4** API integration matrix 14 row (per frontend page → backend-knowledge API 1:1 mapping, Path Y user context 필수 정합) / **§12.5** frontend cutover 정책 (7 step M-v0.2.0→v0.2.1 cutover + frontend update 주기 per release + viz.html 단독 vs frontend 통합 운영 + §5.6 cutover 정합) (2) cross-section 정합 fix 6 위치: **§5.1 M-v0.2.1 DoD row** "frontend 관리/조회 page 1" 의 5 page detail (§12.2) cross-reference / **§6.1 Phase 1** "M-v0.2.0 만 frontend 0 page, viz.html 자가 viewer 만 SSR" 의 viz.html 상세 (§12.1) cross-reference / ADR-0035 §3.6 frontend 정책 row + §12.2 5 page + §12.3 3 role + §12.4 API matrix + §12.5 cutover 정책 cross-reference 추가 / ADR-0034 §4.3 영향 section §12 row 추가 + ADR-0034 frontmatter 수정일 갱신 / frontmatter 갱신 (umbrella doc 최종 수정일 + §12 frontend page 상세화 cross-section fix 명시) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §12 frontend page 상세화" + §5.1 M-v0.2.1 DoD + §6.1 Phase 1 frontend 의 viz.html + frontend page 1 의 high-level 정의 → 5 page / 3 role / 14 row API matrix / 7 step cutover 정책 의 concrete 정공법 부재) |
 | 2026-06-18 | **§13 cross-cutting 종합 신규 (umbrella doc 전체 cross-reference 정합성 최종 검토) + cross-section 정합 fix 0 row (본 §13 자체가 종합 review)** — (1) **신규 §13** 4 subsection: **§13.1** cross-reference matrix (12 umbrella sections × ADR-0034 / ADR-0035 / state.json / external-integrations-agentic-rag-roadmap.md / docs/llm-wiki mirror 20 row, high/medium/low/none 정합성 검증 결과) / **§13.2** 미해결 cross-section gap 6 row 식별 (cross-link reverse index / Pi prompt template / incident runbook tuning / M-v0.2.0 sprint 진입 checklist 4/6 + 잔여 2 / Pi SDK mode npm dependency / backup schedule cron 등록) / **§13.3** 후속 결정 항목 (post-sprint follow-up) 6 row (GitHub milestone v0.2.0 / state.json M-v0.2.0 row / external-integrations-agentic-rag-roadmap.md status active / docs/llm-wiki mirror / M-v0.2.0 release notes / docs/DOCUMENT_INDEX.md + docs/planning/README.md 갱신) / **§13.4** Cross-cutting 영향 종합 + 정합 검증 결과 (12 항목 ✅, post-sprint 6 row 📋, known gaps 6 row 자연 해소) (2) cross-section 정합 fix 0 row: 본 §13 자체가 종합 review 이므로 fix 불필요. 단, ADR-0034 §4.3 + ADR-0035 §3.6 + frontmatter + §9 변경 이력 row 갱신 | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §13 cross-cutting 종합" + 12 commit 후 umbrella doc 전체 cross-reference 정합성 최종 검토 + post-sprint follow-up 항목 종합 (GitHub milestone / state.json / external-integrations-agentic-rag-roadmap.md / docs/llm-wiki mirror / release notes / DOCUMENT_INDEX.md) + known gaps 식별 (cross-link reverse index / Pi prompt template / incident runbook tuning / M-v0.2.0 sprint 진입 checklist 4/6 + 잔여 2 / Pi SDK mode npm dependency / backup schedule cron 등록)) |
 | 2026-06-18 | **§1.1 한계 4~7 추가 (2026-06-18 결정에서 식별된 trade-off 한계) + §1.3 How 정당화 강화 (한계 7개 → §3~§12 해결책 cross-reference 표) + cross-section 정합 fix** — (1) **§1.1 한계 4** caller-provided user context 신뢰 문제 (Path Y 의 trust model 한계, §3.6.1 mitigation = format 검증 + §11.3 monitoring audit log, 능동적 위조 탐지 HMAC signature / anomaly detection 은 M-v0.3.0+ scope 외) (2) **§1.1 한계 5** DB-based raw + Pi-driven source 의 운영 복잡도 (dual storage mode 한계, §10.4 default mapping + §10.6 운영 가이드 + §11.3 mode 변경 event audit, storage_mode 변경 CLI tool / dashboard 는 M-v0.2.1+ scope 외) (3) **§1.1 한계 6** backup + DR 복잡도 (dual storage mode 의 transactional 정합성 한계, §11.1.5 integrity violation 자동 trigger backup re-sync + §11.2 backup drill 분기 1회, transactional backup strong consistency 는 M-v0.2.3+ scope 외) (4) **§1.1 한계 7** §12 frontend standalone 유지보수 부담 (lifecycle 분리 한계, §12.1 viz.html 자가 viewer + §12.4 API integration matrix + §5.7 parallel sprint PR 전략, CI 자동 contract test 는 M-v0.2.1+ scope 외) (5) **§1.3 How 정당화 강화** — 한계 7개 (1~3 = v0.1.x 한계 + 4~7 = 2026-06-18 식별 trade-off) → §3~§12 해결책 cross-reference 표 7 row + "정당화 원칙" 1줄 (v0.2.0 PoC 의 trade-off 로 받아들이고 능동적 강화는 후속 milestone scope 분리) + "본 v0.2.0 PoC 운영 중에는 한계 4~7 이 자연 노출, §11 운영 runbook 으로 mitigation 가능" (6) cross-section 정합 fix: umbrella doc frontmatter (최종 수정일 + §1.1/§1.3 영향 명시) + ADR-0034 §4.3 영향 section row 1 추가 (한계 4~7 의 §1.1 명시 + §1.3 정당화 cross-reference + 한계 4~7 의 §3~§12 mitigation 위치 7 row) + ADR-0034 frontmatter 갱신 + ADR-0035 §4.3 영향 section row 1 추가 (한계 4~7 의 §1.1 명시 + §1.3 정당화 cross-reference + §12 frontend 정책이 한계 7 의 baseline mitigation) + ADR-0035 frontmatter 갱신 (7) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(a) §1.1 한계 추가 (2026-06-18 결정 반영)" + §13 cross-cutting 종합 후 자연스러운 후속 — 2026-06-18 결정 (Path Y / DB-based raw + Pi / 운영 runbook / frontend standalone) 과정에서 식별된 4가지 trade-off 한계 (caller 신뢰 / dual mode 운영 / backup DR / frontend lifecycle) 의 명시적 식별 + §1.3 의 "How" 정당화를 한계 7개 → 해결책 cross-reference 표로 강화 + 한계 4~7 의 능동적 강화 (HMAC signature / CLI tool / transactional backup / contract test) 는 M-v0.2.1+~M-v0.3.0+ scope 외로 분리 + §11 runbook 으로 mitigation 가능 명시) |
+| 2026-06-18 | **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 부터 능동적 강화, §13.2 known gap 1 ✅ resolved) + cross-section 정합 fix 7 위치** — (1) **신규 §3.5.6** 5 subsection: §3.5.6.1 reverse index 목적 (forward vs reverse + 4 use case: impact 분석 / importance rank / viz.html visualization / archive 거부 정책, M-v0.2.0 PoC = (a) + (c) 활성화, (b) + (d) 는 M-v0.2.1+) / §3.5.6.2 reverse index schema + layout (`var/bundles/.index/reverse_index.json` + schema_version=1 + stats 5 field + per concept inlink list with source/type/section/context + regen timing 4 trigger) / §3.5.6.3 `okf/link_graph.py reverse_index()` implementation (3 step algorithm pseudocode: scan + extract + reverse map + 4 type classification, full scan default M-v0.2.0 PoC, in-memory dict, atomic write) / §3.5.6.4 stale handling + source-external link 검증 (3 strategy: tolerate/warn/auto-fix per M-v0.2.0/M-v0.2.1+/M-v0.2.3+ + 별도 `external_link_index.json` HTTP HEAD 검증 M-v0.2.1+) / §3.5.6.5 Query API + impact 분석 (3 graph endpoint: `GET /api/v0-2/graph/reverse/{path}` + `GET /api/v0-2/graph/impact/{path}` + `POST /api/v0-2/graph/reindex` + impact analysis JSON 예시 + archive 거부 정책 `inlink_count >= 1` → 409 Conflict + soft archive 권장 + viz.html incoming edge visualization + 4 CLI tool M-v0.2.1+) (2) cross-section 정합 fix 7 위치: §3.5.5 cross-link 4종 rule row 4 보강 (§3.5.6 cross-reference 추가) / §2.1 `okf/link_graph.py` 코멘트 갱신 / §3.1 API 매트릭스 row 4 (Graph) 3 endpoint 추가 / §3.9.4 archive 거부 정책 (impact-based, §3.5.6.5 정합) 신규 / §6.5.4 E2E smoke Step 6 (reverse index PoC 검증) / §11.1.7 stale link runbook (신규, §3.5.6 정합) / §13.2 known gap 1 ✅ resolved + §13.4 정합 검증 row 1 (cross-link reverse index) ✅ (3) ADR 영향 갱신: ADR-0034 §4.3 영향 section §3.5.6 row 추가 (5 subsection + 7 cross-section fix 위치) + ADR-0034 frontmatter 갱신 / ADR-0035 §4.3 영향 section §3.5.6 row 추가 (3 graph endpoint + `okf/link_graph.py reverse_index()` + impact-based archive 거부 정책 + viz.html incoming edge visualization + backend-knowledge 의 4번째 핵심 기능 Ingest/Curate/Query/**Graph**) + ADR-0035 frontmatter 갱신 (4) umbrella doc frontmatter 갱신 (최종 수정일 + cross-section fix 7 위치 명시) (5) §9 변경 이력 row 신규 추가 (현재 row) | self-review (사용자 "1" (다음 concept organization) + 4-option 질문 응답 "(c) §3.5.6 cross-link reverse index 정공법" + §13.2 known gap 1 ("cross-link reverse index — M-v0.2.1+ 검토에서 M-v0.2.0 PoC 로 advance") 의 능동적 강화 + §3.5.5 cross-link 4종 rule 의 4번째 (reverse index) 의 구체적 구현 정공법 + 5 subsection 의 detail (목적/schema/implementation/stale handling/Query API integration) + 7 cross-section fix 위치 (umbrella doc 본문 + ADR-0034/0035) + §13.2 known gap 1 의 ✅ resolved) |
 
 ## 10. DB-based raw + Pi periodic ingest pipeline (2026-06-18 신규)
 
@@ -2636,6 +2957,30 @@ class SourceMeta(BaseModel):
   - archive 정상 적용 후 audit log success
   - viz.html 에서 superseded concept 가 archived 표시
 
+#### 11.1.7 Stale link 탐지 + 처리 (2026-06-18 신규, §3.5.6 정공법)
+
+- **Trigger**: §3.5.6.4 의 stale link 3 type — **unresolved** (forward link 의 target 부재) / **broken anchor** (target 존재하나 anchor 부재) / **orphan** (inlink_count == 0)
+- **Detection**:
+  - cron `0 * * * *` (정시 hourly) full scan → `var/bundles/.index/reverse_index.json` 갱신 + `stats` 검증 (§3.5.6.2 regen timing)
+  - `stats.unresolved_count > 0` → §11.3 monitoring warning (info-level, 일 1회 digest)
+  - `stats.orphan_count > 10` (configurable) → §11.3 monitoring warning (info-level, 일 1회 digest)
+  - 운영자 manual: `cli/list_unresolved.py` / `cli/list_orphans.py` / `cli/impact.py {concept_path}` (M-v0.2.1+ CLI tool, §3.5.6.5)
+- **Triage**:
+  1. `cli/list_unresolved.py` 출력으로 unresolved link list 확인 (source + target + context)
+  2. `cli/list_orphans.py` 출력으로 orphan concept list 확인 (inlink_count == 0)
+  3. source-external link 의 http_status 검증 (M-v0.2.1+ `var/bundles/.index/external_link_index.json`, daily HTTP HEAD, §3.5.6.4)
+- **Mitigation** (3 strategy per §3.5.6.4):
+  - **M-v0.2.0 PoC = tolerate + warn**:
+    1. `unresolved` link → 운영자 manual fix (concept .md 의 link path 수정 / concept 재생성 / link 제거) — `cli/list_unresolved.py` 의 context (in-link 주변 ±2 줄) 가 fix 가이드
+    2. `orphan` concept → 운영자 검토 (정말 archive 가능? 또는 link 추가 필요?) — `cli/list_orphans.py` 가 archive 권장/수동 fix 권장/유지 결정 가이드
+  - **M-v0.2.1+ = CLI tool 정밀화**: 위 1~2 + bulk fix script (`cli/fix_unresolved.py --strategy=remove|update|recreate`)
+  - **M-v0.2.3+ = auto-fix**: `POST /api/v0-2/concepts/{id}/resolve-links` (Pi LLM 추천 → operator confirm → 자동 link resolve, §3.5.6.4)
+- **Recovery**:
+  - `POST /api/v0-2/graph/reindex` (full scan) → `stats.unresolved_count == 0` + `stats.orphan_count ≤ 5` 검증
+  - viz.html 의 incoming edge 가 normal 표시 (dashed red edge 없음)
+  - audit log 의 stale link event 7 day retention 후 자동 정리 (§11.2 retention 정합)
+- **MTTR**: M-v0.2.0 PoC = < 30분 (tolerate + warn 만, 운영자 manual fix), M-v0.2.1+ = < 15분 (CLI tool 자동화), M-v0.2.3+ = < 5분 (auto-fix)
+
 ### 11.2 Backup + restore 절차
 
 **Backup 대상** (per storage mode, 2026-06-18 결정):
@@ -3012,7 +3357,7 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 
 | Gap | 정의 (umbrella doc) | 실제 구현 (M-v0.2.0 PoC 진입 시) | 영향 |
 | --- | --- | --- | --- |
-| **§3.5.5 cross-link reverse index** | `okf/link_graph.py` 가 자동 갱신 (§3.5.5) | M-v0.2.0 PoC = simple in-memory, M-v0.2.1+ = sqlite persisted | mid (perf 영향, M-v0.2.0 PoC 시 OK) |
+| **§3.5.5 cross-link reverse index** ✅ **resolved 2026-06-18** | `okf/link_graph.py` 가 자동 갱신 (§3.5.5) | M-v0.2.0 PoC = simple in-memory + hourly cron full scan + `var/bundles/.index/reverse_index.json` (§3.5.6 신규 정공법), M-v0.2.1+ = sqlite persisted + CLI tool + auto-fix (Pi LLM) | **mid → low** (M-v0.2.0 PoC 시 OK, §3.5.6 정공법으로 능동적 강화). §3.5.6 cross-reference + §3.5.5 row 4 보강 + §3.1 API 매트릭스 row 4 (graph) + §3.9.4 archive 거부 정책 + §6.5.4 Step 6 reverse index PoC 검증 + §11.1.7 stale link runbook + ADR-0034 §4.3 영향 + ADR-0035 §3.3 영향 정합 |
 | **§10.3 Pi prompt template** | 단순 prompt + raw JSON (§10.3 j2 template) | M-v0.2.0 PoC = 단순 prompt, M-v0.2.1+ = 진보된 prompt engineering (few-shot examples + chain-of-thought) | low (PoC 작동, accuracy 는 M-v0.2.1+ 개선) |
 | **§11.1 incident runbook 6 type trigger 조건** | RTO + mitigation 정의 (§11.1) | M-v0.2.0 PoC 운영 1주 후 실제 trigger 조건 tuning 필요 (false positive / false negative) | mid (PoC 검증 후 §11.3 alert threshold 재조정) |
 | **§5.3 M-v0.2.0 sprint 진입 checklist 6 항목** | 본 §13 commit 시점에 **4/6 완료** (umbrella doc publish / external-integrations-agentic-rag-roadmap.md status / state.json M-v0.2.0 row / OKF SPEC.md 1차 정독), 잔여 **2 항목** (backend-knowledge/ 디렉터리 skeleton / GitHub milestone v0.2.0) | §13.3 후속 결정 항목으로 처리 | high (sprint 진입 전 필수) |
@@ -3043,21 +3388,22 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 
 | 검증 항목 | 결과 | 비고 |
 | --- | --- | --- |
-| umbrella doc 본문 (§1~§12) cross-reference 정합성 | ✅ | §13.1 matrix 정합 |
+| umbrella doc 본문 (§1~§13) cross-reference 정합성 | ✅ | §13.1 matrix 정합 + **§3.5.6 reverse index 정공법 (2026-06-18 신규) cross-section fix 7 위치 (§3.5.5 row 4 보강 / §2.1 `okf/link_graph.py` 코멘트 / §3.1 API 매트릭스 row 4 graph / §3.9.4 archive 거부 정책 / §6.5.4 Step 6 reverse index PoC 검증 / §11.1.7 stale link runbook / §13.2 known gap 1 ✅ resolved)** |
 | §7 Q&A 18/18 결정 완료 | ✅ | Q12~Q18 §7 추가 완료 |
 | §8 timeline 결정 row 정합 (Q12~Q18) | ✅ | 7 row 추가 완료 |
-| §9 변경 이력 12 commit row | ✅ | 각 commit 별 영향 section 정합 |
-| ADR-0034 §4.3 영향 (10 row) | ✅ | §3.2.1 / §3.3 / §3.5 / §3.6 / §3.7 / §3.8 / §3.9 / §6.5~§6.7 / §10 / §11 / §12 |
-| ADR-0035 §3 영향 (frontend 정책 / Q12~Q18 trade-off / §3.8 마일스톤 표) | ✅ | 4 row 갱신 |
-| §11 운영 runbook 6 incident type + 5 monitoring 지표 + 4 role | ✅ | §13.1 matrix 정합 |
+| §9 변경 이력 14 commit row | ✅ | 각 commit 별 영향 section 정합 |
+| ADR-0034 §4.3 영향 (**11 row**) | ✅ | §3.2.1 / §3.3 / §3.5 / §3.6 / §3.7 / §3.8 / §3.9 / §6.5~§6.7 / §10 / §11 / §12 / **§3.5.6 (2026-06-18 신규)** |
+| ADR-0035 §3 영향 (frontend 정책 / Q12~Q18 trade-off / §3.8 마일스톤 표 / **§3.5.6 reverse index 정공법 cross-reference**) | ✅ | 5 row 갱신 (2026-06-18 +1) |
+| §11 운영 runbook 6 incident type + 5 monitoring 지표 + 4 role | ✅ | §13.1 matrix 정합 + **§11.1.7 stale link runbook (2026-06-18 신규, §3.5.6 정합)** |
 | §12 frontend page 5 page + 3 role + 14 row API matrix | ✅ | §13.1 matrix 정합 |
 | standalone 정책 (§1.2 G7) 일관성 | ✅ | 모든 section 에서 다른 backend 연결 ❌ 유지 |
 | Path Y caller-provided user context (§3.6) 일관성 | ✅ | §3.6.1 endpoint 표 + §12.4 API matrix 정합 |
 | DB-based raw (§10) + Pi periodic ingest pipeline 정합 | ✅ | §10.4 storage_mode 분기 + §10.3 Pi SDK mode scheduler |
+| **§3.5.6 cross-link reverse index 정공법 (M-v0.2.0 PoC 능동적 강화, §13.2 known gap 1 ✅ resolved)** | ✅ | 5 subsection (§3.5.6.1~§3.5.6.5) + 3 step `okf/link_graph.py reverse_index()` pseudocode + 3 strategy stale handling + 3 graph endpoint + impact-based archive 거부 정책 + viz.html incoming edge visualization + §11.1.7 incident runbook + §13.2 known gap 1 ✅ resolved |
 
 **📋 미완료 (post-sprint follow-up)** — §13.3 의 6 row (GitHub milestone / state.json / external-integrations-agentic-rag-roadmap.md status / docs/llm-wiki mirror / release notes / DOCUMENT_INDEX.md). 이 항목들은 **M-v0.2.0 sprint 진입 시점에 처리** (umbrella doc 본 §13 commit 시점에서는 의도적 미완료).
 
-**§13.2 의 6 row Known gaps** — M-v0.2.0 PoC 운영 시 자연스럽게 해소 (cross-link reverse index / Pi prompt template / incident runbook tuning / cron daemon setup). umbrella doc 본문 변경 불필요.
+**§13.2 의 6 row Known gaps** — M-v0.2.0 PoC 운영 시 자연스럽게 해소 (Pi prompt template / incident runbook tuning / cron daemon setup). **단, row 1 (cross-link reverse index) 는 2026-06-18 §3.5.6 정공법 신규로 ✅ resolved** (M-v0.2.0 PoC 부터 활성화, §3.5.6 정공법). 잔여 **5/6 row** M-v0.2.0 PoC 운영 시 자연 해소. umbrella doc 본문 변경 불필요.
 
 **Cross-section 정합 fix** (2026-06-18 신규, 본 §13 자체는 종합 review 이므로 cross-section fix 0 row):
 - ADR-0034 §4.3 영향 + frontmatter 갱신 (§13 row 추가)
