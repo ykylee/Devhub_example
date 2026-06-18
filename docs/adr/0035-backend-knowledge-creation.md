@@ -133,6 +133,7 @@
 - **standalone 정책** 으로 backend-core 와 직접 wire ❌ — gateway / cron / 별도 agent 가 cross-repository 호출 필요 (운영 부담)
 - **OIDC 제외** — `/api/v0-2/*` 전체 인증 없이 호출 가능. 별도 gateway / firewall / IP allowlist 가 보호 (운영 책임)
 - **Path Y caller-provided user context (2026-06-18 결정, [release_v0-2_roadmap.md §3.6](../planning/release_v0-2_roadmap.md) 추가)** — auth 자체 ❌, caller 가 user context 전달 시 governance 만 수행. **governance 책임 = backend-knowledge** (curation ownership + query scope filter) + **auth 책임 = caller** (DevHub backend-core Keycloak federation 정합). 운영 부담: caller (gateway / agent) 가 Keycloak 인증 + user context 구성 + backend-knowledge 호출 의 3-step orchestration 필요
+- **§7 Q12~Q18 결정 (2026-06-18, [release_v0-2_roadmap.md §7](../planning/release_v0-2_roadmap.md))** — Q12 raw storage_mode dual mode (file|db per source_meta.storage_mode) + Q13 Pi SDK mode M-v0.2.0+ timing + Q14 DB type (sqlite M-v0.2.0~v0.2.2 + PostgreSQL M-v0.2.3+) + Q15 per source default mapping + Q16 cron interval `*/5 * * * *` + Q17 Pi LLM fallback to rule-based + Q18 backend-ai 폐기 M-v0.2.2 동시. §11 운영 runbook 영향: Q16 cron interval = §11.3 monitoring #4 Pi ingest success rate 측정 주기 정합 / Q17 fallback = §11.1.3 Pi ingest pipeline timeout-degraded runbook 정합 / Q18 backend-ai 폐기 = §6.6.2 폐기 절차 10 단계 정합. **운영 부담: Q12 dual mode + Q14 DB 추가 = 운영 복잡도 증가 (per source storage_mode 별 관리) + DB backup 추가 (§11.2)**
 
 ### 4.3 영향
 
