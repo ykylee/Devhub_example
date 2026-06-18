@@ -4,7 +4,7 @@
 - 범위: v0.2.0 의 (1) 외부 시스템 연동 분리 (기존 `backend-ai/` 폐기 흡수) (2) OKF 형 knowledge bundle 생성/관리 (3) AI agent + 사용자 query 응답. 1차 외부 연동 (Gitea, HomeLab) + OKF reference PoC + 핵심 3 endpoint.
 - 대상 독자: 프로젝트 리드, 모든 contributor (사람 + AI agent), 후속 sprint 작업자, owner.
 - 상태: accepted (2026-06-17 publish, 2026-06-18 cross-section 정합 fix 추가, §9 변경 이력 + ADR-0034/0035 publish 완료 + Q&A 11/11 결정 완료)
-- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context — §3.2.1 보강 (대표 concept frontmatter 예시) + 신규 §3.5 "Concept organization" (5 subsection: orthogonal axes 원칙 / 5×8 matrix / bundle 디렉터리 + concept 예시 / index.md 3종 자동 생성 규칙 / cross-link 4종 rule) + 신규 §3.6 "Data governance & query scoping" (5 subsection: caller-provided user context schema+trust model / curation governance model / 4-tier query scope priority / frontmatter 5 governance field extension / cross-section 정합 fix 8 위치) + cross-section 정합 fix: §1.2 G7 standalone 정책 + caller-provided user context 명시 / §2.3 API 인증 row + 다른 backend 연결 row + OIDC row 갱신 / §3.1 API 매트릭스 인증 정책 노트 갱신 / §3.3 frontmatter spec Path Y 5 governance field 추가 / §4.1 정책 정의 인증 row 갱신 / ADR-0034 §4.3 영향 section + ADR-0035 §3.4 API 정책 row + §4.2/§4.3 갱신).
+- 최종 수정일: 2026-06-18 (5 카테고리 정합 + Path Y caller-provided user context + data normalization pipeline — §3.2.1 보강 (대표 concept frontmatter 예시) + 신규 §3.5 "Concept organization" (5 subsection: orthogonal axes 원칙 / 5×8 matrix / bundle 디렉터리 + concept 예시 / index.md 3종 자동 생성 규칙 / cross-link 4종 rule) + 신규 §3.6 "Data governance & query scoping" (5 subsection: caller-provided user context schema+trust model / curation governance model / 4-tier query scope priority / frontmatter 5 governance field extension / cross-section 정합 fix 8 위치) + 신규 §3.7 "Data normalization pipeline" (5 subsection: 5 step normalization 원칙 / per-source type mapping 7 source / cross-source 동질화 / normalize algorithm pseudocode / edge cases + degraded) + cross-section 정합 fix: §1.2 G7 / §1.3 producer 다중 row 갱신 / §2.1 sources/ tree + curate/enricher.py / §2.3 3 row / §3.1 API 매트릭스 / §3.2 type enum §3.7.2 reference / §3.3 frontmatter spec Path Y 5 field / §3.5.3 bundle 디렉터리 §3.7.1 reference / §4.1 정책 정의 인증 row / ADR-0034 §4.3 영향 + ADR-0035 §3.4 + §4.2/§4.3 갱신).
 - 결정 근거: 사용자 2026-06-17 결정 + 사용자 2026-06-10 결정 (외부 연동 = agentic RAG 와 발전) + Google Cloud `Open Knowledge Format v0.1` (2026-06-12 발표, Apache 2.0).
 - 관련 문서:
   - [v0.1.0 릴리즈 로드맵](./release_v0-1_roadmap.md) (직전)
@@ -73,7 +73,7 @@
 | 1 concept = 1 .md | `backend-knowledge/var/bundles/{bundle}/{category}/{slug}.md` (예: `scm/integration_gitea_repo_puller.md` — slug prefix = type, `x_devhub_category` = dir 이름, `type` 은 frontmatter + slug prefix 에 동시 명시, §3.5.3 정합) |
 | frontmatter `type` 필수 | 본 프로젝트 `type` enum = `dataset` / `metric` / `api_endpoint` / `runbook` / `integration` / `event` / `reference` / `decision` (8종, §3.2) |
 | vendor-neutral | OKF 그대로 채택 (자체 dialect 만들지 않음) |
-| producer 다중 | **1차 (M-v0.2.0~v0.2.2)**: human curator + **rule-based enricher** + 외부 system adapter 1~2종 (source plugin, Q6). **후속 (M-v0.2.3)**: + LLM enrichment agent (1 vendor, 시점 결정). **장기 (M-v0.3.0+)**: + multi-vendor LLM (vendor-neutral) |
+| producer 다중 | **1차 (M-v0.2.0~v0.2.2)**: human curator + **rule-based enricher** (`curate/enricher.py`, 외부 system adapter 5종 PoC, Q6 정합, §3.7.1 / §3.7.4 정공법). **후속 (M-v0.2.3)**: + LLM enrichment agent (Pi `pi-coding-agent` SDK or RPC mode, 1 vendor, §6.3 정합). **장기 (M-v0.3.0+)**: + multi-vendor LLM (vendor-neutral) |
 | consumer 다중 | 신규 API (Query) + frontend 위키 viewer + Obsidian 호환 + LLM context |
 | progressive disclosure | `index.md` 자동 생성 (**per-bundle** + **per-type** + **per-category**, §3.5.4 정합) |
 | graph | cross-link 자동 추출 (**intra-bundle** / **cross-bundle** / **source-external** 4종 rule, §3.5.5 정합) + **reverse index** (`okf/link_graph.py`) + `viz.html` 자가 viewer (Cytoscape.js) |
@@ -112,8 +112,8 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 │   ├── gitea_action.py                    # Gitea 4 sub-plugin 4 — Gitea Actions API, **CI/CD 카테고리 (4)**, M-v0.2.0 PoC / v0.2.1 정식
 │   ├── metrics.py                         # §3 source plugin — Prometheus scrape API, **모니터링 (5 카테고리 외)**, M-v0.2.2 운영 wire
 │   └── hrdb.py                            # §3 source plugin — 사내 HR DB PostgreSQL, **HR/조직 (5 카테고리 외)**, M-v0.2.3 운영 wire
-├── curate/                                # raw → OKF concept 정형화
-│   ├── enricher.py                        # rule-based enrich (LLM-optional, 1차 rule-based 만)
+├── curate/                                # raw → OKF concept 정형화 (§3.7.1 정공법)
+│   ├── enricher.py                        # rule-based enrich (LLM-optional, 1차 rule-based 만) — source plugin 의 normalize() 와 함께 5 step normalization 의 Step 3+5 담당 (§3.7.1 / §3.7.4 정합)
 │   ├── index_builder.py                   # per-bundle/per-type/per-category index.md + viz.html 동시 생성 (§3.5.4 정합)
 │   └── link_resolver.py                   # unresolved cross-link 추적 (1차 rule-based, M-v0.2.3+ Pi LLM cross-link 자동 resolution, §3.5.5 정합)
 ├── api/                                   # §3 3가지 기본 기능 + §4 1차 raw API + Bundle management (envelope 정합)
@@ -203,6 +203,8 @@ backend-knowledge/                         # tier=사외 (외부 인프라 무�
 | `event` | webhook payload 정의 | `gitea_push_event` |
 | `reference` | 외부 문서 mirror (1차 raw) | `keycloak_admin_rest_api_v1` |
 | `decision` | ADR-style concept (in-bundle ADR) | `decision_2026_06_17_backend_knowledge_creation` |
+
+> **어떤 source 가 어떤 type emit** = §3.7.2 정합. 7 source (Gitea 4 sub-plugin + homelab + metrics + hrdb) 별 emit_types 는 source plugin 의 `SourceMeta.emit_types` 필드로 명시 (§3.7.4 정공법).
 
 ### 3.2.1 5 카테고리 결정 (2026-06-17, 1차 wire 정공법)
 
@@ -363,7 +365,7 @@ OKF 형 concept 를 실제로 디렉터리에 배치하고 navigation 가능하�
 
 #### 3.5.3 Bundle 디렉터리 구조 + concept 예시
 
-**Bundle 디렉터리 layout** (§2.1 `var/bundles/` 정합, M-v0.2.0 PoC 기준):
+**Bundle 디렉터리 layout** (§2.1 `var/bundles/` 정합 + §3.7.1 5 step normalization 정합, M-v0.2.0 PoC 기준):
 
 ```
 backend-knowledge/var/bundles/
@@ -819,6 +821,176 @@ def filter_concepts(query_result, caller_context):
 7. **ADR-0034 §4.3 영향** — §3.6 row 추가.
 8. **ADR-0035 §3.4 1차 raw API 정책 row** — caller-provided user context (gateway 책임) 명시 + §3.6.1 cross-reference + ADR-0035 §4.2/§4.3 갱신.
 
+### 3.7 Data normalization pipeline (category × system → OKF concept, 2026-06-18 신규)
+
+**Motivation**: §3.5 의 5 카테고리 + 8 type 결정 + §3.6 의 data governance 이후 자연스러운 후속. 외부 시스템 데이터를 (category, system) 단위로 수집한 후, 이를 OKF concept 형으로 **정규화**하여 **cross-source aggregation 가능**하게 하는 파이프라인 정의. 사용자 2026-06-18 결정.
+
+**DevHub 기존 패턴 참고**: backend-core 의 Go adapter 패턴이 본 §3.7 의 reference:
+- `HomeLabRawSnapshot` → `HomeLabSnapshot` (transport → normalized, [`backend-core/internal/integrations/adapters/contract.go`](../../backend-core/internal/integrations/adapters/contract.go))
+- `stateToEventType()` (Gitea PR state → enum, [`gitea_pull.go`](../../backend-core/internal/integrations/adapters/gitea_pull.go))
+- `collectDegradedProviders()` (health → degraded flag)
+- `REQ-FR-INT-004/005/008/009` (provider → 공통 model 정규화 요구사항, [`integration-registry/requirements.md`](../domain/integration-registry/requirements.md))
+
+**독립 backend-knowledge 구현 차이**: Python `sources/{source}.py` 가 source plugin ABC (`sources/_base.py` §2.1 정합) 의 subclass 로 구현. backend-core 의 Go adapter 코드/로직 import ❌ (standalone 정합, §1.2 G7). **외부 시스템 공식 API spec 만 보고 0에서 Python 작성** (§1.2 G3 정합, 외부 시스템 API spec 만 참조).
+
+#### 3.7.1 Normalization principles
+
+**단일 shape = OKF concept** (1 .md = 1 concept, ADR-0034 §3.1 정합). 모든 외부 시스템 데이터는 source plugin 을 통해 OKF concept 형으로 정규화.
+
+**책임 분리** (5 module):
+
+| Module | 책임 | 위치 |
+| --- | --- | --- |
+| **source plugin (adapter)** | 외부 시스템 API 호출 + raw JSON 파싱 + OKF concept emit | `backend-knowledge/sources/{source}.py` |
+| **1차 raw storage** | raw JSON 봉투 암호화 저장 (ADR-0025 정합) | `backend-knowledge/var/raw/{source}/{slug}.json` |
+| **OKF bundle storage** | concept .md 저장 (git 가능, Markdown + frontmatter) | `backend-knowledge/var/bundles/{bundle}/{category}/{slug}.md` |
+| **rule-based enricher** | frontmatter 직접 read + raw → concept 변환 (1차 rule-based) | `backend-knowledge/curate/enricher.py` |
+| **index_builder** | per-bundle/per-category/per-type index.md 자동 생성 (§3.5.4 정공법) | `backend-knowledge/curate/index_builder.py` |
+| **link_resolver** | cross-link 추적 + reverse index (§3.5.5 정공법) | `backend-knowledge/curate/link_resolver.py` |
+
+**5 step normalization** (POST /ingest/{source}/sync 호출 시 1 cycle):
+
+```
+Step 1: 외부 시스템 API 호출 (source plugin 이 credential config 로 연결, §2.2 봉투 암호화 정합)
+  ↓
+Step 2: raw JSON 응답 저장 (var/raw/{source}/{slug}.json, 봉투 암호화, ADR-0025)
+  ↓
+Step 3: raw → OKF concept 변환 (sources/{source}.py 의 normalize() method, §3.7.4 정공법)
+  ↓
+Step 4: concept .md 파일 emit (var/bundles/{bundle}/{category}/{slug}.md)
+  ↓
+Step 5: index.md 자동 생성 (curate/index_builder.py 가 per-bundle/per-category/per-type)
+```
+
+**M-v0.2.0 PoC**: 1차 rule-based enrich (LLM 미사용). **M-v0.2.3+**: Pi LLM enrich 활성화 (curate/enricher.py 의 `llm_enrich(concept)` method 추가, §6.3 정합).
+
+#### 3.7.2 Per-source type mapping (7 source × types emitted)
+
+§3.5.2 5×8 matrix + §1.2 G3 source plugin 7종 (Gitea 4 sub-plugin + homelab + metrics + hrdb) 의 cross-reference. 각 source 가 emit 하는 type:
+
+| Source plugin | Bundle | Category | Emit types (representative) | Source 비고 |
+| --- | --- | --- | --- | --- |
+| `gitea_repo_pull` | `devhub-gitea` | `scm` | `integration`, `api_endpoint`, `metric`, `runbook`, `event`, `dataset`, `reference` | Gitea REST + git HTTP, 5종 PoC 의 1차 |
+| `gitea_issue` | `devhub-gitea` | `issue_tracker` | `integration`, `api_endpoint`, `event`, `runbook`, `metric`, `dataset`, `reference` | Gitea Issue API, 5종 PoC 의 1차 |
+| `gitea_wiki` | `devhub-gitea` | `wiki` | `integration`, `api_endpoint`, `reference`, `dataset`, `metric` | Gitea Wiki API, 5종 PoC 의 1차 |
+| `gitea_action` | `devhub-gitea` | `cicd` | `integration`, `api_endpoint`, `event`, `metric`, `runbook`, `dataset`, `reference` | Gitea Actions API, 5종 PoC 의 1차 |
+| `homelab_mock` | `devhub-homelab` | (5 카테고리 외) | `reference`, `metric`, `runbook`, `api_endpoint` | M-v0.2.0 PoC, filesystem fixture (`var/fixtures/homelab/*.json`) |
+| `metrics` | `devhub-metrics` | (5 카테고리 외) | `metric`, `reference`, `api_endpoint` | M-v0.2.2 운영 wire, Prometheus scrape API |
+| `hrdb` | `devhub-hrdb` | (5 카테고리 외) | `dataset`, `reference`, `metric` | M-v0.2.3 운영 wire, 사내 HR DB PostgreSQL |
+
+**5종 PoC source plugin** (M-v0.2.0) = Gitea 4 sub-plugin + homelab_mock = **5 source × 평균 7 type** = 약 **35개 concept** 자동 emit (cross-section §3.5.3 의 devhub-gitea 25 + devhub-homelab 4 정합).
+
+**Type emit 여부 결정**: source plugin 의 `SourceMeta.emit_types: List[ConceptType]` 필드. 어떤 type 을 emit 하는지는 source 의 외부 API 응답 schema 에 따라 결정 (e.g., Gitea Issue API 가 webhook payload 를 제공하면 `event` type emit, runbook 이 없으면 `runbook` type 미emit).
+
+#### 3.7.3 Cross-source 동질화 (same type across multiple sources)
+
+**같은 type 의 다른 source 의 concept 는 동일 shape** (5×8 matrix §3.5.2 정합 + 8 type enum §3.2 정합). 즉, **Jira issue / Gitea issue / GitHub issue 모두 `integration_*_issue_puller.md` 형으로 정규화**.
+
+**Cross-source concept 예시** (`integration` type):
+
+| Source | Bundle | Category | Concept slug | Concept frontmatter |
+| --- | --- | --- | --- | --- |
+| `gitea_issue` | `devhub-gitea` | `issue_tracker` | `integration_gitea_issue_puller.md` | `type: integration, x_devhub_source: gitea_issue, x_devhub_category: issue_tracker` |
+| (향후) `jira_issue` | `devhub-jira` | `issue_tracker` | `integration_jira_issue_puller.md` | `type: integration, x_devhub_source: jira_issue, x_devhub_category: issue_tracker` |
+| (향후) `github_issue` | `devhub-github` | `issue_tracker` | `integration_github_issue_puller.md` | `type: integration, x_devhub_source: github_issue, x_devhub_category: issue_tracker` |
+
+**Query 시 cross-source aggregation**:
+- `GET /search?q=type:integration` → 모든 source 의 integration concept 동시 노출 (Gitea 1 + Jira 1 + GitHub 1 = 3+ instances)
+- 같은 `integration` type 이지만 source 가 다름 → viz.html 에서 cross-source cluster 시각화 (e.g., `issue_tracker` category 의 integration sub-cluster 에 Gitea/Jira/GitHub 모두 포함)
+- Cross-source link: `integration_gitea_issue_puller.md` 본문에서 `integration_jira_issue_puller.md` 로 cross-link 가능 (M-v0.2.3+ Pi LLM, §6.3 정합)
+
+**Priority 기반 deduplication** (§3.6.3 aggregation policy 정합): 같은 `integration_*_issue_puller` 가 여러 source 에 있을 때, caller 의 user context 에 따라 highest priority instance 만 노출. priority = source 의 caller org_unit 정합도 (caller 가 owner_org 일치하면 priority 1, public 일 때 priority 4).
+
+#### 3.7.4 Normalize algorithm (raw JSON → OKF concept .md)
+
+```python
+# sources/{source}.py
+class SourceMeta:
+    bundle: str
+    category: str
+    source_plugin: str
+    concept_type: ConceptType  # 8종 enum
+    title_field: str  # raw JSON 의 어떤 field 가 title
+    description_field: str
+    slug_field: str  # raw JSON 의 unique id (e.g., gitea 의 "id")
+    body_template: Callable[[dict], str]
+    link_fields: List[str]  # cross-link 추출할 raw field
+    tags: List[str]
+    bundle_owner_org_id: str
+    bundle_owner_org_unit_ids: List[str]
+    emit_types: List[ConceptType]
+
+def normalize(raw_response: dict, source_meta: SourceMeta) -> Concept:
+    """Step 1: Parse raw JSON"""
+    parsed = parse(raw_response, source_meta.response_schema)
+    # - missing field → degraded flag + audit log (§3.7.5)
+    # - schema drift → KeyError catch + skip
+
+    """Step 2: Extract frontmatter"""
+    frontmatter = {
+        "type": source_meta.concept_type.value,  # 8종 enum
+        "title": parsed.get(source_meta.title_field, parsed.get("name", "Untitled"))[:200],
+        "description": parsed.get(source_meta.description_field, "")[:500],
+        "resource": parsed.get("url") or parsed.get("html_url", ""),
+        "tags": list(set(source_meta.tags + [source_meta.bundle, source_meta.category])),
+        "timestamp": parsed.get("updated_at", parsed.get("created_at", "")),
+        # DevHub 확장 (§3.3)
+        "x_devhub_source": source_meta.source_plugin,
+        "x_devhub_raw_ref": f"raw://{source_meta.bundle}/{parsed[source_meta.slug_field]}",
+        "x_devhub_bundle": source_meta.bundle,
+        "x_devhub_version": 1,
+        "x_devhub_curator": "rule-based",
+        "x_devhub_category": source_meta.category,
+        # §3.6.4 governance fields
+        "x_devhub_owner_org_id": source_meta.bundle_owner_org_id,
+        "x_devhub_owner_org_unit_ids": source_meta.bundle_owner_org_unit_ids,
+        "x_devhub_owner_user_id": None,
+        "x_devhub_owner_project_ids": [],
+        "x_devhub_visibility": "org",
+    }
+
+    """Step 3: Emit body (Markdown 변환)"""
+    body = source_meta.body_template(parsed)
+    # body_template 예시 (per type):
+    # - dataset:  ## Columns\n| name | type | description |\n
+    # - runbook:  ## Steps\n1. ...\n
+    # - metric:   ## Labels\n- key=value\n## Value\n- ...
+    # - api_endpoint: ## Method\n`GET /api/v1/...`\n## Parameters\n- ...
+    # - event:    ## Payload: <json payload object>\n
+
+    """Step 4: Attach cross-links (resource URL, related concept)"""
+    cross_links = []
+    for field in source_meta.link_fields:
+        if field in parsed:
+            cross_links.append(extract_link(parsed[field], source_meta))
+    for link in cross_links:
+        body += f"\n- Related: [{link.title}]({link.path})\n"
+
+    """Return OKF concept"""
+    slug = f"{source_meta.concept_type.value}_{parsed[source_meta.slug_field]}"
+    return Concept(
+        frontmatter=frontmatter,
+        body=body,
+        slug=slug,
+        path=f"var/bundles/{source_meta.bundle}/{source_meta.category}/{slug}.md",
+    )
+```
+
+**Timing**: M-v0.2.0 = rule-based 만 (frontmatter 직접 read, LLM 미사용). M-v0.2.3+ = `curate/enricher.py` 의 `llm_enrich(concept)` method 추가 (Pi LLM 으로 body 보강 + cross-link 자동 resolution, §6.3 정합).
+
+#### 3.7.5 Edge cases + degraded handling
+
+| Edge case | 처리 | 코드 위치 | 운영 impact |
+| --- | --- | --- | --- |
+| **Partial failure** (일부 field normalize 실패, e.g., description 누락) | degraded flag + degraded_field list. concept emit 은 진행 (frontmatter 의 optional field 는 null). `x_devhub_degraded_fields` array 에 누락 field 기록 | `sources/{source}.py` normalize() | viz.html 에서 degraded 표시 + bundle 별 degraded metric 수집 |
+| **Schema drift** (외부 시스템 API schema 변경, e.g., Gitea API v2 → v3) | normalize() 가 KeyError 발생 시 skip + audit log + 빈 degraded_field. **M-v0.3.0+ schema migration procedure 검토** (현재 out-of-scope) | `sources/{source}.py` normalize() | source plugin update 필요 + M-v0.3.0+ migration tool |
+| **Source-specific custom transform** | source plugin 의 `_custom_transform(raw, parsed)` hook (override 가능). 각 source 의 특수 처리 (e.g., Gitea 의 nested `user.login` → flat, hrdb 의 joined `full_name` → split into first/last) | `sources/{source}.py` 의 normalize() override | source 별 code review 필요 |
+| **Duplicate concept** (같은 slug 가 다른 source 에서 emit) | priority-based deduplication (§3.6.3 aggregation policy 정합). source_meta 의 `priority` 필드 (default = bundle 생성 순). viz.html 에서 dedup 표시 | `curate/index_builder.py` | M-v0.2.3+ multi-source 1차 적용 |
+| **Large raw** (e.g., homelab 의 1MB JSON) | frontmatter 에는 summary (max 500 char), body 는 truncated + `x_devhub_raw_ref` link. `body_max_length: int = 10000` default | normalize() 의 emit_body 단계 | bundle size 관리 |
+| **Auth failure** (credential expired, network timeout) | source plugin raise `SourceAuthError` → `POST /ingest/{source}/sync` returns 502 `E_FORBIDDEN` + audit log | `sources/_base.py` SourcePlugin ABC | M-v0.2.1+ e2e smoke alert |
+
+**M-v0.2.0 PoC 범위**: Partial failure + Source-specific custom transform 만 구현. Schema drift + Duplicate + Large raw + Auth failure 는 M-v0.2.1+ 검토.
+
 ## 4. 1차 raw 데이터의 API 정책 (사용자 강조)
 
 > **"1차 raw 데이터는 여타 백엔드의 데이터들과 동일하게 api를 통해서 조회하고 추가할 수 있어야 해."**
@@ -995,3 +1167,4 @@ sprint 진입 시 다음 6 항목 확인:
 | 2026-06-18 | **A/A 결정 cross-section 정합 일괄 fix (9 위치)** — §2.1 `sources/` 트리: 구 `gitea_pull.py` 단일 (v0.2.1) → Gitea 4 sub-plugin (`gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action`, M-v0.2.0 PoC) + `homelab.py` / `homelab_mock.py` / `metrics.py` / `hrdb.py` 정합 + `task_item_puller.py` 제거 (A/A 결정에서 gitea_issue 가 대체) + §2.1 `var/bundles/` 트리에서 `devhub-task-item/` 제거 + §3.2 `runbook` 예시 `gitea_pull_failure_recovery` → `gitea_repo_pull_failure_recovery` + §3.3 `x_devhub_source` 예시 `gitea_pull` → `gitea_repo_pull` + §6.1 mock source "1~2개" → "1개 (homelab_mock)" + Gitea 4 sub-plugin M-v0.2.0 부터 real Gitea 1 instance PoC wire (mock 없이) 명시 + §1.2 G3 "source plugin 5종" → "7종 (Gitea 4 + homelab + metrics + hrdb, M-v0.2.3 운영 기준)" + §1.2 G7 M-v0.2.2 "5종" → "6종", M-v0.2.3 "Pi enrich" → "+ hrdb = 7종 + Pi enrich" + §2.3 "외부 시스템 5종" → "7종 (M-v0.2.3 운영 기준)" + Phase 2 의미 변경 5종 → 6종 + §4.2 "5종" → "7종" + §4.3 Phase 2 "5종 wire" → "6종 wire" + Phase 2 list `homelab + gitea_pull + metrics + task_item_puller + hrdb` → `Gitea 4 + homelab + metrics` + Phase 3 정합 (+hrdb 7종 + Pi enrich) + standalone 유지 정책 5종 → 7종 + §5.2 P2 "5종" → "6종" + §6.2 "5종" → "6종" + list 정합 + e2e 5종 → 6종 + §7 Q9 "5종" → "7종 (M-v0.2.3 운영 기준)" | self-review (사용자 "1 진행하고 3은 별도의 gitea 서버를 연결할거야" + A/A 결정 cross-section 정합 follow-up) |
 | 2026-06-18 | **5 카테고리 정합 — §3.2.1 보강 + 신규 §3.5 (concept organization) + cross-section 정합 fix 5 위치** — (1) §3.2.1 에 신규 subsection §3.2.1.1 "5 카테고리별 대표 concept frontmatter 예시" 추가 (5 카테고리 = 5 concept 1:1 mapping: issue_tracker/gitea_issue integration / wiki/gitea_wiki reference / scm/gitea_repo_pull integration / cicd/gitea_action event / code_quality 2차 wire placeholder) (2) **신규 §3.5 "Concept organization"** 5 subsection: §3.5.1 원칙 (orthogonal axes — type 8종 + x_devhub_category 5종) / §3.5.2 5×8 matrix (○/△/✗ valid combinations + 5종 PoC source plugin 의 category × type mapping) / §3.5.3 Bundle 디렉터리 구조 (devhub-gitea = 4 category directory + devhub-homelab 5 카테고리 외) + 5개 representative concept frontmatter 예시 (integration/event/metric/runbook/decision) / §3.5.4 index.md 자동 생성 규칙 (per-bundle/per-category/per-type 3종 + `curate/index_builder.py` 구현 정공법 + per-bundle index.md 발췌) / §3.5.5 cross-link 4종 rule (intra-bundle / cross-bundle / source-external / reverse index) + 5개 정책 정공법 (3) cross-section 정합 fix 5 위치: §1.3 progressive disclosure row 보강 (per-bundle/per-type/per-category 명시) + graph row 보강 (4종 cross-link rule + reverse index 명시) + path pattern row `{bundle}/{type}/{slug}.md` → `{bundle}/{category}/{slug}.md` (slug prefix = type, §3.5.3 정합) / §2.1 `curate/index_builder.py` 코멘트 "bundle 별 index.md" → "per-bundle/per-type/per-category index.md (§3.5.4 정합)" + `link_resolver.py` 코멘트 보강 (1차 rule-based / M-v0.2.3+ Pi LLM cross-link 자동 resolution, §3.5.5 정합) / §3.3 frontmatter spec 마지막에 "> **5 카테고리 × 8 type 의 valid combination**: §3.5.2 정합" 1줄 추가 / §3.5.5 intra-bundle link syntax 정합 (현재 dir vs sibling dir 케이스 분리 + 동일 예시 source/target 일관성) / ADR-0034 §4.3 영향 section 에 §3.2.1 + §3.5 row 추가 + §3.3 row 갱신 (`x_devhub_category` 5 enum mention) + ADR-0034 frontmatter 수정일 2026-06-18 갱신 (4) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행하자. 컨셉 정리를 계속 할거야" + "5 카테고리 정합" 결정 (C 옵션) + "좋아 일단 초안은 이렇게 가져가자" 후속 + path pattern 정합 fix follow-up) |
 | 2026-06-18 | **Path Y caller-provided user context — 신규 §3.6 "Data governance & query scoping" + cross-section 정합 fix 8 위치** — (1) **신규 §3.6** 5 subsection: §3.6.1 caller-provided user context (X-DevHub-User-Context HTTP header, base64url(json) 의 user_id/org_id/org_unit_ids/project_ids/roles/request_id/issued_at 7 field schema + DevHub `AppUser`/RBAC 모델 format 호환 + trust model: caller 책임 인증 + backend-knowledge 책임 format 검증만 + endpoint 별 필수/권장/없음 13개 endpoint 표 + OpenAPI security scheme) / §3.6.2 curation governance model (`x_devhub_curator` 별 manual edit permission: rule-based ❌ / llm system_admin 만 with curator=human 승격 / human owner-user self or org_head scope or system_admin) / §3.6.3 query scope priority 4-tier (org > personal > project > public, priority 1 = highest, same concept multiple instances → highest priority 만 노출) / §3.6.4 frontmatter extension 5 field (`x_devhub_owner_org_id` / `_user_id` / `_org_unit_ids` / `_project_ids` / `x_devhub_visibility` 4 enum) / §3.6.5 cross-section 정합 fix 8 위치 (2) cross-section 정합 fix: §1.2 G7 standalone 정책 + caller-provided user context 1줄 추가 / §2.3 시스템 경계 표 "다른 backend 연결 (general)" row + "OIDC / Keycloak" row + "API 인증" row 3 row 갱신 / §3.1 API 매트릭스 인증 정책 노트 갱신 (Path Y 추가) / §3.3 frontmatter spec 정책 노트 마지막에 "> **Path Y governance 필드 (2026-06-18 신규, §3.6.4 정합)**" 1줄 추가 / §4.1 정책 정의 표 "인증" row 갱신 (Path Y 추가) / ADR-0034 §4.3 영향 section 에 §3.6 row 추가 + ADR-0034 frontmatter 수정일 2026-06-18 갱신 / ADR-0035 §3.4 1차 raw API 정책 row caller-provided user context (gateway 책임) 명시 + §3.6.1 cross-reference + ADR-0035 frontmatter 수정일 2026-06-18 갱신 + §4.2 negative/trade-off row 추가 + §4.3 영향 row 추가 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "다음 컨셉 정리 이어서 하자. 카테고리 나눴고 카테고리 별로 데이터 관리... 데이터 정리는 조직에 따라, 사람에 따라 관리... 조회 우선순위는 사용자 조직 > 개인 > 프로젝트" 결정 + explore agent 2 병렬 검색 (user/org/project RBAC + 데이터 정규화/envelope/governance) + Path Y 권장 (caller-provided user context) + 사용자 "Path Y" 결정 + "1 진행하자" 후속) |
+| 2026-06-18 | **Data normalization pipeline — 신규 §3.7 "Data normalization pipeline" + cross-section 정합 fix 6 위치** — (1) **신규 §3.7** 5 subsection: §3.7.1 5 step normalization 원칙 (Step 1 외부 시스템 API 호출 + Step 2 raw JSON 봉투 암호화 저장 + Step 3 raw → OKF concept 변환 + Step 4 concept .md emit + Step 5 index.md 자동 생성, 책임 분리 표 6 module: source plugin / 1차 raw storage / OKF bundle storage / rule-based enricher / index_builder / link_resolver) / §3.7.2 per-source type mapping (7 source × types emitted: Gitea 4 sub-plugin + homelab + metrics + hrdb, 5종 PoC = 약 35개 concept 자동 emit) / §3.7.3 cross-source 동질화 (Jira/Gitea/GitHub 모두 `integration_*_issue_puller.md` 형, query 시 cross-source aggregation, viz.html cross-source cluster) / §3.7.4 normalize algorithm pseudocode (`sources/{source}.py` 의 normalize() method 4 step: parse → extract frontmatter → emit body → attach cross-links, `SourceMeta` 11 field) / §3.7.5 edge cases + degraded handling (6 case 표: Partial failure / Schema drift / Source-specific custom transform / Duplicate concept / Large raw / Auth failure, M-v0.2.0 PoC 범위 명시) (2) cross-section 정합 fix 6 위치: §1.3 producer 다중 row 갱신 (rule-based enricher §3.7.1/§3.7.4 명시) / §2.1 sources/ 트리 `sources/{source}.py` + `curate/enricher.py` 코멘트 보강 (§3.7.1 5 step 정합) / §3.2 concept type enum 하단 cross-reference 추가 (§3.7.2 per-source mapping) / §3.5.3 bundle 디렉터리 layout 의 §3.7.1 reference 추가 / ADR-0034 §4.3 영향 section §3.7 row 추가 + ADR-0034 frontmatter 수정일 갱신 (3) frontmatter 갱신 (umbrella doc 최종 수정일) | self-review (사용자 "1 진행하자" (다음 concept organization) + §3.7 "data normalization pipeline (category × system → OKF concept)" 자연스러운 다음 영역 (사용자 명시 "(b) 카테고리별 정규화" 잔여) + DevHub backend-core 의 NormalizeSnapshot() / stateToEventType() / REQ-FR-INT-004/005 패턴 참고 + 사용자 "진행하자" 승인 후속) |
