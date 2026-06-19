@@ -21,7 +21,8 @@
 | doc | 내용 |
 |---|---|
 | [`architecture.md`](./architecture.md) | **main design doc** — 15 section: layer 격리 / component diagram / module dependency / data flow / sequence diagram / storage / API 30 endpoint matrix / design decisions / operation / test strategy / known violations / forward-looking |
-| [`tech-stack.md`](./tech-stack.md) | runtime + test 의존성 + 선택 근거 + 호환성 매트릭스 (M-v0.2.0~M-v0.3.0+) |
+| [`tech-stack.md`](./tech-stack.md) | Python backend + SvelteKit frontend runtime + test 의존성 + 선택 근거 + 호환성 매트릭스 (M-v0.2.0~M-v0.3.0+) |
+| [`frontend-design.md`](./frontend-design.md) | **SvelteKit frontend design** — 9 section: tech stack / 3 layer (routes/lib/components) / 5 page scope / Path Y dev fixture / API client / build+dev / CI / forward-looking |
 
 ## 3. PoC 운영 위치
 

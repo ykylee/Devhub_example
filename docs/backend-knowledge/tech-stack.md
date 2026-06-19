@@ -72,6 +72,26 @@
 - **선택 이유**: JSON Lines audit log + FastAPI middleware 통합 + 5 metric 기반 (request count / latency / error count)
 - **대안**: stdlib logging + custom JSON formatter — boilerplate
 
+## 1.2 신규 frontend (SvelteKit, ADR-0035 standalone frontend)
+
+> **독립 standalone web** — devhub frontend (Next.js 16) 와 **완전 분리** (code / state / build / package.json 공유 ❌). backend-knowledge backend 만 호출. M-v0.2.0+ 5 page 점진 도입 (umbrella doc §12.1).
+
+자세한 design: [`docs/backend-knowledge/frontend-design.md`](../backend-knowledge/frontend-design.md).
+
+- **meta-framework**: SvelteKit 2.x (file-based routing + server-side load + form action)
+- **UI library**: Svelte 5.x (runes: `$state` / `$derived` / `$effect`, 2024-10 stable)
+- **language**: TypeScript 5.x
+- **bundler**: Vite 5.x (SvelteKit default)
+- **runtime**: Node.js 20 LTS (dev/prod)
+- **unit test**: Vitest (Vite native, M-v0.2.0+ scope)
+- **E2E test**: Playwright (M-v0.2.1+ scope)
+- **styling**: plain CSS (PoC scope) — Tailwind CSS optional (M-v0.2.1+)
+- **http client**: native `fetch` + `src/lib/api.ts` wrapper (Path Y header auto-inject)
+
+**layer 격리** (frontend-design.md §3.1): 3 group (routes / lib / components) + 1 utility (config). **routes cross-route ❌** + **routes from components ❌** 정공법.
+
+**Tier**: 사외 (standalone 정공법, 사내 한정 정보 0, gateway 3-step orchestration 정공법).
+
 ## 4. 호환성 매트릭스 (M-v0.2.0+ 진화)
 
 | 시점 | 추가 의존성 | 제거 의존성 | 비고 |
