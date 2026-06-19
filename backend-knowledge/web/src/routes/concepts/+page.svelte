@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ApiError, api, withStoredPathY } from '$lib/api';
-	import { CONCEPT_TYPES, type ConceptType, type SourceName } from '$lib/types';
+	import { CONCEPT_TYPES, type ConceptSearchHit, type ConceptType, type SourceName } from '$lib/types';
 	import { SOURCES } from '$lib/types';
 
 	let q = $state('');
@@ -9,15 +9,7 @@
 	let bundleFilter = $state<SourceName | ''>('');
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let hits = $state<Array<{
-		concept_id: string;
-		type: string;
-		title: string;
-		snippet: string;
-		score: number;
-		bundle: string;
-		source: string;
-	}> | null>(null);
+	let hits = $state<ConceptSearchHit[] | null>(null);
 	let total = $state(0);
 
 	async function search(): Promise<void> {
@@ -49,7 +41,7 @@
 		search();
 	}
 
-	function detailHref(hit: { bundle: string; type: string; title: string }): string {
+	function detailHref(hit: ConceptSearchHit): string {
 		const slug = hit.title || hit.concept_id.split('/').pop() || '';
 		return `/concepts/${encodeURIComponent(hit.type)}/${encodeURIComponent(slug)}?bundle=${encodeURIComponent(hit.bundle)}`;
 	}

@@ -62,13 +62,35 @@ export interface Concept {
 	visibility: string;
 }
 
+export interface ConceptSearchHit {
+	concept_id: string;
+	type: string;
+	title: string;
+	snippet: string;
+	score: number;
+	bundle: string;
+	source: string;
+}
+
+export interface ConceptSearchData {
+	hits: ConceptSearchHit[];
+	total: number;
+	next_offset: number | null;
+}
+
 export interface Bundle {
 	name: string;
 	description: string;
+	version: number;
+	concept_count: number;
 	owner_org_id: string;
 	owner_user_id?: string;
+	org_unit_ids?: string[];
+	project_ids?: string[];
 	visibility: Visibility;
-	concept_count: number;
+	updated_at?: string | null;
+	updated_by?: string | null;
+	created_at?: string | null;
 	last_rebuild?: string;
 	size_bytes: number;
 }

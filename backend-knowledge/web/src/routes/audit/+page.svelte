@@ -1,24 +1,26 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ApiError, api, withStoredPathY } from '$lib/api';
-	import type { AuditEntry } from '$lib/types';
+	import type { AuditEvent } from '$lib/types';
 
-	let entries = $state<AuditEntry[] | null>(null);
+	let entries = $state<AuditEvent[] | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let cursor = $state<string | null>(null);
-	let cursorHistory = $state<string[]>([]);
+	// M-v0.2.1+ scope: cursor → offset 정합. backend 의 listAudit 가 `offset` query parameter 추가 (PR #662 별도).
+	let cursor = $state<number | null>(null);
+	let cursorHistory = $state<number[]>([]);
 
 	async function load(append: boolean = false): Promise<void> {
 		loading = true;
 		error = null;
 		const opts = withStoredPathY();
 		try {
-			const params: { limit: number; cursor?: string } = { limit: 50 };
-			if (append && cursor) params.cursor = cursor;
+			const params: { limit: number; offset?: number } = { limit: 50 };
+			if (append && cursor !== null) params.offset = cursor;
 			const r = await api.listAudit(params, opts);
-			cursor = r.data.next_cursor ?? null;
-			entries = append ? [...(entries ?? []), ...r.data.entries] : r.data.entries;
+			// M-v0.2.1+ scope: backend audit api 에 `next_offset` query parameter + response field 추가 후 정합.
+			cursor = null;
+			entries = append ? [...(entries ?? []), ...r.data.items] : r.data.items;
 		} catch (e) {
 			error = e instanceof ApiError ? `${e.code}: ${e.message}` : String(e);
 		} finally {
@@ -27,7 +29,7 @@
 	}
 
 	function loadMore(): void {
-		if (cursor) {
+		if (cursor !== null) {
 			cursorHistory = [...cursorHistory, cursor];
 			load(true);
 		}

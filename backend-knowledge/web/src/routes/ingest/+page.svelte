@@ -67,29 +67,29 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each sources as s (s.name)}
+			{#each sources as s (s.source)}
 				<tr>
-					<td><code>{s.name}</code></td>
+					<td><code>{s.source}</code></td>
 					<td>
-						<span class="status status-{s.status}">{s.status}</span>
+						<span class="status status-{s.health}">{s.health}</span>
 					</td>
-					<td class="muted">{s.last_pulled_at ?? '-'}</td>
-					<td class="muted">{s.last_synced_at ?? '-'}</td>
-					<td class="num">{s.items_count}</td>
-					<td class="num {s.error_count > 0 ? 'danger' : ''}">{s.error_count}</td>
+					<td class="muted">{s.last_sync ?? '-'}</td>
+					<td class="muted">{s.last_error ? `${s.last_error.code}: ${s.last_error.message}` : '—'}</td>
+					<td class="num">{s.metrics?.items_count ?? '—'}</td>
+					<td class="num {s.last_error ? 'danger' : ''}">{s.last_error ? 1 : 0}</td>
 					<td class="actions">
 						<button
-							disabled={actionInFlight === s.name}
-							onclick={() => runAction(s.name, 'pull')}
+							disabled={actionInFlight === s.source}
+							onclick={() => runAction(s.source as SourceName, 'pull')}
 						>
-							{actionInFlight === s.name ? '...' : 'Pull'}
+							{actionInFlight === s.source ? '...' : 'Pull'}
 						</button>
 						<button
 							class="secondary"
-							disabled={actionInFlight === s.name}
-							onclick={() => runAction(s.name, 'sync')}
+							disabled={actionInFlight === s.source}
+							onclick={() => runAction(s.source as SourceName, 'sync')}
 						>
-							{actionInFlight === s.name ? '...' : 'Sync'}
+							{actionInFlight === s.source ? '...' : 'Sync'}
 						</button>
 					</td>
 				</tr>

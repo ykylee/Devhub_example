@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ApiError, api, withStoredPathY } from '$lib/api';
-	import type { RawEntry } from '$lib/types';
+	import type { RawRecord } from '$lib/types';
 
-	let entries = $state<RawEntry[] | null>(null);
+	let entries = $state<RawRecord[] | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let actionInFlight = $state<string | null>(null);
@@ -14,7 +14,7 @@
 		const opts = withStoredPathY();
 		try {
 			const r = await api.listRaw({ limit: 100 }, opts);
-			entries = r.data.entries;
+			entries = r.data.items;
 		} catch (e) {
 			error = e instanceof ApiError ? `${e.code}: ${e.message}` : String(e);
 		} finally {
@@ -62,9 +62,9 @@
 				<th>type</th>
 				<th>name</th>
 				<th>visibility</th>
-				<th>size_bytes</th>
+				<th>size</th>
 				<th>registered_at</th>
-				<th>registered_by</th>
+				<th>sha256</th>
 				<th></th>
 			</tr>
 		</thead>
@@ -76,9 +76,9 @@
 					<td><code>{e.type}</code></td>
 					<td><code>{e.name}</code></td>
 					<td><code>{e.visibility}</code></td>
-					<td class="num">{e.size_bytes}</td>
-					<td class="muted">{e.registered_at}</td>
-					<td class="muted"><code>{e.registered_by}</code></td>
+				<td class="num">{e.size}</td>
+				<td class="muted">{e.registered_at}</td>
+				<td class="muted"><code>{e.sha256}</code></td>
 					<td>
 						<button
 							class="danger"

@@ -2,9 +2,11 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { ApiError, api, withStoredPathY } from '$lib/api';
-	import type { Bundle, Concept } from '$lib/types';
+	import type { BundleDetail, Concept } from '$lib/types';
 
-	let bundle = $state<Bundle | null>(null);
+	// M-v0.2.1+ scope: backend GET /api/v0-2/bundles/{name} 가 concepts array 미포함 (단일 metadata).
+	// concepts list 는 backend GET /api/v0-2/bundles/{name}/concepts 별도 endpoint (PR #662) 추가 시 load.
+	let bundle = $state<BundleDetail | null>(null);
 	let concepts = $state<Concept[] | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
@@ -25,8 +27,8 @@
 		const opts = withStoredPathY();
 		try {
 			const r = await api.getBundle(name, opts);
-			bundle = r.data.bundle;
-			concepts = r.data.concepts;
+			bundle = r.data;
+			// concepts 는 M-v0.2.1+ scope — backend GET /bundles/{name}/concepts 별도 endpoint 추가 후 load.
 		} catch (e) {
 			error = e instanceof ApiError ? `${e.code}: ${e.message}` : String(e);
 		} finally {
