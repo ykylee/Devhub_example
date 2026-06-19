@@ -1233,3 +1233,75 @@ CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`
 1. **5 chunk 정공법 (cross-project lesson §1 — multi-PR sprint scope 분리)**: X-2 의 1차 (backend depth) + 2차 (adapter interface) + 3차 (Jira/Generic) + 4차 (openapi) + 5차 (frontend) 의 5 PR 분리 정공법. **이유**: backend (3 PR) + openapi (1 PR) + frontend (1 PR) 가 다른 CI 잡 (backend-unit / backend-integration / openapi-lint / frontend-unit / e2e) 에서 실행. PR 단위 분리가 review 부담 + CI 명확성 ↑.
 2. **1:1 cross-ref 정공법 (Go struct ↔ TypeScript interface ↔ OpenAPI schema)**: 5 layer 의 동일 entity (WebhookAdapter/Event/InboundSourceRoutingConfig/AutoRouteDecision) 가 3 가지 표현으로 동일하게 표현. **이유**: backend 가 source-of-truth 인 한, frontend 와 docs 의 동기화 비용 최소화. **위반 시점 drift**: backend struct 변경 시 frontend TypeScript interface + openapi schema 동시 갱신 필수.
 3. **scope 폭주 방지 정공법 (5 PR 의 4 chunk 분할)**: X-2 의 frontend + e2e + ADR-0033 + traceability = 4 chunk = 본 5차 PR 1 commit (1,087 line). **이유**: 4 chunk 가 동일 X-2 sprint 의 docs/e2e 동시 진행 = 한 commit 으로 묶어도 scope 합리적 (4 chunk = 1 commit 의 scope 한계 800줄/cap 초과 하지만 X-2 의 종합 정책 결정 ADR-0033 + frontend 운영 UI 가 동시 진행 = 한 PR 이 정공법).
+
+---
+
+# Session Handoff — main (2026-06-18, v0.2.0 release close — 6 PR MERGED + tag v0.2.0 + GitHub release publish + wiki frontmatter 일괄 갱신)
+
+문서 목적: 본 turn (2026-06-18) 의 **M-v0.2.0 PoC release 종료** — 6 PR 종합 MERGED + GitHub release publish + wiki 91 page frontmatter 일괄 갱신 + main flat memory finalize.
+범위: PR #645/#646/#647/#648/#649/#651 MERGED + main direct 2 commit (release notes 정리 `365dae8e` + wiki frontmatter 갱신 `48003976`) + tag `v0.2.0` annotated (push) + GitHub release publish `https://github.com/ykylee/Devhub_example/releases/tag/v0.2.0` + `gh release edit --notes-file` sync + `bash scripts/wiki-sync-devhub.sh` + `bash scripts/wiki-frontmatter-update.sh` (matched 0 stale 85 → matched 85 stale 0) + state.json M-v0.2.0 row 갱신 (status in_progress → done, ended_at 2026-06-18) + 본 session_handoff.md 본 turn append + work_backlog.md 2026-06-18 row append.
+상태: main HEAD `48003976` (wiki 91 page frontmatter 일괄 갱신, Mavis direct main iterative amend + force-push 패턴, yklee 2026-06-17). v0.2.0 release 완료. §13.3 + §17.3 post-sprint follow-up 6/6 row ✅ done. Tier: 사외 무관 (v0.2.0 = backend-knowledge standalone 도구, 사내/사외 tier 분리 미적용 — yklee 2026-06-18 결정).
+최종 수정일: 2026-06-18 21:12 KST (state.json finalize 후 main flat memory finalize)
+직전 handoff: 본 turn 직전 = 2026-06-17 (PR #644 MERGED) session_handoff.md.
+
+## 0. 본 세션 핵심 결과 (2026-06-18, M-v0.2.0 PoC release close)
+
+### v0.2.0 release DONE (사용자 결정)
+
+- **M-v0.2.0 PoC release 종료** — main HEAD `48003976`, status `done`, ended_at `2026-06-18`.
+- **6 PR 종합 MERGED** (squash merge + branch delete, Mavis A 옵션):
+  - PR #645 (`f6732a34`) — umbrella doc + ADR-0034 OKF v0.1 채택 + ADR-0035 backend-knowledge 신설 (26 commit concept organization)
+  - PR #646 (`1914ec8b`) — state.json M-v0.2.0 row 갱신 (status: ready_to_sprint → in_progress + qa_decisions 11/11 → 18/18 + 5종 source plugin status)
+  - PR #647 (`01f1969c`) — external-integrations-agentic-rag-roadmap.md status active 전환 (§17.3 P1 row 3, Q7 결정 기반 umbrella publish signal trigger)
+  - PR #648 (`df5a8e8a`) — docs/llm-wiki mirror 갱신 (§17.3 P1 row 4, 79 신규 page + 13 modified + 13 untracked, manifest commit 01f1969c, 978 source file 11M)
+  - PR #649 (`ddb21a61`) — DOCUMENT_INDEX.md + planning/README.md + operation-sop.md 갱신 (§17.3 P2 row 6, umbrella doc + ADR-0034/0035 + child doc status active 인덱스 추가)
+  - PR #651 (`6c434887`) — wiki mirror manifest 갱신 (commit 365dae8e → 6c434887, drift 해소, source file 2 file mirror 갱신)
+- **main direct 2 commit** (Mavis direct main iterative amend + force-push 패턴, yklee 2026-06-17):
+  - `365dae8e` — release notes 본문 row 24 placeholder 채우기 + Tag v0.2.0 (예정) 정리 (PR #650 follow-up)
+  - `48003976` — wiki 91 page frontmatter 일괄 갱신 (matched 0 stale 85 → matched 85 stale 0)
+
+### GitHub release publish (옵션 B, 사용자 결정)
+
+- **Tag v0.2.0** (annotated, ed5b081c) — `git tag -a v0.2.0 ed5b081c -m "..."` + `git push origin v0.2.0`
+- **GitHub release create** — `gh release create v0.2.0 --title "v0.2.0 — backend-knowledge + OKF v0.1 + 5종 PoC source plugin" --notes-file docs/release-notes/v0.2.0.md` → `https://github.com/ykylee/Devhub_example/releases/tag/v0.2.0`
+- **Release notes sync** — `gh release edit v0.2.0 --notes-file docs/release-notes/v0.2.0.md` (본 release row 24 + Tag v0.2.0 정리 반영)
+
+### Wiki frontmatter 일괄 갱신 (옵션 C, 사용자 결정)
+
+- **Manifest 갱신** — `bash scripts/wiki-sync-devhub.sh` (commit 365dae8e → 6c434887, count 980, size 8.8M, branch main)
+- **Frontmatter 갱신** — `bash scripts/wiki-frontmatter-update.sh` (91 page updated, 0 skipped, matched 0 stale 85 → matched 85 stale 0)
+- **Drift 해소** — manifest commit ↔ main HEAD 일치
+
+### Tier policy 결정 (사용자 결정)
+
+- **v0.2.0 = backend-knowledge 는 standalone 으로 따로 개발되는 도구** — 사내/사외 tier 구분 없음 (yklee 2026-06-18 결정)
+- AGENTS.md §사외/사내 2-tier 형상관리 분리 정책 미적용
+- main direct push 정공법 (release notes 정리 + wiki frontmatter 갱신 둘 다 PR 분리 없이 main 직접 push)
+- state.json `tier_policy_v0_2_0_standalone_2026_06_18` key 추가
+
+### §13.3 + §17.3 post-sprint follow-up 종합 (6/6 row ✅ done)
+
+| # | 항목 | 우선순위 | 상태 | PR |
+| --- | --- | --- | --- | --- |
+| 1 | GitHub milestone `v0.2.0` 생성 | P0 | ✅ done | (PR #646 follow-up) |
+| 2 | `state.json` M-v0.2.0 row 발급 | P0 | ✅ done | #646 |
+| 3 | `external-integrations-agentic-rag-roadmap.md` status active 전환 | P1 | ✅ done | #647 |
+| 4 | `docs/llm-wiki` mirror scope 갱신 | P1 | ✅ done | #648 |
+| 5 | M-v0.2.0 release notes draft | — | ✅ done | #650 |
+| 6 | `docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신 | P2 | ✅ done | #649 |
+
+### 잔여 후속 작업 (운영자 영역)
+
+1. **사내 SCM sync** + M-v0.2.0 release announcement (운영자 manual SOP)
+2. **GitHub tag v0.2.0 release 페이지의 notes**: 이미 sync됨 (Tag v0.2.0 / row 24 = #650 / ed5b081c)
+3. **Manifest commit field 갱신**: 다음 commit 발생 시 wiki-sync + wiki-frontmatter-update 자동 cycle
+4. **Untracked dir 정리**: `ai-workflow/memory/chore/260616-sprint-c-platform-kpi-tests/` (sprint-c 잔재, 별도 정리)
+
+### CRITICAL 레슨런 (3건)
+
+1. **v0.2.0 release 6 PR 정공법 (cross-project lesson — multi-PR sprint close)**: M-v0.2.0 의 umbrella doc + ADR + state.json + child doc active + wiki mirror + DOCUMENT_INDEX + release notes = **6 PR 분리 정공법** + main direct 2 commit (release notes 정리 + wiki frontmatter 갱신). **이유**: 각 PR 의 책임 영역이 다름 (umbrella doc / state.json / wiki mirror / docs index / release notes / wiki manifest cleanup) → PR 단위 분리가 review 부담 + CI 명확성 ↑. 본 release 의 6 PR + 2 commit 종합이 M-v0.2.0 PoC 의 종합 release close.
+
+2. **Tier 분리 미적용 정공법 (v0.2.0 = backend-knowledge standalone 도구, yklee 2026-06-18 결정)**: AGENTS.md §사외/사내 2-tier 형상관리 분리 정책은 본 release 의 도구 영역 (M-v0.2.0 = backend-knowledge, 다른 backend 와의 연결 ❌, OIDC ❌, 외부 시스템 7종 source 만 단방향) 에 미적용. **이유**: standalone 도구는 사내 인프라 의존 0, 사내 호스트 / 시크릿 / 사내 IdP 팀 SOP 무관 → 사내/사외 구분 의미 0. **위반 시점 drift**: standalone 도구 영역 작업에서 PR 분리 + main direct push 패턴 사용 가능 (사내 SCM sync 시 충돌 0).
+
+3. **Wiki frontmatter 정공법 (matched 0 stale 85 → matched 85 stale 0)**: 본 release 시점의 wiki 운영 정공법 = `bash scripts/wiki-sync-devhub.sh` (manifest 갱신) → `bash scripts/wiki-frontmatter-update.sh` (frontmatter 일괄 갱신). **이유**: wiki mirror 정책 (AGENTS.md §문서 작업 기준) 의 위키 1:1 mirror 정공법 + provenance tracking 정공법 + mass ingest 정공법 영구화. **위반 시점 drift**: wiki-status-check 의 matched 0 stale 85 발생 시 즉시 frontmatter 갱신 필요 → 다음 commit cycle 의 자동화 대상.
+
