@@ -95,6 +95,16 @@
 │   - 8 field schema + 5분 만료 + 4 scope filter                 │
 │   - get_path_y_context / require_path_y_context (FastAPI dep)   │
 └──────────────────────────────────────────────────────────────────┘
+                            ↑
+┌──────────────────────────────────────────────────────────────────┐
+│ Frontend (backend-knowledge/web/, SvelteKit 2 + Svelte 5 + TS 5)│
+│   - 5 page (§12.1~§12.5): dashboard / concepts / ingest /       │
+│     bundles / raw + audit                                        │
+│   - Path Y dev fixture (사외 standalone, gateway 없이)         │
+│   - native fetch + src/lib/api.ts wrapper                       │
+│   - 사외 (devhub frontend 와 완전 분리)                          │
+│   - 자세한 design: [frontend-design.md](./frontend-design.md)   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## 5. Module dependency graph
