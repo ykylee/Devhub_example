@@ -1,0 +1,67 @@
+{
+  "schema_version": "1",
+  "branch": "chore/260619-v0-2-poc-followup",
+  "branch_type": "chore/260619-*",
+  "agent": "opencode (Sisyphus, MiniMax-M3)",
+  "session_started_at": "2026-06-19T01:10:00+09:00",
+  "session_ended_at": null,
+  "session_duration_minutes": null,
+  "model": "MiniMax-M3",
+  "working_directory": "/home/yklee/repos/Devhub_example",
+  "branch_status": "active (fresh start from origin/main @ 36cac1d6)",
+  "main_status_at_session_start": "36cac1d6 (PR #652 MERGED 2026-06-19T01:04:34Z)",
+  "base_commit": "36cac1d6 docs(v0.2.0-requirements): SDLC §2 FR 기능 요구사항 (#652)",
+  "session_purpose": "v0.2.0 PoC 운영 + v0.2.1 sprint 진입 준비 + 사외/사내 브랜치 정리 (2606* 일괄 정리)",
+  "session_outcome": "in_progress",
+  "commits_in_session": [],
+  "prs_in_session": [],
+  "preserved_unique_context_from_prior_branch": {
+    "source_branch": "chore/260618-v0-2-release-notes (DELETED 2026-06-19)",
+    "preservation_reason": "사용자 결정으로 본 브랜치 및 연관 260618-* 브랜치 일괄 정리. branch-specific memory 손실 회피 위해 preserved context 기록.",
+    "unmerged_unique_work": [
+      "ddb74345 — branch-specific memory (v0.2.0 release prep state, 18/18 Q&A + 28 metrics + 4 cross-cutting 정공법) — main 에 미존재, archive 영역 별도 보존 가치 없음 (release 완료)",
+      "f9ff421b — umbrella doc 1-line update (release notes ✅ done) — PR #650 release notes 가 main 에 머지되며 본 1-line status 는 본질적으로 redundant, follow-up 보강 불필요",
+      "e6333985 — 6 wiki page frontmatter 갱신 (residual) — main 의 48003976 wiki 91 page 일괄 갱신 + 6c434887 manifest 갱신 으로 cover, follow-up 불필요"
+    ],
+    "rolled_into_main_via_prs": [
+      "2141350a (chore/260618 wiki mirror) → PR #648 MERGED",
+      "00567fbc (DOCUMENT_INDEX + planning/README + operation-sop) → PR #649 MERGED",
+      "0a9b3c6b (M-v0.2.0 release notes) → PR #650 MERGED",
+      "ed5b081c (umbrella doc §13.3 #5 done 갱신) → PR #650 MERGED"
+    ]
+  },
+  "umbrella_doc_stats": {
+    "path": "docs/planning/release_v0-2_roadmap.md",
+    "lines": 5459,
+    "main_sections": 18,
+    "subsections": "80+",
+    "qa_decisions": "18/18",
+    "metrics_m_v0_2_3_plus_production": 28,
+    "cross_cutting_methods": 4,
+    "tier": "사외 (vendor-neutral)",
+    "state": "umbrella doc fully published, M-v0.2.0 release 직전 정합"
+  },
+  "key_files": {
+    "umbrella_doc": "docs/planning/release_v0-2_roadmap.md",
+    "release_notes": "docs/release-notes/v0.2.0.md",
+    "child_doc_active": "docs/planning/external-integrations-agentic-rag-roadmap.md",
+    "adr_0034_okf": "docs/adr/0034-okf-adoption.md",
+    "adr_0035_backend_knowledge": "docs/adr/0035-backend-knowledge-creation.md",
+    "sdlc_requirements_section1": "docs/requirements/v0.2.0-domain-classification.md",
+    "sdlc_requirements_section2": "docs/requirements/v0.2.0-functional-requirements.md"
+  },
+  "in_progress_items": [
+    "2606* 원격 브랜치 일괄 정리 (사용자 결정, 실행 중)",
+    "로컬 chore/260618-* 브랜치 3종 정리 (사용자 결정, 실행 중)"
+  ],
+  "blocked_items": [],
+  "recent_done_items": [
+    "PR #652 Codex P2 review 3건 해소 + squash merge (commit 36cac1d6, 2026-06-19T01:04:34Z)",
+    "chore/260618-v0-2-poc-followup 새 브랜치 main @ 36cac1d6 에서 생성"
+  ],
+  "next_documents": [
+    "AGENTS.md",
+    "docs/planning/release_v0-2_roadmap.md (umbrella doc)",
+    "ai-workflow/memory/opencode/chore/260619-v0-2-poc-followup/session_handoff.md"
+  ]
+}
