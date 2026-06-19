@@ -133,6 +133,48 @@ export type SourceName =
 	| 'gitea_wiki'
 	| 'gitea_action';
 
+export type SourceState = 'idle' | 'syncing' | 'error' | 'disabled';
+
+export type SourceHealthStatus = 'healthy' | 'degraded' | 'unhealthy';
+
+export interface IngestStatusData {
+	source: string;
+	last_sync: string | null;
+	next_sync: string | null;
+	state: SourceState;
+	last_error: { code: string; message: string } | null;
+	health: SourceHealthStatus;
+	metrics: Record<string, unknown>;
+}
+
+export interface IngestStatusListData {
+	sources: IngestStatusData[];
+	total: number;
+}
+
+export interface IngestPullData {
+	pulled: number;
+	failed: number;
+	raw_ids: string[];
+	next_pull_recommended: string | null;
+	errors: Array<{ source: string; code: string; message: string }>;
+}
+
+export interface BundleDetail {
+	name: string;
+	description: string;
+	version: number;
+	concept_count: number;
+	owner_org_id: string;
+	owner_user_id: string | null;
+	org_unit_ids: string[];
+	project_ids: string[];
+	visibility: string;
+	created_at: string | null;
+	updated_at: string | null;
+	updated_by: string | null;
+}
+
 export const SOURCES: SourceName[] = [
 	'homelab_mock',
 	'gitea_repo_pull',

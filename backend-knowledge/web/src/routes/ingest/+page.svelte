@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ApiError, api, withStoredPathY } from '$lib/api';
-	import { SOURCES, type SourceName, type SourceHealth } from '$lib/types';
+	import { SOURCES, type IngestStatusData, type SourceName } from '$lib/types';
 
-	let sources = $state<SourceHealth[]>([]);
+	let sources = $state<IngestStatusData[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let actionInFlight = $state<SourceName | null>(null);

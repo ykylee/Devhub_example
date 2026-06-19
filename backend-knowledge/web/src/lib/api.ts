@@ -3,8 +3,11 @@ import type {
 	ApiErrorBody,
 	AuditEvent,
 	Bundle,
+	BundleDetail,
 	Concept,
 	Envelope,
+	IngestPullData,
+	IngestStatusListData,
 	PathYUserContext,
 	RawRecord
 } from './types';
@@ -77,11 +80,7 @@ export const api = {
 		}>('/api/v0-2/health/protected', 'GET', opts),
 
 	listSources: (opts: ApiOptions = {}) =>
-		request<Array<{ name: string; health: string }>>(
-			'/api/v0-2/ingest/homelab_mock/status',
-			'GET',
-			opts
-		),
+		request<IngestStatusListData>('/api/v0-2/ingest/statuses', 'GET', opts),
 
 	syncSource: (source: string, opts: ApiOptions = {}, dryRun = false) =>
 		request<{
@@ -91,15 +90,8 @@ export const api = {
 			errors: Array<{ raw_name: string; code: string; message: string }>;
 		}>(`/api/v0-2/ingest/${source}/sync?dry_run=${dryRun}`, 'POST', opts),
 
-	// M-v0.2.1+ scope placeholder: backend POST /api/v0-2/ingest/{source}/pull endpoint 미존재.
-	// 현재 PR 머지 시 runtime 404 → ingest page 가 try/catch 로 "M-v0.2.1+ scope" 메시지 표시.
 	pullSource: (source: string, opts: ApiOptions = {}) =>
-		request<{
-			pulled: number;
-			failed: number;
-			raw_ids: string[];
-			errors: Array<{ source: string; code: string; message: string }>;
-		}>(`/api/v0-2/ingest/${source}/pull`, 'POST', opts),
+		request<IngestPullData>(`/api/v0-2/ingest/${source}/pull`, 'POST', opts),
 
 	listConcepts: (params: { q?: string; bundle?: string; type?: string; limit?: number } = {}, opts: ApiOptions = {}) => {
 		const search = new URLSearchParams();
@@ -132,10 +124,8 @@ export const api = {
 	listBundles: (opts: ApiOptions = {}) =>
 		request<{ items: Bundle[]; total: number }>('/api/v0-2/bundles', 'GET', opts),
 
-	// M-v0.2.1+ scope placeholder: backend GET /api/v0-2/bundles/{name} endpoint 미존재.
-	// 현재 PR 머지 시 runtime 404 → bundles detail page 가 try/catch 로 "M-v0.2.1+ scope" 메시지 표시.
 	getBundle: (name: string, opts: ApiOptions = {}) =>
-		request<Bundle>(`/api/v0-2/bundles/${encodeURIComponent(name)}`, 'GET', opts),
+		request<BundleDetail>(`/api/v0-2/bundles/${encodeURIComponent(name)}`, 'GET', opts),
 
 	createBundle: (
 		body: { name: string; description?: string; owner_org_id: string; visibility: 'public' | 'org' | 'personal' | 'project' },
