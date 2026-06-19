@@ -483,7 +483,7 @@ var/
 - **expected effort**: 1 commit, 9 file 변경, 0 test 변경
 - **테스트**: 166/166 pass
 
-### 13.2 FastAPI `on_event` deprecation (refactor P2) — ✅ **resolved (commit `XXX`)**
+### 13.2 FastAPI `on_event` deprecation (refactor P2) — ✅ **resolved (commit `a58ed29c`)**
 - **이전 상태**: `main.py` 의 `@app.on_event("startup")` / `@app.on_event("shutdown")` 4 DeprecationWarning
 - **violation**: FastAPI 0.115+ deprecation
 - **refactor 정공법 (적용)**: `@asynccontextmanager` `lifespan` context manager 로 전환
