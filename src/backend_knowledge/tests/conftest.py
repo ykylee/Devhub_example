@@ -21,9 +21,11 @@ def temp_var_dir(monkeypatch, tmp_path: Path) -> Path:
     var_dir.mkdir(parents=True, exist_ok=True)
     settings = get_settings()
     monkeypatch.setattr(settings, "var_dir", var_dir)
-    # Reset singleton raw_store so it picks up new VAR_DIR
+    # Reset singletons so they pick up new VAR_DIR
+    from backend_knowledge.audit import logger as audit_logger_module
     from backend_knowledge.storage import raw_store as raw_store_module
     raw_store_module._raw_store = None
+    audit_logger_module._audit_logger = None
     return var_dir
 
 
