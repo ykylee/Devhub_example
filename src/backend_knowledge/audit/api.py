@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, sta
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..auth.path_y import PathYUserContext
-from ..api.ingest import get_path_y_context, make_envelope
+from ..api._common import get_path_y_context, make_envelope
 from .logger import get_audit_logger
 
 router = APIRouter(prefix="/api/v0-2", tags=["audit"])

@@ -36,7 +36,7 @@ from .curate import (
     _load_concept_metadata,
     _build_concept_id,
 )
-from .ingest import get_path_y_context, make_envelope, require_path_y_context
+from ._common import get_path_y_context, make_envelope, require_path_y_context
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v0-2", tags=["graph"])

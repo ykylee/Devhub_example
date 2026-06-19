@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ..audit.events import AuditEventType
 from ..audit.logger import get_audit_logger
 from ..auth.path_y import PathYUserContext
-from .ingest import get_path_y_context, make_envelope, require_path_y_context
+from ._common import get_path_y_context, make_envelope, require_path_y_context
 
 router = APIRouter(prefix="/api/v0-2", tags=["lifecycle"])
 
