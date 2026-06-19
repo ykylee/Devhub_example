@@ -13,7 +13,7 @@
 		const opts = withStoredPathY();
 		try {
 			const r = await api.listBundles(opts);
-			bundles = r.data.bundles;
+			bundles = r.data.items;
 		} catch (e) {
 			error = e instanceof ApiError ? `${e.code}: ${e.message}` : String(e);
 		} finally {

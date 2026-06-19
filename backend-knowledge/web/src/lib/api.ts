@@ -25,7 +25,11 @@ export interface ApiOptions {
 	pathY?: PathYUserContext | null;
 }
 
-const DEFAULT_BASE_URL = 'http://localhost:8000';
+// M-v0.2.1+ scope: docker-compose / k8s / preview 환경별 PUBLIC_API_BASE_URL override 가능
+// SvelteKit env var rule: 클라이언트 노출 가능 prefix = PUBLIC_*, Vite import.meta.env 로 접근
+const DEFAULT_BASE_URL =
+	(typeof import.meta.env.PUBLIC_API_BASE_URL === 'string' && import.meta.env.PUBLIC_API_BASE_URL) ||
+	'http://localhost:8000';
 
 function buildHeaders(options: ApiOptions, init?: HeadersInit): Headers {
 	const headers = new Headers(init);
@@ -79,13 +83,23 @@ export const api = {
 			opts
 		),
 
-	syncSource: (source: string, dryRun = false, opts: ApiOptions = {}) =>
+	syncSource: (source: string, opts: ApiOptions = {}, dryRun = false) =>
 		request<{
 			synced: number;
 			failed: number;
 			raw_ids: string[];
 			errors: Array<{ raw_name: string; code: string; message: string }>;
 		}>(`/api/v0-2/ingest/${source}/sync?dry_run=${dryRun}`, 'POST', opts),
+
+	// M-v0.2.1+ scope placeholder: backend POST /api/v0-2/ingest/{source}/pull endpoint 미존재.
+	// 현재 PR 머지 시 runtime 404 → ingest page 가 try/catch 로 "M-v0.2.1+ scope" 메시지 표시.
+	pullSource: (source: string, opts: ApiOptions = {}) =>
+		request<{
+			pulled: number;
+			failed: number;
+			raw_ids: string[];
+			errors: Array<{ source: string; code: string; message: string }>;
+		}>(`/api/v0-2/ingest/${source}/pull`, 'POST', opts),
 
 	listConcepts: (params: { q?: string; bundle?: string; type?: string; limit?: number } = {}, opts: ApiOptions = {}) => {
 		const search = new URLSearchParams();
@@ -118,6 +132,11 @@ export const api = {
 	listBundles: (opts: ApiOptions = {}) =>
 		request<{ items: Bundle[]; total: number }>('/api/v0-2/bundles', 'GET', opts),
 
+	// M-v0.2.1+ scope placeholder: backend GET /api/v0-2/bundles/{name} endpoint 미존재.
+	// 현재 PR 머지 시 runtime 404 → bundles detail page 가 try/catch 로 "M-v0.2.1+ scope" 메시지 표시.
+	getBundle: (name: string, opts: ApiOptions = {}) =>
+		request<Bundle>(`/api/v0-2/bundles/${encodeURIComponent(name)}`, 'GET', opts),
+
 	createBundle: (
 		body: { name: string; description?: string; owner_org_id: string; visibility: 'public' | 'org' | 'personal' | 'project' },
 		opts: ApiOptions = {}
@@ -128,7 +147,7 @@ export const api = {
 		body
 	),
 
-	rebuildBundle: (bundle: string, dryRun = false, opts: ApiOptions = {}) =>
+	rebuildBundle: (bundle: string, opts: ApiOptions = {}, dryRun = false) =>
 		request<{
 			bundle: string;
 			concept_count: number;
@@ -150,6 +169,13 @@ export const api = {
 			opts
 		);
 	},
+
+	deleteRaw: (rawId: string, opts: ApiOptions = {}) =>
+		request<{ deleted: boolean; raw_id: string }>(
+			`/api/v0-2/raw/${encodeURIComponent(rawId)}`,
+			'DELETE',
+			opts
+		),
 
 	listAudit: (
 		params: { event_type?: string; user_id?: string; from?: string; to?: string; limit?: number } = {},
