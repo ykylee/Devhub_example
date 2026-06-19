@@ -280,6 +280,8 @@ async def post_raw(
     ctx: PathYUserContext = Depends(require_path_y_context),
 ) -> dict:
     """FR-I-003: raw 등록 manual. 봉투 암호화 (AES-256-GCM) if KEK set."""
+    from ..storage.raw_store import InvalidSourceNameError
+
     raw_store = get_raw_store()
     try:
         result = raw_store.save(
@@ -288,6 +290,8 @@ async def post_raw(
             name=body.name,
             body=body.body,
             registered_by=ctx.user_id,
+            owner_org_id=ctx.org_id,
+            owner_project_ids=ctx.project_ids,
             frontmatter_override=body.frontmatter,
             raw_refs=body.raw_refs,
         )
@@ -301,6 +305,11 @@ async def post_raw(
             ).model_dump(mode="json"),
             request,
             ctx,
+        )
+    except InvalidSourceNameError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "E_VALIDATION", "message": str(e)},
         )
     except Exception as e:
         logger.error("raw_register_failed", error=str(e))
@@ -458,22 +467,45 @@ async def delete_raw(
     ctx: PathYUserContext = Depends(require_path_y_context),
 ) -> dict:
     """FR-I-006: raw 삭제 (soft archive 권장). Path Y 필수 (raw 삭제 권한)."""
+    from ..storage.raw_store import InvalidSourceNameError
+
     raw_store = get_raw_store()
-    if not raw_store.exists(source=source, raw_id=raw_id):
+    try:
+        record = raw_store.load(source=source, raw_id=raw_id)
+    except FileNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "E_NOT_FOUND", "message": f"raw not found: {source}/{raw_id}"},
         )
+    except InvalidSourceNameError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "E_VALIDATION", "message": str(e)},
+        )
 
-    # PR 1: hard delete (M-v0.2.1+ soft archive 권장)
-    for ext in ("bin", "json"):
-        file_path = raw_store.base_dir / source / f"{raw_id}.{ext}"
-        if file_path.exists():
-            file_path.unlink()
-            break
+    is_owner = record.registered_by == ctx.user_id
+    is_system_admin = "system_admin" in ctx.roles
+    is_same_org = bool(record.owner_org_id) and record.owner_org_id == ctx.org_id
+    if not (is_owner or is_system_admin or is_same_org):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "E_FORBIDDEN",
+                "message": f"raw.delete_denied: caller is not owner/system_admin/same_org "
+                f"(registered_by={record.registered_by!r}, owner_org_id={record.owner_org_id!r})",
+            },
+        )
+
+    raw_store.delete(source=source, raw_id=raw_id)
 
     deleted_at = datetime.now(timezone.utc)
-    logger.info("raw_deleted", raw_id=raw_id, source=source, deleted_by=ctx.user_id)
+    logger.info(
+        "raw_deleted",
+        raw_id=raw_id,
+        source=source,
+        deleted_by=ctx.user_id,
+        auth_reason="owner" if is_owner else ("system_admin" if is_system_admin else "same_org"),
+    )
     return make_envelope(
         RawDeleteData(
             raw_id=raw_id,
