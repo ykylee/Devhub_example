@@ -6,7 +6,7 @@
 - 상태: accepted
 - 작성일: 2026-04-29
 - 최종 수정일: 2026-05-29 (Phase 3 split — 도메인별 본문 §5/§7~§12 이관, 본 문서는 master index 로 전환)
-- 관련 문서: [요구사항 정의서 (master index)](./requirements.md), [백엔드 API 계약 (master index)](./backend_api_contract.md), [ADR-0019 Keycloak 단일화](./adr/0019-keycloak-only-idp.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0024 WebSocket ticket](./adr/0024-websocket-auth-query-token.md), [추적성 매트릭스](./traceability/report.md), [코드베이스 스냅샷 2026-05-27](./analysis/2026-05-27-codebase-snapshot/README.md).
+- 관련 문서: [요구사항 정의서 (master index)](./requirements.md), [백엔드 API 계약 (master index)](./backend_api_contract.md), [ADR-0019 Keycloak 단일화](./adr/0019-keycloak-only-idp.md), [ADR-0002 RBAC](./adr/0002-rbac-policy-edit-api.md), [ADR-0024 WebSocket ticket](./adr/0024-websocket-auth-query-token.md), [추적성 매트릭스](./traceability/report.md), [코드베이스 스냅샷 2026-05-27](./analysis/2026-05-27-codebase-snapshot/README.md), **[신규 백엔드 v0.2.0+ entry point: `docs/backend-knowledge/architecture.md`](./backend-knowledge/architecture.md)** (M-v0.2.0 PoC release, retro-design recovery).
 
 ## 1. 개요
 

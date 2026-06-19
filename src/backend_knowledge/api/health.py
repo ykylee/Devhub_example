@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from .. import __version__
 from ..auth.path_y import PathYUserContext, PathYExpiredError, PathYValidationError, get_path_y_validator
 from fastapi import HTTPException, status
-from .ingest import make_envelope
+from ._common import make_envelope
 
 router = APIRouter(tags=["health"])
 

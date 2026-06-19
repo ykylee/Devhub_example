@@ -10,7 +10,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import PlainTextResponse
 
-from ..api.ingest import get_path_y_context, make_envelope
+from ..api._common import get_path_y_context, make_envelope
 from ..auth.path_y import PathYUserContext
 from ..config import get_settings
 from .prometheus import collect_alerts, render_prometheus_exposition

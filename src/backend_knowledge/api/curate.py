@@ -40,117 +40,22 @@ from ..okf import (
     render_frontmatter,
     write_concept,
 )
-from .ingest import get_path_y_context, make_envelope, require_path_y_context
+from ._common import get_path_y_context, make_envelope, require_path_y_context
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v0-2", tags=["curate"])
 
 
-# === Bundle storage helpers (internal) ===
-
-def _bundle_dir(bundle_name: str) -> Path:
-    """Return bundle directory path (var/bundles/{bundle_name}/)."""
-    settings = get_settings()
-    return settings.var_dir / "bundles" / bundle_name
-
-
-def _bundle_index_dir(bundle_name: str) -> Path:
-    """Return bundle index directory (var/bundles/{bundle_name}/.index/)."""
-    return _bundle_dir(bundle_name) / ".index"
-
-
-def _bundle_meta_path(bundle_name: str) -> Path:
-    """Return bundle metadata JSON path (var/bundles/{bundle_name}/.bundle_meta.json)."""
-    return _bundle_dir(bundle_name) / ".bundle_meta.json"
-
-
-def _concept_meta_path(bundle: str, type_: str, slug: str) -> Path:
-    """Return concept metadata sidecar path.
-
-    Used to store type / name / registered_by / visibility / frontmatter for fast lookup
-    without re-parsing the full Markdown file. Per Codex P1 review fix (PR 1).
-    """
-    return _bundle_dir(bundle) / type_ / f"{slug}.meta.json"
-
-
-def _save_concept_metadata(
-    bundle: str,
-    type_: str,
-    slug: str,
-    sha256: str,
-    source: str,
-    raw_id: str | None,
-    registered_by: str,
-    visibility: str,
-    frontmatter: dict,
-) -> None:
-    """Save concept metadata sidecar JSON (per Codex P1 review fix)."""
-    meta_path = _concept_meta_path(bundle, type_, slug)
-    meta_path.parent.mkdir(parents=True, exist_ok=True)
-    meta = {
-        "bundle": bundle,
-        "type": type_,
-        "name": slug,
-        "sha256": sha256,
-        "source": source,
-        "raw_id": raw_id,
-        "registered_by": registered_by,
-        "visibility": visibility,
-        "frontmatter": frontmatter,
-        "registered_at": datetime.now(timezone.utc).isoformat(),
-    }
-    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
-def _load_concept_metadata(bundle: str, type_: str, slug: str) -> dict | None:
-    """Load concept metadata sidecar JSON (per Codex P1 review fix)."""
-    meta_path = _concept_meta_path(bundle, type_, slug)
-    if not meta_path.exists():
-        return None
-    try:
-        return json.loads(meta_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
-
-
-def _find_concept_by_id(concept_id: str) -> tuple[str, str, str] | None:
-    """Find concept (bundle, type, slug) by concept_id (e.g., 'devhub-gitea/dataset/foo').
-
-    Returns (bundle, type, slug) or None.
-    Searches all bundles' concept metadata.
-    """
-    settings = get_settings()
-    bundles_dir = settings.var_dir / "bundles"
-    if not bundles_dir.exists():
-        return None
-
-    # Try direct path match: bundle/type/slug
-    parts = concept_id.split("/")
-    if len(parts) >= 3:
-        bundle, type_, slug = parts[0], parts[1], parts[-1]
-        meta = _load_concept_metadata(bundle, type_, slug)
-        if meta:
-            return (bundle, type_, slug)
-
-    # Fallback: scan all bundle metadata
-    for bundle_meta_path in bundles_dir.glob("*/.bundle_meta.json"):
-        bundle_name = bundle_meta_path.parent.name
-        bundle_dir = bundle_meta_path.parent
-        for concept_meta in bundle_dir.glob("*/*.meta.json"):
-            type_ = concept_meta.parent.name
-            slug = concept_meta.stem.replace(".meta", "")
-            if concept_meta.stem.endswith(".meta"):
-                slug = concept_meta.stem[:-5]  # strip .meta
-            # Check if this is the one we want
-            full_id = f"{bundle_name}/{type_}/{slug}"
-            if full_id == concept_id:
-                return (bundle_name, type_, slug)
-    return None
-
-
-def _build_concept_id(bundle: str, type_: str, slug: str) -> str:
-    """Build concept_id from bundle + type + slug."""
-    return f"{bundle}/{type_}/{slug}"
+from ._bundle_store import (  # noqa: F401
+    bundle_dir,
+    bundle_index_dir,
+    bundle_meta_path,
+    build_concept_id,
+    concept_meta_path,
+    find_concept_by_id,
+    load_concept_metadata,
+    save_concept_metadata,
+)
 
 
 # === FR-C-001: POST /concepts/{id}/enrich ===
@@ -410,8 +315,8 @@ async def create_bundle(
     ctx: PathYUserContext = Depends(require_path_y_context),
 ) -> dict:
     """FR-C-004: bundle create (Path Y 필수 + caller 권한 check)."""
-    bundle_dir = _bundle_dir(body.name)
-    if bundle_dir.exists():
+    bundle_path = bundle_dir(body.name)
+    if bundle_path.exists():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "E_CONFLICT", "message": f"bundle already exists: {body.name}"},
@@ -425,8 +330,8 @@ async def create_bundle(
         )
 
     # Create bundle directory
-    bundle_dir.mkdir(parents=True, exist_ok=True)
-    meta_path = bundle_dir / ".bundle_meta.json"
+    bundle_path.mkdir(parents=True, exist_ok=True)
+    meta_path = bundle_path / ".bundle_meta.json"
     meta = {
         "name": body.name,
         "description": body.description,
@@ -441,7 +346,7 @@ async def create_bundle(
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Initialize index directory
-    (_bundle_index_dir(body.name)).mkdir(exist_ok=True)
+    (bundle_index_dir(body.name)).mkdir(exist_ok=True)
 
     return make_envelope(
         BundleCreateData(
@@ -449,7 +354,7 @@ async def create_bundle(
             created_at=datetime.now(timezone.utc),
             created_by=ctx.user_id,
             visibility=body.visibility,
-            path=str(bundle_dir),
+            path=str(bundle_path),
         ).model_dump(mode="json"),
         request,
         ctx,
@@ -492,8 +397,8 @@ async def rebuild_bundle(
     if body is None:
         body = BundleRebuildRequest()
 
-    bundle_dir = _bundle_dir(bundle)
-    if not bundle_dir.exists():
+    bundle_path = bundle_dir(bundle)
+    if not bundle_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "E_NOT_FOUND", "message": f"bundle not found: {bundle}"},
@@ -501,11 +406,11 @@ async def rebuild_bundle(
 
     import time
     start = time.time()
-    index_dir = _bundle_index_dir(bundle)
+    index_dir = bundle_index_dir(bundle)
     index_dir.mkdir(exist_ok=True)
 
     # Scan all .md concept files
-    md_files = sorted(bundle_dir.glob("*/*.md"))
+    md_files = sorted(bundle_path.glob("*/*.md"))
     concept_count = len(md_files)
 
     # 1. Build reverse index (in-link list per concept)
@@ -517,7 +422,7 @@ async def rebuild_bundle(
             frontmatter, body_md = parse_frontmatter(text)
             slug = md_file.stem
             type_ = md_file.parent.name
-            source_id = _build_concept_id(bundle, type_, slug)
+            source_id = build_concept_id(bundle, type_, slug)
 
             # Find all cross-link targets in body
             from ..okf.cross_link import extract_cross_links
@@ -569,7 +474,7 @@ async def rebuild_bundle(
                 index_md_lines.append(f"_{desc}_")
             index_md_lines.append(f"- path: `{relative_path}`")
             index_md_lines.append(f"- type: `{type_}`")
-            reverse_count = len(reverse_index.get(_build_concept_id(bundle, type_, slug), []))
+            reverse_count = len(reverse_index.get(build_concept_id(bundle, type_, slug), []))
             if reverse_count > 0:
                 index_md_lines.append(f"- in-link: {reverse_count}")
             index_md_lines.append("")
@@ -622,7 +527,7 @@ def _generate_viz_html(
             title = frontmatter.title or slug
         except Exception:
             title = slug
-        concept_id = _build_concept_id(bundle, type_, slug)
+        concept_id = build_concept_id(bundle, type_, slug)
         concept_id_to_idx[concept_id] = i
         nodes.append(
             {

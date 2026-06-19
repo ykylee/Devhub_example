@@ -15,130 +15,26 @@ Path Y caller-provided user context:
 - FR-I-004 (raw get): Path Y 필수 (visibility check)
 - FR-I-005 (raw list): Path Y 필수 (caller scope filter)
 - FR-I-006 (raw delete): Path Y 필수 (raw 삭제 권한)
+
+공통 helper (Path Y dependency + envelope response) 는 api/_common.py 로 추출 (architecture.md §3.1 layer 격리 정공법, §13.1 refactor).
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Literal
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Path, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..auth.path_y import (
-    PathYExpiredError,
-    PathYUserContext,
-    PathYValidationError,
-    get_path_y_validator,
-)
+from ..auth.path_y import PathYUserContext
 from ..logger import get_logger
 from ..sources import get_source, list_sources
 from ..storage import get_raw_store
+from ._common import get_path_y_context, make_envelope, require_path_y_context
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v0-2", tags=["ingest"])
-
-
-# === Path Y dependency (FastAPI dependency injection) ===
-
-def get_path_y_context(
-    request: Request,
-    x_devhub_user_context: str | None = Header(None, alias="X-DevHub-User-Context"),
-) -> PathYUserContext | None:
-    """Path Y header validation. Returns None if header missing (for optional endpoints)."""
-    from ..audit.events import AuditEventType
-    from ..audit.logger import get_audit_logger
-
-    if not x_devhub_user_context:
-        return None
-    validator = get_path_y_validator()
-    try:
-        ctx = validator.validate(x_devhub_user_context)
-        get_audit_logger().emit_simple(
-            event_type=AuditEventType.USER_LOGIN,
-            user_id=ctx.user_id,
-            org_id=ctx.org_id,
-            request_id=getattr(request.state, "request_id", None),
-            ip=request.client.host if request.client else None,
-            success=True,
-            roles=ctx.roles,
-            issued_at=ctx.issued_at,
-        )
-        return ctx
-    except PathYExpiredError as e:
-        get_audit_logger().emit_simple(
-            event_type=AuditEventType.USER_LOGIN,
-            request_id=getattr(request.state, "request_id", None),
-            ip=request.client.host if request.client else None,
-            success=False,
-            error_reason="expired",
-            error=str(e),
-        )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "E_UNAUTHORIZED", "message": f"X-DevHub-User-Context expired: {e}"},
-        )
-    except PathYValidationError as e:
-        get_audit_logger().emit_simple(
-            event_type=AuditEventType.USER_LOGIN,
-            request_id=getattr(request.state, "request_id", None),
-            ip=request.client.host if request.client else None,
-            success=False,
-            error_reason="invalid",
-            error=e.reason,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "E_VALIDATION", "message": f"X-DevHub-User-Context invalid: {e.reason}"},
-        )
-
-
-def require_path_y_context(
-    ctx: PathYUserContext | None = Depends(get_path_y_context),
-) -> PathYUserContext:
-    """Path Y 필수. 400 E_VALIDATION if missing."""
-    if ctx is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "E_VALIDATION", "message": "X-DevHub-User-Context required"},
-        )
-    return ctx
-
-
-# === Envelope response (umbrella doc §3.4 Envelope = {envelope: {...}, data: T}) ===
-
-class EnvelopeMeta(BaseModel):
-    """공통 envelope metadata (umbrella doc §3.4)."""
-
-    request_id: str
-    timestamp: datetime
-    api_version: Literal["v0-2"] = "v0-2"
-    caller_user_id: str | None = None
-    path_y_validated: bool = True
-
-
-class Envelope(BaseModel):
-    """공통 envelope wrapper (umbrella doc §3.4)."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    envelope: EnvelopeMeta
-    data: Any
-
-
-def make_envelope(data: Any, request: Request, ctx: PathYUserContext | None) -> dict:
-    """Build envelope response."""
-    import uuid
-    return {
-        "envelope": {
-            "request_id": getattr(request.state, "request_id", str(uuid.uuid4())),
-            "timestamp": datetime.now(timezone.utc),
-            "api_version": "v0-2",
-            "caller_user_id": ctx.user_id if ctx else None,
-            "path_y_validated": ctx is not None,
-        },
-        "data": data,
-    }
 
 
 # === FR-I-001: POST /ingest/{source}/sync (Path Y 권장) ===

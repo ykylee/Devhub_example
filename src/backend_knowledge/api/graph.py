@@ -30,13 +30,12 @@ from ..auth.path_y import (
 from ..config import get_settings
 from ..logger import get_logger
 from ..okf import extract_cross_links, parse_frontmatter
-from .curate import (
-    _bundle_dir,
-    _bundle_index_dir,
-    _load_concept_metadata,
-    _build_concept_id,
+from ._bundle_store import (
+    bundle_index_dir,
+    load_concept_metadata,
+    build_concept_id,
 )
-from .ingest import get_path_y_context, make_envelope, require_path_y_context
+from ._common import get_path_y_context, make_envelope, require_path_y_context
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v0-2", tags=["graph"])
@@ -46,7 +45,7 @@ router = APIRouter(prefix="/api/v0-2", tags=["graph"])
 
 def _read_reverse_index(bundle: str) -> dict:
     """Read reverse_index.json for a bundle. Returns empty dict if not exists."""
-    reverse_index_path = _bundle_index_dir(bundle) / "reverse_index.json"
+    reverse_index_path = bundle_index_dir(bundle) / "reverse_index.json"
     if not reverse_index_path.exists():
         return {}
     try:
@@ -332,7 +331,7 @@ async def post_reindex(
 
         # Write reverse_index.json
         if body.full_scan:
-            index_dir = _bundle_index_dir(bundle_dir.name)
+            index_dir = bundle_index_dir(bundle_dir.name)
             index_dir.mkdir(exist_ok=True)
             (index_dir / "reverse_index.json").write_text(
                 json.dumps(reverse_index, ensure_ascii=False, indent=2),

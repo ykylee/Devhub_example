@@ -36,15 +36,14 @@ from ..auth.path_y import (
 from ..config import get_settings
 from ..logger import get_logger
 from ..okf import parse_frontmatter
-from .curate import (
-    _bundle_dir,
-    _bundle_index_dir,
-    _concept_meta_path,
-    _find_concept_by_id,
-    _load_concept_metadata,
-    _build_concept_id,
+from ._bundle_store import (
+    bundle_index_dir,
+    concept_meta_path,
+    find_concept_by_id,
+    load_concept_metadata,
+    build_concept_id,
 )
-from .ingest import get_path_y_context, make_envelope, require_path_y_context
+from ._common import get_path_y_context, make_envelope, require_path_y_context
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v0-2", tags=["query"])
@@ -157,7 +156,7 @@ async def post_query(
         score = 1.0 - (i * 0.05) if i < 20 else 0.0
         contexts.append(
             QueryContext(
-                concept_id=_build_concept_id(meta.get("bundle", ""), meta.get("type", ""), meta.get("name", "")),
+                concept_id=build_concept_id(meta.get("bundle", ""), meta.get("type", ""), meta.get("name", "")),
                 type=meta.get("type", ""),
                 title=meta.get("frontmatter", {}).get("title", meta.get("name", "")),
                 score=score,
@@ -227,7 +226,7 @@ async def get_concept(
     from ..audit.logger import get_audit_logger
 
     # Load concept metadata
-    meta = _load_concept_metadata(bundle, type, name)
+    meta = load_concept_metadata(bundle, type, name)
     if not meta:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -256,7 +255,7 @@ async def get_concept(
 
     return make_envelope(
         ConceptGetData(
-            concept_id=_build_concept_id(bundle, type, name),
+            concept_id=build_concept_id(bundle, type, name),
             type=type,
             name=name,
             bundle=bundle,
@@ -316,7 +315,7 @@ async def search(
         SearchData(
             hits=[
                 {
-                    "concept_id": _build_concept_id(m.get("bundle", ""), m.get("type", ""), m.get("name", "")),
+                    "concept_id": build_concept_id(m.get("bundle", ""), m.get("type", ""), m.get("name", "")),
                     "type": m.get("type", ""),
                     "title": m.get("frontmatter", {}).get("title", m.get("name", "")),
                     "snippet": m.get("frontmatter", {}).get("description", ""),
@@ -344,7 +343,7 @@ async def get_bundle_index(
     ctx: PathYUserContext | None = Depends(get_path_y_context),
 ) -> PlainTextResponse:
     """FR-Q-004: bundle index.md (Path Y 권장). Returns raw Markdown."""
-    index_path = _bundle_index_dir(bundle) / "index.md"
+    index_path = bundle_index_dir(bundle) / "index.md"
     if not index_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -362,7 +361,7 @@ async def get_bundle_viz(
     ctx: PathYUserContext | None = Depends(get_path_y_context),
 ) -> HTMLResponse:
     """FR-Q-005: bundle viz.html (Cytoscape.js v3.x + marked.js v5.x CDN, self-contained)."""
-    viz_path = _bundle_index_dir(bundle) / "viz.html"
+    viz_path = bundle_index_dir(bundle) / "viz.html"
     if not viz_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
