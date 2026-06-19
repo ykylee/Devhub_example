@@ -197,6 +197,21 @@ async def post_enrich(
         body = ConceptEnrichRequest(raw_id=concept_id)
     if body.enricher == "pi-llm":
         logger.info("pi_llm_enrich_requested", note="MOCK mode (PR 2 placeholder)")
+    from ..audit.events import AuditEventType
+    from ..audit.logger import get_audit_logger
+    if ctx is not None:
+        get_audit_logger().emit_simple(
+            event_type=AuditEventType.CURATION_EDIT,
+            user_id=ctx.user_id,
+            org_id=ctx.org_id,
+            request_id=getattr(request.state, "request_id", None),
+            ip=request.client.host if request.client else None,
+            success=True,
+            concept_id=concept_id,
+            action="enrich",
+            enricher=body.enricher,
+            dry_run=body.dry_run,
+        )
     # MOCK: just acknowledge, real logic in PR 3
     return make_envelope(
         ConceptEnrichData(
@@ -260,6 +275,25 @@ async def put_concept(
         )
 
     # MOCK: just acknowledge, real logic in PR 3
+    from ..audit.events import AuditEventType
+    from ..audit.logger import get_audit_logger
+
+    edited_at = datetime.now(timezone.utc)
+    audit = get_audit_logger()
+    audit.emit_simple(
+        event_type=AuditEventType.CURATION_EDIT,
+        user_id=ctx.user_id,
+        org_id=ctx.org_id,
+        request_id=getattr(request.state, "request_id", None),
+        ip=request.client.host if request.client else None,
+        success=True,
+        concept_id=concept_id,
+        old_version=1,
+        new_version=2,
+        cross_links_added=len(body.cross_links_add),
+        cross_links_removed=len(body.cross_links_remove),
+        commit_message=body.commit_message,
+    )
     return make_envelope(
         ConceptEditData(
             concept_id=concept_id,
@@ -268,7 +302,7 @@ async def put_concept(
             body=body.body or body.append_body or "",
             cross_links_added=len(body.cross_links_add),
             cross_links_removed=len(body.cross_links_remove),
-            edited_at=datetime.now(timezone.utc),
+            edited_at=edited_at,
             edited_by=ctx.user_id,
         ).model_dump(mode="json"),
         request,

@@ -20,9 +20,12 @@ from .api.curate import router as curate_router
 from .api.graph import router as graph_router
 from .api.health import router as health_router
 from .api.ingest import router as ingest_router
+from .api.lifecycle import router as lifecycle_router
 from .api.query import router as query_router
+from .audit.api import router as audit_router
 from .config import get_settings
 from .logger import configure_logging, get_logger
+from .monitoring.api import router as monitoring_router
 
 # Initialize logging
 configure_logging()
@@ -115,6 +118,15 @@ app.include_router(query_router)
 
 # Graph (4 endpoint, prefix /api/v0-2)
 app.include_router(graph_router)
+
+# Lifecycle (2 endpoint, prefix /api/v0-2)
+app.include_router(lifecycle_router)
+
+# Audit (4 endpoint, prefix /api/v0-2)
+app.include_router(audit_router)
+
+# Monitoring (2 endpoint, includes /metrics)
+app.include_router(monitoring_router)
 
 
 # === Startup event ===

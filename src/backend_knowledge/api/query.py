@@ -138,6 +138,11 @@ async def post_query(
     ctx: PathYUserContext = Depends(require_path_y_context),
 ) -> dict:
     """FR-Q-001: 자연어 query → context + answer (MOCK: simple substring match, M-v0.2.0 PoC)."""
+    import time
+    from ..audit.events import AuditEventType
+    from ..audit.logger import get_audit_logger
+
+    query_start = time.time()
     if body.llm_synthesis:
         # MOCK: LLM 합성 시 answer = None (M-v0.2.3+ Pi LLM enrich 에서 추가)
         answer = None
@@ -175,6 +180,18 @@ async def post_query(
         request,
         ctx,
     )
+    get_audit_logger().emit_simple(
+        event_type=AuditEventType.QUERY,
+        user_id=ctx.user_id,
+        org_id=ctx.org_id,
+        request_id=getattr(request.state, "request_id", None),
+        ip=request.client.host if request.client else None,
+        success=True,
+        query_text=body.query[:200],
+        result_count=len(contexts),
+        response_time_ms=round((time.time() - query_start) * 1000, 2),
+        top_k=body.top_k,
+    )
 
 
 # === FR-Q-002: GET /concepts/{type}/{name} ===
@@ -206,6 +223,9 @@ async def get_concept(
     ctx: PathYUserContext = Depends(require_path_y_context),
 ) -> dict:
     """FR-Q-002: concept 직접 조회 (Path Y 필수 + visibility check)."""
+    from ..audit.events import AuditEventType
+    from ..audit.logger import get_audit_logger
+
     # Load concept metadata
     meta = _load_concept_metadata(bundle, type, name)
     if not meta:
@@ -252,6 +272,18 @@ async def get_concept(
         ).model_dump(mode="json"),
         request,
         ctx,
+    )
+    get_audit_logger().emit_simple(
+        event_type=AuditEventType.CONCEPT_ACCESS,
+        user_id=ctx.user_id,
+        org_id=ctx.org_id,
+        request_id=getattr(request.state, "request_id", None),
+        ip=request.client.host if request.client else None,
+        success=True,
+        concept_id=f"{bundle}/{type}/{name}",
+        bundle=bundle,
+        type=type,
+        visibility=visibility,
     )
 
 

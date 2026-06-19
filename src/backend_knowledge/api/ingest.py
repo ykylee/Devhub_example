@@ -46,17 +46,47 @@ def get_path_y_context(
     x_devhub_user_context: str | None = Header(None, alias="X-DevHub-User-Context"),
 ) -> PathYUserContext | None:
     """Path Y header validation. Returns None if header missing (for optional endpoints)."""
+    from ..audit.events import AuditEventType
+    from ..audit.logger import get_audit_logger
+
     if not x_devhub_user_context:
         return None
     validator = get_path_y_validator()
     try:
-        return validator.validate(x_devhub_user_context)
+        ctx = validator.validate(x_devhub_user_context)
+        get_audit_logger().emit_simple(
+            event_type=AuditEventType.USER_LOGIN,
+            user_id=ctx.user_id,
+            org_id=ctx.org_id,
+            request_id=getattr(request.state, "request_id", None),
+            ip=request.client.host if request.client else None,
+            success=True,
+            roles=ctx.roles,
+            issued_at=ctx.issued_at,
+        )
+        return ctx
     except PathYExpiredError as e:
+        get_audit_logger().emit_simple(
+            event_type=AuditEventType.USER_LOGIN,
+            request_id=getattr(request.state, "request_id", None),
+            ip=request.client.host if request.client else None,
+            success=False,
+            error_reason="expired",
+            error=str(e),
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"code": "E_UNAUTHORIZED", "message": f"X-DevHub-User-Context expired: {e}"},
         )
     except PathYValidationError as e:
+        get_audit_logger().emit_simple(
+            event_type=AuditEventType.USER_LOGIN,
+            request_id=getattr(request.state, "request_id", None),
+            ip=request.client.host if request.client else None,
+            success=False,
+            error_reason="invalid",
+            error=e.reason,
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "E_VALIDATION", "message": f"X-DevHub-User-Context invalid: {e.reason}"},
