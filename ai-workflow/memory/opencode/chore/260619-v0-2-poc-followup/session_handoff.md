@@ -165,3 +165,38 @@
 - **WB-15 §17.2 known gaps 자연 해소** (M-v0.2.0 PoC 운영 +1주 이내)
 - **M-v0.2.0 PoC 운영** (umbrella doc §11 + §11.3 + §17.5 정합 검증, UC-EU/CU/OP/SA 28 시나리오 + audit log 7 event + 28 metric)
 - **M-v0.2.0+ 구현 sprint** (IMPL/UT/TC row 추가, docs/traceability/report.md IMPL/UT/TC v0.2.0 subsection)
+
+## 3. v0.2.0 PoC 구현 PR 1 (2026-06-19, 03:00~)
+
+### 환경 검증
+- **Python 3.13.7** ✅
+- **pip 26.0.1 + venv** ✅
+- **cryptography 43.0.0** ✅
+- **Gitea** ❌ → mock mode 자동 fallback
+- **Pi (pi.dev)** ❌ → M-v0.2.3+ placeholder
+
+### PR #654 (PR 1 of 3)
+- **Branch**: `feat/260619-v0-2-backend-knowledge-pr1`
+- **Commit**: `c631a9a3` (36 files, +3459 line)
+- **PR**: https://github.com/ykylee/Devhub_example/pull/654
+
+### 산출물 (PR 1)
+- **src-layout**: `src/backend_knowledge/` (Python 3.13+ / FastAPI 0.115.6 / Pydantic 2.9.2)
+- **Auth**: Path Y 8 field + 5분 만료 + FastAPI dependency
+- **OKF**: frontmatter (12 field) + concept reader/writer + cross_link extractor (4 type)
+- **Sources**: 5 source plugin (ABC + 4 Gitea sub-plugin + homelab_mock)
+- **Storage**: 봉투 암호화 (AES-256-GCM, scope = raw + .env/KEK 만)
+- **API**: 6 Ingest endpoint (FR-I-001~006) + /health + /health/protected
+- **Tests**: 43 test, **100% pass** (5.51 sec runtime)
+
+### 사용자 결정 (2026-06-19)
+- **사외/사내 tier 구분 없음** (현재 환경에서 모든 기능 구현)
+- **3 PR 분할** (속도 우선)
+- **PR 완료 시마다 알림**
+
+### 3 PR 분할 상태
+| PR | 내용 | 상태 |
+| --- | --- | --- |
+| **PR 1 (이 PR)** | skeleton + 5 source + Ingest 6 | ✅ PR #654 OPEN |
+| PR 2 (후속) | Curate 5 + Query 5 + Graph 4 + viz.html | ⏳ |
+| PR 3 (후속) | Audit + Monitoring + Operational + E2E | ⏳ |
