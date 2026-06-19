@@ -32,23 +32,30 @@
 - **삭제 (로컬)**: `chore/260618-v0-2-release-notes` / `chore/260618-v0-2-p1-wiki-mirror` / `chore/260618-v0-2-p2-process` (3개)
 - **삭제 (원격)**: 2606* 27개 일괄 (사용자 결정 "전부 삭제 - 강력 권장", Mavis/MiniMax-M3 운영 사고 substring 매치로 1건 추가 삭제 → 재 push 복구 완료)
 
-### PR #653 (§3 NFR 작성, 2026-06-19T02:10:34Z PR OPEN)
+### PR #653 (v0.2.0 PoC SDLC 요구사항 단계 5/5 완료, 2026-06-19T02:10:34Z PR OPEN)
 
 | 항목 | 결과 |
 | --- | --- |
-| **PR** | [#653](https://github.com/ykylee/Devhub_example/pull/653) docs(v0.2.0-requirements): SDLC §3 NFR 비기능 요구사항 (본 PR 은 §3 NFR + §4 UC 2 commit 통합본으로 body 갱신) |
+| **PR** | [#653](https://github.com/ykylee/Devhub_example/pull/653) docs(v0.2.0-requirements): SDLC §3 NFR 비기능 요구사항 (본 PR 은 전체 5 turn 통합본: §1 + §2 + §3 + §4 + §5) |
 | **Commit 1** | `3e986a3c` (2026-06-19T02:09) — §3 NFR 작성 |
 | **Commit 2** | `af3508d2` (2026-06-19T02:18) — §4 UC 작성 |
-| **Memory** | `a4c64a3d` (2026-06-19T02:14) — session_handoff 갱신 |
-| **Files** | +2216 / -12 (umbrella + 4 requirements + 4 memory) |
+| **Commit 3** | `69ff3afd` (2026-06-19T02:30) — §5 TM 작성 (SDLC 요구사항 단계 마지막 turn) |
+| **Memory** | `a4c64a3d` + `5e1cd332` (2026-06-19T02:14, 02:25) — session_handoff 갱신 |
+| **Files** | +2555 / -15 (umbrella + 5 requirements + 1 traceability report + 2 memory) |
 | **CI 4/4** | ✅ Detect Changed Paths / Migration Prefix Uniqueness / OpenAPI YAML Lint / Workflow Lint |
 | **CI 5/5** | ⏭ skipped (docs only) |
 | **Codex review** | ⏳ 자동 trigger 대기 |
 
-**§3 NFR + §4 UC 산출물**:
-- §3 NFR 1249 line: 4 NFR category × 32 cell + 28 metrics (umbrella §17.5 1:1) + 6 incident runbook + RTO/RPO
-- §4 UC 967 line: 4 actor × 28 시나리오 + cell × usecase 매트릭스 + endpoint × usecase + Path Y 흐름
-- umbrella doc §13.4 정합 검증 row +2 (§3 NFR + §4 UC) + §1 §5 + §2 §8 + §3 §8 다음 단계 DONE 표시
+**v0.2.0 PoC SDLC 요구사항 단계 5/5 완료 산출물**:
+- §1 도메인 분류 (main, REQ-D-001~032, 32 cell)
+- §2 FR (PR #652 MERGED, 20 endpoint Pydantic v2 schema)
+- §3 NFR 1249 line: 4 NFR category × 32 cell + 28 metrics + 6 incident runbook + RTO/RPO
+- §4 UC 967 line: 4 actor × 28 시나리오 + cell × usecase + endpoint × usecase
+- §5 TM 325 line: 7-level chain + 32 cell × 7-level + 20 endpoint × 7-level + ID prefix 정책
+- docs/traceability/report.md §6 v0.2.0 PoC entry (108 row: 32+24+24+28)
+- umbrella doc §13.4 정합 검증 row +3 + §1 §5 + §2 §8 + §3 §8 + §4 §7 다음 단계 DONE 표시
+
+**총 108 row (M-v0.2.0 PoC)**: REQ-D-001~032 (32) + FR-I/C/Q/G-* (24) + NFR-P/S/A/O-* (24) + UC-EU/CU/OP/SA-* (28). IMPL/UT/TC row placeholder (M-v0.2.0+ 구현 sprint 진입 시).
 
 자세한 삭제/유지 판단 근거: `state.json` `preserved_unique_context_from_prior_branch` section.
 

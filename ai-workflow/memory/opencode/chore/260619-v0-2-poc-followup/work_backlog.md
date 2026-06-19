@@ -60,3 +60,10 @@
   - Path Y caller-provided user context 흐름 (gateway 3-step orchestration)
   - 5 curator_type 권한 + §3.6.6 audit log 7 event actor attribution
 - [x] **DB-10**: PR #653 body 갱신 (§3 NFR + §4 UC 통합본)
+- [x] **DB-11**: §5 TM 작성 (docs/requirements/v0.2.0-traceability-matrix.md, 325 line, SDLC 요구사항 단계 마지막 turn)
+  - 7-level chain REQ → FR → NFR → UC → IMPL → UT → TC
+  - 32 cell × 7-level 매트릭스 (28 PoC cell)
+  - 20 endpoint × 7-level 매트릭스 (9 필수 + 11 권장)
+  - ID prefix 정책 (REQ-D-NNN / FR-I/C/Q/G-NNN / NFR-P/S/A/O-NNN / UC-EU/CU/OP/SA-NNN / IMPL-/UT-/TC- M-v0.2.0+ placeholder)
+  - docs/traceability/report.md §6 v0.2.0 PoC SDLC 요구사항 단계 row 추가 (108 row: 32+24+24+28)
+- [x] **DB-12**: PR #653 body 갱신 (전체 5 turn 통합본: §1 + §2 + §3 + §4 + §5)
