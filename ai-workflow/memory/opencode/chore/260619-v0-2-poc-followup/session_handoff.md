@@ -36,20 +36,19 @@
 
 | 항목 | 결과 |
 | --- | --- |
-| **PR** | [#653](https://github.com/ykylee/Devhub_example/pull/653) docs(v0.2.0-requirements): SDLC §3 NFR 비기능 요구사항 |
-| **Commit** | `3e986a3c` |
-| **Files** | +1533 / -6 / 4 files (umbrella + §1 + §2 + §3 NFR new) |
-| **CI 4/4** | ✅ Detect Changed Paths / Migration Prefix Uniqueness / OpenAPI YAML Lint / Workflow Lint (in_progress) |
+| **PR** | [#653](https://github.com/ykylee/Devhub_example/pull/653) docs(v0.2.0-requirements): SDLC §3 NFR 비기능 요구사항 (본 PR 은 §3 NFR + §4 UC 2 commit 통합본으로 body 갱신) |
+| **Commit 1** | `3e986a3c` (2026-06-19T02:09) — §3 NFR 작성 |
+| **Commit 2** | `af3508d2` (2026-06-19T02:18) — §4 UC 작성 |
+| **Memory** | `a4c64a3d` (2026-06-19T02:14) — session_handoff 갱신 |
+| **Files** | +2216 / -12 (umbrella + 4 requirements + 4 memory) |
+| **CI 4/4** | ✅ Detect Changed Paths / Migration Prefix Uniqueness / OpenAPI YAML Lint / Workflow Lint |
 | **CI 5/5** | ⏭ skipped (docs only) |
 | **Codex review** | ⏳ 자동 trigger 대기 |
 
-**§3 NFR 산출물**:
-- 4 NFR category (Performance / Security / Availability / Observability) × 32 cell 매핑
-- 28 metrics 정의 (umbrella §17.5 1:1 정합: §11.3 5 + §3.5.7.5 5 + §3.5.8.3 1 + §16.4 4 + §3.6.6.3 13)
-- 6 incident type runbook (RTO 5분/15분/30분/1시간)
-- RPO 1시간 + 5 backup target + restore drill 월 1회/분기 1회
-- 20 endpoint × 4 NFR cross-mapping
-- umbrella doc §13.4 정합 검증 row 추가 + §1 §5 + §2 §8 다음 단계 DONE 표시
+**§3 NFR + §4 UC 산출물**:
+- §3 NFR 1249 line: 4 NFR category × 32 cell + 28 metrics (umbrella §17.5 1:1) + 6 incident runbook + RTO/RPO
+- §4 UC 967 line: 4 actor × 28 시나리오 + cell × usecase 매트릭스 + endpoint × usecase + Path Y 흐름
+- umbrella doc §13.4 정합 검증 row +2 (§3 NFR + §4 UC) + §1 §5 + §2 §8 + §3 §8 다음 단계 DONE 표시
 
 자세한 삭제/유지 판단 근거: `state.json` `preserved_unique_context_from_prior_branch` section.
 

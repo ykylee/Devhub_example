@@ -54,3 +54,9 @@
 - [x] **DB-06**: umbrella doc §13.4 정합 검증 row 추가 (§3 NFR + §2 FR 12/8 → 9/11 정정)
 - [x] **DB-07**: §1 도메인 분류 §5 + §2 FR §8 다음 단계 §3 NFR DONE 표시
 - [x] **DB-08**: PR #653 생성 (Codex review 자동 trigger 대기)
+- [x] **DB-09**: §4 UC 작성 (docs/requirements/v0.2.0-usecases.md, 967 line)
+  - 4 actor (End-User / Curator / Operator / System Admin) × 28 시나리오
+  - cell × usecase 매트릭스 (32 cell × 4 actor) + endpoint × usecase cross-mapping (20 × 4)
+  - Path Y caller-provided user context 흐름 (gateway 3-step orchestration)
+  - 5 curator_type 권한 + §3.6.6 audit log 7 event actor attribution
+- [x] **DB-10**: PR #653 body 갱신 (§3 NFR + §4 UC 통합본)
