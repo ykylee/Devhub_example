@@ -140,6 +140,133 @@ class IngestStatusData(BaseModel):
     metrics: dict = Field(default_factory=dict)
 
 
+# === FR-I-001b: POST /ingest/{source}/pull (M-v0.2.1+ scope, external → raw store) ===
+
+class IngestPullData(BaseModel):
+    """FR-I-001b pull response data (external → raw store, normalize 미포함)."""
+
+    pulled: int
+    failed: int
+    raw_ids: list[str] = Field(default_factory=list)
+    next_pull_recommended: datetime | None = None
+    errors: list[dict] = Field(default_factory=list)
+
+
+@router.post("/ingest/{source}/pull", response_model=None)
+async def post_pull(
+    request: Request,
+    source: str = Path(..., description="Source plugin name (e.g., gitea_issue)"),
+    since: datetime | None = Query(None, description="Incremental pull 시작 시점. None = full pull"),
+    dry_run: bool = Query(False, description="true 시 raw 저장 안 함, 연결/credential 만 검증"),
+    ctx: PathYUserContext | None = Depends(get_path_y_context),
+) -> dict:
+    """FR-I-001b: Ingest pull trigger (external → raw store).
+
+    sync 와의 차이: pull = fetch + raw store save, sync = pull + normalize + cross-link.
+    Path Y: 권장 (audit attribution). Missing 시 200 OK (anonymous system pull).
+    """
+    if source not in list_sources():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "E_VALIDATION", "message": f"unknown source: {source!r}. available: {list_sources()}"},
+        )
+
+    plugin = get_source(source)
+    try:
+        await plugin.connect({})
+        fetched = await plugin.fetch(since)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "E_PULL_FAILED", "message": f"connect/fetch failed: {e!r}"},
+        )
+
+    if dry_run:
+        return make_envelope(
+            IngestPullData(
+                pulled=len(fetched),
+                failed=0,
+                raw_ids=[],
+                next_pull_recommended=None,
+                errors=[],
+            ).model_dump(mode="json"),
+            request,
+            ctx,
+        )
+
+    raw_store = get_raw_store()
+    raw_ids: list[str] = []
+    errors: list[dict] = []
+    for raw_dict in fetched:
+        try:
+            raw_id = raw_store.save(source=source, raw=raw_dict)
+            raw_ids.append(raw_id)
+        except Exception as e:
+            errors.append({"source": source, "code": "E_RAW_SAVE", "message": str(e)})
+
+    return make_envelope(
+        IngestPullData(
+            pulled=len(raw_ids),
+            failed=len(errors),
+            raw_ids=raw_ids,
+            next_pull_recommended=None,
+            errors=errors,
+        ).model_dump(mode="json"),
+        request,
+        ctx,
+    )
+
+
+# === FR-I-002b: GET /ingest/statuses (M-v0.2.1+ scope, list all source) ===
+
+class IngestStatusListData(BaseModel):
+    """FR-I-002b list all source status response data."""
+
+    sources: list[dict] = Field(default_factory=list)  # each: IngestStatusData.model_dump()
+    total: int
+
+
+@router.get("/ingest/statuses", response_model=None)
+async def get_all_statuses(
+    request: Request,
+    ctx: PathYUserContext | None = Depends(get_path_y_context),
+) -> dict:
+    """FR-I-002b: list all source plugin health check + last sync status.
+
+    listSources 가 5 source (homelab / gitea 4 sub / mock) 모두 status 가져옴.
+    Path Y: 권장 (audit attribution). Missing 시 anonymous system status.
+    """
+    sources_data: list[dict] = []
+    for source in list_sources():
+        plugin = get_source(source)
+        try:
+            health_result = await plugin.health_check()
+            health_str = "healthy" if health_result["healthy"] else "unhealthy"
+            state_str = "idle" if health_result["healthy"] else "error"
+        except Exception as e:
+            health_str = "unhealthy"
+            state_str = "error"
+            health_result = {"last_error": {"code": "E_HEALTH_CHECK", "message": str(e)}}
+
+        sources_data.append(
+            IngestStatusData(
+                source=source,
+                last_sync=None,
+                next_sync=None,
+                state=state_str,
+                last_error=health_result.get("last_error"),
+                health=health_str,
+                metrics={},
+            ).model_dump(mode="json")
+        )
+
+    return make_envelope(
+        IngestStatusListData(sources=sources_data, total=len(sources_data)).model_dump(mode="json"),
+        request,
+        ctx,
+    )
+
+
 @router.get("/ingest/{source}/status")
 async def get_status(
     request: Request,

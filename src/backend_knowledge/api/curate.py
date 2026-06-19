@@ -308,6 +308,65 @@ class BundleCreateData(BaseModel):
     path: str
 
 
+# === FR-C-003b: GET /bundles/{name} (M-v0.2.1+ scope, single bundle metadata) ===
+
+class BundleDetailData(BaseModel):
+    """FR-C-003b bundle detail response data."""
+
+    name: str
+    description: str = ""
+    version: int = 0
+    concept_count: int = 0
+    owner_org_id: str
+    owner_user_id: str | None = None
+    org_unit_ids: list[str] = Field(default_factory=list)
+    project_ids: list[str] = Field(default_factory=list)
+    visibility: str
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    updated_by: str | None = None
+
+
+@router.get("/bundles/{name}")
+async def get_bundle(
+    request: Request,
+    name: str = Path(..., description="Bundle name (e.g., devhub-platform-kpi)"),
+    ctx: PathYUserContext | None = Depends(get_path_y_context),
+) -> dict:
+    """FR-C-003b: single bundle metadata 조회 (Path Y 권장)."""
+    settings = get_settings()
+    bundle_path = bundle_dir(name)
+    if not bundle_path.exists() or not bundle_path.is_dir():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "E_NOT_FOUND", "message": f"bundle not found: {name!r}"},
+        )
+
+    meta_path = bundle_path / ".bundle_meta.json"
+    meta: dict = {}
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            meta = {}
+
+    detail = BundleDetailData(
+        name=name,
+        description=meta.get("description", ""),
+        version=meta.get("version", 0),
+        concept_count=meta.get("concept_count", 0),
+        owner_org_id=meta.get("owner_org_id", ""),
+        owner_user_id=meta.get("owner_user_id"),
+        org_unit_ids=meta.get("org_unit_ids", []),
+        project_ids=meta.get("project_ids", []),
+        visibility=meta.get("visibility", "org"),
+        created_at=meta.get("created_at"),
+        updated_at=meta.get("updated_at"),
+        updated_by=meta.get("updated_by"),
+    )
+    return make_envelope(detail.model_dump(mode="json"), request, ctx)
+
+
 @router.post("/bundles", status_code=status.HTTP_201_CREATED)
 async def create_bundle(
     request: Request,
