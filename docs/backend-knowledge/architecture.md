@@ -472,26 +472,42 @@ var/
 
 ## 13. Known violations (technical debt, refactor target)
 
-### 13.1 API cross-router call (refactor P1)
-- **현재 상태**: `api/{query, graph, lifecycle, audit, monitoring}.py` 가 `api/ingest.py` 에서 `get_path_y_context` / `make_envelope` / `require_path_y_context` / `EnvelopMeta` 직접 import (5 module)
+### 13.1 API cross-router call (refactor P1) — ✅ **resolved (commit `45039918`)**
+- **이전 상태**: 7 file (`api/{curate, query, graph, lifecycle, health}.py` + `audit/api.py` + `monitoring/api.py`) 가 `api/ingest.py` 에서 `get_path_y_context` / `make_envelope` / `require_path_y_context` / `EnvelopMeta` / `Envelope` 직접 import
 - **violation**: §3.1 API cross-router call ❌ 규칙 위배
-- **refactor 정공법**: 공통 helper 를 `api/_common.py` (또는 `api/dependencies.py` / `api/envelope.py`) 로 추출 + ingest.py 에서 import 제거
-- **대상 file**: `api/ingest.py` (line 66~111: get_path_y_context / make_envelope / require_path_y_context + EnvelopeMeta / Envelope), `api/curate.py` (line 43: `from .ingest import get_path_y_context, make_envelope, require_path_y_context`), `api/query.py` (line 47: `from .ingest import ...`), `api/lifecycle.py` (line 22: `from .ingest import ...`), `api/audit/api.py` (line 28: `from ..api.ingest import ...`), `api/monitoring/api.py` (line 22: `from ..api.ingest import ...`)
-- **expected effort**: 1 commit, 6 file 수정, 0 test 변경 (test 165/165 → 165/165 pass)
-- **schedule**: M-v0.2.0 PoC 직후 follow-up commit (별도 PR)
+- **refactor 정공법 (적용)**: 공통 helper 를 `api/_common.py` 로 추출 + ingest.py 에서 import 제거
+- **변경**:
+  - `api/_common.py` (NEW, 105 line) — 5 helper + audit log emission
+  - `api/ingest.py` (MOD) — 5 helper 정의 본문 제거 (~100 line)
+  - 6 caller file (MOD) — `from ._common import ...` 또는 `from ..api._common import ...`
+- **expected effort**: 1 commit, 9 file 변경, 0 test 변경
+- **테스트**: 166/166 pass
 
-### 13.2 FastAPI `on_event` deprecation (refactor P2)
-- **현재 상태**: `main.py` 의 `@app.on_event("startup")` / `@app.on_event("shutdown")` 4 warning
-- **fix**: `lifespan` context manager 로 전환 (FastAPI 0.115+ 권장)
-- **expected effort**: 1 file 수정 (main.py), 0 test 변경
+### 13.2 FastAPI `on_event` deprecation (refactor P2) — ✅ **resolved (commit `XXX`)**
+- **이전 상태**: `main.py` 의 `@app.on_event("startup")` / `@app.on_event("shutdown")` 4 DeprecationWarning
+- **violation**: FastAPI 0.115+ deprecation
+- **refactor 정공법 (적용)**: `@asynccontextmanager` `lifespan` context manager 로 전환
+- **변경**:
+  - `from contextlib import asynccontextmanager` 추가
+  - `@asynccontextmanager async def lifespan(app): ...` 정의
+  - `app = FastAPI(..., lifespan=lifespan)`
+  - 2 `@app.on_event` decorator 본문 제거
+- **expected effort**: 1 file 변경, 0 test 변경
+- **테스트**: 166/166 pass + 0 DeprecationWarning (이전 4 warning 제거)
 
-### 13.3 Private helper cross-router (refactor P1)
-- **현재 상태**: `api/query.py` + `api/graph.py` 가 `api/curate.py` 의 private helper (`_bundle_dir` / `_bundle_index_dir` / `_concept_meta_path` / `_load_concept_metadata` / `_find_concept_by_id` / `_build_concept_id`) 직접 import
+### 13.3 Private helper cross-router (refactor P1) — ✅ **resolved (commit `87d9006e`)**
+- **이전 상태**: `api/query.py` + `api/graph.py` 가 `api/curate.py` 의 private helper 6 종 (`_bundle_dir` / `_bundle_index_dir` / `_concept_meta_path` / `_load_concept_metadata` / `_find_concept_by_id` / `_build_concept_id`) 직접 import
 - **violation**: §3.1 API cross-router call ❌ 규칙 위배
-- **refactor 정공법**: `api/_common.py` 에 `bundle_dir` / `concept_meta_path` / `find_concept_by_id` / `build_concept_id` 등 public helper 로 추출
-- **대상 file**: `api/curate.py` (line 51~148), `api/query.py` (line 39~46), `api/graph.py` (line 33~38)
+- **refactor 정공법 (적용)**: `api/_bundle_store.py` 에 8 public helper (underscore prefix 제거) 추출
+- **변경**:
+  - `api/_bundle_store.py` (NEW, 130 line) — 8 public helper (bundle_dir / bundle_index_dir / bundle_meta_path / concept_meta_path / save_concept_metadata / load_concept_metadata / find_concept_by_id / build_concept_id)
+  - `api/curate.py` (MOD) — 8 helper 정의 본문 제거 (~100 line) + 8 import + 7 internal call site rename + 4 local var name collision 회피 (bundle_path)
+  - `api/query.py` (MOD) — `from .curate import _xxx` → `from ._bundle_store import xxx` + 3 internal call site rename
+  - `api/graph.py` (MOD) — `from .curate import _xxx` → `from ._bundle_store import xxx` + 2 internal call site rename
+- **expected effort**: 1 commit, 4 file 변경, 0 test 변경
+- **테스트**: 166/166 pass
 
-### 13.4 No lint (refactor P3, optional)
+### 13.4 No lint (refactor P3, optional) — ⏳ **deferred (M-v0.2.1+ scope)**
 - **현재 상태**: ruff / mypy / black 미설정
 - **M-v0.2.1+ 도입 검토**: `pyproject.toml` 에 `[tool.ruff]` + `[tool.mypy]` 추가 + CI pre-merge
 
