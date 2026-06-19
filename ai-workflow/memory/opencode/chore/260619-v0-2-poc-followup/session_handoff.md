@@ -129,3 +129,39 @@
 - **Branches deleted (local)**: 0 (실행 중)
 - **Branches deleted (remote)**: 0 (실행 중, 27개 대상)
 - **Lines changed**: +1034 / -2 (PR #652 squash merge, 본 브랜치는 base only)
+
+## 2. 완료 (Done) - v0.2.0 PoC SDLC 요구사항 단계 5/5 완료 + main 정합
+
+### PR #653 squash merge (2026-06-19T02:34:34Z, merge commit `7e4bdb14`)
+
+| 항목 | 결과 |
+| --- | --- |
+| **PR** | [#653](https://github.com/ykylee/Devhub_example/pull/653) v0.2.0 PoC SDLC 요구사항 단계 5/5 완료 통합본 |
+| **Merge commit** | `7e4bdb14` (squash, 8 commit → 1) |
+| **CI 4/4** | ✅ Detect Changed Paths / Migration Prefix Uniqueness / Workflow Lint / OpenAPI YAML Lint |
+| **CI 5/5** | ⏭ skipped (docs only) |
+| **Codex review** | ✅ 2 P2 thread 모두 fix + resolve (봉투 암호화 scope 한정 + 4 decision cell M-v0.2.1+ 명시) |
+
+### Main 정합 후속 작업 (M-v0.2.0 PoC 운영 ready)
+
+- **5 requirements docs in main**:
+  - `docs/requirements/v0.2.0-domain-classification.md` (§1, 1042 line)
+  - `docs/requirements/v0.2.0-functional-requirements.md` (§2, 1030 line)
+  - `docs/requirements/v0.2.0-non-functional-requirements.md` (§3, 1249 line)
+  - `docs/requirements/v0.2.0-usecases.md` (§4, 967 line)
+  - `docs/requirements/v0.2.0-traceability-matrix.md` (§5, 325 line)
+- **umbrella doc §13.4 정합 검증 row +3** (§3 NFR + §4 UC + §5 TM)
+- **docs/traceability/report.md §6 v0.2.0 PoC entry** (108 row: 32 REQ + 24 FR + 24 NFR + 28 UC)
+- **v0.2.0 tag** ✅ present
+
+### Branch 정리
+- `chore/260619-v0-2-poc-followup` merge 후 local + remote 모두 삭제
+- Local branch 잔존: `main` / `pr-631` / `backup/codex-work-337-before-rewrite`
+- Remote branch 잔존: `main` + 4 (analysis, feat, fix, gemini) — 모두 2606* 범위 외, 보존 대상
+
+### 다음 작업 (P1 잔여)
+- **WB-13 §2.5 Tier 분리 정공법** (umbrella doc §2.5 + AGENTS.md §6.5)
+- **WB-14 backend-knowledge/ skeleton** (별도 PR, M-v0.2.0+ 구현 sprint)
+- **WB-15 §17.2 known gaps 자연 해소** (M-v0.2.0 PoC 운영 +1주 이내)
+- **M-v0.2.0 PoC 운영** (umbrella doc §11 + §11.3 + §17.5 정합 검증, UC-EU/CU/OP/SA 28 시나리오 + audit log 7 event + 28 metric)
+- **M-v0.2.0+ 구현 sprint** (IMPL/UT/TC row 추가, docs/traceability/report.md IMPL/UT/TC v0.2.0 subsection)
