@@ -11,6 +11,7 @@ umbrella doc §1.2 G7 + §3.3 + ADR-0035 정합:
 from __future__ import annotations
 
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -37,7 +38,25 @@ _process_start = time.time()
 # Initialize settings
 settings = get_settings()
 
-# Create FastAPI app
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Replace @app.on_event("startup") / @app.on_event("shutdown") (architecture.md §13.2 refactor)."""
+    logger.info(
+        "backend_knowledge_startup",
+        version=__version__,
+        var_dir=str(settings.var_dir),
+        path_y_max_age_seconds=settings.path_y_max_age_seconds,
+        gitea_mock_mode=not (settings.gitea_url and settings.gitea_token),
+        raw_encryption_enabled=settings.raw_encryption_key is not None,
+        enable_metrics=settings.enable_metrics,
+    )
+    for subdir in ("raw", "bundles", "audit", "log"):
+        (settings.var_dir / subdir).mkdir(parents=True, exist_ok=True)
+    yield
+    logger.info("backend_knowledge_shutdown", uptime_seconds=time.time() - _process_start)
+
+
 app = FastAPI(
     title="backend-knowledge",
     description="v0.2.0 PoC standalone backend knowledge tool (umbrella doc §1.2 G7 + ADR-0035)",
@@ -45,6 +64,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 
 
@@ -127,32 +147,6 @@ app.include_router(audit_router)
 
 # Monitoring (2 endpoint, includes /metrics)
 app.include_router(monitoring_router)
-
-
-# === Startup event ===
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    """Initialize runtime data directories + log startup."""
-    settings = get_settings()
-    logger.info(
-        "backend_knowledge_startup",
-        version=__version__,
-        var_dir=str(settings.var_dir),
-        path_y_max_age_seconds=settings.path_y_max_age_seconds,
-        gitea_mock_mode=not (settings.gitea_url and settings.gitea_token),
-        raw_encryption_enabled=settings.raw_encryption_key is not None,
-        enable_metrics=settings.enable_metrics,
-    )
-    # Create runtime data dirs
-    for subdir in ("raw", "bundles", "audit", "log"):
-        (settings.var_dir / subdir).mkdir(parents=True, exist_ok=True)
-
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    """Cleanup on shutdown."""
-    logger.info("backend_knowledge_shutdown", uptime_seconds=time.time() - _process_start)
 
 
 # === Entry point ===
