@@ -46,3 +46,11 @@
 - [x] **DB-02**: PR #652 squash merge (`36cac1d6`)
 - [x] **DB-03**: chore/260619-v0-2-poc-followup 브랜치 생성 (main @ 36cac1d6 base)
 - [x] **DB-04**: branch-specific memory 초기화 (state.json + session_handoff.md + work_backlog.md + backlog/2026-06-19.md)
+- [x] **DB-05**: §3 NFR 작성 (docs/requirements/v0.2.0-non-functional-requirements.md, 1249 line)
+  - 4 NFR category (Performance / Security / Availability / Observability) × 32 cell 매핑
+  - 28 metrics 정의 (umbrella §17.5 1:1 정합)
+  - 6 incident type runbook (RTO 5분/15분/30분/1시간)
+  - 20 endpoint × 4 NFR cross-mapping
+- [x] **DB-06**: umbrella doc §13.4 정합 검증 row 추가 (§3 NFR + §2 FR 12/8 → 9/11 정정)
+- [x] **DB-07**: §1 도메인 분류 §5 + §2 FR §8 다음 단계 §3 NFR DONE 표시
+- [x] **DB-08**: PR #653 생성 (Codex review 자동 trigger 대기)

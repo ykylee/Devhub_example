@@ -25,12 +25,31 @@
 2. `§5.1 Path Y totals` 정정 (12 필수/8 권장 → 표 기준 9 필수/11 권장) + §7 정합 표 + §9 변경 이력 + PR body 모두 정합
 3. `§2.2 line 86` REQ-D integration 4 cell ID 정정 (005/012/019/026 → 005/013/021/029)
 
-### Branch 구조 정리 (2026-06-19, 진행 중)
+### Branch 구조 정리 (2026-06-19)
 
 - **유지**: `main` / `pr-631` (1 unmerged governance commit) / `backup/codex-work-337-before-rewrite` (E2E backup)
 - **신설**: `chore/260619-v0-2-poc-followup` ← main @ 36cac1d6
-- **삭제 대상 (로컬)**: `chore/260618-v0-2-release-notes` (current 였던 작업) / `chore/260618-v0-2-p1-wiki-mirror` / `chore/260618-v0-2-p2-process`
-- **삭제 대상 (원격)**: 2606* 27개 일괄 (사용자 결정 "전부 삭제 - 강력 권장")
+- **삭제 (로컬)**: `chore/260618-v0-2-release-notes` / `chore/260618-v0-2-p1-wiki-mirror` / `chore/260618-v0-2-p2-process` (3개)
+- **삭제 (원격)**: 2606* 27개 일괄 (사용자 결정 "전부 삭제 - 강력 권장", Mavis/MiniMax-M3 운영 사고 substring 매치로 1건 추가 삭제 → 재 push 복구 완료)
+
+### PR #653 (§3 NFR 작성, 2026-06-19T02:10:34Z PR OPEN)
+
+| 항목 | 결과 |
+| --- | --- |
+| **PR** | [#653](https://github.com/ykylee/Devhub_example/pull/653) docs(v0.2.0-requirements): SDLC §3 NFR 비기능 요구사항 |
+| **Commit** | `3e986a3c` |
+| **Files** | +1533 / -6 / 4 files (umbrella + §1 + §2 + §3 NFR new) |
+| **CI 4/4** | ✅ Detect Changed Paths / Migration Prefix Uniqueness / OpenAPI YAML Lint / Workflow Lint (in_progress) |
+| **CI 5/5** | ⏭ skipped (docs only) |
+| **Codex review** | ⏳ 자동 trigger 대기 |
+
+**§3 NFR 산출물**:
+- 4 NFR category (Performance / Security / Availability / Observability) × 32 cell 매핑
+- 28 metrics 정의 (umbrella §17.5 1:1 정합: §11.3 5 + §3.5.7.5 5 + §3.5.8.3 1 + §16.4 4 + §3.6.6.3 13)
+- 6 incident type runbook (RTO 5분/15분/30분/1시간)
+- RPO 1시간 + 5 backup target + restore drill 월 1회/분기 1회
+- 20 endpoint × 4 NFR cross-mapping
+- umbrella doc §13.4 정합 검증 row 추가 + §1 §5 + §2 §8 다음 단계 DONE 표시
 
 자세한 삭제/유지 판단 근거: `state.json` `preserved_unique_context_from_prior_branch` section.
 
