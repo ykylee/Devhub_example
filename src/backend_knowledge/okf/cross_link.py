@@ -45,8 +45,8 @@ class CrossLink:
 
     type: CrossLinkType
     target: str  # path / slug / ref_id
-    section: str | None = None  # #anchor
     context: str  # surrounding text (~50 char)
+    section: str | None = None  # #anchor
 
 
 def _extract_context(body: str, match_start: int, match_end: int, context_chars: int = 50) -> str:

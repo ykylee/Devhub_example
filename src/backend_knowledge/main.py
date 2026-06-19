@@ -16,8 +16,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from . import __version__
+from .api.curate import router as curate_router
+from .api.graph import router as graph_router
 from .api.health import router as health_router
 from .api.ingest import router as ingest_router
+from .api.query import router as query_router
 from .config import get_settings
 from .logger import configure_logging, get_logger
 
@@ -103,6 +106,15 @@ app.include_router(health_router)
 
 # Ingest (6 endpoint, prefix /api/v0-2)
 app.include_router(ingest_router)
+
+# Curate (5 endpoint, prefix /api/v0-2)
+app.include_router(curate_router)
+
+# Query (5 endpoint, prefix /api/v0-2, includes /bundles/{}/index.md + /viz.html)
+app.include_router(query_router)
+
+# Graph (4 endpoint, prefix /api/v0-2)
+app.include_router(graph_router)
 
 
 # === Startup event ===
