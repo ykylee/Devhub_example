@@ -22,6 +22,27 @@ DevHub은 Gitea 연동, AI 분석, 실시간 대시보드 제공을 위해 다�
 - **Internal Communication:** **gRPC** (Go ↔ Python, 확정 기본 계약)
     - REST/HTTP는 외부 API 및 상태 확인용 endpoint에 사용하며, Go Core와 Python AI 간 분석 요청/응답의 기본 계약은 gRPC로 둡니다.
 
+### 1.1.b 신규 백엔드 backend-knowledge (v0.2.0+, ADR-0035)
+
+> **독립 standalone backend** — 다른 backend (backend-core / 다른 시스템) 의 어떤 layer 든 import / 호출 / 공유 ❌. 외부 시스템 5종 (Gitea 4 sub-plugin + homelab_mock, M-v0.2.0 PoC) / 7종 (M-v0.2.3 운영 기준) source 만 단방향. **M-v0.2.0 PoC release (PR #654/#655/#656/#657 MERGED, 30 endpoint, 166 UT, 11 E2E step, tag v0.2.0)**.
+
+자세한 design: [`docs/backend-knowledge/architecture.md`](../backend-knowledge/architecture.md) + [`docs/backend-knowledge/tech-stack.md`](../backend-knowledge/tech-stack.md) + [ADR-0035 backend-knowledge 신설](../adr/0035-backend-knowledge-creation.md).
+
+- **언어 / runtime**: Python 3.13+ / uvicorn 0.32.1
+- **web framework**: FastAPI 0.115.6 (Pydantic v2 native 통합 + OpenAPI 자동)
+- **validation**: Pydantic 2.9.2 (OKF v0.1 frontmatter 12 field + Path Y 8 field schema)
+- **config**: pydantic-settings 2.x (11 env var)
+- **logging**: structlog 24.4.0 (JSON Lines audit log + FastAPI middleware)
+- **cryptography**: cryptography 43.0.0 (AES-256-GCM 봉투 암호화 v2 = per-raw DEK + KEK wrap, ADR-0025)
+- **http client**: httpx (transitive, 4 Gitea sub-plugin 의 async + Bearer token + 자동 mock mode)
+- **yaml**: PyYAML 6.x (OKF frontmatter)
+- **test**: pytest 8.3.3 / pytest-asyncio / anyio / FastAPI TestClient (166 UT + 11 E2E step)
+- **명시적 NOT 사용** (의도적): DB driver / ORM / Celery / OpenAI SDK / external config (Dynaconf/Hydra) — M-v0.2.3+ production 시 PostgreSQL option + Pi (pi.dev) SDK 추가
+
+**layer 격리** (architecture.md §3): 7 module group (API / Sources / Storage / OKF / Auth / Audit / Monitoring) + 2 utility (Config / Logger). **API cross-router call ❌** + **Source cross-source ❌** 정공법.
+
+**Tier**: 사외 (단일 env, mock + standalone + GitHub main push, 사용자 2026-06-19 결정). 사내 한정 정보 0 row (DEVHUB_KEYCLOAK_* / GITEA_URL / 172.16.0.0/12 pattern 0).
+
 ### 1.2 Frontend
 - **Framework:** **Next.js 16 (React 19.2, App Router)**
     - 역할: 역할별 기본 진입 우선순위 대시보드, 실시간 상태 시각화.
