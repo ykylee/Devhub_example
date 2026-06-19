@@ -135,6 +135,7 @@
 | --- | --- | --- |
 | 2026-06-17 | Initial ADR (status: Accepted) | 사용자 결정 + Google Cloud OKF v0.1 발표 (1차 출처: `GoogleCloudPlatform/knowledge-catalog/okf/SPEC.md`, Apache 2.0) |
 | 2026-06-18 | §4.3 영향 18 row 추가 (umbrella doc cross-section 정합) | 17 commit 의 §3.2.1 / §3.3 / §3.5 / §3.6 / §3.7 / §3.8 / §3.9 / §6.5~§6.7 / §10 / §11 / §12 / §13 / §1.1 / §1.3 / §3.5.6 / §2.4 / §14 / §8 영향 row 추가 |
+| 2026-06-19 | §4.3 영향 row +1 (PR #661 v0.2.0 frontend PoC merge) | PR 661 squash merge (#14560ed1), 4+1 commit → 1 commit, 22 file +2302/-4 (2298 net), umbrella doc §1.2 G7 frontend cell + §3 (frontend-design.md) + §12 frontend page 영향 row, Codex P1+P2 review fix (api.deleteRaw 추가, syncSource/rebuildBundle signature 정합, getBundle/pullSource M-v0.2.1+ placeholder, /bundles data.items, env var), M-v0.2.1+ scope 4 row (backend 3 endpoint + svelte-check strict + listSources 5 source loop) |
 
 **M-v0.2.3+ 부터 supersession 가능** (2026-06-18 신규 결정, §15 ADR supersession 정공법 정합): 본 ADR-0034 가 후속 ADR (e.g., ADR-0036 OKF v0.2 채택 / OKF v0.1 의 type enum 8종 → 12종 / vendor-neutral 정책 변경) 에 의해 supersede 될 경우, [`release_v0-2_roadmap.md` §15](../planning/release_v0-2_roadmap.md) 의 5 step 정공법 (New ADR 작성 → 본 ADR frontmatter `superseded-by` 추가 → 본 ADR §6 row 추가 → cross-reference 4~5 file 갱신 → state.json `adrs` field 갱신) + 12개월 deprecation policy + release notes 정합. supersession 발생 시 본 §6 의 table 에 supersession 결정 row 가 추가됨 (형식: `| YYYY-MM-DD | **superseded-by ADR-NNNN** | [사유 1-2 문장] |`).
 
