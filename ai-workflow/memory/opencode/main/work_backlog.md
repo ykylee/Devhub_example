@@ -2,12 +2,12 @@
 
 - Branch: `main` (현재 default branch)
 - Agent: opencode (Sisyphus, MiniMax-M3)
-- Updated: 2026-06-22 (T07:30+09:00)
-- Status: clean (no in-flight work, M-v0.2.3 release close 종합 정합 완료, PR #681 MERGED, main HEAD = 41f1b7b6)
+- Updated: 2026-06-22 (T08:20+09:00)
+- Status: clean (no in-flight work, M-v0.2.1 release close 종합 정합 완료, PR #683 MERGED, main HEAD = bcaf9089)
 
 ## In Progress (P0)
 
-없음. main 브랜치 = `41f1b7b6` (PR #681 MERGED, M-v0.2.3 release close), working tree clean, origin/main 정합.
+없음. main 브랜치 = `bcaf9089` (PR #683 MERGED, M-v0.2.1 release close), working tree clean, origin/main 정합.
 
 ## Pending (P1) — M-v0.2.1+ scope 진입 후보
 
@@ -89,3 +89,18 @@
 - [x] **DB-M32**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode)
 - [x] **DB-M33**: `bash scripts/wiki-frontmatter-update.sh` 1회 실행
 - [x] **DB-M34**: session 종료 메모리 finalize (opencode/main/ + chore/260622-m-v0-2-3-memory/)
+
+### Session 4 (T07:35~08:20) — M-v0.2.1 release close (4-PR split, partial done) 종합 정합
+
+- [x] **DB-M35**: M-v0.2.1 4 PR 검증 (PR #655 + #660 + #661 + #675 모두 MERGED)
+- [x] **DB-M36**: umbrella doc 5개 위치 status partial done 갱신 (§5.1 / §5.2 P1 3 row / §5.5)
+- [x] **DB-M37**: state.json M-v0.2.1 row 신규 (status: partial_done + 4_pr_split + sop_completion + umbrella_doc_refs + adr_alignment + tier)
+- [x] **DB-M38**: branch `chore/260622-m-v0-2-1-release-close` 생성 + push
+- [x] **DB-M39**: PR #683 생성 (umbrella + state.json cross-cutting docs only PR)
+- [x] **DB-M40**: PR #683 CI 4/4 SUCCESS + 5 SKIPPED
+- [x] **DB-M41**: PR #683 self-merge (regular merge, fast-forward 가능, merge commit bcaf9089, 2026-06-22T08:14:43Z)
+- [x] **DB-M42**: chore/260622-m-v0-2-1-release-close 자동삭제
+- [x] **DB-M43**: opencode/main/ 메모리 4 file 갱신 (state.json + work_backlog.md + session_handoff.md + backlog/2026-06-22.md)
+- [x] **DB-M44**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode)
+- [x] **DB-M45**: `bash scripts/wiki-frontmatter-update.sh` 1회 실행
+- [x] **DB-M46**: session 종료 메모리 finalize (opencode/main/ + chore/260622-m-v0-2-1-memory/)

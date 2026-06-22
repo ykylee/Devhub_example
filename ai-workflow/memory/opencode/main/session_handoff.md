@@ -104,6 +104,69 @@
 - **Session duration**: 10 min
 - **Memory directories created**: 1 (`ai-workflow/memory/opencode/main/`)
 
+## 9. Session 4 (T07:35~08:20, 2026-06-22) — M-v0.2.1 release close (4-PR split, partial done) 종합 정합
+
+### PR 검증 + umbrella + state.json 정합 (partial done)
+
+- M-v0.2.1 4 PR 모두 MERGED 검증 (2026-06-19 ~ 2026-06-22)
+  - **PR #655** (2026-06-19T03:54:20Z): v0.2.0 PoC Curate 5 + Query 5 + Graph 4 + viz.html (PR 2)
+  - **PR #660** (2026-06-19T05:17:38Z): SvelteKit frontend design doc + master index update
+  - **PR #661** (2026-06-19T13:17:18Z): SvelteKit 2 + Svelte 5 frontend PoC (22 file +2302/-4)
+  - **PR #675** (2026-06-22T06:02:44Z): SvelteKit frontend unit tests (41 test method)
+- umbrella doc 5개 위치 status partial done 갱신:
+  - §5.1 M-v0.2.1 row, §5.2 P1 row 1 (2 source plugin + Curate 3 endpoint)
+  - §5.2 P1 row 2 (viz.html + frontend 관리/조회 page 1), §5.2 P1 row 3 (e2e smoke)
+  - §5.5 M-v0.2.1 row
+- state.json M-v0.2.1 row 신규 (status: partial_done + 4_pr_split + sop_completion + umbrella_doc_refs + adr_alignment + tier)
+
+### PR #683 self-merge
+
+- branch: `chore/260622-m-v0-2-1-release-close`
+- commit: `823ae8fd` (umbrella + state.json cross-cutting docs only)
+- CI 4/4 SUCCESS + 5 SKIPPED
+- self-merge (regular merge, fast-forward 가능, PR #679 / PR #680 / PR #681 정공법 정합)
+- merge commit: `bcaf9089` (2026-06-22T08:14:43Z)
+- 2 file / +54/-5 line
+- branch auto-delete (--delete-branch)
+
+### M-v0.2.1 잔여 (M-v0.2.1 follow-up sprint, 별도 PR)
+
+- **Gitea 4 정식 wire** (mock → real, §6.4 source plugin 표 정공법) — 미구현
+- **homelab real wire** (homelab_mock.py → homelab.py, 사내 HomeLab agent API wire) — 미구현
+- **e2e smoke full 정공법** (frontend test 41 method 완료, ingest → curate → query e2e 미완료) — 미구현
+- **§3.6.6.3 governance dashboard** (M-v0.2.1+ 정공법) — 미구현
+- **§3.7.6 data normalization pipeline 운영** (M-v0.2.0 PoC + M-v0.2.1 정밀화) — 미구현
+
+### memory 4 file 갱신 + wiki mirror
+
+- `ai-workflow/memory/opencode/main/state.json` — main_status_at_session_end = bcaf9089 + 본 세션 정보 (M-v0.2.1 partial done)
+- `ai-workflow/memory/opencode/main/work_backlog.md` — status + main HEAD + §5 row DB-M35~46 (Session 4)
+- `ai-workflow/memory/opencode/main/session_handoff.md` — 본 § (Session 4) append
+- `ai-workflow/memory/opencode/main/backlog/2026-06-22.md` — 본 세션 작업 append
+- `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode)
+- `bash scripts/wiki-frontmatter-update.sh` 1회 실행
+
+### Key Decisions
+
+- M-v0.2.1 release close 의 partial done 정공법 (4-PR split, PR #655 + #660 + #661 + #675, 잔여 Gitea real + homelab real + e2e full)
+- umbrella + state.json 의 cross-cutting docs only PR — self-merge (regular merge, PR #679 / PR #680 / PR #681 정공법 정합)
+- 5 위치 status partial done + state.json M-v0.2.1 row 신규 (status: partial_done) + sop_completion + 잔여 명시
+- user clarification (B 선택지 question): M-v0.2.1 release close (partial done) 정공법 확정
+- memory 4 file 모두 갱신 + wiki mirror 1회 실행 (real mode) — 전체 memory + wiki + final close 정공법
+
+### Session Stats (Session 4)
+
+- **PRs created**: 1 (PR #683)
+- **PRs merged**: 1 (PR #683, self-merge)
+- **Commits in session**: 1 (`823ae8fd`)
+- **Branches created**: 2 (`chore/260622-m-v0-2-1-release-close` + `chore/260622-m-v0-2-1-memory`)
+- **Branches deleted (remote)**: 1 (`chore/260622-m-v0-2-1-release-close`, --delete-branch)
+- **Lines changed (PR #683)**: +54 / -5
+- **Files changed**: 2 (umbrella + state.json)
+- **Session duration**: 45 min
+- **Memory finalization**: opencode/main/ 4 file 갱신 + wiki mirror 1회 실행
+- **Tier**: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)
+
 ## 8. Session 3 (T07:10~07:30, 2026-06-22) — M-v0.2.3 release close (2-PR split, partial done) 종합 정합
 
 ### PR 검증 + umbrella + state.json 정합 (partial done)

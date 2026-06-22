@@ -6,75 +6,75 @@
   "model": "MiniMax-M3",
   "working_directory": "/home/yklee/repos/Devhub_example",
   "branch_status": "active (no in-flight commits, fully synced with origin/main)",
-  "main_status_at_session_start": "86d1300d (PR #680 M-v0.2.2 release close + memory update merge, 직전 session 종료 시점)",
-  "main_status_at_session_end": "41f1b7b6 (PR #681 M-v0.2.3 release close merge, 2026-06-22T07:27:48Z)",
-  "base_commit": "41f1b7b6 Merge pull request #681 from ykylee/chore/260622-m-v0-2-3-release-close",
-  "session_started_at": "2026-06-22T07:10:00+09:00",
-  "session_ended_at": "2026-06-22T07:30:00+09:00",
-  "session_duration_minutes": 20,
-  "session_purpose": "M-v0.2.3 release close (2-PR split, partial done) 종합 정합 — PR #681 umbrella + state.json M-v0.2.3 row + memory 4 file 갱신 + wiki mirror",
+  "main_status_at_session_start": "41f1b7b6 (PR #681 M-v0.2.3 release close merge, 직전 session 종료 시점)",
+  "main_status_at_session_end": "bcaf9089 (PR #683 M-v0.2.1 release close merge, 2026-06-22T08:14:43Z)",
+  "base_commit": "bcaf9089 Merge pull request #683 from ykylee/chore/260622-m-v0-2-1-release-close",
+  "session_started_at": "2026-06-22T07:35:00+09:00",
+  "session_ended_at": "2026-06-22T08:20:00+09:00",
+  "session_duration_minutes": 45,
+  "session_purpose": "M-v0.2.1 release close (4-PR split, partial done) 종합 정합 — PR #683 umbrella + state.json M-v0.2.1 row + memory 4 file 갱신 + wiki mirror",
   "session_outcome": "done",
   "commits_in_session": [
-    "bb0af2de docs(umbrella): §5.1/§5.2/§5.5/§6.7.1/§6.7.3 + state.json M-v0.2.3 row — M-v0.2.3 release close (2-PR split, partial done)"
+    "823ae8fd docs(umbrella): §5.1/§5.2 P1/§5.5 + state.json M-v0.2.1 row — M-v0.2.1 release close (4-PR split, partial done)"
   ],
   "prs_in_session": [
     {
-      "number": 681,
-      "title": "docs(umbrella): M-v0.2.3 release close (partial done) — §5.1/§5.2/§5.5/§6.7.1/§6.7.3 + state.json M-v0.2.3 row",
-      "branch": "chore/260622-m-v0-2-3-release-close",
+      "number": 683,
+      "title": "docs(umbrella): M-v0.2.1 release close (partial done) — §5.1/§5.2 P1/§5.5 + state.json M-v0.2.1 row",
+      "branch": "chore/260622-m-v0-2-1-release-close",
       "base": "main",
       "status": "MERGED",
-      "merged_at": "2026-06-22T07:27:48Z",
+      "merged_at": "2026-06-22T08:14:43Z",
       "merged_by": "ykylee",
-      "merge_commit": "41f1b7b6e114e291874a2afa529b7036d0e06dda",
+      "merge_commit": "bcaf9089b2ec09a9a87112425da51e0fe934c534",
       "files_changed": 2,
-      "additions": 43,
-      "deletions": 4,
+      "additions": 54,
+      "deletions": 5,
       "ci_passed": 4,
       "ci_skipped": 5,
       "tier": "사외",
       "label": "worker/opencode",
-      "merge_method": "regular merge (fast-forward 가능, PR #679 / PR #680 정공법 정합)",
+      "merge_method": "regular merge (fast-forward 가능, PR #679 / PR #680 / PR #681 정공법 정합)",
       "auto_branch_delete": true
     }
   ],
   "branches_in_session": [
-    {"action": "created", "name": "chore/260622-m-v0-2-3-release-close", "based_on": "origin/main @ 34d4d088 (PR #680 merge 직전)", "purpose": "M-v0.2.3 release close 종합 정합 (umbrella + state.json)"},
-    {"action": "merged", "name": "chore/260622-m-v0-2-3-release-close", "merge_commit": "41f1b7b6"},
-    {"action": "deleted_remote", "name": "chore/260622-m-v0-2-3-release-close", "reason": "PR #681 --delete-branch"},
-    {"action": "created", "name": "chore/260622-m-v0-2-3-memory", "based_on": "origin/main @ 41f1b7b6 (PR #681 merge 직전)", "purpose": "본 세션 memory 4 file 갱신 + wiki mirror"}
+    {"action": "created", "name": "chore/260622-m-v0-2-1-release-close", "based_on": "origin/main @ 41f1b7b6 (PR #681 merge 직전)", "purpose": "M-v0.2.1 release close 종합 정합 (umbrella + state.json)"},
+    {"action": "merged", "name": "chore/260622-m-v0-2-1-release-close", "merge_commit": "bcaf9089"},
+    {"action": "deleted_remote", "name": "chore/260622-m-v0-2-1-release-close", "reason": "PR #683 --delete-branch"},
+    {"action": "created", "name": "chore/260622-m-v0-2-1-memory", "based_on": "origin/main @ bcaf9089 (PR #683 merge 직전)", "purpose": "본 세션 memory 4 file 갱신 + wiki mirror"}
   ],
   "key_decisions": [
-    "M-v0.2.3 release close 의 partial done 정공법 (PR #672 hrdb + PR #673 Pi LLM cross-link, 잔여 §3.5.8 + §17.5 + §3.6.6.5)",
-    "umbrella + state.json 의 cross-cutting docs only PR — self-merge (regular merge, PR #679/PR #680 정공법 정합)",
-    "5 위치 status partial done + state.json M-v0.2.3 row 신규 (status: partial_done) + sop_completion + 잔여 명시",
-    "user clarification (A 선택지 question): M-v0.2.3 release close 정공법 (umbrella + state.json + memory + wiki + PR) 확정",
-    "memory 4 file 모두 갱신 + wiki mirror 1회 실행 (real mode) — 전체 memory + wiki + final close 정공법 (M-v0.2.2 close 정공법 정합)"
+    "M-v0.2.1 release close 의 partial done 정공법 (4-PR split, PR #655 Curate 5 + Query 5 + Graph 4 + viz.html + PR #660 frontend design + PR #661 SvelteKit 2 + Svelte 5 frontend PoC + PR #675 frontend test 41 method, 잔여 Gitea 4 정식 wire + homelab real wire + e2e smoke full)",
+    "umbrella + state.json 의 cross-cutting docs only PR — self-merge (regular merge, PR #679 / PR #680 / PR #681 정공법 정합)",
+    "5 위치 status partial done + state.json M-v0.2.1 row 신규 (status: partial_done) + sop_completion + 잔여 명시",
+    "user clarification (B 선택지 question): M-v0.2.1 release close (partial done) 정공법 (umbrella + state.json + memory + wiki + PR) 확정",
+    "memory 4 file 모두 갱신 + wiki mirror 1회 실행 (real mode) — 전체 memory + wiki + final close 정공법 (M-v0.2.2 + M-v0.2.3 close 정공법 정합)"
   ],
   "umbrella_doc_stats": {
     "path": "docs/planning/release_v0-2_roadmap.md",
-    "status": "v0.2.0 umbrella accepted 2026-06-19 + M-v0.2.2 release close 정합 2026-06-22 + M-v0.2.3 release close partial done 2026-06-22",
-    "current_milestone": "M-v0.2.0 done (16+ commits) + M-v0.2.2 done (4-PR split, §6.6.2 SOP 10/10 ✅) + M-v0.2.3 partial done (2-PR split, PR #672 hrdb + PR #673 Pi LLM cross-link)",
-    "next_milestone": "M-v0.3.0 (full RAG) — M-v0.2.3 follow-up 잔여 (rollback CLI + GDPR/PII + 28 metrics) + M-v0.2.1 정식 wire (Gitea 4 정식 + homelab real)",
-    "umbrella_sections_modified_in_session": ["§5.1", "§5.2 P3", "§5.5", "§6.7.1 7종 source wire cutover", "§6.7.3 LLM enrich + cross-link 자동 resolution 운영"]
+    "status": "v0.2.0 umbrella accepted 2026-06-19 + M-v0.2.2 release close 정합 2026-06-22 + M-v0.2.3 release close partial done 2026-06-22 + M-v0.2.1 release close partial done 2026-06-22",
+    "current_milestone": "M-v0.2.0 done (16+ commits) + M-v0.2.1 partial done (4-PR split) + M-v0.2.2 done (4-PR split) + M-v0.2.3 partial done (2-PR split)",
+    "next_milestone": "M-v0.3.0 (full RAG) — M-v0.2.1 follow-up 잔여 (Gitea 4 정식 wire + homelab real wire + e2e smoke full) + M-v0.2.3 follow-up 잔여 (rollback CLI + GDPR/PII + 28 metrics)",
+    "umbrella_sections_modified_in_session": ["§5.1", "§5.2 P1 row 1", "§5.2 P1 row 2", "§5.2 P1 row 3", "§5.5"]
   },
   "in_progress_items": [],
   "blocked_items": [],
   "recent_done_items": [
-    "PR #681 self-merge (commit 41f1b7b6, 2026-06-22T07:27:48Z, regular merge)",
-    "M-v0.2.3 release close 종합 정합 (2-PR split, partial done)",
-    "umbrella doc 5개 위치 status partial done 갱신 (§5.1/§5.2/§5.5/§6.7.1/§6.7.3)",
-    "state.json M-v0.2.3 row 신규 (status: partial_done, 2_pr_split PR #672+#673 + sop_completion)",
-    "PR #672 (hrdb) + #673 (Pi LLM cross-link) 모두 MERGED 검증"
+    "PR #683 self-merge (commit bcaf9089, 2026-06-22T08:14:43Z, regular merge)",
+    "M-v0.2.1 release close 종합 정합 (4-PR split, partial done)",
+    "umbrella doc 5개 위치 status partial done 갱신 (§5.1/§5.2 P1 3 row/§5.5)",
+    "state.json M-v0.2.1 row 신규 (status: partial_done, 4_pr_split PR #655+#660+#661+#675 + sop_completion)",
+    "PR #655 (Curate 5 + Query 5 + Graph 4 + viz.html) + #660 (SvelteKit frontend design) + #661 (SvelteKit 2 + Svelte 5 frontend PoC) + #675 (frontend test 41 method) 모두 MERGED 검증"
   ],
   "open_questions": [
-    "다음 sprint 진입 시점 — M-v0.2.3 follow-up (rollback CLI + GDPR/PII + 28 metrics) vs M-v0.2.1 정식 wire (Gitea 4 정식 + homelab real) vs M-v0.3.0 풀 RAG scope 진입"
+    "다음 sprint 진입 시점 — M-v0.2.1 follow-up (Gitea 4 정식 wire + homelab real wire + e2e smoke full) vs M-v0.2.3 follow-up (rollback CLI + GDPR/PII + 28 metrics) vs M-v0.3.0 풀 RAG"
   ],
   "next_documents": [
     "AGENTS.md",
-    "docs/planning/release_v0-2_roadmap.md (umbrella doc, §6.7 release close 정합)",
-    "ai-workflow/memory/state.json (M-v0.2.3 row 신규)",
-    "ai-workflow/memory/opencode/main/work_backlog.md (WB-M24 done 갱신)"
+    "docs/planning/release_v0-2_roadmap.md (umbrella doc, §5.1 M-v0.2.1 release close 정합)",
+    "ai-workflow/memory/state.json (M-v0.2.1 row 신규)",
+    "ai-workflow/memory/opencode/main/work_backlog.md (WB-M14 partial + WB-M15 done + WB-M20 done 갱신)"
   ],
   "tier_policy_compliance": {
     "sabo_sa외_patterns_in_diff": 0,
