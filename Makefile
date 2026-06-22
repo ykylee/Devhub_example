@@ -21,11 +21,9 @@ migrate-tools:
 
 proto:
 	protoc --proto_path=proto --go_out=backend-core --go-grpc_out=backend-core proto/*.proto
-	python3 -m grpc_tools.protoc -Iproto --python_out=backend-ai --grpc_python_out=backend-ai proto/*.proto
 
 setup:
 	cd backend-core && go mod tidy
-	cd backend-ai && python3 -m pip install -r requirements.txt
 	cd frontend && npm install
 
 migrate-create:
@@ -79,7 +77,7 @@ build-docker:
 
 run:
 	@echo "Run is environment-specific. See docs/setup/environment-setup.md."
-	@echo "  Native:  see section 2 of the guide (go run ./backend-core, python backend-ai/main.py, npm run dev)"
+	@echo "  Native:  see section 2 of the guide (go run ./backend-core, npm run dev)"
 	@echo "  Docker:  docker-compose up      (requires local, untracked docker-compose.yml)"
 
 # ----------------------------------------------------------------------------

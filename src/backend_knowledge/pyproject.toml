@@ -43,7 +43,6 @@ rootdir = "/home/yklee/repos/Devhub_example"
 addopts = [
     "--ignore=vendor",
     "--ignore=backend-core",
-    "--ignore=backend-ai",
     "--ignore=ai-workflow",
     "--ignore=frontend",
     "--ignore=docs",
