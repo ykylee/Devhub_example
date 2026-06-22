@@ -75,7 +75,7 @@ graph TD
 - **프로토콜:** gRPC (HTTP/2 기반)
 - **IDL:** Protocol Buffers (.proto)
 - **계약 상태:** 내부 분석 요청/응답의 기본 통신 방식은 gRPC로 확정합니다.
-- **구현 상태:** 현재 스캐폴딩에는 `proto/analysis.proto`, Go/Python 생성 명령, Python gRPC 의존성이 포함되어 있습니다. 다만 `backend-ai/main.py`는 아직 FastAPI HTTP health endpoint만 실행하며, `50051`은 Docker Compose에 예약 노출된 포트일 뿐 실제 gRPC 서버와 Go Core client/server 연동은 후속 구현 범위입니다.
+- **구현 상태:** 현재 스캐폴딩에는 `proto/analysis.proto`, Go/Python 생성 명령, Python gRPC 의존성이 포함되어 있습니다. 다만 `backend-ai/main.py`는 아직 FastAPI HTTP health endpoint만 실행하며, `50051`은 Docker Compose에 예약 노출된 포트일 뿐 실제 gRPC 서버와 Go Core client/server 연동은 후속 구현 범위입니다. **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — 본 row 의 v2 scope (AI Gardener gRPC + Suggestion Feed) 전체 폐기. AI/ML 정공법은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 이관 (umbrella doc release_v0-2_roadmap.md §6.7). `proto/analysis.proto` 도 미사용.
 - **데이터 접근 경계:** 초기 구현에서 Python AI는 PostgreSQL에 직접 접근하지 않습니다. Go Core가 Gitea 이벤트, 로그, 메트릭, 권한 필터링을 처리한 뒤 필요한 분석 입력만 gRPC로 전달합니다.
 - **확장 가능성:** 대용량 분석이나 배치 처리가 필요해질 경우 Python AI의 읽기 전용 DB 접근 또는 분석 전용 view/replica를 후속 아키텍처로 검토합니다.
 - **선정 이유:**

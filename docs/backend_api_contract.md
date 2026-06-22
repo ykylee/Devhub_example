@@ -190,7 +190,7 @@ Gitea Webhook payload를 수신해 signature를 검증하고 raw event로 저장
 
 인프라 topology node 목록을 조회한다. CPU, memory, duration 계열 값은 프론트가 표시 문자열로 포맷팅할 수 있도록 원시 값을 우선 제공한다.
 응답 `meta.source`는 snapshot provider 출처를 나타낸다.
-runtime provider는 `DB_URL`, `GITEA_URL`, `BACKEND_AI_URL` 설정을 기준으로 `postgres`, `gitea`, `backend-ai` node 상태를 `stable`, `warning`, `down` 중 하나로 갱신한다.
+runtime provider는 `DB_URL`, `GITEA_URL` 설정을 기준으로 `postgres`, `gitea` node 상태를 `stable`, `warning`, `down` 중 하나로 갱신한다. **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — `BACKEND_AI_URL` env var + `backend-ai` node state monitoring 모두 제거. backend-core Go 의 `RuntimeSnapshotProvider.BackendAIURL` field + `runtimeStatuses()` 의 `backend-ai` entry 도 backend-core/main.go 의 `RuntimeSnapshotProvider` 초기화에서 제거 (commit `5fd6f199` PR #663 정공법). runtime provider 의 node set 은 `backend-core` + `gitea` + `postgres` 3 개로 단순화.
 
 ### `GET /api/v1/infra/edges` (API-07)
 
