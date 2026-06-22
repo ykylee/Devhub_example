@@ -499,12 +499,12 @@
 
 | 항목 | 상태 | 처리 |
 | --- | --- | --- |
-| Backend AI (`backend-ai/`) placeholder | open | v2 진입 시 AnalysisService gRPC client 대상 IMPL-ai-XX 발급. |
+| Backend AI (`backend-ai/`) placeholder | **closed (2026-06-22, M-v0.2.2 backend-ai 폐기, PR #663)** | v1/v2 AI/ML scope 폐기 결정. `backend-ai/` 디렉터리 + Dockerfile + dev script + backend-core BACKEND_AI_URL 모두 제거. v0.2.0+ AI/ML 은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 대체. |
 | Frontend 컴포넌트 Vitest (Header, Sidebar, AuthGuard 등) | open | 후속 sprint 후보 (P2). |
 | `auth.spec.ts` 의 TC ID 카탈로그 흡수 | **closed (2026-05-13, sprint `claude/work_260513-d`)** | 재검증 결과 spec 안의 TC-AUTH-NEG-01 + TC-AUTH-NOAUTH-01 모두 `test_cases_m2_auth.md` 의 TC 카탈로그에 이미 흡수되어 있음. 1차 분석에서 "01..06 미흡수" 라고 적은 것은 사실과 다름. |
 | API §12 RBAC 정책 편집 API 의 IMPL 정밀 매핑 | **closed (2026-05-13, sprint `claude/work_260513-f`)** | §12.2~§12.10 의 9 endpoint/정책에 `(API-26..31, 38..40)` 본문 ID 노출 + §2.2 의 RBAC API 매핑 표 + §2.4 의 IMPL-rbac-01..04 책임 정의 (handler / store / enforcement / cache) + §3 RBAC 행 IMPL 컬럼 endpoint-IMPL 1:1 매핑. |
 | External Integration RM/IMPL/UT ID 확장 점검 | **closed (2026-05-16, sprint `codex/next-step-20260516`)** | `IMPL-int-store-02`, `IMPL-int-migration-02`, `IMPL-int-adapter-01` 및 `UT-int-adapter-01` 수준 반영 완료. `RM-INT-XX`는 M5 planning gate 시점에 일괄 발급으로 deferred 유지. |
-| Backend AI (`backend-ai/`) placeholder | open | (위와 동일 — 본 sprint 변경 없음) — M3-04 진입 시 IMPL-ai-XX 발급. |
+| Backend AI (`backend-ai/`) placeholder | **closed (2026-06-22, M-v0.2.2 backend-ai 폐기, PR #663)** | (위와 동일 — 본 sprint 변경 없음) |
 | Frontend 컴포넌트 Vitest (Header, Sidebar, AuthGuard 등) | **closed (2026-05-13, sprint `claude/work_260513-i`)** | C1 작업 — Header / Sidebar / AuthGuard 단위테스트 추가. `IMPL-frontend-layout-01..02` + `IMPL-frontend-auth-XX` 의 회귀 안전망. |
 | 본문 spec 부재 endpoint (`/api/v0-1/accounts/*`, `/api/v0-1/users` CRUD, `/api/v0-1/organization/*`) | **closed (2026-05-13, sprint `claude/work_260513-j`)** | sprint `claude/work_260513-i` 의 §10.1 carve out 표 + sprint `claude/work_260513-j` 가 `backend_api_contract.md` §10.2 (API-25 accounts admin) + §10.3 (API-33 users CRUD) + §10.4 (API-34 organization) 본문 spec 절 신설. endpoint 표 + 권한 + envelope + 1차 에러 매트릭스. 자세한 schema (모든 endpoint 의 request/response/error 매트릭스) 는 후속 spec hygiene 후보. |
 | 카탈로그된 TC 가 spec 으로 구현됐는지 역검증 | open | TC-AUD-02 등 일부 TC 가 카탈로그에만 존재할 가능성 — spec 파일 grep 으로 자동 검증할 hygiene 후보. |
