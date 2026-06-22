@@ -7,11 +7,11 @@ created: 2026-06-15
 updated: 2026-06-15
 active_since: 2026-06-15
 active_reason: "v0.7.17 wiki in-repo redirect (PR #600) + DevHub invariant 5/5 PASS"
-git_commit: 71c0d2cd
-git_branch: chore/260622-wiki-drift-cleanup
+git_commit: e91115f0
+git_branch: chore/260622-wiki-drift-cleanup-2
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-22T03:47:55Z
+last_touched: 2026-06-22T04:24:49Z
 mirror_dirty: |
 ---
 
