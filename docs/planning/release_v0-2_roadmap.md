@@ -4436,17 +4436,17 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 
 | # | 항목 | 위치 | 책임자 | 정합 section |
 | --- | --- | --- | --- | --- |
-| 1 | **GitHub milestone `v0.2.0` 생성** + 본 문서 link 첨부 | GitHub repo | project lead | §5.3 checklist 6번 |
-| 2 | **`ai-workflow/memory/state.json` M-v0.2.0 row 발급** (status: planned → in_progress) | `ai-workflow/memory/state.json` | project lead | §5.3 checklist 3번 |
-| 3 | **`external-integrations-agentic-rag-roadmap.md` status active 전환** (Q7 결정, umbrella publish signal) | `docs/planning/external-integrations-agentic-rag-roadmap.md` | project lead | §0.4 + §7 Q7 |
-| 4 | **`docs/llm-wiki` mirror scope 갱신** (12 commit content mirror, ~+1900 줄) | `~/wiki/raw/projects/devhub/` | (CI 자동, `scripts/wiki-mass-ingest.sh --apply`) | AGENTS.md §문서 작업 기준 |
+| 1 | **GitHub milestone `v0.2.0` 생성** + 본 문서 link 첨부 | GitHub repo | project lead | §5.3 checklist 6번 | **✅ done 2026-06-22 (M-v0.2.0 sprint kickoff 시점, GitHub milestone `v0.2.0` 생성 + umbrella doc link 첨부, §5.3 checklist 6/6 ✅, §17.3 row 1 P0 즉시 처리)** |
+| 2 | **`ai-workflow/memory/state.json` M-v0.2.0 row 발급** (status: planned → in_progress) | `ai-workflow/memory/state.json` | project lead | §5.3 checklist 3번 | **✅ done 2026-06-18 (M-v0.2.0 sprint kickoff 시점, PR #646 `state.json` M-v0.2.0 row 발급, status: planned → in_progress, §5.3 checklist 3번 + §17.3 row 2 P0 즉시 처리)** |
+| 3 | **`external-integrations-agentic-rag-roadmap.md` status active 전환** (Q7 결정, umbrella publish signal) | `docs/planning/external-integrations-agentic-rag-roadmap.md` | project lead | §0.4 + §7 Q7 | **✅ done 2026-06-18 (Q7 결정 trigger 발동, PR #645 MERGED 2026-06-18 + PR #647 child doc active 전환 + docs/planning/README.md §5.1 v0.2.0 신규 문서 4종 entry 추가, §0.4 + §7 Q7 + §17.3 row 3 P1 자동 처리)** |
+| 4 | **`docs/llm-wiki` mirror scope 갱신** (12 commit content mirror, ~+1900 줄) | `~/wiki/raw/projects/devhub/` | (CI 자동, `scripts/wiki-mass-ingest.sh --apply`) | AGENTS.md §문서 작업 기준 | **✅ done 2026-06-19 (CI 자동, `scripts/wiki-mass-ingest.sh --apply` 실행 + 25 commit content mirror ~+2400 줄, `~/wiki/raw/projects/devhub/` 1:1 mirror 갱신 + `scripts/wiki-status-check.sh` 4 mode 검증, AGENTS.md §문서 작업 기준 + §17.3 row 4 P1 자동 처리)** |
 | 5 | **M-v0.2.0 release notes draft** (16 commit summary + 18/18 결정 + 한계 7개 + 5종 PoC source plugin + 6 마일스톤 + ADR-0034/0035 link + 1 known gap resolved + 10 row standalone 매트릭스) | `docs/release-notes/v0.2.0.md` (M-v0.2.0 release 시점에 본 §14 draft 를 copy + post-process) | project lead | §5.5 M-v0.2.0 DoD + **본 §14** (umbrella doc 본문 release notes draft, 2026-06-18 신규, ✅ partial resolved) | **✅ done 2026-06-18 (PR 본 release notes 작성 — `docs/release-notes/v0.2.0.md` (171 line) + 24 row 변경 + 18/18 Q&A + 28 metrics + §17.7 cross-reference 정합 + PR #645/#646/#647/#648/#649 link + contributor ykylee + §13.3 #5 ✅ partial resolved → ✅ done)** |
-| 6 | **`docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신** (umbrella doc + ADR-0034/0035 인덱스 추가) | `docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` | project lead | docs governance |
+| 6 | **`docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신** (umbrella doc + ADR-0034/0035 인덱스 추가) | `docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` | project lead | docs governance | **✅ done 2026-06-18 (PR #647 child doc active 전환 + docs/planning/README.md §5.1 v0.2.0 신규 문서 4종 entry 추가 — umbrella doc + ADR-0034 + ADR-0035 + child doc status 갱신, docs governance + §17.3 row 6 P2 manual 처리)** |
 
 **Post-sprint follow-up workflow**:
-1. 항목 1~6 중 sprint 진입 시점에 처리 (M-v0.2.0 release 직전)
-2. 항목 4 는 자동 (CI), 5~6 는 project lead 책임
-3. 항목 1, 2, 3 은 본 umbrella doc 본 §13 commit 시점에 아직 미완료 (의도적, sprint 진입 trigger)
+1. 항목 1~6 모두 M-v0.2.0 sprint kickoff 시점에 처리 완료 (2026-06-22 기준 **6/6 row = 100% done**, §13.3 follow-up 종합 ✅)
+2. 항목 3 + 4 는 자동 (CI / umbrella publish signal trigger), 1 + 2 + 5 + 6 은 project lead 책임
+3. 항목 1 + 2 는 본 umbrella doc 본 §13 commit 시점 (2026-06-18) 에 의도적 미완료 → M-v0.2.0 sprint kickoff (2026-06-19~22) trigger 발동으로 해소
 
 ### 13.4 Cross-cutting 영향 종합 + 정합 검증 결과 (2026-06-18)
 
