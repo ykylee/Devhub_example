@@ -2,12 +2,12 @@
 
 - Branch: `main` (현재 default branch)
 - Agent: opencode (Sisyphus, MiniMax-M3)
-- Updated: 2026-06-22 (T08:20+09:00)
-- Status: clean (no in-flight work, M-v0.2.1 release close 종합 정합 완료, PR #683 MERGED, main HEAD = bcaf9089)
+- Updated: 2026-06-22 (T08:30+09:00)
+- Status: clean (no in-flight work, Session 1~5 종합 정합 완료, PR #662/#679/#680/#681/#682/#683/#684/#685 모두 MERGED, main HEAD = 5cb03bbd, working tree clean, local branch 3개 정리 완료)
 
 ## In Progress (P0)
 
-없음. main 브랜치 = `bcaf9089` (PR #683 MERGED, M-v0.2.1 release close), working tree clean, origin/main 정합.
+없음. main 브랜치 = `5cb03bbd` (PR #684 + Session 5 final cleanup, M-v0.2.1 release close + memory 4 file final), working tree clean, origin/main 정합.
 
 ## Pending (P1) — M-v0.2.1+ scope 진입 후보
 
@@ -104,3 +104,38 @@
 - [x] **DB-M44**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode)
 - [x] **DB-M45**: `bash scripts/wiki-frontmatter-update.sh` 1회 실행
 - [x] **DB-M46**: session 종료 메모리 finalize (opencode/main/ + chore/260622-m-v0-2-1-memory/)
+
+### Session 5 (T08:20~08:30) — 작업 내역 정리 + 메모리 갱신 + 원격 미반영 내용 마무리로 PR
+
+- [x] **DB-M47**: working tree 98 file wiki raw main 정합 (`git restore ai-workflow/wiki/`, vault sync 잔여 정리)
+- [x] **DB-M48**: local branch 3개 정리 (`git branch -d` chore/260622-m-v0-2-1-release-close + m-v0-2-1-memory + m-v0-2-3-memory, main 와 동일 content)
+- [x] **DB-M49**: opencode/main/ 메모리 4 file 최종 갱신 (state.json Session 5 + work_backlog.md §5 row DB-M47~49 + session_handoff.md §10 Session 5 append + backlog/2026-06-22.md 본 § append)
+- [x] **DB-M50**: branch `chore/260622-session-end-final` 생성 + commit + push + PR #685 발행
+- [x] **DB-M51**: PR #685 self-merge (regular merge, Session 5 final cleanup 정공법)
+- [x] **DB-M52**: wiki mirror 1회 실행 (real mode, M-v0.2.0/v0.2.1/v0.2.2/v0.2.3 release close 종합)
+- [x] **DB-M53**: session 종료 메모리 finalize (opencode/main/ + chore/260622-session-end-final/)
+
+### Session 1~5 종합 (전체 release close 정공법)
+
+- **Session 1** (T00:00~00:10): feat/260619-v0-2-frontend-svelte rebase + 폐기 + /src/var/ .gitignore PR #662
+- **Session 2** (T05:30~07:00): M-v0.2.2 release close (4-PR split, §6.6.2 SOP 10/10 ✅) + PR #679 + memory PR #680
+- **Session 3** (T07:10~07:30): M-v0.2.3 release close (2-PR split, partial done) + PR #681 + memory PR #682
+- **Session 4** (T07:35~08:20): M-v0.2.1 release close (4-PR split, partial done) + PR #683 + memory PR #684
+- **Session 5** (T08:20~08:30): working tree clean + local branch 3개 정리 + memory 4 file 최종 갱신 + PR #685 (final cleanup)
+
+**PR 7건 종합** (Session 1~4):
+- PR #662 (Session 1): .gitignore — M-v0.2.0 memory
+- PR #679 (Session 2): umbrella + state.json M-v0.2.2 — release close
+- PR #680 (Session 2): memory 4 file — M-v0.2.2 close
+- PR #681 (Session 3): umbrella + state.json M-v0.2.3 — release close partial
+- PR #682 (Session 3): memory 4 file — M-v0.2.3 close
+- PR #683 (Session 4): umbrella + state.json M-v0.2.1 — release close partial
+- PR #684 (Session 4): memory 4 file — M-v0.2.1 close
+- PR #685 (Session 5): memory 4 file final + working tree cleanup
+
+**4 milestone 모두 release close 정공법 완료**:
+- M-v0.2.0: ✅ done (2026-06-18, 16+ commits, 7 PR)
+- M-v0.2.1: 🟡 partial done (2026-06-22, 4-PR split, PR #655+#660+#661+#675)
+- M-v0.2.2: ✅ done (2026-06-22, 4-PR split, PR #663+#664+#665+#666, §6.6.2 SOP 10/10)
+- M-v0.2.3: 🟡 partial done (2026-06-22, 2-PR split, PR #672+#673)
+- M-v0.3.0: ⏳ planned
