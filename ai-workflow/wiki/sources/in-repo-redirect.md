@@ -5,9 +5,9 @@ last_ingested_from: ai-workflow/wiki/patterns/in-repo-redirect.md
 related_pages: [sources/in-repo-redirect]
 created: 2026-06-15
 updated: 2026-06-15
-last_touched: 2026-06-22T04:24:49Z
-git_commit: e91115f0
-git_branch: chore/260622-wiki-drift-cleanup-2
+last_touched: 2026-06-22T06:03:34Z
+git_commit: fb3894f7
+git_branch: chore/260622-wiki-drift-cleanup-3
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
 mirror_dirty: |

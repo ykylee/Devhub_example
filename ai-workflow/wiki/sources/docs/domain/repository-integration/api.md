@@ -3,11 +3,11 @@ title: api
 type: source
 tags: [domain, api.md, project-devhub]
 sources: [raw/projects/devhub/docs/domain/repository-integration/api.md]
-git_commit: e91115f0
-git_branch: chore/260622-wiki-drift-cleanup-2
+git_commit: fb3894f7
+git_branch: chore/260622-wiki-drift-cleanup-3
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-22T04:24:49Z
+last_touched: 2026-06-22T06:03:34Z
 mirror_dirty: |
 related: [none]
 status: draft

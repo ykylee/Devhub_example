@@ -7,11 +7,11 @@ created: 2026-06-15
 updated: 2026-06-15
 active_since: 2026-06-15
 active_reason: "v0.7.17 wiki in-repo redirect (PR #600 머지) + DevHub v0.1.0 roadmap active"
-git_commit: e91115f0
-git_branch: chore/260622-wiki-drift-cleanup-2
+git_commit: fb3894f7
+git_branch: chore/260622-wiki-drift-cleanup-3
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-22T04:24:49Z
+last_touched: 2026-06-22T06:03:34Z
 mirror_dirty: |
 ---
 
