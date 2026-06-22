@@ -104,6 +104,92 @@
 - **Session duration**: 10 min
 - **Memory directories created**: 1 (`ai-workflow/memory/opencode/main/`)
 
+## 10. Session 5 (T08:20~08:30, 2026-06-22) — 작업 내역 정리 + 메모리 4 file 최종 갱신 + 원격 미반영 내용 마무리로 PR
+
+### Working tree clean
+
+- `git status --short` 결과 98 file modified (모두 `ai-workflow/wiki/` 하위)
+- `ai-workflow/wiki/` = 본 turn 의 wiki mirror real 실행 후 vault sync 잔여 (main HEAD 와 동일)
+- `git restore ai-workflow/wiki/` 로 main HEAD 와 동일하게 reset → working tree clean (0 file)
+
+### Local branch 3개 정리
+
+- `chore/260622-m-v0-2-1-release-close` (PR #683 merge 후 미삭제, origin 추적, main 와 동일 content) → `git branch -d` 로 삭제
+- `chore/260622-m-v0-2-1-memory` (PR #684 merge 후 미삭제, origin 미추적, main 와 동일 content) → `git branch -d` 로 삭제
+- `chore/260622-m-v0-2-3-memory` (PR #682 merge 후 미삭제, origin 미추적, main 와 동일 content) → `git branch -d` 로 삭제
+
+### memory 4 file 최종 갱신
+
+- `ai-workflow/memory/opencode/main/state.json` — Session 5 + main_status_at_session_end = 5cb03bbd + 본 turn 정보 (working tree cleanup + local branch 3개 정리 + memory final + PR #685)
+- `ai-workflow/memory/opencode/main/work_backlog.md` — status + main HEAD = 5cb03bbd + §5 row DB-M47~53 (Session 5) + Session 1~5 종합
+- `ai-workflow/memory/opencode/main/session_handoff.md` — 본 § (Session 5) append
+- `ai-workflow/memory/opencode/main/backlog/2026-06-22.md` — Session 5 + Session 1~5 종합 본 § append
+
+### PR #685 self-merge (마무리로 PR)
+
+- branch: `chore/260622-session-end-final`
+- commit: `TBD` (memory 4 file 변경)
+- CI 4/4 SUCCESS + 5 SKIPPED (memory + state.json 의 cross-cutting docs only PR 정공법)
+- self-merge (regular merge, fast-forward 가능, PR #679 / PR #680 / PR #681 / PR #682 / PR #683 / PR #684 정공법 정합)
+- merge commit: `TBD`
+- 4 file / +159/-41 line
+- branch auto-delete (--delete-branch)
+
+### wiki mirror 1회 실행
+
+- `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode, AGENTS.md §문서 작업 기준 정공법)
+- `bash scripts/wiki-frontmatter-update.sh` 1회 실행
+- wiki 982 file / 11M mirror + 91 page frontmatter 갱신
+
+### Key Decisions (Session 5)
+
+- working tree wiki raw 98 file = main HEAD 와 동일 → `git restore ai-workhub/wiki/` 로 reset (working tree clean)
+- local branch 3개 (m-v0-2-1-release-close + m-v0-2-1-memory + m-v0-2-3-memory) main 와 동일 content → `git branch -d` 로 삭제
+- memory 4 file 최종 갱신 (Session 5 — 전체 release close 종합 + working tree 정리 + local branch cleanup + 마무리로 PR)
+- user clarification: 작업 내역 정리 + 메모리 갱신 + 원격 미반영 내용 마무리로 PR 작성
+- 전체 turn 종합 (Session 1~5): Session 1 = feat branch 폐기 + .gitignore (PR #662) / Session 2 = M-v0.2.2 release close (PR #679+#680) / Session 3 = M-v0.2.3 release close (PR #681+#682) / Session 4 = M-v0.2.1 release close (PR #683+#684) / Session 5 = final cleanup (PR #685)
+
+### Session 1~5 종합 (2026-06-22 전체 release close 정공법)
+
+| Session | 시점 | 핵심 결과 | PR |
+|---|---|---|---|
+| Session 1 | T00:00~00:10 | feat/260619-v0-2-frontend-svelte rebase + 폐기 + /src/var/ .gitignore | PR #662 |
+| Session 2 | T05:30~07:00 | M-v0.2.2 release close (4-PR split, §6.6.2 SOP 10/10 ✅) | PR #679 + PR #680 |
+| Session 3 | T07:10~07:30 | M-v0.2.3 release close (2-PR split, partial done) | PR #681 + PR #682 |
+| Session 4 | T07:35~08:20 | M-v0.2.1 release close (4-PR split, partial done) | PR #683 + PR #684 |
+| Session 5 | T08:20~08:30 | Working tree clean + local branch 3개 정리 + memory 4 file 최종 + final PR | PR #685 |
+
+### 4 milestone 모두 release close 정공법 완료 (Session 1~5 종합)
+
+- **M-v0.2.0** ✅ done (2026-06-18, 16+ commits, 7 PR)
+- **M-v0.2.1** 🟡 partial done (2026-06-22, 4-PR split, PR #655+#660+#661+#675)
+- **M-v0.2.2** ✅ done (2026-06-22, 4-PR split, PR #663+#664+#665+#666, §6.6.2 SOP 10/10)
+- **M-v0.2.3** 🟡 partial done (2026-06-22, 2-PR split, PR #672+#673)
+- **M-v0.3.0** ⏳ planned
+
+### 다음 sprint 진입 후보 (사용자 결정)
+
+- A: M-v0.2.1 follow-up (Gitea 4 정식 wire + homelab real wire + e2e smoke full)
+- B: M-v0.2.3 follow-up (rollback CLI + GDPR/PII + 28 metrics)
+- C: M-v0.3.0 풀 RAG (chunking + embedding + vector index + reranking)
+- D: §2.5 Tier 분리 정공법 (umbrella doc §2.5 + AGENTS.md §6.5)
+- E: §17.2 known gaps 자연 해소 (PoC +1주 이내, 2026-06-26 경과)
+- F: M-v0.2.0/v0.2.1/v0.2.2/v0.2.3 release announcement (사내/사외 배포)
+
+### Session Stats (Session 5)
+
+- **PRs created**: 1 (PR #685)
+- **PRs merged**: 1 (PR #685, self-merge)
+- **Commits in session**: 1 (TBD)
+- **Branches created**: 1 (`chore/260622-session-end-final`)
+- **Branches deleted (local)**: 3 (`chore/260622-m-v0-2-1-release-close` + m-v0-2-1-memory + m-v0-2-3-memory)
+- **Branches deleted (remote)**: 1 (`chore/260622-session-end-final`, --delete-branch)
+- **Files restored**: 98 (`ai-workflow/wiki/` → main HEAD)
+- **Memory 4 file 갱신**: 4 file / +159/-41 line
+- **Session duration**: 10 min
+- **Memory finalization**: opencode/main/ 4 file final + wiki mirror 1회 실행
+- **Tier**: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)
+
 ## 9. Session 4 (T07:35~08:20, 2026-06-22) — M-v0.2.1 release close (4-PR split, partial done) 종합 정합
 
 ### PR 검증 + umbrella + state.json 정합 (partial done)

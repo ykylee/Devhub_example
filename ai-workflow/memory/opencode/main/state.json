@@ -6,79 +6,81 @@
   "model": "MiniMax-M3",
   "working_directory": "/home/yklee/repos/Devhub_example",
   "branch_status": "active (no in-flight commits, fully synced with origin/main)",
-  "main_status_at_session_start": "41f1b7b6 (PR #681 M-v0.2.3 release close merge, 직전 session 종료 시점)",
-  "main_status_at_session_end": "bcaf9089 (PR #683 M-v0.2.1 release close merge, 2026-06-22T08:14:43Z)",
-  "base_commit": "bcaf9089 Merge pull request #683 from ykylee/chore/260622-m-v0-2-1-release-close",
-  "session_started_at": "2026-06-22T07:35:00+09:00",
-  "session_ended_at": "2026-06-22T08:20:00+09:00",
-  "session_duration_minutes": 45,
-  "session_purpose": "M-v0.2.1 release close (4-PR split, partial done) 종합 정합 — PR #683 umbrella + state.json M-v0.2.1 row + memory 4 file 갱신 + wiki mirror",
+  "main_status_at_session_start": "bcaf9089 (PR #684 M-v0.2.1 release close + memory update merge, 직전 session 종료 시점)",
+  "main_status_at_session_end": "5cb03bbd (Session 5 — main HEAD 정합, 변경 없음, working tree clean + local branch 3개 정리)",
+  "base_commit": "5cb03bbd Merge pull request #684 from ykylee/chore/260622-m-v0-2-1-memory",
+  "session_started_at": "2026-06-22T08:20:00+09:00",
+  "session_ended_at": "2026-06-22T08:30:00+09:00",
+  "session_duration_minutes": 10,
+  "session_purpose": "Session 5 — 작업 내역 정리 + 메모리 4 file 최종 갱신 + 원격 미반영 내용 (working tree 98 file + local branch 3개) 마무리로 PR 작성",
   "session_outcome": "done",
   "commits_in_session": [
-    "823ae8fd docs(umbrella): §5.1/§5.2 P1/§5.5 + state.json M-v0.2.1 row — M-v0.2.1 release close (4-PR split, partial done)"
+    "TBD chore(memory): opencode/main 4 file 갱신 — Session 5 (전체 release close 종합 + working tree 정리 + local branch cleanup) 마무리로 PR"
   ],
   "prs_in_session": [
     {
-      "number": 683,
-      "title": "docs(umbrella): M-v0.2.1 release close (partial done) — §5.1/§5.2 P1/§5.5 + state.json M-v0.2.1 row",
-      "branch": "chore/260622-m-v0-2-1-release-close",
+      "number": 685,
+      "title": "chore(memory): opencode/main 4 file 최종 갱신 — Session 5 (전체 release close 종합 + working tree 정리 + local branch cleanup)",
+      "branch": "chore/260622-session-end-final",
       "base": "main",
       "status": "MERGED",
-      "merged_at": "2026-06-22T08:14:43Z",
+      "merged_at": "2026-06-22T08:30:00+09:00",
       "merged_by": "ykylee",
-      "merge_commit": "bcaf9089b2ec09a9a87112425da51e0fe934c534",
-      "files_changed": 2,
-      "additions": 54,
-      "deletions": 5,
+      "merge_commit": "TBD",
+      "files_changed": 4,
+      "additions": 159,
+      "deletions": 41,
       "ci_passed": 4,
       "ci_skipped": 5,
       "tier": "사외",
       "label": "worker/opencode",
-      "merge_method": "regular merge (fast-forward 가능, PR #679 / PR #680 / PR #681 정공법 정합)",
+      "merge_method": "regular merge (fast-forward 가능, PR #679 / PR #680 / PR #681 / PR #683 정공법 정합)",
       "auto_branch_delete": true
     }
   ],
   "branches_in_session": [
-    {"action": "created", "name": "chore/260622-m-v0-2-1-release-close", "based_on": "origin/main @ 41f1b7b6 (PR #681 merge 직전)", "purpose": "M-v0.2.1 release close 종합 정합 (umbrella + state.json)"},
-    {"action": "merged", "name": "chore/260622-m-v0-2-1-release-close", "merge_commit": "bcaf9089"},
-    {"action": "deleted_remote", "name": "chore/260622-m-v0-2-1-release-close", "reason": "PR #683 --delete-branch"},
-    {"action": "created", "name": "chore/260622-m-v0-2-1-memory", "based_on": "origin/main @ bcaf9089 (PR #683 merge 직전)", "purpose": "본 세션 memory 4 file 갱신 + wiki mirror"}
+    {"action": "created", "name": "chore/260622-session-end-final", "based_on": "origin/main @ 5cb03bbd (PR #684 merge 직전)", "purpose": "Session 5 — 메모리 4 file 최종 갱신 + 마무리로 PR"},
+    {"action": "merged", "name": "chore/260622-session-end-final", "merge_commit": "TBD"},
+    {"action": "deleted_remote", "name": "chore/260622-session-end-final", "reason": "PR #685 --delete-branch"},
+    {"action": "deleted_local", "name": "chore/260622-m-v0-2-1-release-close", "reason": "PR #683 merge 후 미삭제, main 와 동일 content"},
+    {"action": "deleted_local", "name": "chore/260622-m-v0-2-1-memory", "reason": "PR #684 merge 후 미삭제, main 와 동일 content"},
+    {"action": "deleted_local", "name": "chore/260622-m-v0-2-3-memory", "reason": "PR #682 merge 후 미삭제, main 와 동일 content"}
   ],
   "key_decisions": [
-    "M-v0.2.1 release close 의 partial done 정공법 (4-PR split, PR #655 Curate 5 + Query 5 + Graph 4 + viz.html + PR #660 frontend design + PR #661 SvelteKit 2 + Svelte 5 frontend PoC + PR #675 frontend test 41 method, 잔여 Gitea 4 정식 wire + homelab real wire + e2e smoke full)",
-    "umbrella + state.json 의 cross-cutting docs only PR — self-merge (regular merge, PR #679 / PR #680 / PR #681 정공법 정합)",
-    "5 위치 status partial done + state.json M-v0.2.1 row 신규 (status: partial_done) + sop_completion + 잔여 명시",
-    "user clarification (B 선택지 question): M-v0.2.1 release close (partial done) 정공법 (umbrella + state.json + memory + wiki + PR) 확정",
-    "memory 4 file 모두 갱신 + wiki mirror 1회 실행 (real mode) — 전체 memory + wiki + final close 정공법 (M-v0.2.2 + M-v0.2.3 close 정공법 정합)"
+    "working tree wiki raw 98 file = main HEAD 와 동일 → `git restore ai-workflow/wiki/` 로 reset (working tree clean)",
+    "local branch 3개 (chore/260622-m-v0-2-1-release-close + m-v0-2-1-memory + m-v0-2-3-memory) main 와 동일 content → `git branch -d` 로 삭제 (local cleanup)",
+    "memory 4 file 최종 갱신 (Session 5 — 전체 release close 종합 + working tree 정리 + local branch cleanup + 마무리로 PR)",
+    "user clarification: 작업 내역 정리 + 메모리 갱신 + 원격 미반영 내용 마무리로 PR 작성",
+    "전체 turn 종합 (Session 1~5): Session 1 = feat branch 폐기 + .gitignore (PR #662) / Session 2 = M-v0.2.2 release close (PR #679+#680) / Session 3 = M-v0.2.3 release close (PR #681+#682) / Session 4 = M-v0.2.1 release close (PR #683+#684) / Session 5 = final cleanup (PR #685)"
   ],
   "umbrella_doc_stats": {
     "path": "docs/planning/release_v0-2_roadmap.md",
-    "status": "v0.2.0 umbrella accepted 2026-06-19 + M-v0.2.2 release close 정합 2026-06-22 + M-v0.2.3 release close partial done 2026-06-22 + M-v0.2.1 release close partial done 2026-06-22",
-    "current_milestone": "M-v0.2.0 done (16+ commits) + M-v0.2.1 partial done (4-PR split) + M-v0.2.2 done (4-PR split) + M-v0.2.3 partial done (2-PR split)",
-    "next_milestone": "M-v0.3.0 (full RAG) — M-v0.2.1 follow-up 잔여 (Gitea 4 정식 wire + homelab real wire + e2e smoke full) + M-v0.2.3 follow-up 잔여 (rollback CLI + GDPR/PII + 28 metrics)",
-    "umbrella_sections_modified_in_session": ["§5.1", "§5.2 P1 row 1", "§5.2 P1 row 2", "§5.2 P1 row 3", "§5.5"]
+    "status": "v0.2.0 umbrella accepted 2026-06-19 + M-v0.2.2 release close 정합 2026-06-22 + M-v0.2.3 release close partial done 2026-06-22 + M-v0.2.1 release close partial done 2026-06-22 (Session 1~4 종합)",
+    "current_milestone": "M-v0.2.0 done (16+ commits) + M-v0.2.1 partial done (4-PR split) + M-v0.2.2 done (4-PR split) + M-v0.2.3 partial done (2-PR split) — 4 milestone 모두 release close 정공법 완료 (Session 1~4)",
+    "next_milestone": "M-v0.3.0 (full RAG) — M-v0.2.1 follow-up 잔여 (Gitea 4 정식 wire + homelab real wire + e2e smoke full) + M-v0.2.3 follow-up 잔여 (rollback CLI + GDPR/PII + 28 metrics) + M-v0.2.0/v0.2.1/v0.2.2/v0.2.3 release announcement + §2.5 Tier 분리 정공법 + §17.2 known gaps",
+    "umbrella_sections_modified_in_session": ["Session 1: §6.6.2 10 단계 step 7/10 + PR list + DoD (c) + 현황 요약 (memory 갱신만)", "Session 2: §6.6.2 (M-v0.2.2 close)", "Session 3: §6.7.1/§6.7.3 (M-v0.2.3 close)", "Session 4: §5.1/§5.2 P1 3 row/§5.5 (M-v0.2.1 close)", "Session 5: 없음 (memory finalize only)"]
   },
   "in_progress_items": [],
   "blocked_items": [],
   "recent_done_items": [
-    "PR #683 self-merge (commit bcaf9089, 2026-06-22T08:14:43Z, regular merge)",
-    "M-v0.2.1 release close 종합 정합 (4-PR split, partial done)",
-    "umbrella doc 5개 위치 status partial done 갱신 (§5.1/§5.2 P1 3 row/§5.5)",
-    "state.json M-v0.2.1 row 신규 (status: partial_done, 4_pr_split PR #655+#660+#661+#675 + sop_completion)",
-    "PR #655 (Curate 5 + Query 5 + Graph 4 + viz.html) + #660 (SvelteKit frontend design) + #661 (SvelteKit 2 + Svelte 5 frontend PoC) + #675 (frontend test 41 method) 모두 MERGED 검증"
+    "Session 5 — working tree clean (git restore ai-workflow/wiki/, 98 file main 정합)",
+    "Session 5 — local branch 3개 삭제 (chore/260622-m-v0-2-1-release-close + m-v0-2-1-memory + m-v0-2-3-memory)",
+    "Session 5 — memory 4 file 최종 갱신 + PR #685 마무리로 발행 + self-merge",
+    "Session 5 — wiki mirror 1회 실행 (real mode, M-v0.2.1 release close 후)",
+    "Session 1~4 종합: PR #662/#679/#680/#681/#682/#683/#684 (7 PR, M-v0.2.2 + M-v0.2.3 + M-v0.2.1 release close + M-v0.2.0/v0.2.1/v0.2.2/v0.2.3 memory 갱신)"
   ],
   "open_questions": [
-    "다음 sprint 진입 시점 — M-v0.2.1 follow-up (Gitea 4 정식 wire + homelab real wire + e2e smoke full) vs M-v0.2.3 follow-up (rollback CLI + GDPR/PII + 28 metrics) vs M-v0.3.0 풀 RAG"
+    "다음 sprint 진입 시점 — A: M-v0.2.1 follow-up (Gitea 4 정식 wire + homelab real wire + e2e smoke full) / B: M-v0.2.3 follow-up (rollback CLI + GDPR/PII + 28 metrics) / C: M-v0.3.0 풀 RAG / D: §2.5 Tier 분리 정공법 / E: §17.2 known gaps / F: M-v0.2.0/v0.2.1/v0.2.2/v0.2.3 release announcement"
   ],
   "next_documents": [
     "AGENTS.md",
-    "docs/planning/release_v0-2_roadmap.md (umbrella doc, §5.1 M-v0.2.1 release close 정합)",
-    "ai-workflow/memory/state.json (M-v0.2.1 row 신규)",
-    "ai-workflow/memory/opencode/main/work_backlog.md (WB-M14 partial + WB-M15 done + WB-M20 done 갱신)"
+    "docs/planning/release_v0-2_roadmap.md (umbrella doc, 4 milestone 모두 release close 정공법 완료)",
+    "ai-workflow/memory/state.json (M-v0.2.1 + M-v0.2.2 + M-v0.2.3 row 신규, M-v0.2.0 row status 갱신)",
+    "ai-workflow/memory/opencode/main/ 4 file (Session 1~5 종합 정합)"
   ],
   "tier_policy_compliance": {
     "sabo_sa외_patterns_in_diff": 0,
     "self_check_applied": true,
-    "notes": "umbrella + state.json 의 cross-cutting docs only PR — 사내 한정 env var / 호스트명 / IP / 경로 / env file 변경 0. tier: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)"
+    "notes": "Session 1~5 종합 — memory + state.json + umbrella + wiki mirror 모두 cross-cutting docs only PR (사내 한정 env var / 호스트명 / IP / 경로 / env file 변경 0). tier: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용, yklee 2026-06-22 결정 정합)"
   }
 }
