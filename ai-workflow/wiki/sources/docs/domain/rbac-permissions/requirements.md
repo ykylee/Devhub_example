@@ -3,11 +3,11 @@ title: requirements
 type: source
 tags: [domain, requirements.md, project-devhub]
 sources: [raw/projects/devhub/docs/domain/rbac-permissions/requirements.md]
-git_commit: baf1cf24
-git_branch: main
+git_commit: 71c0d2cd
+git_branch: chore/260622-wiki-drift-cleanup
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-22T03:37:45Z
+last_touched: 2026-06-22T03:47:55Z
 mirror_dirty: |
 related: [none]
 status: draft

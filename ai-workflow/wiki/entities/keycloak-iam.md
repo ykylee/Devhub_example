@@ -7,11 +7,11 @@ created: 2026-06-15
 updated: 2026-06-15
 active_since: 2026-06-15
 active_reason: "DevHub v0.1.0 의 1차 IdP. v0.7.17 vendor import 후에도 본 저장소 의 *in-repo* 운영 정합"
-git_commit: baf1cf24
-git_branch: main
+git_commit: 71c0d2cd
+git_branch: chore/260622-wiki-drift-cleanup
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-22T03:37:45Z
+last_touched: 2026-06-22T03:47:55Z
 mirror_dirty: |
 ---
 
