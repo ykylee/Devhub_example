@@ -132,6 +132,173 @@ async def post_enrich(
     )
 
 
+from ..curate.link_resolver import (  # noqa: E402
+    LinkRecommendation,
+    LinkResolver,
+    PiMode,
+    ResolutionMode,
+    ResolutionResult,
+)
+
+
+class ResolveLinksRequest(BaseModel):
+    """FR-C-006 resolve-links request body (§3.5.7.4 3 mode confirm workflow)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["dry-run", "confirm", "auto-apply"] = Field(
+        default="dry-run",
+        description="Resolution mode (3 mode confirm workflow)",
+    )
+    confidence_threshold: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="Auto-apply confidence threshold (0.0~1.0, default 0.9)",
+    )
+    selected_rank: int = Field(
+        default=1,
+        ge=1,
+        le=3,
+        description="Confirm mode 시 선택 rank (1=best, 2=second, 3=third)",
+    )
+    pi_mode: Literal["sdk", "rpc"] = Field(
+        default="sdk",
+        description="Pi LLM invocation mode (§10.3)",
+    )
+
+
+class ResolveLinksRecommendationItem(BaseModel):
+    """Per-link recommendation result (selected + alternatives)."""
+
+    source_path: str
+    original_link: str
+    selected: dict | None = None  # LinkRecommendation dict
+    alternatives: list[dict] = Field(default_factory=list)
+    applied: bool
+    confidence_threshold: float
+    timestamp: str
+
+
+class ResolveLinksData(BaseModel):
+    """FR-C-006 resolve-links response data."""
+
+    concept_id: str
+    mode: str
+    confidence_threshold: float
+    total_unresolved: int
+    applied: int
+    skipped: int
+    results: list[ResolveLinksRecommendationItem] = Field(default_factory=list)
+
+
+@router.post("/concepts/{concept_id:path}/resolve-links", response_model=None)
+async def post_resolve_links(
+    request: Request,
+    concept_id: str = Path(..., description="Concept ID (bundle/category/slug)"),
+    body: ResolveLinksRequest | None = None,
+    ctx: PathYUserContext | None = Depends(get_path_y_context),
+) -> dict:
+    """FR-C-006: Pi LLM cross-link auto-resolution (§3.5.7.4 + M-v0.2.3+).
+
+    3 mode confirm workflow:
+    - dry-run: recommend 만 출력 (변경 ❌, 기본값)
+    - confirm: operator 확인 + selected_rank 로 적용
+    - auto-apply: confidence ≥ threshold 자동 적용
+
+    Path Y: 필수 (curation ownership check, §3.6.2)
+    Audit log: pi_link_resolve.applied / .dry_run / .skipped (§3.5.7.5)
+    """
+    if body is None:
+        body = ResolveLinksRequest()
+    require_path_y_context(ctx, action="concept.resolve_links")
+
+    resolver = LinkResolver(pi_mode=PiMode(body.pi_mode))
+    bundles_dir = get_settings().var_dir / "bundles"
+    unresolved = await resolver.find_unresolved_links(bundles_dir)
+
+    # concept_id 와 매칭되는 link 만 filter (해당 concept 의 unresolved link 만)
+    relevant = [u for u in unresolved if u.source_path.startswith(concept_id)]
+
+    mode = ResolutionMode(body.mode)
+    results: list[ResolveLinksRecommendationItem] = []
+    applied_count = 0
+    skipped_count = 0
+
+    from ..audit.events import AuditEventType
+    from ..audit.logger import get_audit_logger
+    audit = get_audit_logger() if ctx is not None else None
+
+    for link in relevant:
+        candidates = await resolver.list_candidates(link.link_target, limit=10)
+        if not candidates:
+            skipped_count += 1
+            results.append(
+                ResolveLinksRecommendationItem(
+                    source_path=link.source_path,
+                    original_link=link.link_text,
+                    applied=False,
+                    confidence_threshold=body.confidence_threshold,
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                )
+            )
+            continue
+
+        result: ResolutionResult = await resolver.resolve(
+            link=link,
+            candidate_concepts=candidates,
+            mode=mode,
+            confidence_threshold=body.confidence_threshold,
+            selected_rank=body.selected_rank,
+        )
+
+        if result.applied and result.selected is not None:
+            applied_count += 1
+        else:
+            skipped_count += 1
+
+        if audit is not None:
+            audit.emit_simple(
+                event_type=AuditEventType.PI_LINK_RESOLVE,
+                user_id=ctx.user_id,
+                org_id=ctx.org_id,
+                request_id=getattr(request.state, "request_id", None),
+                ip=request.client.host if request.client else None,
+                success=result.applied,
+                concept_id=concept_id,
+                mode=body.mode,
+                applied=result.applied,
+                confidence=result.selected.confidence if result.selected else 0.0,
+                link_target=link.link_target,
+            )
+
+        results.append(
+            ResolveLinksRecommendationItem(
+                source_path=link.source_path,
+                original_link=link.link_text,
+                selected=result.selected.model_dump() if result.selected else None,
+                alternatives=[r.model_dump() for r in result.alternatives],
+                applied=result.applied,
+                confidence_threshold=body.confidence_threshold,
+                timestamp=result.timestamp,
+            )
+        )
+
+    return make_envelope(
+        ResolveLinksData(
+            concept_id=concept_id,
+            mode=body.mode,
+            confidence_threshold=body.confidence_threshold,
+            total_unresolved=len(relevant),
+            applied=applied_count,
+            skipped=skipped_count,
+            results=results,
+        ).model_dump(mode="json"),
+        request,
+        ctx,
+    )
+
+
 # === FR-C-002: PUT /concepts/{id} (manual edit) ===
 
 class ConceptEditRequest(BaseModel):
