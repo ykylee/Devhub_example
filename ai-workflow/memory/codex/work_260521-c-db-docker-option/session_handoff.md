@@ -55,13 +55,13 @@
 ## 2026-05-22 Python 3.12 pin 세션 (`7626a8c`)
 
 - backend-ai base image 를 `python:3.13-slim` → `python:3.12-slim` 으로 pin.
-- 변경 위치 4건:
-  - `backend-ai/Dockerfile:1` — base image tag
-  - `docs/tech_stack.md:46` — "v3.11+ 권장 (최소 v3.10)" → "기준 v3.12 + host ABI 권장 명시"
+- 변경 위치 4건 (2026-05-21 시점, **2026-06-22 M-v0.2.2 부터 backend-ai 폐기, PR #663 + #664 정공법**. 1번 row 의 `backend-ai/Dockerfile:1` + 4번 row 의 `scripts/build-artifacts.sh:33 build_backend_ai` 함수는 무효):
+  - ~~`backend-ai/Dockerfile:1` — base image tag~~ (2026-06-22 폐기)
+  - `docs/tech_stack.md:46` — "v3.11+ 권장 (최소 v3.10)" → "기준 v3.12 + host ABI 권장 명시" (2026-06-22 M-v0.2.2 부터 Python v3.13+ (backend-knowledge baseline) 권장으로 갱신 필요, 별도 follow-up)
   - `docs/setup/environment-setup.md:22` — prerequisite Python 3.11+ → 3.12
-  - `scripts/build-artifacts.sh:33` — `build_backend_ai` 함수에 host/container 마이너 일치 ABI 주의 주석
-- **host build 패키징 ABI 주의**: `pip install --target .build/site-packages` 가 host `python3` 를 사용 → 컨테이너의 3.12 와 메이저/마이너 mismatch 시 `grpcio` 등 compiled wheel 의 `*.so` ABI 충돌 (ImportError / segfault). 배포 머신의 host python 도 3.12 이어야 함.
-- 사내 환경 host python 점검 명령: `python3 --version` 출력이 `Python 3.12.x` 인지 확인. 아니면 pyenv 또는 별도 venv 로 3.12 잡고 PATH 정합.
+  - ~~`scripts/build-artifacts.sh:33` — `build_backend_ai` 함수에 host/container 마이너 일치 ABI 주의 주석~~ (2026-06-22 폐기, `build_backend_ai` 함수 + backend-ai 디렉터리 자체 제거됨)
+- **host build 패키징 ABI 주의**: `pip install --target .build/site-packages` 가 host `python3` 를 사용 → 컨테이너의 3.12 와 메이저/마이너 mismatch 시 `grpcio` 등 compiled wheel 의 `*.so` ABI 충돌 (ImportError / segfault). 배포 머신의 host python 도 3.12 이어야 함. (historical, 2026-06-22 M-v0.2.2 부터 backend-ai/ 폐기로 무의미)
+- 사내 환경 host python 점검 명령: `python3 --version` 출력이 `Python 3.12.x` 인지 확인. 아니면 pyenv 또는 별도 venv 로 3.12 잡고 PATH 정합. (historical)
 
 ## 2026-05-22 ONBOARDING_GATE env propagate 세션 (`df81666`)
 
