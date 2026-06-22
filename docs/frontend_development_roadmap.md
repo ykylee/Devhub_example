@@ -108,7 +108,7 @@ SDLC 재정비 sprint 의 일환으로 view 컴포넌트 24개 단위테스트 +
 - System Admin service action command 생성 연동은 완료.
 - 백엔드 `/api/v1/realtime/ws`(**ticket 인증 — ADR-0024, `POST /api/v1/realtime/ticket` → `?ticket=`**)와 `command.status.updated` publish 경계가 구현됨. 프론트 `realtime.service`(ticket WS pub/sub)도 구현됨.
 - **잔여(Phase 4)**: 기존 `RealtimeService` 구독을 **command toast/status UI 에 연결**하는 것. (infra/ci/risk event 구독 UI 는 backend RM-M4-01 publish 완성 후 = v2)
-- AI Gardener suggestion API/UI 연결은 v2로 이관(backend-ai 스켈레톤 의존).
+- AI Gardener suggestion API/UI 연결은 v2로 이관(backend-ai 스켈레톤 의존). **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — 본 row 의 v2 scope 폐기. AI/ML 정공법은 `backend-knowledge/` 의 §3.7 + §3.5.7 로 이관. frontend AI Gardener suggestion UI 작업도 ❌.
 
 ## 6. Phase 5 상세 계획 (사용자/조직 관리 + 인증)
 
@@ -154,7 +154,7 @@ DevHub ~~자체 사용자 계정(Account) 1:1 컨셉~~(historical)에 따른 초
 - [ ] **command status WebSocket UI (Phase 4 잔여)** — `RealtimeService` 구독 → command toast/status 연결.
 - [ ] **최신 backend 기능 happy-path E2E (B2)** — repository draft→publish, SCM import/create(현재 negative-path 위주).
 - [ ] **CI e2e job 복원** — 2026-05-29 SDLC 재정비 sprint 중 `&& false` gate 적용. refactor stabilize 후 제거.
-- [ ] **AI Gardener suggestion UI (v2)** — backend-ai gRPC AnalysisService 실구현 의존.
+- [ ] **AI Gardener suggestion UI (v2)** — ~~backend-ai gRPC AnalysisService 실구현 의존~~. **2026-06-22 M-v0.2.2 폐기** (PR #663). AI/ML UI 정공법은 `backend-knowledge/web/` 의 7 page scope (M-v0.2.1+ §12 frontend-design) + viz.html 자가 viewer 로 통합. 별도 AI Gardener UI 작업 ❌.
 - [ ] **System Admin 운영 가시성 (RM-M4-07)** — Gitea sync job 큐/provider health view(backend 데이터는 있으나 운영 화면 없음).
 
 세부 잔여·우선순위는 [05_fe_be_balance.md](./analysis/2026-05-27-codebase-snapshot/05_fe_be_balance.md) §4 + [06_future_direction.md](./analysis/2026-05-27-codebase-snapshot/06_future_direction.md) §3 참조.

@@ -15,17 +15,17 @@
 - `DevHub (Multi-Role Team Hub)`
 - 분석 모드:
 - `existing`
-- 추정 기본 스택:
+- 추정 기본 스택 (2026-05-08 분석 시점 snapshot, 2026-06-22 M-v0.2.2 일부 폐기 반영):
 - `Go / Python / Next.js / PostgreSQL / Docker Compose`
-- 감지된 스택 라벨:
-- `backend-core: Go Gin`, `backend-ai: Python FastAPI`, `frontend: Next.js App Router`, `proto: gRPC/Protocol Buffers`, `database: PostgreSQL`
+- 감지된 스택 라벨 (snapshot):
+- `backend-core: Go Gin`, `backend-ai: Python FastAPI` (2026-06-22 M-v0.2.2 부터 폐기, PR #663), `frontend: Next.js App Router`, `proto: gRPC/Protocol Buffers` (분석 시점 사용, 현재 backend-knowledge/ 의 FastAPI 로 standalone), `database: PostgreSQL`
 
 ## 2. 저장소 구조 관찰
 
-- 상위 디렉터리 항목:
-- `.git, README.md, AGENTS.md, Makefile, docker-compose.yml, backend-core, backend-ai, frontend, proto, docs, ai-workflow`
+- 상위 디렉터리 항목 (2026-05-08 snapshot, 2026-06-22 일부 폐기 반영):
+- `.git, README.md, AGENTS.md, Makefile, docker-compose.yml, backend-core, backend-ai` (2026-06-22 M-v0.2.2 부터 폐기, PR #663), `frontend, proto, docs, ai-workflow`
 - 소스 디렉터리 후보:
-- `backend-core/`, `backend-ai/`, `frontend/`, `proto/`
+- `backend-core/`, `backend-ai/` (2026-06-22 M-v0.2.2 부터 폐기), `frontend/`, `proto/`
 - 문서 디렉터리 후보:
 - `docs/`, `ai-workflow/memory/`
 - 테스트 디렉터리 후보:
@@ -48,8 +48,8 @@
 
 - package script 목록:
 - `frontend/package.json` 기준 `dev`, `build`, `start`, `lint`
-- 분석 중 확인한 경로 샘플:
-- `README.md`, `Makefile`, `docker-compose.yml`, `backend-core/main.go`, `backend-ai/main.py`, `frontend/app/page.tsx`, `proto/analysis.proto`, `docs/architecture.md`, `docs/shared/tech_stack.md`
+- 분석 중 확인한 경로 샘플 (2026-05-08 snapshot, 2026-06-22 일부 폐기 반영):
+- `README.md`, `Makefile`, `docker-compose.yml`, `backend-core/main.go`, `backend-ai/main.py` (2026-06-22 M-v0.2.2 부터 폐기, PR #663), `frontend/app/page.tsx`, `proto/analysis.proto`, `docs/architecture.md`, `docs/shared/tech_stack.md`
 
 ## 5. 워크플로우 도입 초안
 
