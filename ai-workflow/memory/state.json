@@ -326,6 +326,55 @@
       "adr_alignment": "ADR-0038 §6 supersession + PR #668 numbering (ADR-0034/0035 → ADR-0037/0038)",
       "tier": "사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)"
     },
+    "M-v0.2.1": {
+      "status": "partial_done",
+      "started_at": "2026-06-19",
+      "ended_at_partial": "2026-06-22",
+      "notes": "M-v0.2.1 partial done — Curate 5 + Query 5 + Graph 4 + viz.html + SvelteKit 2 + Svelte 5 frontend PoC + frontend design doc + 41 test method 정공법 완료 (4-PR split, PR #655 + #660 + #661 + #675). §6.1 Phase 1 frontend 운영 + §6.5 운영 정공법 정합. 잔여 (M-v0.2.1 follow-up sprint): Gitea 4 정식 wire (mock → real, §6.4 source plugin 표 정공법) + homelab real wire (homelab_mock.py → homelab.py, 사내 HomeLab agent API wire) + e2e smoke (M-v0.2.1 full e2e 정공법, 41 test method 는 frontend test 만 완료) + §3.6.6.3 governance dashboard + §3.7.6 data normalization pipeline 운영. 5종 source 운영 정공법 (Gitea 4 + homelab_mock + metrics 정공법, M-v0.2.2 close 후 + hrdb M-v0.2.3 close 후 7종 운영). Tier: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용).",
+      "4_pr_split": {
+        "pr_1_m_v0_2_1_pr_1": {
+          "number": 655,
+          "title": "feat(backend-knowledge): v0.2.0 PoC Curate 5 + Query 5 + Graph 4 + viz.html (PR 2)",
+          "commits": 5,
+          "merged_at": "2026-06-19T03:54:20Z",
+          "scope": "PR 2 of 3 backend-knowledge v0.2.0 PoC",
+          "umbrella_refs": "§3.1 Ingest/Curate/Query/Graph endpoint + §5.1 viz.html + §6.1 Phase 1 viz.html SSR"
+        },
+        "pr_2_m_v0_2_1_pr_2": {
+          "number": 660,
+          "title": "docs(backend-knowledge): SvelteKit frontend design doc + master index update (M-v0.2.0+ frontend page 1)",
+          "commits": 1,
+          "merged_at": "2026-06-19T05:17:38Z",
+          "scope": "SvelteKit frontend design doc + master index update",
+          "umbrella_refs": "§12 frontend page 상세화 + §6.1 Phase 1 frontend 운영"
+        },
+        "pr_3_m_v0_2_1_pr_3": {
+          "number": 661,
+          "title": "feat(backend-knowledge/web): SvelteKit 2 + Svelte 5 frontend PoC (M-v0.2.0)",
+          "commits": 4,
+          "merged_at": "2026-06-19T13:17:18Z",
+          "scope": "SvelteKit 2 + Svelte 5 frontend PoC (22 file +2302/-4, 4+1 commit squash, 2298 net)",
+          "umbrella_refs": "§12 frontend page 상세화 + §5.1 M-v0.2.0 frontend page 1 + §6.1 Phase 1"
+        },
+        "pr_4_m_v0_2_1_pr_4": {
+          "number": 675,
+          "title": "test(backend-knowledge/web): SvelteKit frontend unit tests — lib/path-y + lib/api + lib/types (41 test method, 3 commit)",
+          "commits": 3,
+          "merged_at": "2026-06-22T06:02:44Z",
+          "scope": "SvelteKit frontend unit tests (41 test method)",
+          "umbrella_refs": "§5.2 P1 e2e smoke + §6.1 Phase 1 frontend 운영"
+        }
+      },
+      "sop_completion": {
+        "section": "§6.1 Phase 1 + §5.1 M-v0.2.1 + §6.5 운영 정공법",
+        "completed_subsection": ["§5.1 Curate 3 endpoint 정공법 (Curate 5 정공법 완료)", "§5.1 viz.html (자가 viewer)", "§5.1 frontend 관리/조회 page 1 (SvelteKit 2 + Svelte 5 PoC)", "§5.2 P1 e2e smoke (frontend test 41 method 완료)"],
+        "partial_subsection": ["§5.1 Gitea 4 정식 wire (mock → real, 정공법 미구현)", "§5.1 homelab real wire (mock → real, 정공법 미구현)", "§5.1 e2e smoke full 정공법 (frontend test 만 완료, ingest → curate → query e2e 미완료)"],
+        "remaining_metrics": "§3.6.6.3 governance dashboard (M-v0.2.1+ 정공법) + §3.7.6 data normalization pipeline 운영 (M-v0.2.0 PoC + M-v0.2.1 정밀화)"
+      },
+      "umbrella_doc_refs": "§1.2 G7 + §2.1 sources/ + §2.1 web/ + §3.1 API 매트릭스 + §5.1 M-v0.2.1 + §5.2 P1 + §5.5 + §6.1 Phase 1 + §6.5 운영 정공법 + §12 frontend page 상세화",
+      "adr_alignment": "ADR-0037 (OKF v0.1) + ADR-0038 (backend-knowledge 신설) + PR #668 (ADR-0034/0035 → ADR-0037/0038 numbering)",
+      "tier": "사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)"
+    },
     "M-v0.2.3": {
       "status": "partial_done",
       "started_at": "2026-06-19",
