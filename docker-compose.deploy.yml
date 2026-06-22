@@ -170,22 +170,6 @@ services:
     networks:
       - devhub-internal
 
-  backend-ai:
-    image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/backend-ai:${IMAGE_TAG:?set IMAGE_TAG}
-    restart: unless-stopped
-    expose:
-      - "8000"
-    healthcheck:
-      # backend-ai/main.py 의 GET /health (FastAPI). wget/curl 둘 다 image 에 없을 수
-      # 있어 python 으로 fallback (slim image 도 python 보유).
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=2).status==200 else 1)"]
-      interval: 15s
-      timeout: 5s
-      retries: 6
-      start_period: 30s
-    networks:
-      - devhub-internal
-
   backend-core:
     image: ${IMAGE_REPO_PREFIX:-ghcr.io/ykylee/devhub_example}/backend-core:${IMAGE_TAG:?set IMAGE_TAG}
     restart: unless-stopped
@@ -193,7 +177,6 @@ services:
       - "8080"
     environment:
       DB_URL: ${DB_URL:?set DB_URL}
-      BACKEND_AI_URL: ${BACKEND_AI_URL:-http://backend-ai:8000}
       DEVHUB_AUTH_DEV_FALLBACK: ${DEVHUB_AUTH_DEV_FALLBACK:-0}
       # RM-ONBOARD-01 (ADR-0021 §3.3) — default true (운영 안전). 내부 Keycloak
       # 테스트 시점에 admin pre-seed 없이 Keycloak 계정을 자유롭게 사용하려면
@@ -215,8 +198,6 @@ services:
       # nginx reverse proxy 뒤 운영 시 X-Forwarded-* 신뢰 범위 (docker bridge CIDR)
       DEVHUB_TRUSTED_PROXIES: ${DEVHUB_TRUSTED_PROXIES:-172.16.0.0/12}
     depends_on:
-      backend-ai:
-        condition: service_healthy
       db-migrate:
         condition: service_completed_successfully
     healthcheck:
