@@ -103,3 +103,53 @@
 - **Lines changed (PR #662)**: +5 / -0
 - **Session duration**: 10 min
 - **Memory directories created**: 1 (`ai-workflow/memory/opencode/main/`)
+
+## 7. Session 2 (T05:30~07:00, 2026-06-22) — M-v0.2.2 release close (4-PR split) 종합 정합
+
+### PR 검증 + umbrella + state.json 정합
+
+- M-v0.2.2 4 PR 모두 MERGED 검증 (PR #663 + #664 + #665 + #666, 2026-06-22)
+- umbrella doc 9개 위치 status 4-PR 갱신:
+  - §5.1 M-v0.2.2 row, §5.2 P2 row, §5.5 M-v0.2.2 row
+  - §6.6.2 header, 10 단계 step 7 (docs/) + step 10 (state.json), PR list PR 3 + PR 4, DoD (c), 현황 요약
+- state.json M-v0.2.2 row 신규 (status: done + 4_pr_split + sop_completion + umbrella_doc_refs + adr_alignment + tier)
+
+### PR #679 self-merge
+
+- branch: `chore/260622-m-v0-2-2-release-close`
+- commit: `6180c760` (umbrella + state.json cross-cutting docs only)
+- CI 4/4 SUCCESS + 5 SKIPPED (Detect Changed Paths / Workflow Lint / Migration Prefix Uniqueness / OpenAPI YAML Lint)
+- self-merge (regular merge, fast-forward 가능, PR #493 / PR #662 정공법 정합)
+- merge commit: `86d1300d` (2026-06-22T06:58:41Z)
+- 2 file / +32/-14 line
+- branch auto-delete (--delete-branch)
+
+### memory 4 file 갱신 + wiki mirror
+
+- `ai-workflow/memory/opencode/main/state.json` — main_status_at_session_end = 86d1300d + 본 세션 정보
+- `ai-workflow/memory/opencode/main/work_backlog.md` — status line + WB-M01 done + §5 row + DB-M10~22
+- `ai-workflow/memory/opencode/main/session_handoff.md` — 본 § (Session 2) append
+- `ai-workflow/memory/opencode/main/backlog/2026-06-22.md` — 본 세션 작업 append
+- `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode, AGENTS.md §문서 작업 기준 정공법)
+- `bash scripts/wiki-frontmatter-update.sh` 1회 실행
+
+### Key Decisions
+
+- umbrella + state.json 의 cross-cutting docs only PR — self-merge (regular merge, PR #493 / PR #662 정공법 정합)
+- §6.6.2 SOP 10 단계 모두 ✅ (4 PR split) — release close 정공법
+- state.json M-v0.2.2 row 신규 (status: done + 4_pr_split + sop_completion + umbrella_doc_refs + adr_alignment + tier)
+- user clarification (B 선택지 question): M-v0.2.2 backend-ai 폐기 마무리 (4 PR close) 확정
+- memory 4 file 모두 갱신 + wiki mirror 1회 실행 (real mode) — 전체 memory + wiki + final close 정공법
+
+### Session Stats (Session 2)
+
+- **PRs created**: 1 (PR #679)
+- **PRs merged**: 1 (PR #679, self-merge)
+- **Commits in session**: 1 (`6180c760`)
+- **Branches created**: 1 (`chore/260622-m-v0-2-2-release-close`)
+- **Branches deleted (remote)**: 1 (`chore/260622-m-v0-2-2-release-close`, --delete-branch)
+- **Lines changed (PR #679)**: +32 / -14
+- **Files changed**: 2 (umbrella + state.json)
+- **Session duration**: 30 min
+- **Memory finalization**: opencode/main/ 4 file 갱신 + wiki mirror 1회 실행
+- **Tier**: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)
