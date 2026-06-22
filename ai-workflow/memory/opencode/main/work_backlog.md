@@ -1,36 +1,27 @@
-# Work Backlog — main (post-sprint cleanup, 2026-06-22)
+# Work Backlog — main (post-sprint cleanup + M-v0.2.2 release close, 2026-06-22)
 
 - Branch: `main` (현재 default branch)
 - Agent: opencode (Sisyphus, MiniMax-M3)
-- Updated: 2026-06-22 (T00:10+09:00)
-- Status: clean (no in-flight work, main 정합 완료)
+- Updated: 2026-06-22 (T07:00+09:00)
+- Status: clean (no in-flight work, M-v0.2.2 release close 종합 정합 완료, PR #679 MERGED, main HEAD = 86d1300d)
 
 ## In Progress (P0)
 
-없음. main 브랜치 = `196d8593` (PR #662 MERGED), working tree clean, origin/main 정합.
+없음. main 브랜치 = `86d1300d` (PR #679 MERGED, M-v0.2.2 release close), working tree clean, origin/main 정합.
 
 ## Pending (P1) — M-v0.2.1+ scope 진입 후보
 
-- [ ] **WB-M01**: M-v0.2.2 backend-ai 폐기 (umbrella §1.2 G2 + §6.6)
-  - `backend-ai/` 디렉터리 제거 (placeholder state, 흡수할 코드 0)
-  - root `Makefile` / `docker-compose.{local,test,deploy,colima}.yml` 의 backend-ai reference 일괄 정리
-  - `docs/` (release notes / ADR / umbrella doc) 의 backend-ai reference 정리
-  - umbrella doc §6.6.2 cross-reference 정합 + §9 변경 이력 row 추가
-  - PR template 의 `affects-backend-ai: yes` flag (M-v0.2.1+ 도입 검토) 운영 검증
-  - 의존: §6.6.1 backend-ai 운영 log snapshot 보존 정책 (umbrella §11.4 정합)
-
+- [x] **WB-M01**: M-v0.2.2 backend-ai 폐기 (umbrella §1.2 G2 + §6.6) — **✅ done 2026-06-22 (4-PR split, PR #663 + #664 + #665 + #666 모두 MERGED) + PR #679 release close 종합 정합**
 - [ ] **WB-M02**: §2.5 Tier 분리 정공법 (umbrella doc §2.5 + AGENTS.md §6.5)
   - §6.5 PR 작성 시 self-check 5 row 검증 (env var / 호스트명 / IP / 경로 / env file)
   - umbrella doc §2.5 신설 또는 기존 §2.6.2 (network 정책) 와 통합
   - 직전 sprint handoff P1 잔여 WB-13
-
 - [ ] **WB-M03**: §17.2 known gaps 자연 해소 (PoC +1주 이내)
   - row 3: incident runbook tuning (manual SOP, 2026-06-19+1주 = 2026-06-26 경과)
   - row 4: backend-knowledge/ 디렉터리 skeleton 별도 PR — **이미 done (PR #654-#656)**, 잔여 row 갱신만 필요
   - row 5: Pi SDK npm dependency (자동, CI npm ci)
   - row 6: backup schedule cron 등록 (자동, Docker sidecar)
   - 직전 sprint handoff P1 잔여 WB-15
-
 - [ ] **WB-M04**: §2.4 standalone 검증 자동화 tool 정식 활성화 (M-v0.2.1+ CI 도입)
   - `scripts/check_standalone_drift.sh` (M-v0.2.1+ CI pre-merge) — 10 row 자동 grep
   - `docs/operations/standalone-verification-m-v0-2-1.md` 결과 문서 작성 (per phase)
@@ -49,12 +40,14 @@
 
 - [ ] **WB-M20**: §15 ADR supersession (M-v0.2.3+ 부터 가능, umbrella §15 정공법)
 - [ ] **WB-M21**: §16 API versioning (M-v0.3.0+ 부터 v0-3 도입)
-- [ ] **WB-M22**: §3.5.7 Pi LLM cross-link 자동 resolution (M-v0.2.3+)
+- [ ] **WB-M22**: §3.5.7 Pi LLM cross-link 자동 resolution (M-v0.2.3+, PR #673 진행 중)
 - [ ] **WB-M23**: §3.5.8 Pi LLM resolution false positive rollback (M-v0.2.3+)
-- [ ] **WB-M24**: M-v0.2.3 hrdb source plugin + Pi LLM enrich 활성화 (umbrella §1.2 G3 7종 source)
+- [ ] **WB-M24**: M-v0.2.3 hrdb source plugin + Pi LLM enrich 활성화 (umbrella §1.2 G3 7종 source, PR #672 진행 중)
 - [ ] **WB-M25**: M-v0.2.3 PostgreSQL option (sqlite → PG migration, §10.1 option)
 
 ## Done (2026-06-22)
+
+### Session 1 (T00:00~00:10) — feat 브랜치 폐기 + .gitignore 분리 PR
 
 - [x] **DB-M01**: feat/260619-v0-2-frontend-svelte rebase (-X ours, 4 commit auto-drop)
 - [x] **DB-M02**: /src/var/ .gitignore commit (7183d7c6 → 006284ae cherry-pick)
@@ -65,3 +58,19 @@
 - [x] **DB-M07**: feat/260619-v0-2-frontend-svelte local + origin 폐기
 - [x] **DB-M08**: local main fast-forward to origin/main (34 file / +5568 / -984)
 - [x] **DB-M09**: opencode/main/ 메모리 디렉터리 신규 생성 (state.json + session_handoff.md + work_backlog.md)
+
+### Session 2 (T05:30~07:00) — M-v0.2.2 release close (4-PR split) 종합 정합
+
+- [x] **DB-M10**: M-v0.2.2 4 PR 검증 (PR #663 + #664 + #665 + #666 모두 MERGED, §6.6.2 SOP 10 단계 모두 ✅)
+- [x] **DB-M11**: umbrella doc 9개 위치 status 4-PR 갱신 (§5.1 / §5.2 / §5.5 / §6.6.2 header + 10 단계 step 7/10 + PR list + DoD (c) + 현황 요약)
+- [x] **DB-M12**: state.json M-v0.2.2 row 신규 (status: done + 4_pr_split + sop_completion + umbrella_doc_refs + adr_alignment + tier)
+- [x] **DB-M13**: branch `chore/260622-m-v0-2-2-release-close` 생성 + push
+- [x] **DB-M14**: PR #679 생성 (umbrella + state.json cross-cutting docs only PR)
+- [x] **DB-M15**: PR #679 CI 4/4 SUCCESS + 5 SKIPPED (docs only 의도된 skip)
+- [x] **DB-M16**: PR #679 self-merge (regular merge, fast-forward 가능, merge commit 86d1300d, 2026-06-22T06:58:41Z)
+- [x] **DB-M17**: chore/260622-m-v0-2-2-release-close 자동삭제 (--delete-branch)
+- [x] **DB-M18**: local main fast-forward to origin/main (PR #679, 2 file / +32/-14)
+- [x] **DB-M19**: opencode/main/ 메모리 4 file 갱신 (state.json + work_backlog.md + session_handoff.md + backlog/2026-06-22.md)
+- [x] **DB-M20**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode, AGENTS.md §문서 작업 기준)
+- [x] **DB-M21**: `bash scripts/wiki-frontmatter-update.sh` 1회 실행 (matched 0 stale X → matched X stale 0)
+- [x] **DB-M22**: session 종료 메모리 finalize (opencode/main/ + opencode/chore/260622-session-end-memory-update/)
