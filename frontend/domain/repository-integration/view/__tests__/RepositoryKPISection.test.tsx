@@ -14,6 +14,14 @@ vi.mock("../../service/repository-kpi.service", () => ({
   fetchRepositoryKPI: vi.fn(),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    back: vi.fn(),
+    push: vi.fn(),
+  }),
+  usePathname: () => "/repositories/1",
+}));
+
 vi.mock("recharts", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const passthrough = (_props: any) => null;
