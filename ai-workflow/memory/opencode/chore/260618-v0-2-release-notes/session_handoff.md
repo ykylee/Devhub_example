@@ -13,7 +13,7 @@
 
 | PR | 제목 | 상태 | Commit | 비고 |
 | --- | --- | --- | --- | --- |
-| [#645](https://github.com/ykylee/Devhub_example/pull/645) | v0.2.0 umbrella doc + ADR-0034 + ADR-0035 | MERGED | f6732a34 (squash 27 commit) | 본 작업의 핵심 PR |
+| [#645](https://github.com/ykylee/Devhub_example/pull/645) | v0.2.0 umbrella doc + ADR-0037 + ADR-0038 | MERGED | f6732a34 (squash 27 commit) | 본 작업의 핵심 PR |
 | [#646](https://github.com/ykylee/Devhub_example/pull/646) | state.json M-v0.2.0 row 갱신 | MERGED | 1914ec8b | §17.3 P0 row 1+2 |
 | [#647](https://github.com/ykylee/Devhub_example/pull/647) | child doc status active 전환 | MERGED | 01f1969c | §17.3 P1 row 3 |
 | [#648](https://github.com/ykylee/Devhub_example/pull/648) | wiki mirror 갱신 | MERGED | 2141350a (squash 105 file) | §17.3 P1 row 4 |
@@ -22,8 +22,8 @@
 
 ### umbrella doc publish (PR #645)
 - `docs/planning/release_v0-2_roadmap.md` (5459 line, 18 main section + 80+ subsection)
-- `docs/adr/0034-okf-adoption.md` (Google OKF v0.1 채택, §6 Supersession section 신규)
-- `docs/adr/0035-backend-knowledge-creation.md` (backend-knowledge 신설, §6 Supersession row 추가)
+- `docs/adr/0037-okf-adoption.md` (Google OKF v0.1 채택, §6 Supersession section 신규)
+- `docs/adr/0038-backend-knowledge-creation.md` (backend-knowledge 신설, §6 Supersession row 추가)
 - 18/18 Q&A 결정, 28 metrics M-v0.2.3+ production, 4 cross-cutting 정공법 (§13/§14/§15/§16)
 - 156 code blocks (78쌍 짝수) ✅
 
@@ -51,7 +51,7 @@
 
 ### P0 (즉시, 다음 세션 진입 시)
 - **PR #650 머지** (`gh pr merge 650 --squash --delete-branch`)
-- **GitHub tag v0.2.0** 생성 (`git tag -a v0.2.0 -m 'v0.2.0 backend-knowledge umbrella + ADR-0034/0035'`)
+- **GitHub tag v0.2.0** 생성 (`git tag -a v0.2.0 -m 'v0.2.0 backend-knowledge umbrella + ADR-0037/0038'`)
 - **GitHub release publish** (`gh release create v0.2.0 --notes-file docs/release-notes/v0.2.0.md`)
 - **사내 SCM sync** (AGENTS.md §6.3, GitHub main push 후 자동 sync)
 
@@ -72,8 +72,8 @@
 
 - umbrella doc: `docs/planning/release_v0-2_roadmap.md` (PR #645 MERGED)
 - child doc: `docs/planning/external-integrations-agentic-rag-roadmap.md` (PR #647, status: active)
-- ADR-0034: `docs/adr/0034-okf-adoption.md` (OKF v0.1 채택)
-- ADR-0035: `docs/adr/0035-backend-knowledge-creation.md` (backend-knowledge 신설)
+- ADR-0037: `docs/adr/0037-okf-adoption.md` (OKF v0.1 채택)
+- ADR-0038: `docs/adr/0038-backend-knowledge-creation.md` (backend-knowledge 신설)
 - Release notes: `docs/release-notes/v0.2.0.md` (PR #650, 171 line)
 - state.json: `ai-workflow/memory/state.json` (M-v0.2.0 row in_progress + 18/18 Q&A)
 - GitHub milestone: https://github.com/ykylee/Devhub_example/milestone/4
@@ -95,8 +95,8 @@
 
 - **PRs created**: 6 (5 MERGED + 1 OPEN)
 - **Commits**: 35 (27 in PR #645 + 1 in #646 + 1 in #647 + 1 in #648 + 1 in #649 + 3 in #650 + 1 §17.8 stats 정정)
-- **Files changed**: ~150 (umbrella doc + ADR-0034 + ADR-0035 + state.json + child doc + wiki mirror 105 file + DOCUMENT_INDEX + planning/README + operation-sop + release notes + 6 stale page)
-- **Lines added**: ~60,000 (umbrella doc 5459 + ADR-0034 + ADR-0035 + wiki mirror 11M = ~5300 unique lines + 105 wiki file mirror)
+- **Files changed**: ~150 (umbrella doc + ADR-0037 + ADR-0038 + state.json + child doc + wiki mirror 105 file + DOCUMENT_INDEX + planning/README + operation-sop + release notes + 6 stale page)
+- **Lines added**: ~60,000 (umbrella doc 5459 + ADR-0037 + ADR-0038 + wiki mirror 11M = ~5300 unique lines + 105 wiki file mirror)
 - **Cross-section 정합 fix**: 9+ 위치 per commit
 - **Code block 짝수**: 156 = 78쌍 짝수 ✅
 - **Tier**: 사외 (vendor-neutral)

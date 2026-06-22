@@ -61,7 +61,7 @@ export GITEA_WEBHOOK_SECRET="..."
 
 ### 2.3 ~~backend-ai (Python/FastAPI, :8000)~~ — **2026-06-22 M-v0.2.2 폐기 (PR #663)**
 
-> **폐기 사유**: backend-ai/ 디렉터리 (placeholder Python AI service + gRPC skeleton + Dockerfile) 가 production wiring 없이 v0.1.x ~ v0.2.0 PoC 기간 dead state 였음. v0.2.0 PoC 의 `backend-knowledge/` 가 standalone backend (umbrella doc §1.2 G7 + ADR-0035) 으로 정식 흡수. v0.2.0+ AI/ML scope 은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 대체. 폐기 SOP: umbrella doc release_v0-2_roadmap.md §6.6.2 (10 단계).
+> **폐기 사유**: backend-ai/ 디렉터리 (placeholder Python AI service + gRPC skeleton + Dockerfile) 가 production wiring 없이 v0.1.x ~ v0.2.0 PoC 기간 dead state 였음. v0.2.0 PoC 의 `backend-knowledge/` 가 standalone backend (umbrella doc §1.2 G7 + ADR-0038) 으로 정식 흡수. v0.2.0+ AI/ML scope 은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 대체. 폐기 SOP: umbrella doc release_v0-2_roadmap.md §6.6.2 (10 단계).
 >
 > 이전 코드 (보존 reference, v0.2.2 이전 시점 정합):
 > ```sh

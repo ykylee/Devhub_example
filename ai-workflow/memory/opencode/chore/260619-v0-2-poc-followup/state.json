@@ -45,8 +45,8 @@
     "umbrella_doc": "docs/planning/release_v0-2_roadmap.md",
     "release_notes": "docs/release-notes/v0.2.0.md",
     "child_doc_active": "docs/planning/external-integrations-agentic-rag-roadmap.md",
-    "adr_0034_okf": "docs/adr/0034-okf-adoption.md",
-    "adr_0035_backend_knowledge": "docs/adr/0035-backend-knowledge-creation.md",
+    "adr_0034_okf": "docs/adr/0037-okf-adoption.md",
+    "adr_0035_backend_knowledge": "docs/adr/0038-backend-knowledge-creation.md",
     "sdlc_requirements_section1": "docs/requirements/v0.2.0-domain-classification.md",
     "sdlc_requirements_section2": "docs/requirements/v0.2.0-functional-requirements.md"
   },

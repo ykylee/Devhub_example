@@ -1,4 +1,4 @@
-# ADR-0035: `backend-knowledge` 백엔드 신설 (외부 시스템 연동 + OKF concept library)
+# ADR-0038: `backend-knowledge` 백엔드 신설 (외부 시스템 연동 + OKF concept library)
 
 ## 1. 상태
 
@@ -12,7 +12,7 @@
   - [release_v0-2_roadmap.md 전체](../planning/release_v0-2_roadmap.md) (umbrella 컨셉)
   - [release_v0-2_roadmap.md §3.6 Data governance & query scoping](../planning/release_v0-2_roadmap.md) (caller-provided user context + curation governance + query scope priority)
   - [external-integrations-agentic-rag-roadmap.md](../planning/external-integrations-agentic-rag-roadmap.md) (외부 연동 분리 detail)
-  - [ADR-0034 OKF 채택](./0034-okf-adoption.md) (knowledge bundle 형식)
+  - [ADR-0037 OKF 채택](./0037-okf-adoption.md) (knowledge bundle 형식)
   - [ADR-0025 봉투 암호화](../adr/0025-envelope-encryption-key-management.md) (credential 관리)
   - [ADR-0019 Keycloak 단일화](../adr/0019-keycloak-only-idp.md) (Keycloak 분류 재확인)
 
@@ -157,7 +157,7 @@
 - **§3.6.6 governance audit log 정공법 (Path Y audit + curation 권한 추적 + governance dashboard, 2026-06-18 신규 — §3.6.1~§3.6.5 + §3.9 + §11.3 + §16 정합)** — backend-knowledge 의 §3.6 Path Y data governance 의 audit log + curation 권한 추적 + governance dashboard 정공법. 5 sub-subsection: §3.6.6.1 audit log event 7 row (user login / concept access / curation edit / query / archive / publish / config change + JSON Lines format + daily file rotation) / §3.6.6.2 curation 권한 추적 5 curator_type (rule-based / llm-system_admin / human-self-user / human-org-head / human-system-admin) + change history per frontmatter field + curation ownership verification / §3.6.6.3 governance dashboard 13 metric per user/org/project/event type + audit log viewer 4 endpoint + alert routing 5 row / §3.6.6.4 data lineage 4 단계 source plugin → raw → concept → cross-link + lineage graph query + MTTR < 30분 / §3.6.6.5 GDPR/PII compliance M-v0.2.3+ hrdb source + 5 PII field type 자동 detection + PII access log 별도 storage + GDPR right-to-be-forgotten 정공법. M-v0.2.0 PoC = audit log + curation 이력 + dashboard M-v0.2.1+ 부터 활성화. M-v0.2.3+ = GDPR/PII + data lineage. cross-section 정합 fix 5 위치 (§11.3 monitoring 28 metrics 정합 + §3.9 OKF concept 운영 lifecycle 5 row audit log 정합 + §3.5.7.4 auto-apply + §3.5.8.2 rollback trigger 의 curator_type `llm-system_admin` audit log 정합 + §16 API versioning 정책 의 audit log 의 user_id 별 마이그레이션 추적 정합 + ADR-0034/0035 영향 row + frontmatter). 본 backend-knowledge 의 정책 (§3.6 Path Y caller-provided user context + §3.6.2 curation governance model + §3.6.3 query scope priority 4-tier + §3.6.4 frontmatter extension 5 fields + §3.6.5 cross-section 정합 fix) 이 §3.6.6 정공법 기반.
 - **§3.7.6 data normalization pipeline 자동 검증 정공법 (M-v0.2.0 PoC 운영 시점 활성화, 2026-06-18 신규 — §3.7.5 edge cases 6 종 자동 detection)** — backend-knowledge 의 §3.7.5 edge cases 6 종 의 **자동 detection 정공법**. 5 sub-subsection: §3.7.6.1 Partial failure detection (failed concept count > 10% warning, > 30% critical) / §3.7.6.2 Schema drift detection (Pydantic v2 schema validation + Pi LLM 추천으로 schema normalization 업데이트) / §3.7.6.3 Duplicate concept detection (similarity ≥ 0.95 + priority-based deduplication) / §3.7.6.4 Large raw handling (> 10MB raw 자동 청크 1MB per chunk + 4 worker parallel processing) / §3.7.6.5 Auth failure monitoring (401/403 count ≥ 5/source/1시간 alert + audit log). 본 backend-knowledge 의 정책 (§3.7.5 edge cases 6 종 + §3.8.1 SourceMeta + §3.5.7 Pi LLM + §3.6.6 governance audit log) 이 §3.7.6 정공법 기반. cross-section 정합 fix 9 위치 (§3.7.5 + §3.5.7 + §3.6.6 + §11.1 + §11.3 monitoring 23 metrics + §3.5.6 + §3.8.1 + ADR-0034/0035 + frontmatter). M-v0.2.0 PoC 운영 시점 활성화.
 - **§17 cross-cutting 종합 review (umbrella doc 25 commit 후 cross-cutting 최종 종합, 9 sub-subsection, 2026-06-18 신규)** — backend-knowledge 의 umbrella doc 25 commit 후 cross-cutting 최종 종합. 9 sub-subsection: §17.0 high-level 종합 (25 commit + 18/18 Q&A + 28 metrics + 4 cross-cutting 정공법 + stats) / §17.1 25 commit × cross-section 매트릭스 25 row / §17.2 §13.2 known gaps 4 row 자연 해소 시점 (M-v0.2.0 PoC 운영 +1주 이내 100% 해소) / §17.3 §13.3 post-sprint follow-up 5 row 해결 우선순위 (P0 2 row 즉시 + P1 2 row 1주 + P2 1 row release 직전) / §17.4 18/18 Q&A 정합 18 row / §17.5 28 metrics M-v0.2.3+ production 정합 28 row / §17.6 4 cross-cutting 정공법 검증 4 row / §17.7 umbrella doc cross-reference 최종 매트릭스 19 row / §17.8 umbrella doc stats 16 row. 본 backend-knowledge 의 정책 (§0~§16 모든 section + §13.1 cross-reference matrix + §13.2 known gaps + §13.3 post-sprint follow-up + §13.4 정합 검증 + §14 release notes + §15 ADR supersession + §16 API versioning + §17 종합 review) 정합. cross-section 정합 fix 9 위치 (§17 본문 + umbrella frontmatter + §9 row + ADR-0034/0035 영향 + frontmatter + §13.4 정합 검증 row).
-- **§17.8 stats 정정 (minor issue 즉시 fix, 2026-06-18)** — §17.8 stats 의 "§13.4 row 15" 표현이 실제 카운트와 불일치. 실제 = 23 row (12 row `| **§` prefix + 11 row non-prefix). 4 row 정정: §17.0 line 5050 "**14 row ✅**" → "**23 row ✅**" / §17.8 line 5288 "**15 row**" → "**23 row**" / §17.8 line 5306 `grep` 검증 정공법 "= 15 row" → "= 23 row" / §13.4 §17 row line 4471 description "§13.4 row 15" → "§13.4 row 23 (12 prefix + 11 non-prefix)". cross-section 정합 fix 6 위치 (§17.0 + §17.8 + §13.4 §17 row 4 위치 + ADR-0034/0035 영향 row + frontmatter). self-review comment 의 minor issue 정공법.
+- **§17.8 stats 정정 (minor issue 즉시 fix, 2026-06-18)** — §17.8 stats 의 "§13.4 row 15" 표현이 실제 카운트와 불일치. 실제 = 23 row (12 row `| **§` prefix + 11 row non-prefix). 4 row 정정: §17.0 line 5050 "**14 row ✅**" → "**23 row ✅**" / §17.8 line 5288 "**15 row**" → "**23 row**" / §17.8 line 5306 `grep` 검증 정공법 "= 15 row" → "= 23 row" / §13.4 §17 row line 4471 description "§13.4 row 15" → "§13.4 row 23 (12 prefix + 11 non-prefix)". cross-section 정합 fix 6 위치 (§17.0 + §17.8 + §13.4 §17 row 4 위치 + ADR-0037/0038 영향 row + frontmatter). self-review comment 의 minor issue 정공법.
 
 ## 5. 후속 작업 (M-v0.2.0 sprint 진입 checklist)
 
@@ -165,12 +165,12 @@
 - [ ] `external-integrations-agentic-rag-roadmap.md` §8 변경 이력에 row 추가 (umbrella doc publish) + status draft → active 전환
 - [ ] `ai-workflow/memory/state.json` M-v0.2.0 row 발급 (또는 v0.1.x status update)
 - [ ] `backend-knowledge/` 디렉터리 skeleton (Dockerfile, pyproject.toml, main.py, okf/spec.py)
-- [ ] OKF `SPEC.md` 1차 정독 (vendor-neutral 정책 + frontmatter 정확한 spec 확인) + [ADR-0034](./0034-okf-adoption.md) §5 정합
-- [ ] 신규 GitHub milestone `v0.2.0` 생성 + 본 ADR-0035 + release_v0-2_roadmap.md link 첨부
+- [ ] OKF `SPEC.md` 1차 정독 (vendor-neutral 정책 + frontmatter 정확한 spec 확인) + [ADR-0037](./0037-okf-adoption.md) §5 정합
+- [ ] 신규 GitHub milestone `v0.2.0` 생성 + 본 ADR-0038 + release_v0-2_roadmap.md link 첨부
 
 ## 6. Supersession / 변경 이력 (2026-06-18)
 
-**2026-06-17 A/A 결정 (5 카테고리 + Gitea 통합 1차 wire + `x_devhub_category` 필드)** 으로 본 ADR-0035 의 §3.1 / §3.8 / §4.1 / §4.2 가 정합 수정. 결정 자체 (신규 `backend-knowledge/` 디렉터리 신설, standalone 정책, 다른 backend 연결 ❌, OIDC 제외, Pi 채택) 는 변경 없음. 변경된 부분만:
+**2026-06-17 A/A 결정 (5 카테고리 + Gitea 통합 1차 wire + `x_devhub_category` 필드)** 으로 본 ADR-0038 의 §3.1 / §3.8 / §4.1 / §4.2 가 정합 수정. 결정 자체 (신규 `backend-knowledge/` 디렉터리 신설, standalone 정책, 다른 backend 연결 ❌, OIDC 제외, Pi 채택) 는 변경 없음. 변경된 부분만:
 
 | 위치 | 변경 전 | 변경 후 |
 | --- | --- | --- |
@@ -187,8 +187,8 @@
 | 2026-06-19 | §4.3 영향 row +1 (M-v0.2.1+ frontend svelte-check 0 error + vitest config 분리) | #f49078eb main push, frontend 7 page + types.ts + api.ts + vitest.config.ts 정합, svelte-check 0 error + build OK, §1.2 G7 standalone 정공법 frontend-backend 정합 (frontend → backend-knowledge 만 호출), backend-knowledge 의 frontend layer (3 group + 1 utility, routes/lib/components/config) + 7 page 정합, M-v0.2.1+ 후속 4 row (audit next_offset + offset query, bundles/{name}/concepts, vitest unit test, openapi.yaml sync) |
 | 2026-06-22 | **M-v0.2.2 완료 (Q18 timing 결정 정공법)** — §6.6.2 10 단계 폐기 절차 수행 완료. PR #663 (commit 0dc0ca90) backend-ai/ + backend-core Go cleanup + PR #664 (commit 92fa0269) root config + CI + scripts + 본 PR 3 (docs). backend-ai reference = 0 row (root + CI + scripts + config layer). §3.8 마일스톤 표 M-v0.2.2 row status ⏳ planned → ✅ done. §4.1 positive row +1 ("backend-ai/ 폐기 (placeholder 정리, M-v0.2.2)" status ✅ done). §3.5 운영 환경 standalone 정합 row 의 root level backend-ai reference 정리 status ✅ done. umbrella doc release_v0-2_roadmap.md §6.6.2 SOP rewrite-as-done 정합. |
 
-**supersession 정공법**: 본 ADR-0035 의 결정 자체 (신규 `backend-knowledge/` 디렉터리 신설 + standalone 정책 + OIDC 제외 + Pi 채택) 는 변경 ❌. source plugin 의 구체적 구성 (5종 → 7종) + M-v0.2.0 scope (homelab + homelab_mock → Gitea 4 + homelab_mock) 만 정합. [`release_v0-2_roadmap.md` §9 변경 이력 2026-06-18 row](../planning/release_v0-2_roadmap.md) 가 cross-section 정합 fix 의 source of truth.
+**supersession 정공법**: 본 ADR-0038 의 결정 자체 (신규 `backend-knowledge/` 디렉터리 신설 + standalone 정책 + OIDC 제외 + Pi 채택) 는 변경 ❌. source plugin 의 구체적 구성 (5종 → 7종) + M-v0.2.0 scope (homelab + homelab_mock → Gitea 4 + homelab_mock) 만 정합. [`release_v0-2_roadmap.md` §9 변경 이력 2026-06-18 row](../planning/release_v0-2_roadmap.md) 가 cross-section 정합 fix 의 source of truth.
 
-**M-v0.2.3+ 부터 supersession 가능** (2026-06-18 신규 결정, §15 ADR supersession 정공법 정합): 본 ADR-0035 가 후속 ADR (e.g., ADR-0036 backend-knowledge 의 §1.2 G7 standalone 정책 변경 / §3.5 운영 환경 변경 / §2.2 LLM technology 변경) 에 의해 supersede 될 경우, [`release_v0-2_roadmap.md` §15](../planning/release_v0-2_roadmap.md) 의 5 step 정공법 (New ADR 작성 → 본 ADR frontmatter `superseded-by` 추가 → 본 ADR §6 row 추가 → cross-reference 4~5 file 갱신 → state.json `adrs` field 갱신) + 12개월 deprecation policy + release notes 정합. supersession 발생 시 본 §6 의 row 가 supersession 결정 row 로 갱신.
+**M-v0.2.3+ 부터 supersession 가능** (2026-06-18 신규 결정, §15 ADR supersession 정공법 정합): 본 ADR-0038 가 후속 ADR (e.g., ADR-0039 backend-knowledge 의 §1.2 G7 standalone 정책 변경 / §3.5 운영 환경 변경 / §2.2 LLM technology 변경) 에 의해 supersede 될 경우, [`release_v0-2_roadmap.md` §15](../planning/release_v0-2_roadmap.md) 의 5 step 정공법 (New ADR 작성 → 본 ADR frontmatter `superseded-by` 추가 → 본 ADR §6 row 추가 → cross-reference 4~5 file 갱신 → state.json `adrs` field 갱신) + 12개월 deprecation policy + release notes 정합. supersession 발생 시 본 §6 의 row 가 supersession 결정 row 로 갱신.
 
 

@@ -5,14 +5,14 @@
 - 대상 독자: M-v0.2.0+ sprint 진입자, PR reviewer, 운영자, 신규 contributor.
 - 상태: **accepted** (2026-06-19, M-v0.2.0 PoC release post-impl retrospective, retro-design recovery)
 - 최종 수정일: 2026-06-19
-- 관련 문서: [`tech-stack.md`](./tech-stack.md) / [`README.md`](./README.md) / [`docs/planning/release_v0-2_roadmap.md`](../planning/release_v0-2_roadmap.md) / [ADR-0034 OKF](../adr/0034-okf-adoption.md) / [ADR-0035 backend-knowledge](../adr/0035-backend-knowledge-creation.md) / [`docs/traceability/report.md`](../traceability/report.md) v0.2.0 PoC row
+- 관련 문서: [`tech-stack.md`](./tech-stack.md) / [`README.md`](./README.md) / [`docs/planning/release_v0-2_roadmap.md`](../planning/release_v0-2_roadmap.md) / [ADR-0037 OKF](../adr/0037-okf-adoption.md) / [ADR-0038 backend-knowledge](../adr/0038-backend-knowledge-creation.md) / [`docs/traceability/report.md`](../traceability/report.md) v0.2.0 PoC row
 
 ## 1. 개요
 
 ### 1.1 컨셉
 - **§1.2 G7 standalone 정공법** (umbrella doc): backend-knowledge 는 **완전 standalone backend**. 다른 backend (`backend-core` / 다른 시스템) 연결 ❌, OIDC ❌, **외부 시스템 7종 source 만 단방향** (M-v0.2.0 PoC = Gitea 4 sub-plugin + homelab_mock 5종)
 - **§3.6.1 Path Y caller-provided user context**: backend-knowledge 는 auth 자체 안 함, caller (gateway / 별도 agent) 가 `X-DevHub-User-Context` header 로 user/org/project/roles 7 field 전달 시 format 검증 (JSON parse + schema check + 만료 5분) + filter/curation ownership check 만 수행
-- **ADR-0035 §3** (신설 정당화): 기존 `backend-core/internal/integrations/adapters/` + `infrastructure/` 의 외부 연동 코드를 신규 백엔드로 이전. source plugin **7종** (M-v0.2.3 운영 기준) 의 외부 시스템 API 만 참조, 기존 Go adapter 0 line 참조
+- **ADR-0038 §3** (신설 정당화): 기존 `backend-core/internal/integrations/adapters/` + `infrastructure/` 의 외부 연동 코드를 신규 백엔드로 이전. source plugin **7종** (M-v0.2.3 운영 기준) 의 외부 시스템 API 만 참조, 기존 Go adapter 0 line 참조
 
 ### 1.2 위치
 - **layer**: 7 module group (API / Sources / Storage / OKF / Auth / Audit / Monitoring) + 2 utility (Config / Logger)

@@ -18,7 +18,7 @@
     "e6333985 chore(wiki): 6 stale page 갱신 (frontmatter git_commit: cac63f35 → 01f1969c + last_touched 2026-06-18 + mirror_dirty: false, wiki-status-check 'Total stale: 0' ✅, residual pre-existing 6 page follow-up commit)"
   ],
   "prs_in_session": [
-    "PR #645 https://github.com/ykylee/Devhub_example/pull/645 — umbrella doc + ADR-0034 + ADR-0035 (27 commit squash, MERGED 2026-06-18T07:03:48Z, commit f6732a34)",
+    "PR #645 https://github.com/ykylee/Devhub_example/pull/645 — umbrella doc + ADR-0037 + ADR-0038 (27 commit squash, MERGED 2026-06-18T07:03:48Z, commit f6732a34)",
     "PR #646 https://github.com/ykylee/Devhub_example/pull/646 — state.json M-v0.2.0 row 갱신 (1 commit, MERGED, commit 1914ec8b)",
     "PR #647 https://github.com/ykylee/Devhub_example/pull/647 — child doc status active 전환 (1 commit, MERGED, commit 01f1969c)",
     "PR #648 https://github.com/ykylee/Devhub_example/pull/648 — wiki mirror 갱신 (1 commit squash 105 file, MERGED, commit 2141350a)",
@@ -40,14 +40,14 @@
   "key_files": {
     "umbrella_doc": "docs/planning/release_v0-2_roadmap.md (PR #645)",
     "child_doc": "docs/planning/external-integrations-agentic-rag-roadmap.md (PR #647, status: active)",
-    "adr_0034": "docs/adr/0034-okf-adoption.md (OKF v0.1 채택, PR #645)",
-    "adr_0035": "docs/adr/0035-backend-knowledge-creation.md (backend-knowledge 신설, PR #645)",
+    "adr_0034": "docs/adr/0037-okf-adoption.md (OKF v0.1 채택, PR #645)",
+    "adr_0035": "docs/adr/0038-backend-knowledge-creation.md (backend-knowledge 신설, PR #645)",
     "release_notes": "docs/release-notes/v0.2.0.md (PR #650, 171 line)",
     "state_json": "ai-workflow/memory/state.json (PR #646, M-v0.2.0 row in_progress + qa_decisions 18/18 + 5종 source plugin status + github_milestone #4)",
     "wiki_mirror": "ai-workflow/wiki/raw/projects/devhub/ (PR #648, 978 file 11M) + ai-workflow/wiki/sources/docs/ (PR #648 amend, 79 new pages)"
   },
   "tier_policy": "사외 (vendor-neutral, AGENTS.md §6.3 SoT)",
-  "cross_section_fixes_total": "9+ 위치 (umbrella doc + ADR-0034/0035 + frontmatter + §9 변경 이력 + §13.4 정합 검증 row)",
+  "cross_section_fixes_total": "9+ 위치 (umbrella doc + ADR-0037/0038 + frontmatter + §9 변경 이력 + §13.4 정합 검증 row)",
   "decisions_18_of_18": {
     "Q1_backend_name": "backend-knowledge",
     "Q2_language": "Python 3.13+",
@@ -56,7 +56,7 @@
     "Q5_bundle_storage": "file system only",
     "Q6_first_source_plugin": "Gitea 4 sub-plugin + homelab_mock = 5종 PoC",
     "Q7_child_doc_status": "umbrella publish 시점 → active 전환 (✅ done 2026-06-18)",
-    "Q8_adr": "ADR-0034 + ADR-0035 2건 분리",
+    "Q8_adr": "ADR-0037 + ADR-0038 2건 분리",
     "Q9_backend_relationship": "❌ 전면 금지 (완전 standalone)",
     "Q10_api_auth": "internal-only, no auth",
     "Q11_source_plugin_source_of_truth": "외부 시스템 공식 API spec 만",
@@ -117,7 +117,7 @@
   "session_notes": [
     "Sprint branch prefix: `chore/260618-` (v0.2.0 concept organization)",
     "Tier: 사외 (vendor-neutral policy, AGENTS.md §6.3 SoT)",
-    "1 commit = 1 logical concept change (umbrella + ADR-0034/0035 묶음)",
+    "1 commit = 1 logical concept change (umbrella + ADR-0037/0038 묶음)",
     "Cross-section 정합 fix per commit (umbrella + ADR + frontmatter + §9 + §13.4)",
     "Code block 짝수 검증 per commit (156 = 78쌍 짝수)",
     "PR 생성 + Codex review + self-review 4 layer 검증 + squash merge + branch delete 정공법"
