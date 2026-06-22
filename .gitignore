@@ -211,3 +211,8 @@ ui-screenshots-shard-2/
 # 실행 후 git add ai-workflow/wiki/raw/ + commit.
 /ai-workflow/wiki/raw/projects/devhub/_manifest.md.tmp  # sibling manifest 의 untracked file (없음, 정합성용)
 /ai-workflow/wiki/raw/.tmp/  # script 의 임시 디렉터리 (없음, 정합성용)
+
+# === backend-knowledge runtime data ===
+# OKF backend runtime storage (raw/bundles/audit log). dev/local fixture (homelab_mock)
+# 가 여기에 떨어짐. commit 금지 — 런타임 산출물.
+/src/var/
