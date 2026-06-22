@@ -3,11 +3,11 @@ title: api
 type: source
 tags: [domain, api.md, project-devhub]
 sources: [raw/projects/devhub/docs/domain/rbac-permissions/api.md]
-git_commit: fb3894f7
-git_branch: chore/260622-wiki-drift-cleanup-3
+git_commit: 046e0c81
+git_branch: chore/260622-wiki-drift-cleanup-4
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-22T06:03:34Z
+last_touched: 2026-06-22T06:22:35Z
 mirror_dirty: |
 related: [none]
 status: draft

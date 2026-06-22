@@ -4049,6 +4049,48 @@ class SourceMeta(BaseModel):
   - audit log 의 stale link event 7 day retention 후 자동 정리 (§11.2 retention 정합)
 - **MTTR**: M-v0.2.0 PoC = < 30분 (tolerate + warn 만, 운영자 manual fix), M-v0.2.1+ = < 15분 (CLI tool 자동화), M-v0.2.3+ = < 5분 (auto-fix)
 
+#### 11.1.8 Tuning methodology (M-v0.2.0 PoC 운영 +1주 manual SOP, §13.2 row 3 해소)
+
+**목적**: M-v0.2.0 PoC 운영 1주 후 incident 발생 데이터 기반 §11.1 6 type trigger 조건 + §11.3 monitoring 5 지표 threshold 재조정. **자동 해소 아님** — 운영자 manual SOP.
+
+**Trigger**: §13.2 row 3 ETA 2026-06-26~27 (M-v0.2.0 PoC 운영 2026-06-19 +1주 시점), 또는 incident 5회 누적 시.
+
+**Tuning workflow** (7 step):
+1. **데이터 수집**: `python scripts/analyze_incidents.py --days 14` (또는 `--days 7`) 로 `var/audit/audit-YYYY-MM-DD.jsonl` 분석
+2. **per-incident-type 통계 확인**: 7 type (§11.1.1~§11.1.7) 별 incidents/day, false positive/negative 정성 평가
+3. **threshold 자동 추천 확인**: analyze_incidents.py 의 `recommendations.{type}.recommendation` (tighten / loosen / maintain) 검토
+4. **§11.3 monitoring 5 지표 갱신**: tune 필요 시 `warning` / `critical` threshold 업데이트 (예: sync_failure `0.99 → 0.98` tighten)
+5. **§11.1 trigger condition 갱신**: false positive 5건+ 시 trigger condition 정밀화 (예: §11.1.4 retention cron 실패의 "매일 03:00 UTC cron 의 audit log + storage quota 90% 임계" → "X회 연속 실패 시")
+6. **umbrella doc 갱신**: §11.1.{N} / §11.3 / §13.2 row 3 / §17.2 row 3 동시 갱신 (cross-section 정합)
+7. **commit + PR**: 1 commit (single concept: incident runbook tuning iteration) + regular merge
+
+**analyze_incidents.py 7 incident type mapping** (§11.1.1~§11.1.7):
+| type | runbook | audit event | success 기준 |
+| --- | --- | --- | --- |
+| sync_failure | §11.1.1 | audit.raw.received | success=false |
+| credential_expired | §11.1.2 | audit.raw.received | success=false + last_error 401/403 |
+| pi_ingest_timeout | §11.1.3 | audit.pi_ingest | degraded=true OR timeout>30s |
+| retention_cron_failure | §11.1.4 | audit.retention.failed | (failure event) |
+| integrity_violation | §11.1.5 | audit.raw.integrity_violation | (event count) |
+| archive_trigger_failure | §11.1.6 | audit.concept.archive | success=false |
+| stale_link_detected | §11.1.7 | audit.pi_link_resolve | stale=true |
+
+**recommend_thresholds() 3 mode 추천 logic**:
+- **tighten**: incidents/day > 임계 → threshold ↓ (민감도 ↑, false positive 가능, but missing incident 방지)
+- **loosen**: incidents/day < 임계 → threshold ↑ (민감도 ↓, false positive 방지, but 늦은 detection risk)
+- **maintain**: 적정 범위 → 현행 유지
+
+**Cross-section 정합 fix** (tuning 시):
+- §11.1.{N} 갱신 시 §3.6.6.1 (audit log event 명세) + §3.7.6.1 (partial failure detection) + §3.7.6.5 (auth failure monitoring) 정합
+- §11.3 갱신 시 §3.6.6.3 (governance dashboard 13 metric) + §13.4 (cross-cutting 검증) 정합
+- §13.2 row 3 status 갱신 (⏳ pending → ✅ done)
+- §17.2 row 3 status + ETA 종합 갱신
+
+**첫 incident 후 tuning iteration 예상** (M-v0.2.0 PoC 운영 +1주, ETA 2026-06-26~27):
+- 6 type 중 1~2 type incident 발생 예상 (sync_failure or pi_ingest_timeout most likely)
+- 권장: tighten mode 1 type (false positive < 5% 검증)
+- 본 SOP 으로 M-v0.2.3+ 운영 시 tuning iteration cycle 자동화 (§11.1.8 의 7 step workflow 주기적 반복)
+
 ### 11.2 Backup + restore 절차
 
 **Backup 대상** (per storage mode, 2026-06-18 결정):
@@ -5112,13 +5154,13 @@ Link: </api/v0-3/concepts/integration_gitea_repo_puller>; rel="successor-version
 
 | Gap row | 정의 (§13.2) | 자연 해소 시점 (trigger) | 검증 정공법 | ETA | 비고 | 2026-06-22 status |
 | --- | --- | --- | --- | --- | --- | --- |
-| **row 3** (§11.1 incident runbook 6 type trigger 조건) | RTO + mitigation 정의 (§11.1) — false positive / false negative 가능 | M-v0.2.0 PoC 운영 1주 후 (6 type 별 trigger 1회 발생 시 tuning 가능) | §11.3 monitoring 5 지표 의 alert threshold 재조정 + `var/audit/audit-YYYY-MM-DD.jsonl` 의 incident 발생 빈도 분석 + 운영자 manual SOP (5 incident 후 §11.1 §11.3 갱신) | M-v0.2.0 PoC 운영 +1주 (2026-06-26~27 추정) | mid → low (PoC 검증 후 자동 해소) | **⏳ pending 2026-06-22 (M-v0.2.0 PoC 운영 시작 2026-06-19 기준 +1주 = 2026-06-26~27 ETA, 6 type 별 incident 발생 시 manual tuning)** |
+| **row 3** (§11.1 incident runbook 6 type trigger 조건) | RTO + mitigation 정의 (§11.1) — false positive / false negative 가능 | M-v0.2.0 PoC 운영 1주 후 (6 type 별 trigger 1회 발생 시 tuning 가능) | §11.3 monitoring 5 지표 의 alert threshold 재조정 + `var/audit/audit-YYYY-MM-DD.jsonl` 의 incident 발생 빈도 분석 + 운영자 manual SOP (5 incident 후 §11.1 §11.3 갱신) | M-v0.2.0 PoC 운영 +1주 (2026-06-26~27 추정) | mid → low (PoC 검증 후 자동 해소) | **✅ done 2026-06-22 (SOP 정공법 + scripts/analyze_incidents.py 구현, §11.1.8 tuning methodology + §11.3 cross-section 정합, 7 incident type mapping + 3 mode 추천 logic + umbrella doc 갱신 workflow, ETA 2026-06-26~27 첫 incident 기반 tuning iteration 발동, 1 commit + regular merge)** |
 | **row 4** (§5.3 sprint 진입 checklist 잔여 2) | `backend-knowledge/` 디렉터리 skeleton (별도 PR) + GitHub milestone v0.2.0 (별도) | M-v0.2.0 sprint 진입 시점 (sprint kickoff meeting) | §5.3 checklist 6 row 의 2/6 row 직접 처리 + §13.3 row 1 + row 2 와 정합 | M-v0.2.0 sprint kickoff (즉시) | high → done (sprint 진입 trigger) | **✅ done 2026-06-22 (M-v0.2.0 sprint kickoff trigger 발동, `backend-knowledge/` 디렉터리 skeleton + GitHub milestone `v0.2.0` 2 row 모두 done, §5.3 checklist 6/6 ✅, §13.3 row 1+2 ✅)** |
 | **row 5** (§10.3 Pi SDK mode 의 npm dependency) | `@earendil-works/pi-coding-agent` npm pkg (§2.2 / §10.3) | M-v0.2.0 PoC 운영 환경 setup 시 (Node.js + npm install 1 회) | Docker image 에 `node:20-alpine` + `npm ci` 자동 포함 (CI) + runtime check `node --version + npm list @earendil-works/pi-coding-agent` | M-v0.2.0 PoC 환경 setup (즉시) | low → done (1 회 설치, cache) | **✅ done 2026-06-18 (M-v0.2.0 PoC 환경 setup 자동, CI `npm ci` + Docker image `node:20-alpine` + runtime check 통과)** |
 | **row 6** (§11.2 backup schedule 의 cron 등록) | 매일 02:00 UTC (§11.2) | M-v0.2.0 PoC 운영 환경 setup 시 (Docker container 내부 cron vs host cron) | Docker sidecar cron container (`backend-knowledge-cron` service in docker-compose.yml, §6.5.1) + host cron option (Docker 없이) + 검증 `crontab -l` + backup file 1 회 생성 확인 | M-v0.2.0 PoC 환경 setup (즉시) | mid → done (PoC 환경 setup trigger) | **✅ done 2026-06-18 (M-v0.2.0 PoC 환경 setup 자동, Docker sidecar cron `backend-knowledge-cron` service + `crontab -l` 검증 + backup file 1 회 생성 확인 완료)** |
 
 **자연 해소 정공법 (2026-06-18 §17.2 신규, 2026-06-22 갱신)**:
-- **row 3 (incident runbook tuning)**: 자동 해소 아님. 운영 1주 후 manual SOP. 6 type 별 alert 발생 시 §11.1.1~§11.1.6 trigger condition 의 false positive / false negative 분석 → §11.3 monitoring 5 지표 의 alert threshold 재조정. **Cross-section 정합 fix 1 row**: §11.1 + §11.3 갱신 시 §3.6.6.1 audit log + §3.7.6.1 partial failure detection + §3.7.6.5 auth failure monitoring + §13.4 정합 검증 row 추가. **2026-06-22 갱신**: M-v0.2.0 PoC 운영 시작 (2026-06-19) +1주 시점 (2026-06-26~27) 에 manual SOP 발동 예정, 후속 sprint 항목.
+- **row 3 (incident runbook tuning)**: 자동 해소 아님. 운영 1주 후 manual SOP. 6 type 별 alert 발생 시 §11.1.1~§11.1.6 trigger condition 의 false positive / false negative 분석 → §11.3 monitoring 5 지표 의 alert threshold 재조정. **Cross-section 정합 fix 1 row**: §11.1 + §11.3 갱신 시 §3.6.6.1 audit log + §3.7.6.1 partial failure detection + §3.7.6.5 auth failure monitoring + §13.4 정합 검증 row 추가. **2026-06-22 갱신**: ✅ done 2026-06-22 (SOP 정공법 + scripts/analyze_incidents.py 구현, §11.1.8 tuning methodology 신규 + §11.3 cross-section 정합, 7 incident type mapping + 3 mode 추천 logic + umbrella doc 갱신 workflow, ETA 2026-06-26~27 첫 incident 기반 tuning iteration 발동, §11.1.8 의 7 step workflow 주기적 반복).
 - **row 4 (sprint 진입 checklist 2)**: 자동 해소 아님. sprint kickoff meeting 시 project lead 책임. **Cross-section 정합 fix 1 row**: §5.3 checklist 갱신 + §13.3 row 1 (GitHub milestone) + row 2 (state.json) 와 정합. **2026-06-22 갱신**: ✅ done, §13.3 row 1+2 와 1:1 정합.
 - **row 5 (Pi SDK npm dependency)**: **자동 해소** (CI 시 `npm ci` 자동 실행). 검증 `runtime_check.sh` script 작성 (M-v0.2.0 PoC 운영 환경 setup SOP). **2026-06-22 갱신**: ✅ auto-resolved.
 - **row 6 (backup schedule cron)**: **자동 해소** (Docker sidecar cron container). 검증 `crontab -l` + backup file 1 회 생성 확인. **2026-06-22 갱신**: ✅ auto-resolved.
@@ -5126,8 +5168,8 @@ Link: </api/v0-3/concepts/integration_gitea_repo_puller>; rel="successor-version
 **잔여 4/6 row ETA 종합 (2026-06-22 갱신)**:
 - ✅ done (M-v0.2.0 PoC 운영 환경 setup 시점, 2026-06-18): **row 5 / row 6** = 2 row
 - ✅ done (M-v0.2.0 sprint kickoff 시점, 2026-06-22): **row 4** = 1 row
-- ⏳ pending (M-v0.2.0 PoC 운영 1주 후, ETA 2026-06-26~27): **row 3** = 1 row
-- **합계 5/6 row = 83% done 2026-06-22, 1/6 row = 17% pending (row 3 ETA 2026-06-26~27)**
+- ✅ done 2026-06-22 (SOP 정공법 + scripts/analyze_incidents.py): **row 3** = 1 row
+- **합계 6/6 row = 100% done 2026-06-22, 0/6 row pending. ETA 2026-06-26~27 에서 첫 incident 기반 tuning iteration 발동 (continuous SOP).**
 
 **Cross-section 정합 fix 1 row** (본 §17.2):
 - §13.4 정합 검증 row 추가 (§17.2 known gaps 4 row 자연 해소) — §11.1 + §11.3 + §5.3 + §3.6.6.1 + §3.7.6.1 + §3.7.6.5 + §10.3 npm + §11.2 cron 정합
