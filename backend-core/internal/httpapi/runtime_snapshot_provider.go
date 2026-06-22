@@ -8,12 +8,11 @@ import (
 )
 
 type RuntimeSnapshotProvider struct {
-	Base         SnapshotProvider
-	HealthStore  HealthStore
-	GiteaURL     string
-	BackendAIURL string
-	HTTPClient   *http.Client
-	Now          func() time.Time
+	Base        SnapshotProvider
+	HealthStore HealthStore
+	GiteaURL    string
+	HTTPClient  *http.Client
+	Now         func() time.Time
 }
 
 func (p RuntimeSnapshotProvider) DashboardMetrics(ctx context.Context, role string) ([]metricResponse, bool, error) {
@@ -95,7 +94,6 @@ func (p RuntimeSnapshotProvider) runtimeStatuses(ctx context.Context) map[string
 		"backend-core": "stable",
 		"postgres":     p.postgresStatus(ctx),
 		"gitea":        p.httpStatus(ctx, p.GiteaURL, ""),
-		"backend-ai":   p.httpStatus(ctx, p.BackendAIURL, "/health"),
 	}
 }
 
