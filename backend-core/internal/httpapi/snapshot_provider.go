@@ -78,7 +78,6 @@ func staticSnapshotNodes() []serviceNodeResponse {
 	return []serviceNodeResponse{
 		{ID: "backend-core", Label: "Go Core Service", Kind: "service", Status: "stable", Region: "asia-01", CPUPercent: 12.4, MemoryBytes: 1288490189, ActiveInstances: 1, UpdatedAt: now},
 		{ID: "gitea", Label: "Gitea Instance", Kind: "external", Status: "stable", Region: "asia-01", CPUPercent: 8.1, MemoryBytes: 858993459, ActiveInstances: 1, UpdatedAt: now},
-		{ID: "backend-ai", Label: "Python AI Engine", Kind: "service", Status: "warning", Region: "asia-01", CPUPercent: 45.2, MemoryBytes: 4509715661, ActiveInstances: 1, UpdatedAt: now},
 		{ID: "postgres", Label: "PostgreSQL Cluster", Kind: "database", Status: "stable", Region: "homelab", CPUPercent: 5.2, MemoryBytes: 2576980378, ActiveInstances: 1, UpdatedAt: now},
 	}
 }
@@ -87,7 +86,6 @@ func staticSnapshotEdges() []serviceEdgeResponse {
 	now := staticSnapshotTime()
 	return []serviceEdgeResponse{
 		{ID: "gitea-backend-core", SourceID: "gitea", TargetID: "backend-core", Label: "WEBHOOK", Status: "stable", LatencyMS: 28.5, ThroughputRPS: 2.4, UpdatedAt: now},
-		{ID: "backend-core-backend-ai", SourceID: "backend-core", TargetID: "backend-ai", Label: "gRPC", Status: "warning", LatencyMS: 42.7, ThroughputRPS: 0.8, UpdatedAt: now},
 		{ID: "backend-core-postgres", SourceID: "backend-core", TargetID: "postgres", Label: "SQL", Status: "stable", LatencyMS: 9.3, ThroughputRPS: 12.1, UpdatedAt: now},
 	}
 }

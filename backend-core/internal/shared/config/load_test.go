@@ -20,7 +20,6 @@ func clearAllConfigEnv(t *testing.T) {
 		"GITEA_URL",
 		"GITEA_TOKEN",
 		"GITEA_WEBHOOK_SECRET",
-		"BACKEND_AI_URL",
 		"DEVHUB_ENV",
 		"DEVHUB_IDP_PROVIDER",
 		"DEVHUB_AUTH_DEV_FALLBACK",
@@ -377,14 +376,13 @@ func TestLoad_DREQAndKeycloakEventListenerKnobs(t *testing.T) {
 	}
 }
 
-func TestLoad_RawPassThroughDBAndGiteaAndAI(t *testing.T) {
+func TestLoad_RawPassThroughDBAndGitea(t *testing.T) {
 	// Raw os.Getenv (no TrimSpace) — pin that legacy keys are not trimmed.
 	clearAllConfigEnv(t)
 	t.Setenv("DB_URL", " postgres://x ")
 	t.Setenv("GITEA_URL", " https://gitea ")
 	t.Setenv("GITEA_TOKEN", " gitea-token ")
 	t.Setenv("GITEA_WEBHOOK_SECRET", " webhook-secret ")
-	t.Setenv("BACKEND_AI_URL", " http://ai ")
 
 	cfg := Load()
 	if !strings.HasPrefix(cfg.DBURL, " ") {
@@ -398,9 +396,6 @@ func TestLoad_RawPassThroughDBAndGiteaAndAI(t *testing.T) {
 	}
 	if !strings.HasPrefix(cfg.GiteaWebhookSecret, " ") {
 		t.Errorf("GiteaWebhookSecret is unexpectedly trimmed: %q", cfg.GiteaWebhookSecret)
-	}
-	if !strings.HasPrefix(cfg.BackendAIURL, " ") {
-		t.Errorf("BackendAIURL is unexpectedly trimmed: %q", cfg.BackendAIURL)
 	}
 }
 

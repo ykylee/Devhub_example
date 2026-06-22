@@ -23,21 +23,12 @@ func TestRuntimeSnapshotProviderUpdatesInfraNodeStatuses(t *testing.T) {
 	}))
 	defer giteaServer.Close()
 
-	aiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/health" {
-			t.Fatalf("expected /health path, got %q", r.URL.Path)
-		}
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}))
-	defer aiServer.Close()
-
 	now := time.Date(2026, 5, 3, 12, 0, 0, 0, time.UTC)
 	provider := RuntimeSnapshotProvider{
-		Base:         StaticSnapshotProvider{},
-		HealthStore:  pingStore{},
-		GiteaURL:     giteaServer.URL,
-		BackendAIURL: aiServer.URL,
-		Now:          func() time.Time { return now },
+		Base:        StaticSnapshotProvider{},
+		HealthStore: pingStore{},
+		GiteaURL:    giteaServer.URL,
+		Now:         func() time.Time { return now },
 	}
 
 	nodes, err := provider.InfraNodes(context.Background())
@@ -53,12 +44,6 @@ func TestRuntimeSnapshotProviderUpdatesInfraNodeStatuses(t *testing.T) {
 	}
 	if statuses["gitea"] != "stable" {
 		t.Fatalf("expected gitea stable, got %q", statuses["gitea"])
-	}
-	if statuses["backend-ai"] != "down" {
-		t.Fatalf("expected backend-ai down, got %q", statuses["backend-ai"])
-	}
-	if updatedAt := nodeUpdatedAt(nodes, "backend-ai"); !updatedAt.Equal(now) {
-		t.Fatalf("expected updated_at %s, got %s", now, updatedAt)
 	}
 }
 
