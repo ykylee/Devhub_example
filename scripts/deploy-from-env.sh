@@ -80,7 +80,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 #                                    Keycloak 계정 자유 사용 가능 (frontend 는 첫
 #                                    진입 시 /onboarding → Skip 1회 클릭 필요).
 #   BACKEND_API_URL                 default: http://backend-core:8080
-#   BACKEND_AI_URL                  default: http://backend-ai:8000
 #   DEVHUB_TRUSTED_PROXIES          default: 172.16.0.0/12
 #   KEYCLOAK_UPSTREAM               default: keycloak:8080
 #   KEYCLOAK_ADMIN_ALLOW_CIDR       default: 127.0.0.1/32
@@ -282,7 +281,6 @@ build_env_file() {
     emit_env_line POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
     emit_env_line POSTGRES_DB "$POSTGRES_DB"
     emit_env_line BACKEND_API_URL "${BACKEND_API_URL:-http://backend-core:8080}"
-    emit_env_line BACKEND_AI_URL "${BACKEND_AI_URL:-http://backend-ai:8000}"
     emit_env_line DEVHUB_AUTH_DEV_FALLBACK "${DEVHUB_AUTH_DEV_FALLBACK:-0}"
     emit_env_line DEVHUB_ONBOARDING_GATE_ENABLED "${DEVHUB_ONBOARDING_GATE_ENABLED:-1}"
     emit_env_line DEVHUB_TRUSTED_PROXIES "${DEVHUB_TRUSTED_PROXIES:-172.16.0.0/12}"
@@ -318,11 +316,6 @@ build_images() {
     -f "$ROOT_DIR/backend-core/Dockerfile" \
     -t "${IMAGE_REPO_PREFIX}/backend-core:${IMAGE_TAG}" \
     "$ROOT_DIR/backend-core"
-  echo "[build] backend-ai"
-  docker build \
-    -f "$ROOT_DIR/backend-ai/Dockerfile" \
-    -t "${IMAGE_REPO_PREFIX}/backend-ai:${IMAGE_TAG}" \
-    "$ROOT_DIR/backend-ai"
   echo "[build] frontend"
   docker build \
     -f "$ROOT_DIR/frontend/Dockerfile" \

@@ -10,15 +10,11 @@
 #                          backend-core/go.mod 가 `go 1.25.9` 명시 — host go 1.25
 #                          정확히 (또는 그 이상) 권장. 사내 proxy 환경은 GOTOOLCHAIN
 #                          자동 bump 차단 가능 → host 1.25 사전 설치.
-#   - python3.12 (정확히)   backend-ai 빌드 (backend-ai/Dockerfile 의 python:3.12-slim
-#                          과 ABI 정합 강제 — 다른 minor ver 시 grpcio 등 C extension
-#                          import 실패 / segfault risk)
 #   - node 20+ + npm        frontend 빌드 (Next.js standalone)
 #   - bash 4+               array / [[ syntax
 #
 # 산출물 (host fs):
 #   backend-core/bin/main                       — Go 정적 binary
-#   backend-ai/.build/site-packages/            — Python deps target dir
 #   frontend/.next/standalone/                  — Next.js standalone server
 #   frontend/.next/static/                      — Next.js static assets
 #
@@ -77,19 +73,9 @@ verify_prerequisites() {
     detail+="\n  - npm 미설치 (보통 node 와 함께 설치됨)"
   fi
 
-  # python3.12 정확히 강제 — backend-ai/Dockerfile 의 python:3.12-slim 과 ABI 정합.
-  # 다른 minor ver 사용 시 grpcio / pydantic-core 등 C extension 의 wheel 이 다른
-  # ABI 로 빌드되어 컨테이너 안에서 import 실패 / segfault risk.
   local python_bin=""
-  if command -v python3.12 >/dev/null 2>&1; then
-    python_bin="python3.12"
-  elif command -v python3 >/dev/null 2>&1 && python3 -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 12) else 1)' 2>/dev/null; then
+  if command -v python3 >/dev/null 2>&1; then
     python_bin="python3"
-  else
-    missing+=("python3.12")
-    detail+="\n  - python3.12 미설치 (다른 minor ver 은 backend-ai/Dockerfile 의 python:3.12-slim 과 ABI mismatch — C extension import 실패 risk)."
-    detail+="\n    설치: pyenv install 3.12 / OS 패키지 매니저 (apt install python3.12 / brew install python@3.12)"
-    detail+="\n    검증: python3.12 --version 또는 python3 --version (3.12.x 출력)"
   fi
   PYTHON_BIN="$python_bin"
 
@@ -106,7 +92,9 @@ verify_prerequisites() {
   echo "  - go      : $(go version | awk '{print $3}')"
   echo "  - node    : $(node --version)"
   echo "  - npm     : $(npm --version)"
-  echo "  - python  : $($PYTHON_BIN --version) ($PYTHON_BIN)"
+  if [ -n "$PYTHON_BIN" ]; then
+    echo "  - python  : $($PYTHON_BIN --version) ($PYTHON_BIN)"
+  fi
 }
 
 # === Build steps ===
@@ -122,17 +110,6 @@ build_backend_core() {
     # (matches the Docker host architecture via the Go toolchain
     # default).
     GOOS=linux CGO_ENABLED=0 go build -o bin/main .
-  )
-}
-
-build_backend_ai() {
-  echo "[host build] backend-ai (Python 3.12 deps)"
-  # host python 3.12 강제. dockerized fallback 제거 (사내 docker container 안
-  # PyPI 접근 proxy 전파 안 됨 → 항상 host 에서만 install).
-  mkdir -p "$ROOT_DIR/backend-ai/.build/site-packages"
-  (
-    cd "$ROOT_DIR/backend-ai"
-    "$PYTHON_BIN" -m pip install --upgrade --disable-pip-version-check --no-cache-dir --target .build/site-packages -r requirements.txt
   )
 }
 
@@ -156,23 +133,19 @@ build_frontend() {
 main() {
   verify_prerequisites
   build_backend_core
-  build_backend_ai
   build_frontend
   echo ""
   echo "[done] all host artifacts built:"
   echo "  - $ROOT_DIR/backend-core/bin/main"
-  echo "  - $ROOT_DIR/backend-ai/.build/site-packages/"
   echo "  - $ROOT_DIR/frontend/.next/standalone/"
   echo "  - $ROOT_DIR/frontend/.next/static/"
   echo ""
   echo "Next: docker build (Dockerfile 은 COPY-only + ARG base image, base image pull 외 network 의존 없음)"
   echo "      docker build -f backend-core/Dockerfile -t devhub/backend-core:\$IMAGE_TAG backend-core"
-  echo "      docker build -f backend-ai/Dockerfile   -t devhub/backend-ai:\$IMAGE_TAG   backend-ai"
   echo "      docker build -f frontend/Dockerfile     -t devhub/frontend:\$IMAGE_TAG     frontend"
   echo ""
   echo "사내 mirror registry 사용 시 (base image pull 차단 우회):"
   echo "      docker build --build-arg BACKEND_CORE_BASE=internal-registry.example.com/alpine:3.21 ..."
-  echo "      docker build --build-arg BACKEND_AI_BASE=internal-registry.example.com/python:3.12-slim ..."
   echo "      docker build --build-arg FRONTEND_BASE=internal-registry.example.com/node:20-alpine ..."
   echo "      자세한 절차: docs/setup/docker-packaging-deployment-guide.md §5.1"
 }

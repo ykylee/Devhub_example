@@ -7,7 +7,6 @@ COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.colima.yml}"
 PROJECT_NAME="${PROJECT_NAME:-devhub-dogfood}"
 PID_DIR="$ROOT_DIR/.pids/dogfood"
 LOG_DIR="$ROOT_DIR/artifacts/dogfood/logs"
-AI_VENV_DIR="$ROOT_DIR/backend-ai/.venv-dogfood"
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -32,7 +31,7 @@ Usage:
   ./scripts/dogfood.sh test-self-dogfood
   ./scripts/dogfood.sh test-self-dogfood-dashboard
   ./scripts/dogfood.sh status
-  ./scripts/dogfood.sh logs [backend|frontend|ai|all]
+  ./scripts/dogfood.sh logs [backend|frontend|all]
 EOF
 }
 
@@ -266,23 +265,6 @@ run_migrations() {
   fi
 }
 
-backend_ai_command() {
-  echo "source \"$AI_VENV_DIR/bin/activate\" && if command -v uvicorn >/dev/null 2>&1; then uvicorn main:app --host 0.0.0.0 --port ${BACKEND_AI_PORT}; else python3 main.py; fi"
-}
-
-ensure_backend_ai_venv() {
-  if [ ! -d "$AI_VENV_DIR" ]; then
-    echo -e "${BLUE}Creating backend-ai virtualenv...${NC}"
-    python3 -m venv "$AI_VENV_DIR"
-  fi
-
-  if [ ! -f "$AI_VENV_DIR/.deps-installed" ]; then
-    echo -e "${BLUE}Installing backend-ai dependencies...${NC}"
-    "$AI_VENV_DIR/bin/pip" install -r "$ROOT_DIR/backend-ai/requirements.txt"
-    touch "$AI_VENV_DIR/.deps-installed"
-  fi
-}
-
 up() {
   load_env
   mkdir -p "$PID_DIR" "$LOG_DIR"
@@ -299,17 +281,14 @@ up() {
 
   run_migrations
   setup_keycloak_clients
-  ensure_backend_ai_venv
 
   start_native "backend" "$ROOT_DIR/backend-core" "PORT=${BACKEND_CORE_PORT} go run ." "${BACKEND_CORE_PORT}" "http"
-  start_native "ai" "$ROOT_DIR/backend-ai" "$(backend_ai_command)" "${BACKEND_AI_PORT}" "http"
   start_native "frontend" "$ROOT_DIR/frontend" "PORT=${FRONTEND_PORT} npm run dev" "${FRONTEND_PORT}" "port"
 
   echo
   echo -e "${BLUE}Dogfood environment is up.${NC}"
   echo "  frontend : http://localhost:${FRONTEND_PORT}"
   echo "  backend  : http://localhost:${BACKEND_CORE_PORT}/health"
-  echo "  ai       : http://localhost:${BACKEND_AI_PORT}/health"
   echo "  keycloak : ${DEVHUB_OIDC_ISSUER_URL}"
   echo "  postgres : localhost:${POSTGRES_HOST_PORT}"
 }
@@ -318,7 +297,6 @@ down() {
   load_env
   echo -e "${RED}Stopping dogfood native apps...${NC}"
   stop_native "frontend"
-  stop_native "ai"
   stop_native "backend"
 
   echo -e "${RED}Stopping dogfood containers...${NC}"
@@ -356,7 +334,6 @@ smoke() {
   echo -e "${BLUE}Running dogfood smoke checks...${NC}"
 
   wait_for_http "backend" "http://127.0.0.1:${BACKEND_CORE_PORT}/health" 15
-  wait_for_http "ai" "http://127.0.0.1:${BACKEND_AI_PORT}/health" 15
   wait_for_http "frontend" "http://127.0.0.1:${FRONTEND_PORT}/login" 15
   wait_for_http "keycloak" "${DEVHUB_OIDC_ISSUER_URL}/.well-known/openid-configuration" 15
   wait_for_port "postgres" "${POSTGRES_HOST_PORT}" 15
@@ -457,7 +434,7 @@ status() {
   compose ps || true
   echo
   echo -e "${BLUE}Native app status${NC}"
-  for name in backend ai frontend; do
+  for name in backend frontend; do
     pid_file="$PID_DIR/$name.pid"
     if [ -f "$pid_file" ]; then
       pid="$(tr -d '[:space:]' < "$pid_file" 2>/dev/null || true)"
@@ -475,11 +452,11 @@ status() {
 logs() {
   local target="${1:-all}"
   case "$target" in
-    backend|frontend|ai)
+    backend|frontend)
       tail -n 100 -f "$LOG_DIR/$target.log"
       ;;
     all)
-      for name in backend ai frontend; do
+  for name in backend frontend; do
         echo "===== $name ====="
         if [ -f "$LOG_DIR/$name.log" ]; then
           tail -n 40 "$LOG_DIR/$name.log"

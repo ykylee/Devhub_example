@@ -64,8 +64,7 @@ dev-bin/
 # backend-core local build artifacts (go build ./... 산출물)
 backend-core/bin/
 
-# backend-ai host build artifacts
-backend-ai/.build/
+
 
 # repo-root build outputs (deploy-from-env.sh generated realm import,
 # generate_local_realm_import() 의 $ROOT_DIR/.build/devhub-keycloak-realm.generated.json
@@ -168,7 +167,6 @@ ui-screenshots-shard-2/
 /docker-bin/
 /dev-bin/
 /backend-core/bin/
-/backend-ai/.build/
 
 # 사내 compose (docker-compose.colima.yml + localports override 는 사외
 # generic 이므로 추적 유지, deploy/local/test 는 사내)
