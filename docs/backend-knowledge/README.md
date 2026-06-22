@@ -1,19 +1,19 @@
 # backend-knowledge v0.2.0+ — Entry Point
 
 - 문서 목적: `backend-knowledge` v0.2.0+ standalone backend 의 진입점. architecture + tech-stack + operation 진입 doc.
-- 범위: ADR-0035 정합 (Python 3.13+ / FastAPI / OKF / Pi / 완전 standalone). 5종 PoC source plugin (Gitea 4 + homelab_mock).
+- 범위: ADR-0038 정합 (Python 3.13+ / FastAPI / OKF / Pi / 완전 standalone). 5종 PoC source plugin (Gitea 4 + homelab_mock).
 - 대상 독자: M-v0.2.0+ sprint 진입자, 후속 contributor, 운영자, reviewer.
 - 상태: **accepted** (2026-06-19, M-v0.2.0 PoC release post-impl retrospective, retro-design recovery)
 - 최종 수정일: 2026-06-19
-- 관련 문서: [`architecture.md`](./architecture.md) (main design) / [`tech-stack.md`](./tech-stack.md) / [`docs/planning/release_v0-2_roadmap.md`](../planning/release_v0-2_roadmap.md) / [ADR-0035 backend-knowledge 신설](../adr/0035-backend-knowledge-creation.md) / [ADR-0034 OKF v0.1 채택](../adr/0034-okf-adoption.md)
+- 관련 문서: [`architecture.md`](./architecture.md) (main design) / [`tech-stack.md`](./tech-stack.md) / [`docs/planning/release_v0-2_roadmap.md`](../planning/release_v0-2_roadmap.md) / [ADR-0038 backend-knowledge 신설](../adr/0038-backend-knowledge-creation.md) / [ADR-0037 OKF v0.1 채택](../adr/0037-okf-adoption.md)
 
 ## 1. 개요
 
-`backend-knowledge` 는 **v0.2.0 신규 백엔드** (umbrella doc §1.2 G7 + ADR-0035 §3):
+`backend-knowledge` 는 **v0.2.0 신규 백엔드** (umbrella doc §1.2 G7 + ADR-0038 §3):
 - **완전 standalone**: 다른 backend (backend-core / 다른 시스템) 의 어떤 layer 든 import / 호출 / 공유 ❌
 - **외부 시스템 7종 source 만 단방향** (M-v0.2.0 PoC = Gitea 4 sub-plugin + homelab_mock 5종, M-v0.2.3 운영 기준 = + metrics + hrdb = 7종)
 - **Path Y caller-provided user context** (§3.6.1): backend-knowledge 는 auth 자체 안 함, caller 가 `X-DevHub-User-Context` header 로 user/org/project/roles 7 field 검증
-- **OKF v0.1 concept format** (ADR-0034): 1 concept = 1 .md + YAML frontmatter (12 field, `type` 1개 필수)
+- **OKF v0.1 concept format** (ADR-0037): 1 concept = 1 .md + YAML frontmatter (12 field, `type` 1개 필수)
 - **봉투 암호화 v2** (per-raw DEK + KEK wrap, Codex P2 review fix)
 
 ## 2. 진입 doc
@@ -74,8 +74,8 @@
 | doc | role |
 |---|---|
 | [`docs/planning/release_v0-2_roadmap.md`](../planning/release_v0-2_roadmap.md) | umbrella doc (18 main section + 80+ subsection, M-v0.2.0 PoC 정합) |
-| [ADR-0034 OKF v0.1 채택](../adr/0034-okf-adoption.md) | format 결정 (1 concept = 1 .md, 8 type enum) |
-| [ADR-0035 backend-knowledge 신설](../adr/0035-backend-knowledge-creation.md) | 신규 백엔드 정당화 + layer 격리 정공법 |
+| [ADR-0037 OKF v0.1 채택](../adr/0037-okf-adoption.md) | format 결정 (1 concept = 1 .md, 8 type enum) |
+| [ADR-0038 backend-knowledge 신설](../adr/0038-backend-knowledge-creation.md) | 신규 백엔드 정당화 + layer 격리 정공법 |
 | [`docs/traceability/report.md`](../traceability/report.md) v0.2.0 PoC row | 7-level chain (REQ → FR → NFR → UC → IMPL → UT → TC) 정합 |
 | [`docs/operations/runbooks/`](../operations/runbooks/README.md) | 6 incident runbook + index |
 | [`docs/requirements/v0.2.0-*.md`](../requirements/) | §1 도메인 분류 / §2 FR / §3 NFR / §4 UC / §5 TM (PR #653) |

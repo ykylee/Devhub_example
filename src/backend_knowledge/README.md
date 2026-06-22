@@ -195,8 +195,8 @@ curl -X POST -H "X-DevHub-User-Context: <base64url(json)>" \
 ## 9. 관련 문서 (umbrella doc / ADR)
 
 - umbrella doc: `docs/planning/release_v0-2_roadmap.md` §2 + §3 + §3.6 + §3.8 + §10 + §11
-- ADR-0034: `docs/adr/0034-okf-adoption.md` (OKF v0.1 채택)
-- ADR-0035: `docs/adr/0035-backend-knowledge-creation.md` (backend-knowledge 신설)
+- ADR-0037: `docs/adr/0037-okf-adoption.md` (OKF v0.1 채택)
+- ADR-0038: `docs/adr/0038-backend-knowledge-creation.md` (backend-knowledge 신설)
 - §1 도메인 분류: `docs/requirements/v0.2.0-domain-classification.md`
 - §2 FR: `docs/requirements/v0.2.0-functional-requirements.md`
 - §3 NFR: `docs/requirements/v0.2.0-non-functional-requirements.md`

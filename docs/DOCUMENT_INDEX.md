@@ -55,8 +55,8 @@
 
 - **[v0.2.0 umbrella doc — `release_v0-2_roadmap.md`](./planning/release_v0-2_roadmap.md)**: 18 main section (§0~§17) + 80+ subsection, 5459 lines, 18/18 Q&A, 28 metrics M-v0.2.3+ production, 4 cross-cutting 정공법. **accepted 2026-06-17 publish, PR #645 MERGED 2026-06-18**.
 - **[v0.2.0 child doc — `external-integrations-agentic-rag-roadmap.md`](./planning/external-integrations-agentic-rag-roadmap.md)**: umbrella doc 의 child, Q7 결정 기반 status active 전환 (2026-06-18, §17.3 P1 row 3 처리, PR #647 MERGED).
-- **[ADR-0034 OKF v0.1 채택 — `0034-okf-adoption.md`](./adr/0034-okf-adoption.md)**: Google OKF v0.1 채택. **accepted 2026-06-17 publish, §6 Supersession section 신규 (M-v0.2.3+ 부터 supersession 가능)**.
-- **[ADR-0035 backend-knowledge 신설 — `0035-backend-knowledge-creation.md`](./adr/0035-backend-knowledge-creation.md)**: 신규 백엔드 `backend-knowledge` 신설 (Python 3.13+ / FastAPI / OKF / Pi v0.79.6, 완전 standalone). **accepted 2026-06-17 publish, §6 Supersession row 추가**.
+- **[ADR-0037 OKF v0.1 채택 — `0037-okf-adoption.md`](./adr/0037-okf-adoption.md)**: Google OKF v0.1 채택. **accepted 2026-06-17 publish, §6 Supersession section 신규 (M-v0.2.3+ 부터 supersession 가능)**.
+- **[ADR-0038 backend-knowledge 신설 — `0038-backend-knowledge-creation.md`](./adr/0038-backend-knowledge-creation.md)**: 신규 백엔드 `backend-knowledge` 신설 (Python 3.13+ / FastAPI / OKF / Pi v0.79.6, 완전 standalone). **accepted 2026-06-17 publish, §6 Supersession row 추가**.
 
 **§5 v0.2.0 문서 진입 시**:
 - §0~§1~§2: 컨셉 + 신규 백엔드 → umbrella doc §1~§2

@@ -22,11 +22,11 @@ DevHub은 Gitea 연동, AI 분석, 실시간 대시보드 제공을 위해 다�
 - **Internal Communication:** **gRPC** (Go ↔ Python, 확정 기본 계약)
     - REST/HTTP는 외부 API 및 상태 확인용 endpoint에 사용하며, Go Core와 Python AI 간 분석 요청/응답의 기본 계약은 gRPC로 둡니다.
 
-### 1.1.b 신규 백엔드 backend-knowledge (v0.2.0+, ADR-0035)
+### 1.1.b 신규 백엔드 backend-knowledge (v0.2.0+, ADR-0038)
 
 > **독립 standalone backend** — 다른 backend (backend-core / 다른 시스템) 의 어떤 layer 든 import / 호출 / 공유 ❌. 외부 시스템 5종 (Gitea 4 sub-plugin + homelab_mock, M-v0.2.0 PoC) / 7종 (M-v0.2.3 운영 기준) source 만 단방향. **M-v0.2.0 PoC release (PR #654/#655/#656/#657 MERGED, 30 endpoint, 166 UT, 11 E2E step, tag v0.2.0)**.
 
-자세한 design: [`docs/backend-knowledge/architecture.md`](../backend-knowledge/architecture.md) + [`docs/backend-knowledge/tech-stack.md`](../backend-knowledge/tech-stack.md) + [ADR-0035 backend-knowledge 신설](../adr/0035-backend-knowledge-creation.md).
+자세한 design: [`docs/backend-knowledge/architecture.md`](../backend-knowledge/architecture.md) + [`docs/backend-knowledge/tech-stack.md`](../backend-knowledge/tech-stack.md) + [ADR-0038 backend-knowledge 신설](../adr/0038-backend-knowledge-creation.md).
 
 - **언어 / runtime**: Python 3.13+ / uvicorn 0.32.1
 - **web framework**: FastAPI 0.115.6 (Pydantic v2 native 통합 + OpenAPI 자동)

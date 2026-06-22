@@ -5,7 +5,7 @@
 - 대상 독자: M-v0.2.0+ sprint 진입자, 후속 contributor, PR reviewer, 운영자 onboarding.
 - 상태: **accepted** (2026-06-19, M-v0.2.0 PoC release post-impl retrospective, retro-design recovery)
 - 최종 수정일: 2026-06-19
-- 관련 문서: [`architecture.md`](./architecture.md) (main design) / [`docs/planning/release_v0-2_roadmap.md`](../planning/release_v0-2_roadmap.md) §3.3 / [ADR-0035 backend-knowledge 신설](../adr/0035-backend-knowledge-creation.md)
+- 관련 문서: [`architecture.md`](./architecture.md) (main design) / [`docs/planning/release_v0-2_roadmap.md`](../planning/release_v0-2_roadmap.md) §3.3 / [ADR-0038 backend-knowledge 신설](../adr/0038-backend-knowledge-creation.md)
 
 ## 1. Runtime 의존성
 
@@ -72,7 +72,7 @@
 - **선택 이유**: JSON Lines audit log + FastAPI middleware 통합 + 5 metric 기반 (request count / latency / error count)
 - **대안**: stdlib logging + custom JSON formatter — boilerplate
 
-## 1.2 신규 frontend (SvelteKit, ADR-0035 standalone frontend)
+## 1.2 신규 frontend (SvelteKit, ADR-0038 standalone frontend)
 
 > **독립 standalone web** — devhub frontend (Next.js 16) 와 **완전 분리** (code / state / build / package.json 공유 ❌). backend-knowledge backend 만 호출. M-v0.2.0+ 5 page 점진 도입 (umbrella doc §12.1).
 

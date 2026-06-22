@@ -5,7 +5,7 @@
 - 대상 독자: M-v0.2.0+ frontend sprint 진입자, 후속 contributor, PR reviewer, 운영자.
 - 상태: **accepted** (2026-06-19, M-v0.2.0 PoC + frontend 1차 release, retro-design recovery)
 - 최종 수정일: 2026-06-19
-- 관련 문서: [`../architecture.md`](./architecture.md) (main design) / [`../tech-stack.md`](./tech-stack.md) (runtime + frontend stack) / [`../README.md`](./README.md) / [`../../planning/release_v0-2_roadmap.md`](../../planning/release_v0-2_roadmap.md) §12 (frontend page 상세화) / [ADR-0035 backend-knowledge 신설](../../adr/0035-backend-knowledge-creation.md)
+- 관련 문서: [`../architecture.md`](./architecture.md) (main design) / [`../tech-stack.md`](./tech-stack.md) (runtime + frontend stack) / [`../README.md`](./README.md) / [`../../planning/release_v0-2_roadmap.md`](../../planning/release_v0-2_roadmap.md) §12 (frontend page 상세화) / [ADR-0038 backend-knowledge 신설](../../adr/0038-backend-knowledge-creation.md)
 
 ## 1. 개요
 
@@ -17,7 +17,7 @@
 
 ### 1.2 위치 + tier
 - **layer**: 3 group (routes / lib / components) + 1 utility (config)
-- **directory**: `backend-knowledge/web/` (sibling to `backend-knowledge/src/`, ADR-0035 §3 정합)
+- **directory**: `backend-knowledge/web/` (sibling to `backend-knowledge/src/`, ADR-0038 §3 정합)
 - **tier**: **사외** (standalone 정공법, 사내 한정 정보 0, gateway 3-step orchestration 정공법, umbrella doc §12.3)
 
 ## 2. tech stack (자세한 내용: [`tech-stack.md`](./tech-stack.md) §1.2)
