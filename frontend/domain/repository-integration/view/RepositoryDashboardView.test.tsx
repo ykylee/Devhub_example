@@ -27,6 +27,7 @@ vi.mock("next/navigation", () => ({
     back: mockBack,
     push: vi.fn(),
   }),
+  usePathname: () => "/repositories/1",
 }));
 
 // Mock recharts to avoid rendering layout errors in JSDOM/HappyDOM
