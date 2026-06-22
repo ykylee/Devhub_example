@@ -2894,7 +2894,7 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 | **M-v0.2.0** | 1차 standalone 구현 (Gitea 통합 4 sub-plugin PoC, backend 단독, frontend 0) | `backend-knowledge/` skeleton + OKF spec model (frontmatter `x_devhub_category` 필드 추가) + **Gitea 통합 4종** (`gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action`, Gitea 1 instance 의 4 sub-plugin, 5 카테고리 중 4: 이슈/위키/SCM/CI-CD, §3.8.2 정공법) + `homelab_mock` 1종 (§3.8.3 정공법) = **5종 PoC (5 카테고리 결정 기반, 2026-06-17, §3.2.1 / §3.7.2 / §3.8 / §6.4 정합)** + Ingest 1 endpoint + Query 1 endpoint (concept 직접 조회) + 1차 raw API + OpenAPI. **frontend 0 page** (M-v0.2.0 만, viz.html 자가 viewer 만 SSR) | M-v0.2.0-alpha | ⏳ planned (v0.2.0) |
 | **M-v0.2.1** | 1차 완성 + Gitea 통합 정식 + 사내 시스템 wire + Curate + frontend 관리/조회 page 1 | Gitea 통합 4종 정식 wire (1차 PoC → 정식, 5 카테고리 중 4) + `homelab_mock` → `homelab` (real wire, 5 카테고리 외 사내 시스템) = 5종 운영 + Curate 3 endpoint (enrich / edit / rebuild) + 1차 viz.html (자가 viewer) + **frontend 관리/조회 page 1** (`backend-knowledge/web/`, 별도 standalone frontend, **devhub frontend 와 분리**, standalone 정책 정합, **§12.2 의 5 page 상세 정합**: concept list / concept detail / ingest trigger / bundle management / raw inspector) + e2e smoke | M-v0.2.0 | ⏳ planned (v0.2.1) |
 | **M-v0.2.2** | 5 카테고리 외 추가 wire + backend-ai 폐기 | M-v0.2.1 의 5종 + `metrics` 정식 wire (모니터링, 5 카테고리 외) = 6종 운영 + `backend-ai/` 디렉터리 제거 (단독 결정) | M-v0.2.1 | ✅ **done (2026-06-22, PR #663 + #664 + #665 + #666, 4-PR split)** |
-| **M-v0.2.3** | Pi LLM enrich + cross-link 자동 resolution | + Pi `pi-coding-agent` SDK or RPC mode 로 LLM enrich 활성화 (1 vendor) + cross-link 자동 resolution | M-v0.2.2 | ⏳ planned (v0.2.3) |
+| **M-v0.2.3** | Pi LLM enrich + cross-link 자동 resolution | + Pi `pi-coding-agent` SDK or RPC mode 로 LLM enrich 활성화 (1 vendor) + cross-link 자동 resolution | M-v0.2.2 | 🟡 **partial done (2026-06-22, PR #672 + #673, 2-PR split — hrdb source plugin + Pi LLM cross-link. §3.5.7 구현 완료, §3.5.8 false positive rollback CLI 미구현, §17.5 28 metrics production wiring 잔여)** |
 | **M-v0.3.0** | 풀 RAG (chunking + embedding + retrieval) | sentence-transformers or 외부 embedding + vector index (sqlite-vss or pgvector) + reranking + LLM answer | M-v0.2.3 | ⏳ planned (v0.3.0) |
 
 ### 5.2 P0~P3 우선순위 (1차)
@@ -2910,7 +2910,7 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 | **P1** | viz.html (자가 viewer) + **frontend 관리/조회 page 1** (`backend-knowledge/web/`, 별도 standalone frontend, devhub frontend 와 분리) | M-v0.2.1 |
 | **P1** | e2e smoke (ingest → curate → query) | M-v0.2.1 |
 | **P2** | 외부 시스템 **6종** source wire (Gitea 4 + homelab + metrics) + backend-ai 폐기 (단독) | M-v0.2.2 | ✅ **done (2026-06-22, PR #663 + #664 + #665 + #666, 4-PR split)** |
-| **P3** | Pi LLM enrich (1 vendor) | M-v0.2.3 |
+| **P3** | Pi LLM enrich (1 vendor) | M-v0.2.3 | 🟡 **partial done (2026-06-22, PR #672 + #673, 2-PR split)** |
 | **P3** | 풀 RAG (embedding + vector index) | M-v0.3.0 |
 
 ### 5.3 1차 sprint 진입 (M-v0.2.0) 체크리스트
@@ -2953,7 +2953,7 @@ M-v0.3.0
 | **M-v0.2.0** | alpha | OKF SPEC.md 1차 정독 (M-v0.2.0 이전) | skeleton + OKF spec model + Gitea 4 + homelab_mock + Ingest/Query + raw API + OpenAPI | planned |
 | **M-v0.2.1** | v0.2.0 | frontend page 1 design + Pi LLM vendor 결정 (M-v0.2.3 이전) | Gitea 정식 + homelab real + Curate + viz.html + frontend 관리 page 1 + e2e smoke | planned |
 | **M-v0.2.2** | v0.2.1 | backend-ai/ 디렉터리 제거 PR | metrics + 6종 운영 + backend-ai 폐기 | ✅ **done (2026-06-22, PR #663 + #664 + #665 + #666, 4-PR split)** |
-| **M-v0.2.3** | v0.2.2 | hrdb schema spec + Pi SDK/RPC mode 결정 | + hrdb + Pi LLM enrich + cross-link 자동 resolution + 7종 운영 | planned |
+| **M-v0.2.3** | v0.2.2 | hrdb schema spec + Pi SDK/RPC mode 결정 | + hrdb + Pi LLM enrich + cross-link 자동 resolution + 7종 운영 | 🟡 **partial done (2026-06-22, PR #672 + #673, 2-PR split — hrdb + Pi LLM cross-link, M-v0.2.1 정식 wire + §3.5.8 rollback + §17.5 28 metrics + §3.6.6.5 GDPR/PII 잔여)** |
 | **M-v0.3.0** | v0.2.3 | embedding model 결정 (sentence-transformers or 외부) | chunking + embedding + vector index + reranking + multi-vendor LLM | planned |
 
 **Critical path** (linear, parallel 불가능):
@@ -3369,7 +3369,9 @@ Step 6: alert routing 검증 (Slack #backend-knowledge-critical 채널, 1 test a
 
 #### 6.7.1 7종 source wire cutover (6 → 7종, hrdb 추가)
 
-**hrdb.py 추가** (사내 HR DB PostgreSQL):
+🟡 **partial done 2026-06-22 (PR #672 + #673, 2-PR split)** — hrdb source plugin + Pi LLM cross-link 자동 resolution 정공법 완료, M-v0.2.1 정식 wire (Gitea 4 정식 + homelab real) + §17.5 28 metrics production wiring + §3.6.6.5 GDPR/PII compliance 잔여
+
+**hrdb.py 추가** (사내 HR DB PostgreSQL, PR #672, 2026-06-22 MERGED):
 - SourceMeta:
   - bundle = `devhub-hrdb`
   - category = `(5 카테고리 외, x_devhub_category 미설정)`
@@ -3411,6 +3413,8 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 - §11.1.3 Pi ingest pipeline timeout/degraded runbook 정합
 
 #### 6.7.3 LLM enrich + cross-link 자동 resolution 운영 (M-v0.2.3+)
+
+🟡 **partial done 2026-06-22 (PR #673, 4 commit, 9 file)** — §3.5.7 Pi LLM cross-link 자동 resolution (curate/link_resolver.py + cross_link_resolution.j2 + cli/fix_unresolved.py + FR-C-006 POST /concepts/{id}/resolve-links endpoint + PI_LINK_RESOLVE audit) 정공법 완료. §3.5.8 false positive rollback CLI (revert_unresolved.py) + §17.5 5 metrics production wiring 잔여 (MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50)
 
 **POST /api/v0-2/concepts/{id}/enrich** 운영 (§3.1 + §6.3 정합):
 - Trigger: 운영자 또는 frontend 관리자가 concept ID 지정
