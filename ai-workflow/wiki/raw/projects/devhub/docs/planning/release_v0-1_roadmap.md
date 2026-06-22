@@ -34,7 +34,7 @@
 
 | 기능 | 분류 | 이유 |
 | --- | --- | --- |
-| **AI Gardener gRPC + Suggestion Feed** | v2 P3 | 보조 기능, 1차 릴리즈 핵심 가치 외부. backend `backend-ai/` Python 모듈 + Go Core client 미구현 |
+| **AI Gardener gRPC + Suggestion Feed** | v2 P3 | 보조 기능, 1차 릴리즈 핵심 가치 외부. backend `backend-ai/` Python 모듈 + Go Core client 미구현 — **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — 본 row 의 v2 scope 폐기. AI/ML 정공법은 `backend-knowledge/` 의 §3.7 + §3.5.7 로 이관 (umbrella doc release_v0-2_roadmap.md §6.7). v2 scope 자체 미정. |
 | ~~**Sign Up (셀프 가입)**~~ | **permanently cancelled (2026-05-20)** | DevHub 가 Keycloak admin 권한이 없는 외부 IdP 운영 시나리오 (ADR-0020 결정 A 정합). user 생성은 IdP 팀 admin console 또는 HRDB ETL push 책임. DevHub 셀프 가입 흐름 미운영. 이전 'v0.1.1 carve' 분류 → cancelled. issue #235 closed. |
 | **MFA / 2FA** | v0.1.1 carve | ADR-0019 §5.3 (5) 사내 정책 제외 — Keycloak MFA enrollment 는 Account Console 위임. DevHub UI 무관 |
 | **Weekly report worker** | v2 P3 | frontend_integration §3.4 — backend 미구현 |

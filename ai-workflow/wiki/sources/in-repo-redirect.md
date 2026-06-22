@@ -5,12 +5,12 @@ last_ingested_from: ai-workflow/wiki/patterns/in-repo-redirect.md
 related_pages: [sources/in-repo-redirect]
 created: 2026-06-15
 updated: 2026-06-15
-last_touched: 2026-06-18T12:08:55Z
-git_commit: 6c434887
+last_touched: 2026-06-22T03:37:45Z
+git_commit: baf1cf24
 git_branch: main
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-mirror_dirty: (dirty: uncommitted changes) |
+mirror_dirty: |
 ---
 
 # Wiki In-Repo Redirect Pattern (L2 dense, in-repo)

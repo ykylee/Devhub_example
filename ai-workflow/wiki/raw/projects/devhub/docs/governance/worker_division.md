@@ -84,10 +84,10 @@
 
 **정체성** (historical): 메인 에이전트 조정/통합 specialist (Sisyphus).
 
-**3-lane 영역** (historical, 2026-06-04 확정):
+**3-lane 영역** (historical, 2026-06-04 확정; **2026-06-22 M-v0.2.2 수정**):
 1. **Workflow / governance curation** (1순위) — `ai-workflow/` 메타 + `docs/governance/` cross-cut 정합
 2. **Cross-cutting validation & test infrastructure** (2순위) — multi-file 회귀 검증
-3. **AI/ML service prep** (3순위, v1.1/v2) — `backend-ai/` Python + gRPC
+3. **AI/ML service prep** (3순위, v1.1/v2) — `backend-ai/` Python + gRPC — **2026-06-22 폐기** (M-v0.2.2 backend-ai 폐기, PR #663). v1.1/v2 AI/ML 은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 대체 (umbrella doc §6.7).
 
 **누적 이력 (2026-06-04 ~ 2026-06-08)**: bootstrap sprint `opencode/work_260604-a-opencode-workflow-bootstrap` + areas 정의 `opencode/work_260604-b-opencode-areas` + N-10 Manager RBAC 검증 보고서 (`opencode/work_260604-c-N10-manager-rbac-validation`) + N-11 CI 복원 운영 정합 (sprint 260608-a, PR #498 + 260608-b PR #499, 2026-06-08).
 

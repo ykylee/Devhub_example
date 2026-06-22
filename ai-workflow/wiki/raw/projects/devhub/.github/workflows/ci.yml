@@ -28,7 +28,6 @@ jobs:
           filters: |
             backend:
               - 'backend-core/**'
-              - 'backend-ai/**'
               - 'proto/**'
               - 'Makefile'
             frontend:
@@ -37,7 +36,6 @@ jobs:
               - 'Makefile'
             e2e:
               - 'backend-core/**'
-              - 'backend-ai/**'
               - 'frontend/**'
               - 'infra/idp/**'
               - 'tests/**'

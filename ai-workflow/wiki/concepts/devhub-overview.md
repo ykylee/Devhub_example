@@ -7,12 +7,12 @@ created: 2026-06-15
 updated: 2026-06-15
 active_since: 2026-06-15
 active_reason: "v0.7.17 wiki in-repo redirect (PR #600 머지) + DevHub v0.1.0 roadmap active"
-git_commit: 6c434887
+git_commit: baf1cf24
 git_branch: main
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-18T12:08:55Z
-mirror_dirty: (dirty: uncommitted changes) |
+last_touched: 2026-06-22T03:37:45Z
+mirror_dirty: |
 ---
 
 # DevHub Overview (L1 concept, in-repo)

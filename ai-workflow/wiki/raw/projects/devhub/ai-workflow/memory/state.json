@@ -154,8 +154,7 @@
         "Q14_db_type": "M-v0.2.0~v0.2.2 sqlite + M-v0.2.3+ PostgreSQL option (2026-06-18 결정)",
         "Q15_per_source_storage_mode_default": "gitea 4 = file + homelab/hrdb = db + metrics = file (decided mapping 2026-06-18)",
         "Q16_pi_ingest_cron_interval": "*/5 (5분) default + M-v0.2.1+ per source custom 가능 (2026-06-18 결정)",
-        "Q17_pi_llm_fallback_policy": "rule-based 자동 fallback (Pi timeout 30초 OR invalid → source_meta.normalize_mode 자동 전환 + audit.pi_ingest_fallback event, 2026-06-18 결정)",
-        "Q18_backend_ai_deprecation_timing": "M-v0.2.2 와 동시 (placeholder 정리 + code-removed + 10 단계 폐기 절차, 2026-06-18 결정)"
+        "Q17_pi_llm_fallback_policy": "rule-based 자동 fallback (Pi timeout 30초 OR invalid → source_meta.normalize_mode 자동 전환 + audit.pi_ingest_fallback event, 2026-06-18 결정)"
       },
       "m_v0_2_0_5_plugins_status": {
         "gitea_repo_pull": {

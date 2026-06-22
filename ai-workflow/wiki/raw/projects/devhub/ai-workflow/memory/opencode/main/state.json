@@ -1,0 +1,83 @@
+{
+  "schema_version": "1",
+  "branch": "main",
+  "branch_type": "main (default branch)",
+  "agent": "opencode (Sisyphus, MiniMax-M3)",
+  "model": "MiniMax-M3",
+  "working_directory": "/home/yklee/repos/Devhub_example",
+  "branch_status": "active (no in-flight commits, fully synced with origin/main)",
+  "main_status_at_session_start": "5eba1825 (PR #661 frontend svelte-check 0 error 영향 row 갱신 직전)",
+  "main_status_at_session_end": "196d8593 (PR #662 .gitignore merge)",
+  "base_commit": "196d8593 Merge pull request #662 from ykylee/chore/260621-gitignore-src-var",
+  "session_started_at": "2026-06-22T00:00:00+09:00",
+  "session_ended_at": "2026-06-22T00:10:00+09:00",
+  "session_duration_minutes": 10,
+  "session_purpose": "직전 sprint (chore/260619-v0-2-poc-followup) 잔여 상태 정리 — feat/260619-v0-2-frontend-svelte redundant 작업 rebase + 폐기 + /src/var/ .gitignore PR + main 정합",
+  "session_outcome": "done",
+  "commits_in_session": [
+    "006284ae chore(gitignore): exclude /src/var/ from main branch (cherry-pick from 7183d7c6 on feat branch onto chore/260621-gitignore-src-var)",
+    "196d8593 Merge pull request #662 from ykylee/chore/260621-gitignore-src-var (PR self-merge)"
+  ],
+  "prs_in_session": [
+    {
+      "number": 662,
+      "title": "chore(gitignore): exclude /src/var/ backend-knowledge runtime data",
+      "branch": "chore/260621-gitignore-src-var",
+      "base": "main",
+      "status": "MERGED",
+      "merged_at": "2026-06-22T00:06:22Z",
+      "merged_by": "ykylee",
+      "merge_commit": "196d85932af3dfc27c1e6cd5209d28b6ddfc41c2",
+      "files_changed": 1,
+      "additions": 5,
+      "deletions": 0,
+      "ci_passed": 4,
+      "ci_skipped": 5,
+      "tier": "사외",
+      "label": "worker/opencode",
+      "merge_method": "regular merge commit (PR #493 chore/cleanup-gitignore-and-untrack 와 동일 스타일)",
+      "auto_branch_delete": true
+    }
+  ],
+  "branches_in_session": [
+    {"action": "created", "name": "chore/260621-gitignore-src-var", "based_on": "origin/main @ 5eba1825", "purpose": ".gitignore 변경을 frontend 브랜치명에서 분리"},
+    {"action": "reset_to_origin_main", "name": "feat/260619-v0-2-frontend-svelte", "reason": "4 commit 모두 'patch contents already upstream' — PR #661 + fix 2건이 동일 scope, redundant"},
+    {"action": "force_pushed", "name": "feat/260619-v0-2-frontend-svelte", "ref_change": "7183d7c6 → 5eba1825"},
+    {"action": "deleted_local", "name": "feat/260619-v0-2-frontend-svelte"},
+    {"action": "deleted_remote", "name": "feat/260619-v0-2-frontend-svelte"},
+    {"action": "deleted_remote", "name": "chore/260621-gitignore-src-var", "reason": "PR #662 --delete-branch"}
+  ],
+  "key_decisions": [
+    "rebase -X ours (main 우선) — 4 commit 모두 auto-drop, conflict 발생 0",
+    ".gitignore 변경을 별도 브랜치 (chore/260621-gitignore-src-var) 로 분리 — frontend 브랜치명 부적합",
+    "PR merge 방식: regular merge commit (PR #493 정공법 정합)",
+    "force-push: --force-with-lease 시도 → stale info (원격 ref 부재) → git push -u 로 신규 push 로 fallback"
+  ],
+  "umbrella_doc_stats": {
+    "path": "docs/planning/release_v0-2_roadmap.md",
+    "status": "v0.2.0 umbrella accepted 2026-06-19",
+    "current_milestone": "M-v0.2.0 done (16+ commits merged including PR #661 frontend PoC + fix 2건 + PR #662 gitignore)",
+    "next_milestone": "M-v0.2.1+ scope (Tier 분리 정공법 / §17.2 known gaps / storage_mode CLI) or M-v0.2.2 (backend-ai 폐기)"
+  },
+  "in_progress_items": [],
+  "blocked_items": [],
+  "recent_done_items": [
+    "PR #662 self-merge (commit 196d8593, 2026-06-22T00:06:22Z, regular merge)",
+    "feat/260619-v0-2-frontend-svelte 브랜치 폐기 (local + origin)",
+    "chore/260621-gitignore-src-var 브랜치 자동삭제 (--delete-branch)",
+    "local main fast-forward to origin/main (34 file / +5568 / -984)"
+  ],
+  "open_questions": [
+    "다음 sprint 진입 시점 — M-v0.2.1+ scope (Tier 분리 정공법 / §17.2 known gaps / storage_mode CLI) vs M-v0.2.2 (backend-ai 폐기) 우선순위"
+  ],
+  "next_documents": [
+    "AGENTS.md",
+    "docs/planning/release_v0-2_roadmap.md (umbrella doc)",
+    "ai-workflow/memory/opencode/chore/260619-v0-2-poc-followup/session_handoff.md (직전 sprint handoff, P1 잔여 항목 WB-13/14/15)"
+  ],
+  "tier_policy_compliance": {
+    "sabo_sa외_patterns_in_diff": 0,
+    "self_check_applied": true,
+    "notes": ".gitignore 변경 5 line 만 — 사내 한정 env var / 호스트명 / IP / 경로 / env file 변경 0"
+  }
+}
