@@ -214,3 +214,10 @@ ui-screenshots-shard-2/
 # OKF backend runtime storage (raw/bundles/audit log). dev/local fixture (homelab_mock)
 # 가 여기에 떨어짐. commit 금지 — 런타임 산출물.
 /src/var/
+
+# === backend-ai runtime data (M-v0.2.2 폐기, 2026-06-22) ===
+# backend-ai/ 디렉터리 자체는 PR 1 (commit a86e1115) + PR 2 (commit 50bc0ca3) 에서
+# tracked tree 에서 제거됨. 본 entry 는 local build artifact / venv 가 재발하지 않도록
+# defensive ignore. backend-ai 가 다시 도입될 경우 본 entry 제거 + tracked 재추가.
+# umbrella doc release_v0-2_roadmap.md §6.6.2 10 단계 폐기 절차 (PR 1+2+3+4 완료) 정합.
+/backend-ai/
