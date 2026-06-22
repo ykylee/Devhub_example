@@ -38,7 +38,7 @@ Makefile 자동 감지가 정상 동작했음. 4개 언어 모두에 대해 별�
 
 - `docs/` (감지됨 → doc_home = `docs/README.md`)
 - `tests/` 또는 `test/` (감지됨)
-- 소스 디렉터리: `backend-ai/`, `backend-core/`, `devhub-backend/`, `artifacts/`
+- 소스 디렉터리: `backend-core/`, `devhub-backend/`, `artifacts/` (2026-06-22 M-v0.2.2 backend-ai 폐기, PR #663)
 
 ## 3. 생성된 파일 검증
 

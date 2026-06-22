@@ -100,7 +100,7 @@ v0.5.4 에서 contract v1 spec 을 외부 문서로 박았으나, 실제 multi-a
     "brief": "N:M contribution weights 구현 + test management isolation. backend-core/ 아래 Go 코드 + tests.",
     "constraints": [
       "scope: backend-core/application_lifecycle/**, backend-core/test_management/**",
-      "do not touch: backend-ai/, frontend/"
+      "do not touch: frontend/"
     ],
     "inputs": {
       "files": [
@@ -175,7 +175,7 @@ PR #491 은 frontend UI + KPI 구현 + i18n 텍스트 + 테스트 관리 대시�
     "brief": "frontend/pages/dashboard/kpi/ 아래 KPI 위젯 구현 (가상 파이썬 인터프리터 연동)",
     "constraints": [
       "scope: frontend/pages/dashboard/kpi/**, frontend/components/kpi/**",
-      "do not touch: backend-ai/, 다른 dashboard 페이지"
+      "do not touch: 다른 dashboard 페이지"
     ],
     "inputs": {"files": ["frontend/pages/dashboard/kpi/index.tsx"]},
     "expected_outputs": {
