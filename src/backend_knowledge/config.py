@@ -54,6 +54,18 @@ class Settings(BaseSettings):
     # Monitoring (M-v0.2.0+ Prometheus)
     enable_metrics: bool = Field(default=False, description="/metrics endpoint 활성화")
 
+    hrdb_url: str | None = Field(default=None, description="HR DB PostgreSQL URL (None = mock mode)")
+    hrdb_schema: str = Field(default="public", description="HR DB schema (default: public)")
+    hrdb_timeout_seconds: float = Field(default=30.0, description="HR DB query timeout")
+    hrdb_pii_field_types: list[str] = Field(
+        default_factory=lambda: ["name", "email", "phone", "address", "employee_id"],
+        description="PII field 자동 detection 대상 (5 종, §3.6.6.5)",
+    )
+
+    postgres_url: str | None = Field(default=None, description="PostgreSQL raw storage URL (None = file mode)")
+    postgres_pool_size: int = Field(default=5, description="PostgreSQL connection pool size")
+    postgres_pool_max_overflow: int = Field(default=10, description="PostgreSQL connection pool max overflow")
+
 
 _settings: Settings | None = None
 
