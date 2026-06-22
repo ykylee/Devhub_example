@@ -65,8 +65,7 @@
     "Q14_db_type": "M-v0.2.0~v0.2.2 sqlite + M-v0.2.3+ PostgreSQL option",
     "Q15_per_source_storage_mode_default": "gitea 4 = file + homelab/hrdb = db + metrics = file",
     "Q16_pi_ingest_cron_interval": "*/5 (5분) default",
-    "Q17_pi_llm_fallback_policy": "rule-based 자동 fallback",
-    "Q18_backend_ai_deprecation_timing": "M-v0.2.2 와 동시"
+    "Q17_pi_llm_fallback_policy": "rule-based 자동 fallback"
   },
   "limitations_7_of_7": {
     "limit_1": "외부 연동 분산 → 해결: §3.2.1 5 카테고리 결정 + §3.5",
