@@ -2893,7 +2893,7 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 | **M-v0.2.0-alpha** | 컨셉 umbrella + child doc 정합 + PoC 진입 | 본 문서 publish + `external-integrations-agentic-rag-roadmap.md` cross-link | (없음) | ⏳ planned (v0.2.0-alpha) |
 | **M-v0.2.0** | 1차 standalone 구현 (Gitea 통합 4 sub-plugin PoC, backend 단독, frontend 0) | `backend-knowledge/` skeleton + OKF spec model (frontmatter `x_devhub_category` 필드 추가) + **Gitea 통합 4종** (`gitea_repo_pull` / `gitea_issue` / `gitea_wiki` / `gitea_action`, Gitea 1 instance 의 4 sub-plugin, 5 카테고리 중 4: 이슈/위키/SCM/CI-CD, §3.8.2 정공법) + `homelab_mock` 1종 (§3.8.3 정공법) = **5종 PoC (5 카테고리 결정 기반, 2026-06-17, §3.2.1 / §3.7.2 / §3.8 / §6.4 정합)** + Ingest 1 endpoint + Query 1 endpoint (concept 직접 조회) + 1차 raw API + OpenAPI. **frontend 0 page** (M-v0.2.0 만, viz.html 자가 viewer 만 SSR) | M-v0.2.0-alpha | ⏳ planned (v0.2.0) |
 | **M-v0.2.1** | 1차 완성 + Gitea 통합 정식 + 사내 시스템 wire + Curate + frontend 관리/조회 page 1 | Gitea 통합 4종 정식 wire (1차 PoC → 정식, 5 카테고리 중 4) + `homelab_mock` → `homelab` (real wire, 5 카테고리 외 사내 시스템) = 5종 운영 + Curate 3 endpoint (enrich / edit / rebuild) + 1차 viz.html (자가 viewer) + **frontend 관리/조회 page 1** (`backend-knowledge/web/`, 별도 standalone frontend, **devhub frontend 와 분리**, standalone 정책 정합, **§12.2 의 5 page 상세 정합**: concept list / concept detail / ingest trigger / bundle management / raw inspector) + e2e smoke | M-v0.2.0 | ⏳ planned (v0.2.1) |
-| **M-v0.2.2** | 5 카테고리 외 추가 wire + backend-ai 폐기 | M-v0.2.1 의 5종 + `metrics` 정식 wire (모니터링, 5 카테고리 외) = 6종 운영 + `backend-ai/` 디렉터리 제거 (단독 결정) | M-v0.2.1 | ✅ **done (2026-06-22, PR #663 + #664)** |
+| **M-v0.2.2** | 5 카테고리 외 추가 wire + backend-ai 폐기 | M-v0.2.1 의 5종 + `metrics` 정식 wire (모니터링, 5 카테고리 외) = 6종 운영 + `backend-ai/` 디렉터리 제거 (단독 결정) | M-v0.2.1 | ✅ **done (2026-06-22, PR #663 + #664 + #665 + #666, 4-PR split)** |
 | **M-v0.2.3** | Pi LLM enrich + cross-link 자동 resolution | + Pi `pi-coding-agent` SDK or RPC mode 로 LLM enrich 활성화 (1 vendor) + cross-link 자동 resolution | M-v0.2.2 | ⏳ planned (v0.2.3) |
 | **M-v0.3.0** | 풀 RAG (chunking + embedding + retrieval) | sentence-transformers or 외부 embedding + vector index (sqlite-vss or pgvector) + reranking + LLM answer | M-v0.2.3 | ⏳ planned (v0.3.0) |
 
@@ -2909,7 +2909,7 @@ concept 가 reviewed state 로 진입 시 (M-v0.2.1+ human 작성 review OR rule
 | **P1** | 2 source plugin + Curate 3 endpoint | M-v0.2.1 |
 | **P1** | viz.html (자가 viewer) + **frontend 관리/조회 page 1** (`backend-knowledge/web/`, 별도 standalone frontend, devhub frontend 와 분리) | M-v0.2.1 |
 | **P1** | e2e smoke (ingest → curate → query) | M-v0.2.1 |
-| **P2** | 외부 시스템 **6종** source wire (Gitea 4 + homelab + metrics) + backend-ai 폐기 (단독) | M-v0.2.2 | ✅ **done (2026-06-22, PR #663 + #664)** |
+| **P2** | 외부 시스템 **6종** source wire (Gitea 4 + homelab + metrics) + backend-ai 폐기 (단독) | M-v0.2.2 | ✅ **done (2026-06-22, PR #663 + #664 + #665 + #666, 4-PR split)** |
 | **P3** | Pi LLM enrich (1 vendor) | M-v0.2.3 |
 | **P3** | 풀 RAG (embedding + vector index) | M-v0.3.0 |
 
@@ -2952,7 +2952,7 @@ M-v0.3.0
 | **M-v0.2.0-alpha** | (없음) | ADR-0037/0038 publish + state.json M-v0.2.0 row | umbrella doc + child doc active 전환 | planned |
 | **M-v0.2.0** | alpha | OKF SPEC.md 1차 정독 (M-v0.2.0 이전) | skeleton + OKF spec model + Gitea 4 + homelab_mock + Ingest/Query + raw API + OpenAPI | planned |
 | **M-v0.2.1** | v0.2.0 | frontend page 1 design + Pi LLM vendor 결정 (M-v0.2.3 이전) | Gitea 정식 + homelab real + Curate + viz.html + frontend 관리 page 1 + e2e smoke | planned |
-| **M-v0.2.2** | v0.2.1 | backend-ai/ 디렉터리 제거 PR | metrics + 6종 운영 + backend-ai 폐기 | ✅ **done (2026-06-22, PR #663 + #664)** |
+| **M-v0.2.2** | v0.2.1 | backend-ai/ 디렉터리 제거 PR | metrics + 6종 운영 + backend-ai 폐기 | ✅ **done (2026-06-22, PR #663 + #664 + #665 + #666, 4-PR split)** |
 | **M-v0.2.3** | v0.2.2 | hrdb schema spec + Pi SDK/RPC mode 결정 | + hrdb + Pi LLM enrich + cross-link 자동 resolution + 7종 운영 | planned |
 | **M-v0.3.0** | v0.2.3 | embedding model 결정 (sentence-transformers or 외부) | chunking + embedding + vector index + reranking + multi-vendor LLM | planned |
 
@@ -3313,7 +3313,7 @@ Step 4: metrics.py merge + docker-compose 재기동
 Step 5: 운영 검증 (1주 monitoring 지표 정상)
 ```
 
-#### 6.6.2 backend-ai 폐기 절차 (단계별, M-v0.2.2 정공법) ✅ **done 2026-06-22 (PR #663 + #664)**
+#### 6.6.2 backend-ai 폐기 절차 (단계별, M-v0.2.2 정공법) ✅ **done 2026-06-22 (PR #663 + #664 + #665 + #666, 4-PR split)**
 
 **폐기 단계** (per file/directory):
 
@@ -3325,27 +3325,29 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상)
 | 4 | `docker-compose.deploy.yml` 의 backend-ai service | 제거 (root level) | root `dev-up.sh` 영향 | ✅ **done** (commit 04bb8cc7) |
 | 5 | root `Makefile` 의 backend-ai target | 제거 | root Makefile 영향 | ✅ **done** (commit 50bc0ca3) |
 | 6 | root `dev-up.sh` 의 backend-ai target | 제거 | root dev script 영향 | ✅ **done** (no-op, dev-up.sh was 0 backend-ai reference in HEAD) |
-| 7 | `docs/` 의 backend-ai reference (있는 경우) | 제거 | docs 영향 | ⏳ **in progress** (PR #3, scope of this PR) |
+| 7 | `docs/` 의 backend-ai reference (있는 경우) | 제거 | docs 영향 | ✅ **done** (PR #665, 5 commit, 30+ file: umbrella + ADRs + governance + setup/shared + req/release/arch + roadmap/assessment + arch/api/infra/planning) |
 | 8 | `infra/` 의 backend-ai config (있는 경우) | 제거 | infra 영향 | ✅ **done** (no infra/ backend-ai config in HEAD) |
 | 9 | ci workflow (`ci-internal.yml`) 의 backend-ai job | 제거 | CI 영향 | ✅ **done** (4 workflow, commit 265413b0 — ci.yml + docker-image-publish.yml + e2e-regression.yml + e2e-quarantine.yml; ci-internal.yml not exist) |
-| 10 | `ai-workflow/memory/state.json` 의 backend-ai row | 제거 (archive) | state 정합 | ⏳ **in progress** (PR #4) |
+| 10 | `ai-workflow/memory/state.json` 의 backend-ai row | 제거 (archive) | state 정합 | ✅ **done** (PR #666, 3 commit: state.json Q18 row remove + vendor reference 0 + codex-handoff ABI comment) |
 
 **PR 분리** (per AGENTS.md / §5.7):
 - **PR 1**: backend-ai/ 디렉터리 + Dockerfile + main.py 제거 ✅ **MERGED** (PR #663, commit 0dc0ca90, 2026-06-22T00:33:15Z, 3 commit: a86e1115 + f8943476 + 5fd6f199). **scope 보강**: backend-core Go 의 Config.BackendAIURL field + runtime_snapshot_provider + test + main.go 의 backend-ai reference 동시 제거 (SOP 갭 발견, §6.6.2 step 1 주석 "(no backend reference)" 가 잘못이었던 사실 확인 — backend-core/ 가 BACKEND_AI_URL 을 runtime 으로 사용 중이었음)
 - **PR 2**: root level 정리 (docker-compose, Makefile, scripts, CI) ✅ **MERGED** (PR #664, commit 92fa0269, 2026-06-22T01:12:26Z, 4 commit: 04bb8cc7 + 265413b0 + 03188d12 + 50bc0ca3). **scope 보강**: §6.6.2 SOP 의 step 4-6 이 docker-compose.deploy.yml + 4 CI workflow + 3 script + Makefile + .gitignore + pyproject.toml 까지 cover. backend-ai reference 0 row in tracked tree.
-- PR 3: docs + infra + ci 정리 ⏳ **in progress** (umbrella + ADRs + 25+ docs, 본 PR)
-- PR 4: state.json archive ⏳ **pending** (workflow state.json Q18 row + branch memory + vendor examples)
+- **PR 3**: docs + infra + ci 정리 ✅ **MERGED** (PR #665, commit b83422b9, 2026-06-22, 5 commit: 14f822ad + 48299dd6 + d8c3176d + f26fbbd1 + 042059d2). docs/ 5 영역 정합 (governance + setup/shared + req/release/arch + roadmap/assessment + arch/api/infra/planning) + ADR numbering 정합 (PR #668 영향)
+- **PR 4**: state.json archive ✅ **MERGED** (PR #666, 2026-06-22T01:36:50Z, 3 commit: 7af6a3e7 vendor reference 0 + 8d0e7eab codex-handoff ABI comment + d1a14f22 state.json Q18 row remove). workflow state.json Q18 row + branch memory + vendor examples 완료
 
 **각 PR 의 DoD** (per §6.6.2):
 - (a) grep `backend-ai` 결과 = 0 (단, archive reference 제외) ✅ — root + CI + scripts + config layer (PR 1+2 완료), docs layer (PR 3 본 PR), state layer (PR 4)
 - (b) docker compose 가동 정상 (backend-knowledge 만) ✅ — PR #664 의 docker-compose.deploy.yml 검증. (pre-existing bug 별도: line 114-115 duplicate `command:` key, keycloak service, scope 외)
-- (c) ADR-0038 §6 supersession row 추가 ⏳ — umbrella doc + ADR-0038 본문 M-v0.2.2 status update (PR 3 본 PR)
+- (c) ADR-0038 §6 supersession row 추가 ✅ — umbrella doc + ADR-0038 본문 M-v0.2.2 status update (PR #665, §6.6.2 SOP 10 단계 step 7 의 docs 정합에 포함). **Note**: PR #668 (ADR-0034/0035 → ADR-0037/0038 numbering 중복 정리, 2026-06-22T02:34:11Z MERGED) 와 cross-ref.
 
-**현황 요약** (2026-06-22, 4-PR split 2/4 완료):
-- ✅ PR 1 (MERGED): 9 file / +13/-72 (3 commit)
-- ✅ PR 2 (MERGED): 11 file / +11/-106 (4 commit)
-- ⏳ PR 3 (in progress): ~30 file (umbrella + ADRs + 25+ docs)
-- ⏳ PR 4 (pending): ~5 file (state.json + memory + vendor)
+**현황 요약** (2026-06-22, 4-PR split 4/4 완료 ✅):
+- ✅ PR 1 (MERGED, #663): 9 file / +13/-72 (3 commit: a86e1115 + f8943476 + 5fd6f199)
+- ✅ PR 2 (MERGED, #664): 11 file / +11/-106 (4 commit: 04bb8cc7 + 265413b0 + 03188d12 + 50bc0ca3)
+- ✅ PR 3 (MERGED, #665): 30+ file / umbrella + ADRs + 25+ docs (5 commit: 14f822ad + 48299dd6 + d8c3176d + f26fbbd1 + 042059d2)
+- ✅ PR 4 (MERGED, #666): 4 file / state.json + memory + vendor (3 commit: 7af6a3e7 + 8d0e7eab + d1a14f22)
+
+**종합**: 4 PR 모두 MERGED. backend-ai reference 0 row (전체 tree). §6.6.2 SOP 10 단계 100% ✅. M-v0.2.2 release close.
 
 #### 6.6.3 E2E 6종 smoke + alert routing 검증
 

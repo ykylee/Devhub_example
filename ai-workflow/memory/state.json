@@ -310,6 +310,22 @@
         "next_step": "다음 commit 발생 시 wiki-sync-devhub.sh + wiki-frontmatter-update.sh 자동 cycle (CI/수동)"
       }
     },
+    "M-v0.2.2": {
+      "status": "done",
+      "started_at": "2026-06-22",
+      "ended_at": "2026-06-22",
+      "notes": "M-v0.2.2 close — backend-ai 폐기 4 PR MERGED (PR #663 + #664 + #665 + #666, 4-PR split). §6.6.2 SOP 10 단계 폐기 절차 100% ✅. §5.1/§5.2/§5.5/§6.6.2 umbrella doc 4 위치 status 4-PR 정합. backend-ai reference 0 row (tracked tree). 6종 source 운영 (Gitea 4 + homelab + metrics, M-v0.2.1 의 5종 + metrics 추가). §6.6.2 step 7 (docs/) + step 10 (state.json) 모두 ✅. ADR-0038 §6 supersession row 추가 (PR #665). ADR numbering 정합 (PR #668 ADR-0034/0035 → ADR-0037/0038). Tier: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용). M-v0.2.3 Pi LLM enrich + hrdb 7종 운영 진행 중 (PR #672 hrdb + PR #673 Pi cross-link resolver).",
+      "4_pr_split": {
+        "pr_1": {"number": 663, "title": "backend-ai/ + Dockerfile + backend-core Go cleanup", "commits": 3, "merge_commit": "0dc0ca90", "merged_at": "2026-06-22T00:33:15Z", "scope": "a86e1115 + f8943476 + 5fd6f199"},
+        "pr_2": {"number": 664, "title": "root level (docker-compose + Makefile + scripts + CI)", "commits": 4, "merge_commit": "92fa0269", "merged_at": "2026-06-22T01:12:26Z", "scope": "04bb8cc7 + 265413b0 + 03188d12 + 50bc0ca3"},
+        "pr_3": {"number": 665, "title": "docs/ 5 영역 정합 (governance + setup/shared + req/release/arch + roadmap/assessment + arch/api/infra/planning)", "commits": 5, "merge_commit": "b83422b9", "merged_at": "2026-06-22", "scope": "14f822ad + 48299dd6 + d8c3176d + f26fbbd1 + 042059d2"},
+        "pr_4": {"number": 666, "title": "state.json + memory + vendor (SOP step 10)", "commits": 3, "merged_at": "2026-06-22T01:36:50Z", "scope": "7af6a3e7 + 8d0e7eab + d1a14f22"}
+      },
+      "sop_completion": {"section": "§6.6.2", "total_steps": 10, "completed_steps": 10, "step_7_docs": "PR #665 (5 commit, 30+ file)", "step_10_state": "PR #666 (state.json Q18 row remove + vendor reference 0)"},
+      "umbrella_doc_refs": "§1.2 G2 + §5.1 + §5.2 + §5.5 + §6.6 + §6.6.2 + §14 release notes draft",
+      "adr_alignment": "ADR-0038 §6 supersession + PR #668 numbering (ADR-0034/0035 → ADR-0037/0038)",
+      "tier": "사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)"
+    },
     "M-v1.0": {
       "status": "in_progress",
       "started_at": "2026-05-20",
