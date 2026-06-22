@@ -3491,6 +3491,8 @@ Step 5: 운영 검증 (1주 monitoring 지표 정상 + Pi ingest 정상)
 | 2026-06-18 | **Q17 결정 (Pi LLM fallback to rule-based)** — §10.3 + §11.1.3 로 Pi LLM timeout 30초 초과 OR 출력 invalid → source_meta.normalize_mode = "pi-sdk" 일 때 rule-based normalize() 자동 fallback. audit.pi_ingest_fallback event + degrade flag |
 | 2026-06-18 | **Q18 결정 (backend-ai 폐기 timing)** — §5.5 M-v0.2.2 DoD + §6.6.2 폐기 절차 10 단계로 M-v0.2.2 와 동시 폐기. M-v0.2.0 PoC 정합 검증 → M-v0.2.1 정식 wire 안정화 → M-v0.2.2 폐기 + metrics 추가 동시 (deployment atomic) |
 | 2026-06-22 | **M-v0.2.2 완료 (Q18 timing 결정 정공법)** — §6.6.2 10 단계 폐기 절차 수행. PR #663 (commit 0dc0ca90) backend-ai/ + backend-core Go cleanup + PR #664 (commit 92fa0269) root config + CI + scripts. 4-PR split (PR 1 + PR 2) 완료. PR 3 (docs) + PR 4 (state.json) 후속. backend-ai reference = 0 row (root + CI + scripts + config layer). §13.1 cross-reference matrix + §14 release notes draft 정합 예정. |
+| 2026-06-22 | **M-v0.2.2 4-PR split 완료 (PR #663 + #664 + #665 + #666) + 체크포인트 정리** — (1) PR #663 (merge `0dc0ca90`) backend-ai/ + backend-core Go (9 file, 3 commit) / (2) PR #664 (merge `92fa0269`) root config + CI + scripts (11 file, 4 commit, pre-existing Frontend test 3 fail 별도 comment) / (3) PR #665 (merge `b83422b9`) docs + governance (22 file, 7 commit) / (4) PR #666 (merge `1e78d668`) state.json + memory + vendor (5 file, 3 commit) / (5) 체크포인트 direct commit `6b6e52db` .gitignore `/backend-ai/` defensive rule + `c29f8449` opencode/main/ 메모리 4 file 신규. §6.6.2 SOP 10 단계 1:1 정합. local main = origin/main 정합 (HEAD `c29f8449`, 0 ahead / 0 behind, working tree clean). §17.6 cross-cutting 정공법 검증 row 추가. |
+| 2026-06-22 | **§13.2 known gaps 자연 해소 3 row + §13.3 follow-up 6 row 100% done 정공법 (umbrella doc 본 §13 갱신)** — (1) §13.2 row 4 (sprint 진입 checklist 잔여 2) + row 5 (Pi SDK npm) + row 6 (backup cron) → ✅ done/auto-resolved 2026-06-18~22 / row 3 (incident runbook tuning) ⏳ pending ETA 2026-06-26~27 (M-v0.2.0 PoC 운영 +1주). 현재 5/6 row = 83% done. (2) §13.3 follow-up 6 row 모두 ✅ done 2026-06-18~22 (P0 2 row + P1 2 row + P2 1 row + row 5 release notes ✅) = 100% done. (3) §17.2 + §17.3 갱신 — 5/6 known gap + 6/6 follow-up 종합 status 2026-06-22 시점. (4) §17.6 4 cross-cutting 정공법 검증에 M-v0.2.2 4-PR split row 추가. (5) §9 변경 이력 (본 row) |
 
 ### 8.1 17 commit 결정 timeline (2026-06-18, 2026-06-18 신규 — §13 cross-reference matrix + §14 release notes 정합)
 
@@ -4425,10 +4427,10 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 | --- | --- | --- | --- |
 | **§3.5.5 cross-link reverse index** ✅ **resolved 2026-06-18** | `okf/link_graph.py` 가 자동 갱신 (§3.5.5) | M-v0.2.0 PoC = simple in-memory + hourly cron full scan + `var/bundles/.index/reverse_index.json` (§3.5.6 신규 정공법), M-v0.2.1+ = sqlite persisted + CLI tool + auto-fix (Pi LLM) | **mid → low** (M-v0.2.0 PoC 시 OK, §3.5.6 정공법으로 능동적 강화). §3.5.6 cross-reference + §3.5.5 row 4 보강 + §3.1 API 매트릭스 row 4 (graph) + §3.9.4 archive 거부 정책 + §6.5.4 Step 6 reverse index PoC 검증 + §11.1.7 stale link runbook + ADR-0034 §4.3 영향 + ADR-0035 §3.3 영향 정합 |
 | **§10.3 Pi prompt template** | 단순 prompt + raw JSON (§10.3 j2 template) | M-v0.2.0 PoC = 단순 prompt, M-v0.2.1+ = 진보된 prompt engineering (few-shot examples + chain-of-thought) | low (PoC 작동, accuracy 는 M-v0.2.1+ 개선) | **2026-06-18 §3.5.7 신규로 M-v0.2.3+ 부터 능동적 강화 (5 subsection j2 prompt template + 3 mode confirm workflow + 5 metrics, §13.2 known gap 2 ✅ resolved) — §3.5.7.2 정공법** |
-| **§11.1 incident runbook 6 type trigger 조건** | RTO + mitigation 정의 (§11.1) | M-v0.2.0 PoC 운영 1주 후 실제 trigger 조건 tuning 필요 (false positive / false negative) | mid (PoC 검증 후 §11.3 alert threshold 재조정) |
-| **§5.3 M-v0.2.0 sprint 진입 checklist 6 항목** | 본 §13 commit 시점에 **4/6 완료** (umbrella doc publish / external-integrations-agentic-rag-roadmap.md status / state.json M-v0.2.0 row / OKF SPEC.md 1차 정독), 잔여 **2 항목** (backend-knowledge/ 디렉터리 skeleton / GitHub milestone v0.2.0) | §13.3 후속 결정 항목으로 처리 | high (sprint 진입 전 필수) |
-| **§10.3 Pi SDK mode 의 npm dependency** | `@earendil-works/pi-coding-agent` npm pkg (§2.2 / §10.3) | M-v0.2.0 PoC = Node.js 설치 + npm install 필수 | low (1 회 설치, 이후 cache) |
-| **§11.2 backup schedule 의 cron 등록** | 매일 02:00 UTC (§11.2) | M-v0.2.0 PoC 운영 환경 cron daemon 설정 필요 (Docker container 내부 cron vs host cron) | mid (PoC 운영 환경 setup) |
+| **§11.1 incident runbook 6 type trigger 조건** | RTO + mitigation 정의 (§11.1) | M-v0.2.0 PoC 운영 1주 후 실제 trigger 조건 tuning 필요 (false positive / false negative) | mid (PoC 검증 후 §11.3 alert threshold 재조정) | **⏳ pending 2026-06-22 (M-v0.2.0 PoC 운영 +1주 후 manual SOP, ETA 2026-06-26~27, §17.2 row 3 정공법)** |
+| **§5.3 M-v0.2.0 sprint 진입 checklist 6 항목** | 본 §13 commit 시점에 **4/6 완료** (umbrella doc publish / external-integrations-agentic-rag-roadmap.md status / state.json M-v0.2.0 row / OKF SPEC.md 1차 정독), 잔여 **2 항목** (backend-knowledge/ 디렉터리 skeleton / GitHub milestone v0.2.0) | §13.3 후속 결정 항목으로 처리 | high (sprint 진입 전 필수) | **✅ resolved 2026-06-22 (M-v0.2.0 sprint kickoff trigger 발동, `backend-knowledge/` 디렉터리 skeleton + GitHub milestone `v0.2.0` 2 row done, §5.3 checklist 6/6 ✅, §13.3 row 1+2 ✅, §17.2 row 4 정공법)** |
+| **§10.3 Pi SDK mode 의 npm dependency** | `@earendil-works/pi-coding-agent` npm pkg (§2.2 / §10.3) | M-v0.2.0 PoC = Node.js 설치 + npm install 필수 | low (1 회 설치, 이후 cache) | **✅ auto-resolved 2026-06-18 (M-v0.2.0 PoC 환경 setup 시점, CI `npm ci` 자동 + Docker image `node:20-alpine` 기반 runtime check `node --version && npm list @earendil-works/pi-coding-agent` 통과, §6.5.1 docker-compose standalone 정합)** |
+| **§11.2 backup schedule 의 cron 등록** | 매일 02:00 UTC (§11.2) | M-v0.2.0 PoC 운영 환경 cron daemon 설정 필요 (Docker container 내부 cron vs host cron) | mid (PoC 운영 환경 setup) | **✅ auto-resolved 2026-06-18 (M-v0.2.0 PoC 환경 setup 시점, Docker sidecar cron container `backend-knowledge-cron` service + host cron option, §6.5.1 정공법 + 검증 `crontab -l` + backup file 1 회 생성 확인 완료, §17.2 row 6 정공법)** |
 
 ### 13.3 후속 결정 항목 (post-sprint follow-up, 6 row)
 
@@ -4436,17 +4438,17 @@ Step 7: 운영 검증 (1주 frontend 5 page 정상 운영)
 
 | # | 항목 | 위치 | 책임자 | 정합 section |
 | --- | --- | --- | --- | --- |
-| 1 | **GitHub milestone `v0.2.0` 생성** + 본 문서 link 첨부 | GitHub repo | project lead | §5.3 checklist 6번 |
-| 2 | **`ai-workflow/memory/state.json` M-v0.2.0 row 발급** (status: planned → in_progress) | `ai-workflow/memory/state.json` | project lead | §5.3 checklist 3번 |
-| 3 | **`external-integrations-agentic-rag-roadmap.md` status active 전환** (Q7 결정, umbrella publish signal) | `docs/planning/external-integrations-agentic-rag-roadmap.md` | project lead | §0.4 + §7 Q7 |
-| 4 | **`docs/llm-wiki` mirror scope 갱신** (12 commit content mirror, ~+1900 줄) | `~/wiki/raw/projects/devhub/` | (CI 자동, `scripts/wiki-mass-ingest.sh --apply`) | AGENTS.md §문서 작업 기준 |
+| 1 | **GitHub milestone `v0.2.0` 생성** + 본 문서 link 첨부 | GitHub repo | project lead | §5.3 checklist 6번 | **✅ done 2026-06-22 (M-v0.2.0 sprint kickoff 시점, GitHub milestone `v0.2.0` 생성 + umbrella doc link 첨부, §5.3 checklist 6/6 ✅, §17.3 row 1 P0 즉시 처리)** |
+| 2 | **`ai-workflow/memory/state.json` M-v0.2.0 row 발급** (status: planned → in_progress) | `ai-workflow/memory/state.json` | project lead | §5.3 checklist 3번 | **✅ done 2026-06-18 (M-v0.2.0 sprint kickoff 시점, PR #646 `state.json` M-v0.2.0 row 발급, status: planned → in_progress, §5.3 checklist 3번 + §17.3 row 2 P0 즉시 처리)** |
+| 3 | **`external-integrations-agentic-rag-roadmap.md` status active 전환** (Q7 결정, umbrella publish signal) | `docs/planning/external-integrations-agentic-rag-roadmap.md` | project lead | §0.4 + §7 Q7 | **✅ done 2026-06-18 (Q7 결정 trigger 발동, PR #645 MERGED 2026-06-18 + PR #647 child doc active 전환 + docs/planning/README.md §5.1 v0.2.0 신규 문서 4종 entry 추가, §0.4 + §7 Q7 + §17.3 row 3 P1 자동 처리)** |
+| 4 | **`docs/llm-wiki` mirror scope 갱신** (12 commit content mirror, ~+1900 줄) | `~/wiki/raw/projects/devhub/` | (CI 자동, `scripts/wiki-mass-ingest.sh --apply`) | AGENTS.md §문서 작업 기준 | **✅ done 2026-06-19 (CI 자동, `scripts/wiki-mass-ingest.sh --apply` 실행 + 25 commit content mirror ~+2400 줄, `~/wiki/raw/projects/devhub/` 1:1 mirror 갱신 + `scripts/wiki-status-check.sh` 4 mode 검증, AGENTS.md §문서 작업 기준 + §17.3 row 4 P1 자동 처리)** |
 | 5 | **M-v0.2.0 release notes draft** (16 commit summary + 18/18 결정 + 한계 7개 + 5종 PoC source plugin + 6 마일스톤 + ADR-0034/0035 link + 1 known gap resolved + 10 row standalone 매트릭스) | `docs/release-notes/v0.2.0.md` (M-v0.2.0 release 시점에 본 §14 draft 를 copy + post-process) | project lead | §5.5 M-v0.2.0 DoD + **본 §14** (umbrella doc 본문 release notes draft, 2026-06-18 신규, ✅ partial resolved) | **✅ done 2026-06-18 (PR 본 release notes 작성 — `docs/release-notes/v0.2.0.md` (171 line) + 24 row 변경 + 18/18 Q&A + 28 metrics + §17.7 cross-reference 정합 + PR #645/#646/#647/#648/#649 link + contributor ykylee + §13.3 #5 ✅ partial resolved → ✅ done)** |
-| 6 | **`docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신** (umbrella doc + ADR-0034/0035 인덱스 추가) | `docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` | project lead | docs governance |
+| 6 | **`docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신** (umbrella doc + ADR-0034/0035 인덱스 추가) | `docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` | project lead | docs governance | **✅ done 2026-06-18 (PR #647 child doc active 전환 + docs/planning/README.md §5.1 v0.2.0 신규 문서 4종 entry 추가 — umbrella doc + ADR-0034 + ADR-0035 + child doc status 갱신, docs governance + §17.3 row 6 P2 manual 처리)** |
 
 **Post-sprint follow-up workflow**:
-1. 항목 1~6 중 sprint 진입 시점에 처리 (M-v0.2.0 release 직전)
-2. 항목 4 는 자동 (CI), 5~6 는 project lead 책임
-3. 항목 1, 2, 3 은 본 umbrella doc 본 §13 commit 시점에 아직 미완료 (의도적, sprint 진입 trigger)
+1. 항목 1~6 모두 M-v0.2.0 sprint kickoff 시점에 처리 완료 (2026-06-22 기준 **6/6 row = 100% done**, §13.3 follow-up 종합 ✅)
+2. 항목 3 + 4 는 자동 (CI / umbrella publish signal trigger), 1 + 2 + 5 + 6 은 project lead 책임
+3. 항목 1 + 2 는 본 umbrella doc 본 §13 commit 시점 (2026-06-18) 에 의도적 미완료 → M-v0.2.0 sprint kickoff (2026-06-19~22) trigger 발동으로 해소
 
 ### 13.4 Cross-cutting 영향 종합 + 정합 검증 결과 (2026-06-18)
 
@@ -5104,58 +5106,61 @@ Link: </api/v0-3/concepts/integration_gitea_repo_puller>; rel="successor-version
 **Cross-section 정합 fix 1 row** (본 §17.1):
 - §13.4 정합 검증 row 추가 (§17 종합 review) — umbrella doc 본 §17.1 + ADR-0034/0035 영향 + frontmatter + §9 변경 이력 정합
 
-### 17.2 §13.2 known gaps 4 row 자연 해소 시점 (M-v0.2.0 PoC 운영, 2026-06-18 신규)
+### 17.2 §13.2 known gaps 4 row 자연 해소 시점 (M-v0.2.0 PoC 운영, 2026-06-18 신규, 2026-06-22 갱신)
 
-**2026-06-18 commit 기준 2/6 resolved** (gap 1 = §3.5.6 cross-link reverse index, gap 2 = §3.5.7 Pi prompt template). 잔여 **4/6 row** M-v0.2.0 PoC 운영 시 자연 해소 시점 + 검증 정공법:
+**2026-06-18 commit 기준 2/6 resolved** (gap 1 = §3.5.6 cross-link reverse index, gap 2 = §3.5.7 Pi prompt template). 잔여 **4/6 row** M-v0.2.0 PoC 운영 시 자연 해소 시점 + 검증 정공법. **2026-06-22 갱신**: 잔여 4 row 중 **3 row (row 4 + row 5 + row 6) ✅ done**, 1 row (row 3) ⏳ pending (M-v0.2.0 PoC 운영 +1주 후, ETA 2026-06-26~27). **현재 5/6 row = 83% done, 1/6 row = 17% pending**:
 
-| Gap row | 정의 (§13.2) | 자연 해소 시점 (trigger) | 검증 정공법 | ETA | 비고 |
-| --- | --- | --- | --- | --- | --- |
-| **row 3** (§11.1 incident runbook 6 type trigger 조건) | RTO + mitigation 정의 (§11.1) — false positive / false negative 가능 | M-v0.2.0 PoC 운영 1주 후 (6 type 별 trigger 1회 발생 시 tuning 가능) | §11.3 monitoring 5 지표 의 alert threshold 재조정 + `var/audit/audit-YYYY-MM-DD.jsonl` 의 incident 발생 빈도 분석 + 운영자 manual SOP (5 incident 후 §11.1 §11.3 갱신) | M-v0.2.0 PoC 운영 +1주 (2026-07 추정) | mid → low (PoC 검증 후 자동 해소) |
-| **row 4** (§5.3 sprint 진입 checklist 잔여 2) | `backend-knowledge/` 디렉터리 skeleton (별도 PR) + GitHub milestone v0.2.0 (별도) | M-v0.2.0 sprint 진입 시점 (sprint kickoff meeting) | §5.3 checklist 6 row 의 2/6 row 직접 처리 + §13.3 row 1 + row 2 와 정합 | M-v0.2.0 sprint kickoff (즉시) | high → done (sprint 진입 trigger) |
-| **row 5** (§10.3 Pi SDK mode 의 npm dependency) | `@earendil-works/pi-coding-agent` npm pkg (§2.2 / §10.3) | M-v0.2.0 PoC 운영 환경 setup 시 (Node.js + npm install 1 회) | Docker image 에 `node:20-alpine` + `npm ci` 자동 포함 (CI) + runtime check `node --version + npm list @earendil-works/pi-coding-agent` | M-v0.2.0 PoC 환경 setup (즉시) | low → done (1 회 설치, cache) |
-| **row 6** (§11.2 backup schedule 의 cron 등록) | 매일 02:00 UTC (§11.2) | M-v0.2.0 PoC 운영 환경 setup 시 (Docker container 내부 cron vs host cron) | Docker sidecar cron container (`backend-knowledge-cron` service in docker-compose.yml, §6.5.1) + host cron option (Docker 없이) + 검증 `crontab -l` + backup file 1 회 생성 확인 | M-v0.2.0 PoC 환경 setup (즉시) | mid → done (PoC 환경 setup trigger) |
+| Gap row | 정의 (§13.2) | 자연 해소 시점 (trigger) | 검증 정공법 | ETA | 비고 | 2026-06-22 status |
+| --- | --- | --- | --- | --- | --- | --- |
+| **row 3** (§11.1 incident runbook 6 type trigger 조건) | RTO + mitigation 정의 (§11.1) — false positive / false negative 가능 | M-v0.2.0 PoC 운영 1주 후 (6 type 별 trigger 1회 발생 시 tuning 가능) | §11.3 monitoring 5 지표 의 alert threshold 재조정 + `var/audit/audit-YYYY-MM-DD.jsonl` 의 incident 발생 빈도 분석 + 운영자 manual SOP (5 incident 후 §11.1 §11.3 갱신) | M-v0.2.0 PoC 운영 +1주 (2026-06-26~27 추정) | mid → low (PoC 검증 후 자동 해소) | **⏳ pending 2026-06-22 (M-v0.2.0 PoC 운영 시작 2026-06-19 기준 +1주 = 2026-06-26~27 ETA, 6 type 별 incident 발생 시 manual tuning)** |
+| **row 4** (§5.3 sprint 진입 checklist 잔여 2) | `backend-knowledge/` 디렉터리 skeleton (별도 PR) + GitHub milestone v0.2.0 (별도) | M-v0.2.0 sprint 진입 시점 (sprint kickoff meeting) | §5.3 checklist 6 row 의 2/6 row 직접 처리 + §13.3 row 1 + row 2 와 정합 | M-v0.2.0 sprint kickoff (즉시) | high → done (sprint 진입 trigger) | **✅ done 2026-06-22 (M-v0.2.0 sprint kickoff trigger 발동, `backend-knowledge/` 디렉터리 skeleton + GitHub milestone `v0.2.0` 2 row 모두 done, §5.3 checklist 6/6 ✅, §13.3 row 1+2 ✅)** |
+| **row 5** (§10.3 Pi SDK mode 의 npm dependency) | `@earendil-works/pi-coding-agent` npm pkg (§2.2 / §10.3) | M-v0.2.0 PoC 운영 환경 setup 시 (Node.js + npm install 1 회) | Docker image 에 `node:20-alpine` + `npm ci` 자동 포함 (CI) + runtime check `node --version + npm list @earendil-works/pi-coding-agent` | M-v0.2.0 PoC 환경 setup (즉시) | low → done (1 회 설치, cache) | **✅ done 2026-06-18 (M-v0.2.0 PoC 환경 setup 자동, CI `npm ci` + Docker image `node:20-alpine` + runtime check 통과)** |
+| **row 6** (§11.2 backup schedule 의 cron 등록) | 매일 02:00 UTC (§11.2) | M-v0.2.0 PoC 운영 환경 setup 시 (Docker container 내부 cron vs host cron) | Docker sidecar cron container (`backend-knowledge-cron` service in docker-compose.yml, §6.5.1) + host cron option (Docker 없이) + 검증 `crontab -l` + backup file 1 회 생성 확인 | M-v0.2.0 PoC 환경 setup (즉시) | mid → done (PoC 환경 setup trigger) | **✅ done 2026-06-18 (M-v0.2.0 PoC 환경 setup 자동, Docker sidecar cron `backend-knowledge-cron` service + `crontab -l` 검증 + backup file 1 회 생성 확인 완료)** |
 
-**자연 해소 정공법 (2026-06-18 §17.2 신규)**:
-- **row 3 (incident runbook tuning)**: 자동 해소 아님. 운영 1주 후 manual SOP. 6 type 별 alert 발생 시 §11.1.1~§11.1.6 trigger condition 의 false positive / false negative 분석 → §11.3 monitoring 5 지표 의 alert threshold 재조정. **Cross-section 정합 fix 1 row**: §11.1 + §11.3 갱신 시 §3.6.6.1 audit log + §3.7.6.1 partial failure detection + §3.7.6.5 auth failure monitoring + §13.4 정합 검증 row 추가.
-- **row 4 (sprint 진입 checklist 2)**: 자동 해소 아님. sprint kickoff meeting 시 project lead 책임. **Cross-section 정합 fix 1 row**: §5.3 checklist 갱신 + §13.3 row 1 (GitHub milestone) + row 2 (state.json) 와 정합.
-- **row 5 (Pi SDK npm dependency)**: **자동 해소** (CI 시 `npm ci` 자동 실행). 검증 `runtime_check.sh` script 작성 (M-v0.2.0 PoC 운영 환경 setup SOP).
-- **row 6 (backup schedule cron)**: **자동 해소** (Docker sidecar cron container). 검증 `crontab -l` + backup file 1 회 생성 확인.
+**자연 해소 정공법 (2026-06-18 §17.2 신규, 2026-06-22 갱신)**:
+- **row 3 (incident runbook tuning)**: 자동 해소 아님. 운영 1주 후 manual SOP. 6 type 별 alert 발생 시 §11.1.1~§11.1.6 trigger condition 의 false positive / false negative 분석 → §11.3 monitoring 5 지표 의 alert threshold 재조정. **Cross-section 정합 fix 1 row**: §11.1 + §11.3 갱신 시 §3.6.6.1 audit log + §3.7.6.1 partial failure detection + §3.7.6.5 auth failure monitoring + §13.4 정합 검증 row 추가. **2026-06-22 갱신**: M-v0.2.0 PoC 운영 시작 (2026-06-19) +1주 시점 (2026-06-26~27) 에 manual SOP 발동 예정, 후속 sprint 항목.
+- **row 4 (sprint 진입 checklist 2)**: 자동 해소 아님. sprint kickoff meeting 시 project lead 책임. **Cross-section 정합 fix 1 row**: §5.3 checklist 갱신 + §13.3 row 1 (GitHub milestone) + row 2 (state.json) 와 정합. **2026-06-22 갱신**: ✅ done, §13.3 row 1+2 와 1:1 정합.
+- **row 5 (Pi SDK npm dependency)**: **자동 해소** (CI 시 `npm ci` 자동 실행). 검증 `runtime_check.sh` script 작성 (M-v0.2.0 PoC 운영 환경 setup SOP). **2026-06-22 갱신**: ✅ auto-resolved.
+- **row 6 (backup schedule cron)**: **자동 해소** (Docker sidecar cron container). 검증 `crontab -l` + backup file 1 회 생성 확인. **2026-06-22 갱신**: ✅ auto-resolved.
 
-**잔여 4/6 row ETA 종합**:
-- 즉시 (M-v0.2.0 PoC 운영 환경 setup 시점): **row 4 / row 5 / row 6** = 3 row
-- +1주 (M-v0.2.0 PoC 운영 1주 후): **row 3** = 1 row
-- **합계 4/4 row = M-v0.2.0 PoC 운영 +1주 이내 100% 해소**
+**잔여 4/6 row ETA 종합 (2026-06-22 갱신)**:
+- ✅ done (M-v0.2.0 PoC 운영 환경 setup 시점, 2026-06-18): **row 5 / row 6** = 2 row
+- ✅ done (M-v0.2.0 sprint kickoff 시점, 2026-06-22): **row 4** = 1 row
+- ⏳ pending (M-v0.2.0 PoC 운영 1주 후, ETA 2026-06-26~27): **row 3** = 1 row
+- **합계 5/6 row = 83% done 2026-06-22, 1/6 row = 17% pending (row 3 ETA 2026-06-26~27)**
 
 **Cross-section 정합 fix 1 row** (본 §17.2):
 - §13.4 정합 검증 row 추가 (§17.2 known gaps 4 row 자연 해소) — §11.1 + §11.3 + §5.3 + §3.6.6.1 + §3.7.6.1 + §3.7.6.5 + §10.3 npm + §11.2 cron 정합
+- **2026-06-22 갱신**: §13.4 정합 검증 row 추가 — §13.2 known gap 5/6 row 해소 (row 4+5+6 ✅ + row 1+2 기존 ✅) + row 3 ⏳ pending ETA 정합
 
-### 17.3 §13.3 post-sprint follow-up 5 row 해결 우선순위 (P0~P3, 2026-06-18 신규)
+### 17.3 §13.3 post-sprint follow-up 5 row 해결 우선순위 (P0~P3, 2026-06-18 신규, 2026-06-22 갱신)
 
-**2026-06-18 commit 기준 1/6 partial resolved** (row 5: M-v0.2.0 release notes draft → §14). 잔여 **5 row** 의 해결 우선순위 (P0~P3) + 처리 담당 + 의존성 + ETA:
+**2026-06-18 commit 기준 1/6 partial resolved** (row 5: M-v0.2.0 release notes draft → §14). 잔여 **5 row** 의 해결 우선순위 (P0~P3) + 처리 담당 + 의존성 + ETA. **2026-06-22 갱신**: 5 row 모두 ✅ done (P0 2 row + P1 2 row + P2 1 row) — **현재 6/6 row = 100% done**:
 
-| # | 항목 | 우선순위 | 처리 담당 | 의존성 | ETA | 비고 |
-| --- | --- | --- | --- | --- | --- | --- |
-| **1** | **GitHub milestone `v0.2.0` 생성** + umbrella link | **P0** (sprint 진입 필수) | project lead | (없음) | M-v0.2.0 sprint kickoff 직전 (즉시) | §5.3 checklist 6번 + §13.3 row 1 |
-| **2** | **`ai-workflow/memory/state.json` M-v0.2.0 row 발급** (status: planned → in_progress) | **P0** (sprint 진입 필수) | project lead | (없음) | M-v0.2.0 sprint kickoff 직전 (즉시) | §5.3 checklist 3번 + §13.3 row 2 |
-| **3** | **`external-integrations-agentic-rag-roadmap.md` status active 전환** (Q7 결정, umbrella publish signal) | **P1** (sprint 진입 후 1주) | project lead | umbrella doc publish (✅ 완료) | M-v0.2.0 sprint 진입 +1주 | §0.4 + §7 Q7 + §13.3 row 3 |
-| **4** | **`docs/llm-wiki` mirror scope 갱신** (25 commit content mirror, ~+2400 줄) | **P1** (CI 자동) | (CI 자동, `scripts/wiki-mass-ingest.sh --apply`) | (없음) | umbrella doc merge 직후 (CI 자동) | AGENTS.md §문서 작업 기준 + §13.3 row 4 |
-| **5** | ~~**M-v0.2.0 release notes draft**~~ → **본 §14 (✅ partial resolved 2026-06-18)** | — | — | — | — | (✅ resolved by §14) |
-| **6** | **`docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신** (umbrella doc + ADR-0034/0035 인덱스 추가) | **P2** (M-v0.2.0 release 직전) | project lead | umbrella doc publish (✅ 완료) | M-v0.2.0 release -1주 | docs governance + §13.3 row 6 |
+| # | 항목 | 우선순위 | 처리 담당 | 의존성 | ETA | 비고 | 2026-06-22 status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **1** | **GitHub milestone `v0.2.0` 생성** + umbrella link | **P0** (sprint 진입 필수) | project lead | (없음) | M-v0.2.0 sprint kickoff 직전 (즉시) | §5.3 checklist 6번 + §13.3 row 1 | **✅ done 2026-06-22** |
+| **2** | **`ai-workflow/memory/state.json` M-v0.2.0 row 발급** (status: planned → in_progress) | **P0** (sprint 진입 필수) | project lead | (없음) | M-v0.2.0 sprint kickoff 직전 (즉시) | §5.3 checklist 3번 + §13.3 row 2 | **✅ done 2026-06-18 (PR #646)** |
+| **3** | **`external-integrations-agentic-rag-roadmap.md` status active 전환** (Q7 결정, umbrella publish signal) | **P1** (sprint 진입 후 1주) | project lead | umbrella doc publish (✅ 완료) | M-v0.2.0 sprint 진입 +1주 | §0.4 + §7 Q7 + §13.3 row 3 | **✅ done 2026-06-18 (PR #645 MERGED + #647)** |
+| **4** | **`docs/llm-wiki` mirror scope 갱신** (25 commit content mirror, ~+2400 줄) | **P1** (CI 자동) | (CI 자동, `scripts/wiki-mass-ingest.sh --apply`) | (없음) | umbrella doc merge 직후 (CI 자동) | AGENTS.md §문서 작업 기준 + §13.3 row 4 | **✅ done 2026-06-19 (CI 자동)** |
+| **5** | ~~**M-v0.2.0 release notes draft**~~ → **본 §14 (✅ partial resolved 2026-06-18)** | — | — | — | — | (✅ resolved by §14) | **✅ done 2026-06-18 (PR #649, §14)** |
+| **6** | **`docs/DOCUMENT_INDEX.md` + `docs/planning/README.md` 갱신** (umbrella doc + ADR-0034/0035 인덱스 추가) | **P2** (M-v0.2.0 release 직전) | project lead | umbrella doc publish (✅ 완료) | M-v0.2.0 release -1주 | docs governance + §13.3 row 6 | **✅ done 2026-06-18 (PR #647 + docs/planning/README.md §5.1)** |
 
-**우선순위 정공법 (2026-06-18 §17.3 신규)**:
-- **P0 (즉시, sprint kickoff 전)**: row 1 + row 2 = 2 row
+**우선순위 정공법 (2026-06-18 §17.3 신규, 2026-06-22 갱신)**:
+- **P0 (즉시, sprint kickoff 전)**: row 1 + row 2 = 2 row → **2026-06-22 갱신: 2/2 row ✅ done** (row 1: 2026-06-22, row 2: 2026-06-18 PR #646)
   - sprint 진입 시점 blocker
   - 의존성 0 row (즉시 처리 가능)
   - **자동화 가능**: row 2 는 `scripts/state_json_update.py` script 로 자동 갱신 가능 (M-v0.2.0 PoC 운영 환경 setup SOP)
-- **P1 (sprint 진입 후 1주)**: row 3 + row 4 = 2 row
+- **P1 (sprint 진입 후 1주)**: row 3 + row 4 = 2 row → **2026-06-22 갱신: 2/2 row ✅ done** (row 3: 2026-06-18 PR #645+#647, row 4: 2026-06-19 CI 자동)
   - row 3 = umbrella doc publish signal (✅ 완료 의존) → 자동
   - row 4 = CI 자동 (AGENTS.md §문서 작업 기준 정공법)
-- **P2 (M-v0.2.0 release 직전)**: row 6 = 1 row
+- **P2 (M-v0.2.0 release 직전)**: row 6 = 1 row → **2026-06-22 갱신: 1/1 row ✅ done** (2026-06-18 PR #647 + docs/planning/README.md §5.1 v0.2.0 신규 문서 4종 entry 추가)
   - umbrella doc publish (✅ 완료 의존) → M-v0.2.0 release -1주 manual
-- **합계 잔여 5 row = P0 2 row (즉시) + P1 2 row (1주) + P2 1 row (release 직전)**
+- **합계 6/6 row = P0 2 row ✅ + P1 2 row ✅ + P2 1 row ✅ + row 5 ✅ = 100% done 2026-06-22** (M-v0.2.0 sprint kickoff trigger 발동, §13.3 follow-up 종합 ✅)
 
 **Cross-section 정합 fix 1 row** (본 §17.3):
 - §13.4 정합 검증 row 추가 (§17.3 post-sprint 5 row 우선순위) — §5.3 + §13.3 + state.json + GitHub milestone + external-integrations-agentic-rag-roadmap + wiki mirror + DOCUMENT_INDEX 정합
+- **2026-06-22 갱신**: §13.4 정합 검증 row 추가 — 6/6 row ✅ done + §13.3 follow-up 종합 완료 + M-v0.2.0 PoC 운영 1주 시점 정합
 
 ### 17.4 18/18 Q&A 정합 (Q1~Q18 × umbrella doc location, 2026-06-18 신규)
 
@@ -5237,6 +5242,7 @@ Link: </api/v0-3/concepts/integration_gitea_repo_puller>; rel="successor-version
 | **§14** | **release notes (M-v0.2.0 release 시점 post-process)** | §14.1~§14.8 (7 subsection: highlight / 16 commit / breaking change 4 row / per-source 7종 / per-milestone 5 M / §13 정합 / template / contributor) | M-v0.2.0 release 시점 (`docs/release-notes/v0.2.0.md` copy + post-process) | §13.3 #5 partial resolved + §13.4 정합 검증 row + ADR-0034/0035 영향 + frontmatter + §9 변경 이력 | ✅ 16 commit + 18/18 결정 + 한계 7개 + 5종 PoC source + 6 마일스톤 + 1 known gap resolved + 10 row standalone 매트릭스 정합 (§13.3 #5 ✅ partial resolved) |
 | **§15** | **ADR supersession (M-v0.2.3+ 부터 supersession 가능)** | §15.1~§15.6 (6 subsection: 정의 + 4 시나리오 + 5 step + row format + cross-reference 4~5 file + deprecation policy 12개월 + umbrella doc §13~§15 1:1 정합) | M-v0.2.3+ 부터 (M-v0.2.0~v0.2.2 supersession 발생 0 건) | §13.4 정합 검증 row + ADR-0034 §6 Supersession section 신규 + ADR-0035 §6 Supersession section row + ADR-0034/0035 frontmatter + docs/governance/worker_division.md §4.2 1:1 정합 | ✅ 5 step + 12개월 deprecation + release notes 정합 + worker_division.md §4.2 1:1 정합. ADR-0034 §6 신규 + ADR-0035 §6 row 추가 ✅ |
 | **§16** | **API versioning (M-v0.3.0+ 부터 v0-3 도입 + 12개월 deprecation)** | §16.1~§16.6 (6 subsection: 정의 + deprecation policy 12개월 + dual endpoint + Sunset/Deprecation header + monitoring 4 metrics + breaking change 5 종 + §3.1 API 매트릭스 versioning 영향 + future deprecation timing) | M-v0.3.0+ 부터 (`/api/v0-3/` 도입) | §13.4 정합 검증 row + §3.1 API 매트릭스 row 4 (graph) + §14.7 release notes template + §15.5 deprecation policy 1:1 정합 + ADR-0034/0035 영향 + frontmatter | ✅ 12개월 deprecation + dual endpoint + Sunset RFC 8594 + 4 metrics + breaking change 5 종 + 6 layer 정합 (§16.6 + §15.5 + §14.7 + §11.3 + §6.5.3 + §3.1) |
+| **M-v0.2.2 4-PR split (2026-06-22 신규, §6.6.2 SOP 10 단계 정공법 1:1 정합)** | **backend-ai 폐기 4-PR split + 체크포인트 정리 + umbrella doc 정합** | (1) **PR #663 (PR 1 backend-ai + backend-core Go, 9 file, 3 commit, merge `0dc0ca90`)** — backend-ai/{main.py,Dockerfile,requirements.txt} git rm + backend-core `BackendAIURL` field + runtime snapshot_provider httpStatus call + snapshot_provider mock data + main.go init 제거 (commit `f8943476` + `5fd6f199` + `a86e1115`) / (2) **PR #664 (PR 2 root-config + CI + scripts, 11 file, 4 commit, merge `92fa0269`)** — docker-compose.deploy.yml backend-ai service + Makefile + scripts/{deploy-from-env,build-artifacts,dogfood}.sh + .github/workflows/{ci.yml,docker-image-publish.yml,e2e-regression.yml,e2e-quarantine.yml} paths-filter + Build and push backend-ai step + src/backend_knowledge/pyproject.toml + .gitignore backend-ai reference 제거 (commit `04bb8cc7` + `265413b0` + `03188d12` + `50bc0ca3`, pre-existing Frontend test 3 fail 별도 comment 기록) / (3) **PR #665 (PR 3 docs + governance, 22 file, 7 commit, merge `b83422b9`)** — umbrella doc §5.1/§5.2/§5.4/§6.6.2/§7/§8 + ADR-0034/0035 §6 supersession row + `docs/requirements/{v0.2.0-functional,v0.2.0-non-functional,v0.2.0-usecases,v0.2.0-traceability-matrix}.md` + `docs/release-notes/v0.2.0.md` + `docs/architecture/` + `docs/infrastructure/{gitea,keycloak,deployment,observability}.md` + `docs/setup/environment-setup.md` + `docs/dogfood/{environment_setup,README}.md` + `docs/shared/{tech_stack,PROJECT_PROFILE}.md` + `docs/governance/{code-taxonomy,worker_division,traceability}.md` + `docs/llm-wiki/{operation-sop,mirror-list}.md` + `docs/roadmap.md` + `docs/assessment.md` + `docs/llm-wiki/raw/projects/devhub/{AGENTS,README}.md` + `docs/dogfood/` tracked file (commit `921ee19f` + `ed5ee8ce` + `042059d2` + `48299dd6` + `d8c3176d` + `f26fbbd1` + `14f822ad`) / (4) **PR #666 (PR 4 state.json + memory + vendor, 5 file, 3 commit, merge `1e78d668`)** — `ai-workflow/memory/state.json` + `ai-workflow/memory/opencode/chore/260618-v0-2-release-notes/state.json` (Q18_backend_ai_deprecation_timing row 제거) + `vendor/standard_ai_workflow/examples/{pilot_validation_devhub_example,pilot_phase11_devhub_contract_v1}.md` + `ai-workflow/memory/codex/work_260521-c-db-docker-option/session_handoff.md` (build_backend_ai ABI comment 취소선 + 폐기 주석) (commit `d1a14f22` + `7af6a3e7` + `8d0e7eab`) / (5) **체크포인트 정리 (direct to main)**: `6b6e52db` .gitignore `/backend-ai/` defensive rule 추가 (PR 2 commit `50bc0ca3` 에서 .gitignore rule 제거됨에 대한 보강) + `c29f8449` opencode/main/ 메모리 4 file 신규 (state.json + session_handoff.md + work_backlog.md + backlog/2026-06-22.md, sprint base snapshot) | M-v0.2.2 sprint 완료 (2026-06-22) — PR 1~4 mergeStateStatus CLEAN + self-merge by ykylee + regular merge commit 보존 + 체크포인트 정리 commit 2 row + FRONTEND_UNIT pre-existing 3 fail 별도 comment 기록 + local main = origin/main 정합 (HEAD `c29f8449`, 0 ahead / 0 behind, working tree clean) | §6.6.2 SOP 10 단계 1:1 정합 + §13.1 matrix 20 row + §13.2 known gap 5/6 row 해소 정공법 + §13.3 follow-up 6/6 row done + §13.4 정합 검증 row + §17.2 known gap 3 row ✅ + §17.3 follow-up 5 row ✅ + ADR-0034/0035 §6 supersession row + frontmatter + §9 변경 이력 row + §13 cross-cutting 종합 (umbrella doc cross-reference) | ✅ 9 file / 11 file / 22 file / 5 file + 2 체크포인트 commit = **47 file / +141/-276 / 17 commit** 정합 (PR 1: 9 file +13/-72, PR 2: 11 file +11/-106, PR 3: 22 file +107/-85, PR 4: 5 file +11/-13 + 체크포인트 2 commit). SOP §6.6.2 10 단계 1:1 정합 (PR 1 = step 1-3 backend-ai + backend-core, PR 2 = step 4-9 root-config + CI + scripts, PR 3 = step 7 docs + step 8 nginx, PR 4 = step 10 state.json + memory). local main = origin/main 정합 ✅ |
 
 **정합 검증 결과**: 4/4 cross-cutting 정공법 모두 1:1 정합 ✅. 운영자 / contributor 가 §13 / §14 / §15 / §16 어느 layer 를 봐도 umbrella doc 의 cross-cutting 정공법 (정합성 / release notes / ADR supersession / API versioning) 4 종 파악 가능.
 
@@ -5246,8 +5252,9 @@ Link: </api/v0-3/concepts/integration_gitea_repo_puller>; rel="successor-version
 - §15 = §13 + §14 의 subset (ADR supersession 이 release notes 정합을 따름, deprecation policy 12개월 = §16 정합)
 - §16 = §13 + §14 + §15 의 timing (API versioning 12개월 deprecation = §15.5 1:1 정합 + §14.7 breaking change 5 종 정합)
 
-**Cross-section 정합 fix 1 row** (본 §17.6):
+**Cross-section 정합 fix 2 row** (본 §17.6):
 - §13.4 정합 검증 row 추가 (§17.6 4 cross-cutting 정공법 검증) — §13/§14/§15/§16 + ADR-0034/0035 + worker_division.md §4.2 정합
+- **2026-06-22 갱신**: §17.6 4 cross-cutting 정공법 검증 row 추가 — **M-v0.2.2 4-PR split (PR #663 + #664 + #665 + #666) + 체크포인트 정리 (commit `6b6e52db` + `c29f8449`)** 의 §6.6.2 SOP 10 단계 1:1 정합 + §13.1 matrix 20 row + §13.2 known gap 5/6 row 해소 + §13.3 follow-up 6/6 row done + ADR-0034/0035 §6 supersession row + frontmatter + §9 변경 이력 row + §13 cross-cutting 종합 (umbrella doc cross-reference) 정합
 
 ### 17.7 umbrella doc cross-reference 최종 매트릭스 (모든 §x.y 검증, 2026-06-18 신규)
 
@@ -5281,8 +5288,9 @@ Link: </api/v0-3/concepts/integration_gitea_repo_puller>; rel="successor-version
 - 각 section 의 영향 이 ADR-0034/0035 + frontmatter + §9 변경 이력 + §13.4 정합 검증 row + state.json + docs/llm-wiki mirror 중 최소 1 곳에 정의됨
 - 운영자 / reviewer 가 본 §17.7 매트릭스 1 row 만 봐도 §x.y 의 cross-reference 가 drift / 누락 / 추가 필요 여부 파악 가능
 
-**Cross-section 정합 fix 1 row** (본 §17.7):
+**Cross-section 정합 fix 2 row** (본 §17.7):
 - §13.4 정합 검증 row 추가 (§17.7 cross-reference 최종 매트릭스) — §x.y + ADR-0034/0035 + frontmatter + §9 + §13.4 + state.json + wiki mirror 정합
+- **2026-06-22 갱신**: §13.2 known gap 5/6 row 해소 + §13.3 follow-up 6/6 row done 정합 — §17.2 + §17.3 + §17.6 4-PR split row + §9 변경 이력 2 row (M-v0.2.2 완료 + 4-PR split + known gap 자연 해소) + ADR-0034/0035 §6 supersession row + frontmatter + §13.4 정합 검증 row 추가 정합
 
 ### 17.8 umbrella doc stats (line count + code blocks + ADR 영향 row + §9 row + §13.4 row, 2026-06-18 신규)
 
