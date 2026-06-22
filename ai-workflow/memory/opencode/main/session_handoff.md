@@ -79,8 +79,8 @@
 - **AGENTS.md**: `/AGENTS.md` (v0.2.0 + 사외/사내 2-tier 정책)
 - **umbrella §1.2 G2** (backend-ai 폐기 결정): release_v0-2_roadmap.md line 56
 - **umbrella §6.6** (Phase 2 backend-ai placeholder 정리): release_v0-2_roadmap.md
-- **ADR-0034 OKF v0.1 채택**: docs/adr/0034-okf-adoption.md
-- **ADR-0035 backend-knowledge 신설**: docs/adr/0035-backend-knowledge-creation.md
+- **ADR-0037 OKF v0.1 채택**: docs/adr/0037-okf-adoption.md
+- **ADR-0038 backend-knowledge 신설**: docs/adr/0038-backend-knowledge-creation.md
 - **umbrella doc §2.4** (standalone 검증 10 row 매트릭스): M-v0.2.0 baseline PASS, M-v0.2.1+ CI 자동화 도입
 
 ## 5. 후속 작업 시 주의사항

@@ -3,7 +3,7 @@
 ## P0 (즉시, 다음 세션 진입 시)
 
 - [ ] **PR #650 머지** — `gh pr merge 650 --squash --delete-branch` (3 commit → 1 squash commit, chore/260618-v0-2-release-notes branch delete)
-- [ ] **GitHub tag v0.2.0 생성** — `git tag -a v0.2.0 -m 'v0.2.0 backend-knowledge umbrella + ADR-0034/0035'` (main 머지 후 또는 PR 머지 시)
+- [ ] **GitHub tag v0.2.0 생성** — `git tag -a v0.2.0 -m 'v0.2.0 backend-knowledge umbrella + ADR-0037/0038'` (main 머지 후 또는 PR 머지 시)
 - [ ] **GitHub release publish** — `gh release create v0.2.0 --notes-file docs/release-notes/v0.2.0.md` (release notes 자동 첨부)
 - [ ] **사내 SCM sync** — AGENTS.md §6.3 (GitHub main push 후 자동 sync, 사외/사내 2-tier)
 

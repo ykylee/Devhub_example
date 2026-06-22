@@ -848,8 +848,8 @@
 | 2026-06-19T13:26:55Z | docs/adr/0032-system-admin-x1-dashboard.md | 16121 |
 | 2026-06-19T13:26:55Z | docs/adr/0033-multi-provider-webhook-architecture.md | 16120 |
 | 2026-06-19T13:26:55Z | docs/adr/0034-gitea-hourly-pull-architecture.md | 11350 |
-| 2026-06-19T13:26:55Z | docs/adr/0034-okf-adoption.md | 38534 |
-| 2026-06-19T13:26:55Z | docs/adr/0035-backend-knowledge-creation.md | 42869 |
+| 2026-06-19T13:26:55Z | docs/adr/0037-okf-adoption.md | 38534 |
+| 2026-06-19T13:26:55Z | docs/adr/0038-backend-knowledge-creation.md | 42869 |
 | 2026-06-19T13:26:55Z | docs/adr/0035-project-scm-create-integration.md | 11868 |
 | 2026-06-19T13:26:55Z | docs/adr/0036-keycloak-groups-staging-prod.md | 9897 |
 | 2026-06-19T13:26:55Z | docs/architecture/README.md | 6016 |

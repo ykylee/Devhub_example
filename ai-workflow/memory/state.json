@@ -39,8 +39,8 @@
       "umbrella_doc": "docs/planning/release_v0-2_roadmap.md (accepted 2026-06-17)",
       "child_doc": "docs/planning/external-integrations-agentic-rag-roadmap.md (accepted 2026-06-17, Q7 결정 기반 active 전환)",
       "adr": [
-        "ADR-0034 OKF v0.1 채택",
-        "ADR-0035 backend-knowledge 신설"
+        "ADR-0037 OKF v0.1 채택",
+        "ADR-0038 backend-knowledge 신설"
       ],
       "external_system_5_categories_2026_06_17": {
         "categories": {
@@ -115,7 +115,7 @@
       },
       "milestones": {
         "M-v0.2.0-alpha": {
-          "status": "✅ published 2026-06-17 (umbrella + ADR-0034/0035 + Q&A 11/11 결정)"
+          "status": "✅ published 2026-06-17 (umbrella + ADR-0037/0038 + Q&A 11/11 결정)"
         },
         "M-v0.2.0": {
           "status": "⏳ planned (1차 standalone 구현, Gitea 통합 4 sub-plugin + homelab_mock = 5종 PoC, 5 카테고리 결정 기반 2026-06-17, 6 checklist)"
@@ -133,10 +133,10 @@
           "status": "⏳ planned (풀 RAG)"
         }
       },
-      "notes": "v0.2.0 release umbrella + ADR-0034 OKF + ADR-0035 backend-knowledge + Q&A 11/11 결정 완료 (2026-06-17). 1차 in-scope sprint 진입 checklist 6 항목 중 4 항목 완료 (umbrella doc publish ✅ / child doc active ✅ / state.json M-v0.2.0 row ✅ / OKF SPEC.md 1차 정독 ✅ 2026-06-17) + 2 항목 별도 (backend-knowledge/ 디렉터리 skeleton = 별도 PR / GitHub milestone v0.2.0 = 별도). standalone 정책: 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 ❌, OIDC ❌, 외부 시스템 7종 source 만 단방향 (M-v0.2.3 운영 기준, 2026-06-17 A/A 결정 + 2026-06-18 cross-section 정합). backend-ai/ 폐기 (M-v0.2.2). 1차 source plugin = Gitea 통합 4 sub-plugin + homelab_mock = 5종 PoC (M-v0.2.0, 5 카테고리 결정 기반). Pi (pi.dev) v0.79.6 LLM enrich (M-v0.2.3+). 9 round cross-section 정합 완료 (round 1/1.1, round 2, §3/§3 5번, §4/§5/§6/§7/§8 self-review, Q&A 명시 결정, ADR-0034/0035 publish, sprint 진입 in-scope) + 2026-06-18 A/A 결정 cross-section 정합 follow-up (9 위치, §9 변경 이력 2026-06-18 row). tier: 사외 (OKF / Pi 정합, 다른 backend 연결 ❌). | 2026-06-18 sprint entry trigger: PR #645 MERGED + GitHub milestone v0.2.0 (#4) 생성 + state.json M-v0.2.0 row 갱신 (status: ready_to_sprint → in_progress, qa_decisions 11/11 → 18/18, 5종 source plugin status planned, e2e_smoke_step_6_reverse_index_poc planned, github_milestone + umbrella_pr + sprint_entry_post_sprint_p0_2026_06_18 추가) | §17.3 P0 2 row ✅ resolved (GitHub milestone + state.json row 발급) | 2026-06-18 M-v0.2.0 PoC release DONE (status: in_progress → done, ended_at: 2026-06-18) — 6 PR MERGED + main direct 2 commit + tag v0.2.0 annotated + GitHub release publish + wiki 91 page frontmatter 일괄 갱신 (matched 85 stale 0) + release notes 본문 정리 (row 24 placeholder 채우기 + Tag v0.2.0 (예정) 정리) + tier policy 결정 (standalone 도구 → 사내/사외 tier 분리 미적용) + 사내 SCM sync + release announcement (운영자 영역, 잔여)",
-      "round_summary": "9 round cross-section 정합 + 1 follow-up: (1) round 1 = Q1 결정 (backend-knowledge) + 5+1 fix; (2) round 1.1 = web_search snippet 추정 → pi.dev / GitHub README 1차 출처 정합 (Pi 4 package + 15+ provider + 4 mode 정확); (3) round 2 = B 결정 + OIDC 제외 + 외부 시스템 only cross-section 정합 (§3/§4/§5/§6/§7/§8); (4) §3 self-review 5+1 fix (모순 + endpoint 수 정합 + DevHub alias); (5) §3 5번 결정 (LLM enrich timing endpoint 별 inline, 4 endpoint); (6) §4 self-review + standalone 정책 강화 (9 edit cross-section, backend-core ❌ → 다른 backend ❌ general); (7) §5 self-review + frontend 결정 (web/ 디렉터리, devhub frontend 와 분리); (8) §6 self-review + docker-compose / dev-up.sh standalone 정합; (9) §7/§8 self-review + Q&A 명시 결정 (Q2·Q3·Q5~Q8 default 추천값 일괄) + ADR-0034/0035 publish + sprint 진입 in-scope (status/child doc/state.json). (10) 2026-06-18 follow-up = 5 카테고리 결정 + Gitea 통합 1차 wire + x_devhub_category 필드 의 cross-section 정합 (release_v0-2_roadmap.md §2.1 / §3.2 / §3.3 / §6.1 + ADR-0035 §2.3 / §3.1 / §3.8 / §4 + AGENTS.md ADR-0035 description + state.json M-v0.2.2 milestone, 9 위치 일괄 fix).",
+      "notes": "v0.2.0 release umbrella + ADR-0037 OKF + ADR-0038 backend-knowledge + Q&A 11/11 결정 완료 (2026-06-17). 1차 in-scope sprint 진입 checklist 6 항목 중 4 항목 완료 (umbrella doc publish ✅ / child doc active ✅ / state.json M-v0.2.0 row ✅ / OKF SPEC.md 1차 정독 ✅ 2026-06-17) + 2 항목 별도 (backend-knowledge/ 디렉터리 skeleton = 별도 PR / GitHub milestone v0.2.0 = 별도). standalone 정책: 다른 backend (backend-core / 다른 백엔드 / 다른 시스템) 와의 연결 ❌, OIDC ❌, 외부 시스템 7종 source 만 단방향 (M-v0.2.3 운영 기준, 2026-06-17 A/A 결정 + 2026-06-18 cross-section 정합). backend-ai/ 폐기 (M-v0.2.2). 1차 source plugin = Gitea 통합 4 sub-plugin + homelab_mock = 5종 PoC (M-v0.2.0, 5 카테고리 결정 기반). Pi (pi.dev) v0.79.6 LLM enrich (M-v0.2.3+). 9 round cross-section 정합 완료 (round 1/1.1, round 2, §3/§3 5번, §4/§5/§6/§7/§8 self-review, Q&A 명시 결정, ADR-0037/0038 publish, sprint 진입 in-scope) + 2026-06-18 A/A 결정 cross-section 정합 follow-up (9 위치, §9 변경 이력 2026-06-18 row). tier: 사외 (OKF / Pi 정합, 다른 backend 연결 ❌). | 2026-06-18 sprint entry trigger: PR #645 MERGED + GitHub milestone v0.2.0 (#4) 생성 + state.json M-v0.2.0 row 갱신 (status: ready_to_sprint → in_progress, qa_decisions 11/11 → 18/18, 5종 source plugin status planned, e2e_smoke_step_6_reverse_index_poc planned, github_milestone + umbrella_pr + sprint_entry_post_sprint_p0_2026_06_18 추가) | §17.3 P0 2 row ✅ resolved (GitHub milestone + state.json row 발급) | 2026-06-18 M-v0.2.0 PoC release DONE (status: in_progress → done, ended_at: 2026-06-18) — 6 PR MERGED + main direct 2 commit + tag v0.2.0 annotated + GitHub release publish + wiki 91 page frontmatter 일괄 갱신 (matched 85 stale 0) + release notes 본문 정리 (row 24 placeholder 채우기 + Tag v0.2.0 (예정) 정리) + tier policy 결정 (standalone 도구 → 사내/사외 tier 분리 미적용) + 사내 SCM sync + release announcement (운영자 영역, 잔여)",
+      "round_summary": "9 round cross-section 정합 + 1 follow-up: (1) round 1 = Q1 결정 (backend-knowledge) + 5+1 fix; (2) round 1.1 = web_search snippet 추정 → pi.dev / GitHub README 1차 출처 정합 (Pi 4 package + 15+ provider + 4 mode 정확); (3) round 2 = B 결정 + OIDC 제외 + 외부 시스템 only cross-section 정합 (§3/§4/§5/§6/§7/§8); (4) §3 self-review 5+1 fix (모순 + endpoint 수 정합 + DevHub alias); (5) §3 5번 결정 (LLM enrich timing endpoint 별 inline, 4 endpoint); (6) §4 self-review + standalone 정책 강화 (9 edit cross-section, backend-core ❌ → 다른 backend ❌ general); (7) §5 self-review + frontend 결정 (web/ 디렉터리, devhub frontend 와 분리); (8) §6 self-review + docker-compose / dev-up.sh standalone 정합; (9) §7/§8 self-review + Q&A 명시 결정 (Q2·Q3·Q5~Q8 default 추천값 일괄) + ADR-0037/0038 publish + sprint 진입 in-scope (status/child doc/state.json). (10) 2026-06-18 follow-up = 5 카테고리 결정 + Gitea 통합 1차 wire + x_devhub_category 필드 의 cross-section 정합 (release_v0-2_roadmap.md §2.1 / §3.2 / §3.3 / §6.1 + ADR-0038 §2.3 / §3.1 / §3.8 / §4 + AGENTS.md ADR-0038 description + state.json M-v0.2.2 milestone, 9 위치 일괄 fix).",
       "entered_in_progress_at": "2026-06-18",
-      "sprint_entry_trigger": "PR #645 MERGED 2026-06-18 (umbrella doc + ADR-0034 + ADR-0035 v0.2.0 release)",
+      "sprint_entry_trigger": "PR #645 MERGED 2026-06-18 (umbrella doc + ADR-0037 + ADR-0038 v0.2.0 release)",
       "qa_decisions_18_of_18": {
         "Q1_backend_name": "backend-knowledge",
         "Q2_language": "Python 3.13+",
@@ -145,7 +145,7 @@
         "Q5_bundle_storage": "file system only (1차, OKF 원리 정합)",
         "Q6_first_source_plugin": "Gitea 통합 4종 (gitea_repo_pull / gitea_issue / gitea_wiki / gitea_action, 5 카테고리 중 4) + homelab_mock 1종 = 5종 PoC (M-v0.2.0, 5 카테고리 결정 기반 2026-06-17)",
         "Q7_child_doc_status": "umbrella publish 시점 → active 전환",
-        "Q8_adr": "ADR-0034 + ADR-0035 2건 분리",
+        "Q8_adr": "ADR-0037 + ADR-0038 2건 분리",
         "Q9_backend_relationship": "❌ 전면 금지 (완전 standalone 시스템, 다른 backend 어떤 layer 든 import / 호출 / 공유 ❌)",
         "Q10_api_auth": "internal-only, no auth (gateway / firewall / IP allowlist 별도 보호)",
         "Q11_source_plugin_source_of_truth": "외부 시스템 공식 API spec 만 (backend-core Go adapter 참조 ❌)",
@@ -244,7 +244,7 @@
           "status": "✅ done 2026-06-18",
           "pr": 649,
           "merge_commit": "ddb21a61",
-          "description": "§17.3 P2 row 6 — DOCUMENT_INDEX.md + planning/README.md + operation-sop.md 갱신 (umbrella doc + ADR-0034 + ADR-0035 + child doc status active 인덱스 추가)"
+          "description": "§17.3 P2 row 6 — DOCUMENT_INDEX.md + planning/README.md + operation-sop.md 갱신 (umbrella doc + ADR-0037 + ADR-0038 + child doc status active 인덱스 추가)"
         },
         "row_5_release_notes": {
           "status": "✅ done 2026-06-18",
@@ -288,14 +288,14 @@
         "umbrella_pr_url": "https://github.com/ykylee/Devhub_example/pull/645",
         "umbrella_pr_merge_commit": "f6732a34",
         "milestone_url": "https://github.com/ykylee/Devhub_example/milestone/4",
-        "summary": "M-v0.2.0 PoC release 완료 — backend-knowledge + OKF v0.1 + 5종 source plugin (Gitea 4 + homelab_mock) + 18 main section umbrella doc + ADR-0034/0035 + state.json row + child doc active + wiki mirror 갱신 + release notes + tag + GitHub release publish + wiki frontmatter 일괄 갱신 (matched 85 stale 0). 6 PR 종합 MERGED (PR #645/#646/#647/#648/#649/#651) + main direct 2 commit (release notes 정리 + wiki frontmatter 갱신)"
+        "summary": "M-v0.2.0 PoC release 완료 — backend-knowledge + OKF v0.1 + 5종 source plugin (Gitea 4 + homelab_mock) + 18 main section umbrella doc + ADR-0037/0038 + state.json row + child doc active + wiki mirror 갱신 + release notes + tag + GitHub release publish + wiki frontmatter 일괄 갱신 (matched 85 stale 0). 6 PR 종합 MERGED (PR #645/#646/#647/#648/#649/#651) + main direct 2 commit (release notes 정리 + wiki frontmatter 갱신)"
       },
       "tier_policy_v0_2_0_standalone_2026_06_18": {
         "decision": "tier 분리 미적용",
         "rationale": "v0.2.0 = backend-knowledge 는 standalone 으로 따로 개발되는 도구 (다른 backend 와의 연결 ❌, OIDC ❌, 외부 시스템 7종 source 만 단방향) — 따라서 사내/사외 tier 분리 정책 (AGENTS.md §사외/사내 2-tier 형상관리 분리) 미적용",
         "decided_by": "ykylee",
         "decided_at": "2026-06-18",
-        "scope": "M-v0.2.0 PoC umbrella doc + ADR-0034/0035 + release notes + tag + GitHub release publish + wiki mirror 갱신 + state.json row 갱신 모두 standalone 도구 작업 영역",
+        "scope": "M-v0.2.0 PoC umbrella doc + ADR-0037/0038 + release notes + tag + GitHub release publish + wiki mirror 갱신 + state.json row 갱신 모두 standalone 도구 작업 영역",
         "implication": "main direct push (release notes 정리 commit 365dae8e + wiki frontmatter 갱신 commit 48003976) 둘 다 PR 분리 없이 main 직접 push 정공법"
       },
       "wiki_mirror_v0_2_0_final_2026_06_18": {

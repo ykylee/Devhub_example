@@ -1250,11 +1250,11 @@ CI lint canonical = `backend-core/internal/httpapi/swaggerui/asset/openapi.yaml`
 
 - **M-v0.2.0 PoC release 종료** — main HEAD `48003976`, status `done`, ended_at `2026-06-18`.
 - **6 PR 종합 MERGED** (squash merge + branch delete, Mavis A 옵션):
-  - PR #645 (`f6732a34`) — umbrella doc + ADR-0034 OKF v0.1 채택 + ADR-0035 backend-knowledge 신설 (26 commit concept organization)
+  - PR #645 (`f6732a34`) — umbrella doc + ADR-0037 OKF v0.1 채택 + ADR-0038 backend-knowledge 신설 (26 commit concept organization)
   - PR #646 (`1914ec8b`) — state.json M-v0.2.0 row 갱신 (status: ready_to_sprint → in_progress + qa_decisions 11/11 → 18/18 + 5종 source plugin status)
   - PR #647 (`01f1969c`) — external-integrations-agentic-rag-roadmap.md status active 전환 (§17.3 P1 row 3, Q7 결정 기반 umbrella publish signal trigger)
   - PR #648 (`df5a8e8a`) — docs/llm-wiki mirror 갱신 (§17.3 P1 row 4, 79 신규 page + 13 modified + 13 untracked, manifest commit 01f1969c, 978 source file 11M)
-  - PR #649 (`ddb21a61`) — DOCUMENT_INDEX.md + planning/README.md + operation-sop.md 갱신 (§17.3 P2 row 6, umbrella doc + ADR-0034/0035 + child doc status active 인덱스 추가)
+  - PR #649 (`ddb21a61`) — DOCUMENT_INDEX.md + planning/README.md + operation-sop.md 갱신 (§17.3 P2 row 6, umbrella doc + ADR-0037/0038 + child doc status active 인덱스 추가)
   - PR #651 (`6c434887`) — wiki mirror manifest 갱신 (commit 365dae8e → 6c434887, drift 해소, source file 2 file mirror 갱신)
 - **main direct 2 commit** (Mavis direct main iterative amend + force-push 패턴, yklee 2026-06-17):
   - `365dae8e` — release notes 본문 row 24 placeholder 채우기 + Tag v0.2.0 (예정) 정리 (PR #650 follow-up)
