@@ -5,9 +5,9 @@ last_ingested_from: ai-workflow/wiki/entities/keycloak-iam.md
 related_pages: [sources/keycloak-iam]
 created: 2026-06-15
 updated: 2026-06-15
-last_touched: 2026-06-22T06:03:34Z
-git_commit: fb3894f7
-git_branch: chore/260622-wiki-drift-cleanup-3
+last_touched: 2026-06-22T06:22:35Z
+git_commit: 046e0c81
+git_branch: chore/260622-wiki-drift-cleanup-4
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
 mirror_dirty: |
