@@ -13,7 +13,6 @@ type Config struct {
 	GiteaURL           string
 	GiteaToken         string
 	GiteaWebhookSecret string
-	BackendAIURL       string
 	// Env selects the runtime mode. "prod" enables fail-fast guards in Config.Validate (no verifier => refuse startup; AuthDevFallback => refuse startup). Anything else is treated as dev. Toggle with DEVHUB_ENV.
 	Env string
 	// IdPProvider selects which identity provider integration is active.
@@ -161,7 +160,6 @@ func Load() Config {
 		GiteaURL:                       os.Getenv("GITEA_URL"),
 		GiteaToken:                     os.Getenv("GITEA_TOKEN"),
 		GiteaWebhookSecret:             os.Getenv("GITEA_WEBHOOK_SECRET"),
-		BackendAIURL:                   os.Getenv("BACKEND_AI_URL"),
 		Env:                            strings.ToLower(strings.TrimSpace(os.Getenv("DEVHUB_ENV"))),
 		IdPProvider:                    normalizeIDPProvider(os.Getenv("DEVHUB_IDP_PROVIDER")),
 		AuthDevFallback:                envBool("DEVHUB_AUTH_DEV_FALLBACK"),
