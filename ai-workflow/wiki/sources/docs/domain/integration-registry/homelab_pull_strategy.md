@@ -3,12 +3,12 @@ title: homelab_pull_strategy
 type: source
 tags: [domain, homelab_pull_strategy.md, project-devhub]
 sources: [raw/projects/devhub/docs/domain/integration-registry/homelab_pull_strategy.md]
-git_commit: 6c434887
+git_commit: baf1cf24
 git_branch: main
 version_system: v0.1.1-alpha
 version_workflow: v0.5.11-beta
-last_touched: 2026-06-18T12:08:55Z
-mirror_dirty: (dirty: uncommitted changes) |
+last_touched: 2026-06-22T03:37:45Z
+mirror_dirty: |
 related: [none]
 status: draft
 contradictions: [none]

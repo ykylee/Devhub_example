@@ -292,10 +292,9 @@ func main() {
 		IdPProvider:      cfg.IdPProvider,
 		HRDB:             hrdbMock,
 		SnapshotProvider: httpapi.RuntimeSnapshotProvider{
-			Base:         httpapi.StaticSnapshotProvider{},
-			HealthStore:  healthStore,
-			GiteaURL:     cfg.GiteaURL,
-			BackendAIURL: cfg.BackendAIURL,
+			Base:        httpapi.StaticSnapshotProvider{},
+			HealthStore: healthStore,
+			GiteaURL:    cfg.GiteaURL,
 		},
 		RealtimeHub:     realtimeHub,
 		RealtimeTickets: realtimeview.NewRealtimeTicketStoreFor(pgStore),

@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   build-and-push:
-    name: Build and Push (backend-core, backend-ai, frontend)
+    name: Build and Push (backend-core, frontend)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -58,15 +58,6 @@ jobs:
           tags: |
             ${{ steps.vars.outputs.registry }}/backend-core:${{ steps.vars.outputs.tag }}
 
-      - name: Build and push backend-ai
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend-ai
-          file: ./backend-ai/Dockerfile
-          push: true
-          tags: |
-            ${{ steps.vars.outputs.registry }}/backend-ai:${{ steps.vars.outputs.tag }}
-
       # OIDC URL 은 image 빌드 시점에 박지 않는다 — 운영 환경별 외부 Keycloak 주소가 달라지므로
       # 런타임에 /api/runtime-config (frontend/app/api/runtime-config/route.ts) + OIDC discovery
       # 로 해결한다 (ADR-0019 §4.2 환경설정 계약 + ADR-0018 §3.3 단일 포트 정합).
@@ -92,6 +83,5 @@ jobs:
             echo "- Tag: \`${{ steps.vars.outputs.tag }}\`"
             echo "- Images:"
             echo "  - \`${{ steps.vars.outputs.registry }}/backend-core:${{ steps.vars.outputs.tag }}\`"
-            echo "  - \`${{ steps.vars.outputs.registry }}/backend-ai:${{ steps.vars.outputs.tag }}\`"
             echo "  - \`${{ steps.vars.outputs.registry }}/frontend:${{ steps.vars.outputs.tag }}\`"
           } >> "$GITHUB_STEP_SUMMARY"

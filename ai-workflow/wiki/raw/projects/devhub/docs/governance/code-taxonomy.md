@@ -1,7 +1,7 @@
 # 코드베이스 카테고리 · 모듈 분류 (Code Taxonomy)
 
-- 문서 목적: DevHub Example의 backend-core / backend-ai / frontend 자산을 도메인 기반 3대 레이어(**Domain**, **Shared**, **Infrastructure**) 및 도메인 내부 **4대 계층**(`view`, `service`, `repository`, `schema`)으로 구조화하여, 개발·리팩토링·에이전트 협업 시 일관된 아키텍처 SoT를 제공한다.
-- 범위: backend-core / backend-ai / frontend / infra / scripts / docs / .github/workflows
+- 문서 목적: DevHub Example의 backend-core / frontend 자산을 도메인 기반 3대 레이어(**Domain**, **Shared**, **Infrastructure**) 및 도메인 내부 **4대 계층**(`view`, `service`, `repository`, `schema`)으로 구조화하여, 개발·리팩토링·에이전트 협업 시 일관된 아키텍처 SoT를 제공한다. **2026-06-22 M-v0.2.2 backend-ai 폐기 반영**: `backend-ai/` 디렉터리 (placeholder Python AI service) 가 M-v0.2.2 release 와 동시 폐기됨 (PR #663 + #664). 본 taxonomy 의 범위 + scope list 에서 `backend-ai` 제외.
+- 범위: backend-core / backend-knowledge (신규, M-v0.2.0+) / frontend / infra / scripts / docs / .github/workflows
 - 분석 기준 커밋: pr-406 HEAD `536886a` (2026-05-28)
 - 상태: active (고도화)
 - 관련 문서: [`worker_division.md`](./worker_division.md), [`document-standards.md`](./document-standards.md), [`traceability/report.md`](../traceability/report.md), [`docs/architecture.md`](../architecture.md)

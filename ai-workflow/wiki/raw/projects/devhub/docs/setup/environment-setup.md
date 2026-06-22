@@ -1,7 +1,7 @@
 # 개발 환경 구성 가이드
 
 - 문서 목적: DevHub Example 의 개발/검증 환경을 구성하는 표준 절차를 native (no-docker) default 와 docker (optional) 두 갈래로 제공한다.
-- 범위: 사전 준비, 데이터베이스 기동, 백엔드 2종(backend-core/backend-ai) 실행, frontend 실행, 마이그레이션, 검증, 인증 (Keycloak)
+- 범위: 사전 준비, 데이터베이스 기동, 백엔드(backend-core) 실행, frontend 실행, 마이그레이션, 검증, 인증 (Keycloak). **2026-06-22 M-v0.2.2 backend-ai 폐기 반영** — `backend-ai/` 디렉터리 폐기 (PR #663 + #664). 본 문서의 §2.3 backend-ai 섹션, §3 Dockerfile list, §4 prerequisites 의 backend-ai 관련 line 모두 정리. v0.2.0+ AI/ML scope 은 `backend-knowledge/` 의 §3.7 + §3.5.7 로 대체 (umbrella doc release_v0-2_roadmap.md §6.7).
 - 대상 독자: 신규 개발자, 환경 트러블슈팅 담당자
 - 상태: stable
 - 최종 수정일: 2026-05-20 (메타 갱신 + Keycloak 정합, sprint `claude/codebase-cleanup-2026-05-20`)
@@ -19,12 +19,12 @@
 | 항목 | 권장 버전 | 비고 |
 | --- | --- | --- |
 | Go | 1.22+ | backend-core |
-| Python | 3.12 | backend-ai (host `python3` 도 3.12 권장 — ABI 호환) |
+| Python | 3.12 | (M-v0.2.2 부터 backend-ai/ 폐기. host 의 `python3` 는 backend-knowledge/ 의 `python3.13+` 정합 + general tool 로만 사용. backend-knowledge/ 디렉터리 진입 시 `make setup` 의 `python3 -m venv .venv` 자동화) |
 | Node.js | 20 LTS | frontend (Next.js 15) |
 | PostgreSQL | 15 | DB |
 | `migrate` CLI | v4.19.1 | `make migrate-tools` 로 설치 |
 
-`make setup` 으로 backend-core / backend-ai / frontend 의존을 한 번에 설치할 수 있다 (docker 와 무관, native 셋업).
+`make setup` 으로 backend-core / frontend 의존을 한 번에 설치할 수 있다 (docker 와 무관, native 셋업). **2026-06-22 M-v0.2.2 부터 backend-ai 의존 제외**.
 
 ## 2. Native (no-docker) 모드 — default
 
@@ -59,14 +59,17 @@ export GITEA_TOKEN="..."
 export GITEA_WEBHOOK_SECRET="..."
 ```
 
-### 2.3 backend-ai (Python/FastAPI, :8000)
+### 2.3 ~~backend-ai (Python/FastAPI, :8000)~~ — **2026-06-22 M-v0.2.2 폐기 (PR #663)**
 
-```sh
-cd backend-ai
-python main.py
-# 또는
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
+> **폐기 사유**: backend-ai/ 디렉터리 (placeholder Python AI service + gRPC skeleton + Dockerfile) 가 production wiring 없이 v0.1.x ~ v0.2.0 PoC 기간 dead state 였음. v0.2.0 PoC 의 `backend-knowledge/` 가 standalone backend (umbrella doc §1.2 G7 + ADR-0038) 으로 정식 흡수. v0.2.0+ AI/ML scope 은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 대체. 폐기 SOP: umbrella doc release_v0-2_roadmap.md §6.6.2 (10 단계).
+>
+> 이전 코드 (보존 reference, v0.2.2 이전 시점 정합):
+> ```sh
+> cd backend-ai
+> python main.py
+> # 또는
+> uvicorn main:app --host 0.0.0.0 --port 8000
+> ```
 
 ### 2.4 frontend (Next.js, :3000)
 
@@ -107,7 +110,7 @@ curl -I http://localhost:3000/
 
 ```
 backend-core/Dockerfile
-backend-ai/Dockerfile
+backend-knowledge/Dockerfile
 frontend/Dockerfile
 docker-compose.yml
 infra/idp/<idp-config>.docker.yaml
