@@ -526,7 +526,7 @@ var/
 | Milestone | scope | 영향 |
 |---|---|---|
 | **M-v0.2.1** | 1차 완성 + Gitea 정식 wire + 5 page frontend + e2e smoke | 4 Gitea sub-plugin real Gitea instance + frontend standalone (`backend-knowledge/web/`, M-v0.2.1 §12) |
-| **M-v0.2.2** | 외부 시스템 6종 source wire (Gitea 4 + homelab + metrics) + `backend-ai/` 폐기 | metrics source plugin + `backend-ai/` 디렉터리 + Dockerfile + docs 일괄 정리 |
+| **M-v0.2.2** | 외부 시스템 6종 source wire (Gitea 4 + homelab + metrics) + `backend-ai/` 폐기 | metrics source plugin + `backend-ai/` 디렉터리 + Dockerfile + docs 일괄 정리 — ✅ **done 2026-06-22** (PR #663 + #664) |
 | **M-v0.2.3** | 외부 시스템 7종 source wire (+ hrdb) + Pi LLM enrich 활성화 + PostgreSQL option + cross-link 자동 resolution | hrdb source + Pi (pi.dev) SDK + DB mode (sqlite/PostgreSQL) + §3.5.7 auto-apply |
 | **M-v0.3.0+** | multi-vendor LLM + 풀 RAG + transactional backup + CI contract test + HMAC signature | 임베딩 vendor + chunking/embedding/retrieval/reranking + §1.1 한계 4~7 능동적 강화 |
 
