@@ -104,6 +104,66 @@
 - **Session duration**: 10 min
 - **Memory directories created**: 1 (`ai-workflow/memory/opencode/main/`)
 
+## 8. Session 3 (T07:10~07:30, 2026-06-22) — M-v0.2.3 release close (2-PR split, partial done) 종합 정합
+
+### PR 검증 + umbrella + state.json 정합 (partial done)
+
+- M-v0.2.3 2 PR 모두 MERGED 검증 (PR #672 + #673, 2026-06-22)
+  - **PR #672** (2026-06-22T04:04:59Z): hrdb source plugin + PostgreSQL storage backend (3 commit, 7 file)
+  - **PR #673** (2026-06-22T04:21:58Z): Pi LLM cross-link 자동 resolution §3.5.7 (4 commit, 9 file)
+- umbrella doc 5개 위치 status partial done 갱신:
+  - §5.1 M-v0.2.3 row, §5.2 P3 row, §5.5 M-v0.2.3 row
+  - §6.7.1 7종 source wire cutover, §6.7.3 LLM enrich + cross-link 자동 resolution 운영
+- state.json M-v0.2.3 row 신규 (status: partial_done + 2_pr_split + sop_completion + umbrella_doc_refs + adr_alignment + tier)
+
+### PR #681 self-merge
+
+- branch: `chore/260622-m-v0-2-3-release-close`
+- commit: `bb0af2de` (umbrella + state.json cross-cutting docs only)
+- CI 4/4 SUCCESS + 5 SKIPPED (Detect Changed Paths / Workflow Lint / Migration Prefix Uniqueness / OpenAPI YAML Lint)
+- self-merge (regular merge, fast-forward 가능, PR #679 / PR #680 정공법 정합)
+- merge commit: `41f1b7b6` (2026-06-22T07:27:48Z)
+- 2 file / +43/-4 line
+- branch auto-delete (--delete-branch)
+
+### M-v0.2.3 잔여 (M-v0.2.3 follow-up sprint, 별도 PR)
+
+- **§3.5.8** Pi LLM false positive rollback CLI (revert_unresolved.py) — 미구현
+- **§17.5** 28 metrics M-v0.2.3+ production wiring (5 metrics: MTTR < 30분 / accuracy ≥ 70% / false positive ≤ 5% / pi_sdk_timeout ≤ 1% / pi_llm_recommendation_count 일 ≤ 50) — production 환경 미정합
+- **§3.6.6.5** GDPR/PII compliance (PII access log 별도 storage + right-to-be-forgotten) — 미구현
+- **M-v0.2.1 정식 wire** (Gitea 4 정식 + homelab real) — 미구현
+- **§15 ADR supersession 가능 시점** (M-v0.2.3+ 부터, 실제 supersession 0건 정합)
+
+### memory 4 file 갱신 + wiki mirror
+
+- `ai-workflow/memory/opencode/main/state.json` — main_status_at_session_end = 41f1b7b6 + 본 세션 정보 (M-v0.2.3 partial done)
+- `ai-workflow/memory/opencode/main/work_backlog.md` — status + WB-M24 done + §5 row DB-M23~34
+- `ai-workflow/memory/opencode/main/session_handoff.md` — 본 § (Session 3) append
+- `ai-workflow/memory/opencode/main/backlog/2026-06-22.md` — 본 세션 작업 append
+- `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode, AGENTS.md §문서 작업 기준 정공법)
+- `bash scripts/wiki-frontmatter-update.sh` 1회 실행
+
+### Key Decisions
+
+- M-v0.2.3 release close 의 partial done 정공법 (PR #672 hrdb + PR #673 Pi LLM cross-link, 잔여 §3.5.8 + §17.5 + §3.6.6.5)
+- umbrella + state.json 의 cross-cutting docs only PR — self-merge (regular merge, PR #679 / PR #680 정공법 정합)
+- 5 위치 status partial done + state.json M-v0.2.3 row 신규 + sop_completion + 잔여 명시
+- user clarification (A 선택지 question): M-v0.2.3 release close 정공법 (umbrella + state.json + memory + wiki + PR) 확정
+- memory 4 file 모두 갱신 + wiki mirror 1회 실행 (real mode) — 전체 memory + wiki + final close 정공법
+
+### Session Stats (Session 3)
+
+- **PRs created**: 1 (PR #681)
+- **PRs merged**: 1 (PR #681, self-merge)
+- **Commits in session**: 1 (`bb0af2de`)
+- **Branches created**: 2 (`chore/260622-m-v0-2-3-release-close` + `chore/260622-m-v0-2-3-memory`)
+- **Branches deleted (remote)**: 1 (`chore/260622-m-v0-2-3-release-close`, --delete-branch)
+- **Lines changed (PR #681)**: +43 / -4
+- **Files changed**: 2 (umbrella + state.json)
+- **Session duration**: 20 min
+- **Memory finalization**: opencode/main/ 4 file 갱신 + wiki mirror 1회 실행
+- **Tier**: 사외 (vendor-neutral, standalone 도구, 사내/사외 tier 분리 미적용)
+
 ## 7. Session 2 (T05:30~07:00, 2026-06-22) — M-v0.2.2 release close (4-PR split) 종합 정합
 
 ### PR 검증 + umbrella + state.json 정합

@@ -2,12 +2,12 @@
 
 - Branch: `main` (현재 default branch)
 - Agent: opencode (Sisyphus, MiniMax-M3)
-- Updated: 2026-06-22 (T07:00+09:00)
-- Status: clean (no in-flight work, M-v0.2.2 release close 종합 정합 완료, PR #679 MERGED, main HEAD = 86d1300d)
+- Updated: 2026-06-22 (T07:30+09:00)
+- Status: clean (no in-flight work, M-v0.2.3 release close 종합 정합 완료, PR #681 MERGED, main HEAD = 41f1b7b6)
 
 ## In Progress (P0)
 
-없음. main 브랜치 = `86d1300d` (PR #679 MERGED, M-v0.2.2 release close), working tree clean, origin/main 정합.
+없음. main 브랜치 = `41f1b7b6` (PR #681 MERGED, M-v0.2.3 release close), working tree clean, origin/main 정합.
 
 ## Pending (P1) — M-v0.2.1+ scope 진입 후보
 
@@ -74,3 +74,18 @@
 - [x] **DB-M20**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode, AGENTS.md §문서 작업 기준)
 - [x] **DB-M21**: `bash scripts/wiki-frontmatter-update.sh` 1회 실행 (matched 0 stale X → matched X stale 0)
 - [x] **DB-M22**: session 종료 메모리 finalize (opencode/main/ + opencode/chore/260622-session-end-memory-update/)
+
+### Session 3 (T07:10~07:30) — M-v0.2.3 release close (2-PR split, partial done) 종합 정합
+
+- [x] **DB-M23**: M-v0.2.3 2 PR 검증 (PR #672 + #673 모두 MERGED)
+- [x] **DB-M24**: umbrella doc 5개 위치 status partial done 갱신 (§5.1 / §5.2 P3 / §5.5 / §6.7.1 / §6.7.3)
+- [x] **DB-M25**: state.json M-v0.2.3 row 신규 (status: partial_done + 2_pr_split + sop_completion + umbrella_doc_refs + adr_alignment + tier)
+- [x] **DB-M26**: branch `chore/260622-m-v0-2-3-release-close` 생성 + push
+- [x] **DB-M27**: PR #681 생성 (umbrella + state.json cross-cutting docs only PR)
+- [x] **DB-M28**: PR #681 CI 4/4 SUCCESS + 5 SKIPPED
+- [x] **DB-M29**: PR #681 self-merge (regular merge, fast-forward 가능, merge commit 41f1b7b6, 2026-06-22T07:27:48Z)
+- [x] **DB-M30**: chore/260622-m-v0-2-3-release-close 자동삭제
+- [x] **DB-M31**: opencode/main/ 메모리 4 file 갱신 (state.json + work_backlog.md + session_handoff.md + backlog/2026-06-22.md)
+- [x] **DB-M32**: `bash scripts/wiki-sync-devhub.sh` 1회 실행 (real mode)
+- [x] **DB-M33**: `bash scripts/wiki-frontmatter-update.sh` 1회 실행
+- [x] **DB-M34**: session 종료 메모리 finalize (opencode/main/ + chore/260622-m-v0-2-3-memory/)
