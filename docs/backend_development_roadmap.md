@@ -163,7 +163,7 @@ M2 인증 기반은 **Keycloak 단일 IdP(ADR-0019)로 종결**됐다. 이전 Hy
 ### [P2] M4: 실시간 대시보드 및 AI — 🟡 부분 (잔여 = RM-M4)
 
 - **WebSocket**: ticket 인증(ADR-0024) + command publish done. **잔여: `infra.node.updated`/`ci.run.updated`/`risk.updated` publish(RM-M4-01) + replay/resource scope filter(RM-M4-02)**.
-- **gRPC AnalysisService**: 🔴 미구현 — `backend-ai/main.py` 스켈레톤(`/health` 만). **v2 범위**(AI Gardener/로그 분석/Weekly report).
+- **gRPC AnalysisService**: 🔴 미구현 — `backend-ai/main.py` 스켈레톤(`/health` 만). **v2 범위**(AI Gardener/로그 분석/Weekly report). **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — 본 row 의 v2 scope 전체 폐기. AI/ML 정공법은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 이관 (umbrella doc release_v0-2_roadmap.md §6.7). v2 scope 자체 미정.
 
 ### [P3] M4: 외부 연동·SCM·시스템 관리 — ✅ 대부분 완성
 
@@ -215,7 +215,7 @@ M2 인증 기반은 **Keycloak 단일 IdP(ADR-0019)로 종결**됐다. 이전 Hy
 - [ ] **N-5**: 마이그레이션 prefix uniqueness CI guard 강화
 - [ ] **RM-M4-06**: Gitea Hourly Pull 정밀화 (reconciliation 스케줄, issue #231)
 - [ ] **RM-M4-07**: System Admin 운영 대시보드용 sync job 큐/provider health 노출
-- [ ] **v2**: Python AI gRPC AnalysisService (backend-ai 스켈레톤 → 실구현)
+- [ ] **v2**: ~~Python AI gRPC AnalysisService (backend-ai 스켈레톤 → 실구현)~~ — **2026-06-22 M-v0.2.2 폐기** (PR #663). AI/ML 정공법은 `backend-knowledge/` 의 §3.7 + §3.5.7 로 이관. v2 에서 별도 AI/ML backend 작업 ❌.
 - [ ] **carve (P2, 2026-05-29 SDLC 재정비)**: `PlatformRepository` cross-domain decouple — `*IntegrationRepository` embed 제거 (review agent P1)
 - [ ] **carve (P2, 2026-05-29 SDLC 재정비)**: `ApplicationStore` interface slim — 13+ integration 메서드 → integration-registry 도메인 이관
 - [ ] **carve (P1, 2026-05-29 SDLC 재정비)**: CI `backend-integration` job 복원 (refactor stabilize 후 `&& false` gate 제거)

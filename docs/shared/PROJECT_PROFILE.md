@@ -33,7 +33,7 @@
 ## 3. 기본 명령 (Commands)
 
 - 설치: `make setup` (Go, Python, NPM 의존성 일괄 설치 — docker 비의존)
-- 로컬 실행 (native default): 모드별 절차는 [`docs/setup/environment-setup.md`](./setup/environment-setup.md) 참조 — backend-core (`go run .`), backend-ai (`python main.py` 또는 `uvicorn`), frontend (`npm run dev`)
+- 로컬 실행 (native default): 모드별 절차는 [`docs/setup/environment-setup.md`](./setup/environment-setup.md) 참조 — backend-core (`go run .`), frontend (`npm run dev`). **2026-06-22 M-v0.2.2 부터 backend-ai 제외** (PR #663).
 - 빠른 테스트: `cd backend-core && go test ./...`, `cd frontend && npm run test`
 - 격리 검증: `cd backend-core && go vet ./...`, `cd frontend && npm run lint`
 - 빌드: 모드별 — `make build` 는 환경별 절차 안내만 출력하므로, native 는 `(cd backend-core && go build ./...) && (cd frontend && npm run build)` 직접 호출

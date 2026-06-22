@@ -21,7 +21,7 @@
 모든 검증은 `/devhub` basePath 도커 환경에서 수행했다.
 
 - ingress: `http://localhost:13000/devhub`
-- stack: `frontend/backend-core/backend-ai/nginx/keycloak` docker + host postgres
+- stack: `frontend/backend-core` `nginx/keycloak` docker + host postgres (2026-06-22 M-v0.2.2 backend-ai 폐기 반영, PR #663 — 본 검증 stack 의 `backend-ai` 1 service 제외. 기존 e2e 검증은 backend-ai 가동 환경 기준 정합 보존)
 
 ## 2. 머지 전 필수 추가 작업
 

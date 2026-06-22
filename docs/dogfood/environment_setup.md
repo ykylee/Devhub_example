@@ -14,7 +14,7 @@
 - Docker runtime: `colima`
 - dogfood compose project: `devhub-dogfood`
 - 인프라 컨테이너: `PostgreSQL 15`, `Keycloak 26`
-- 애플리케이션 실행 방식: `backend-core`, `backend-ai`, `frontend` 는 우선 native 실행
+- 애플리케이션 실행 방식: `backend-core`, `frontend` 는 우선 native 실행 (2026-06-22 M-v0.2.2 backend-ai 폐기 반영)
 - 외부 연동: `Gitea` 는 `https://homelab.ddn777.synology.me/gitea` 사용
 
 ## 2. 파일과 자산
@@ -98,7 +98,7 @@ docker context ls
 2. Keycloak discovery readiness 확인
 3. DB migration 실행
 4. `scripts/setup-keycloak.sh` 로 realm/client 정합
-5. `backend-core`, `backend-ai`, `frontend` native 실행
+5. `backend-core`, `frontend` native 실행 (2026-06-22 M-v0.2.2 backend-ai 폐기 반영)
 
 기본 `up` 은 기존 이미지를 재사용한다. Keycloak Dockerfile 또는 SPI 소스를 바꿨을 때만 명시적으로 재빌드한다.
 
@@ -249,15 +249,18 @@ cd backend-core
 PORT=18080 go run .
 ```
 
-### 8.2 backend-ai
+### 8.2 ~~backend-ai (Python, :18000)~~ — **2026-06-22 M-v0.2.2 폐기 (PR #663)**
 
-```sh
-set -a
-source .env.dogfood
-set +a
-cd backend-ai
-uvicorn main:app --host 0.0.0.0 --port 18000
-```
+> **폐기 사유**: backend-ai/ 디렉터리 (placeholder Python AI service + Dockerfile + dev-up.sh 정합) 가 production wiring 없이 v0.1.x ~ v0.2.0 PoC 기간 dead state 였음. v0.2.0+ AI/ML scope 은 `backend-knowledge/` 의 §3.7 Pi LLM enrich + §3.5.7 cross-link 자동 resolution 으로 대체. dogfood 환경은 2-tier (backend-core + frontend) 로 단순화.
+>
+> 이전 절차 (보존 reference, v0.2.2 이전):
+> ```sh
+> set -a
+> source .env.dogfood
+> set +a
+> cd backend-ai
+> uvicorn main:app --host 0.0.0.0 --port 18000
+> ```
 
 ### 8.3 frontend
 

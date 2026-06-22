@@ -18,7 +18,7 @@ DevHub backend 는 native 5 process 로 구성 (ADR-0003 no-docker 정책):
 | --- | --- | --- |
 | Frontend (Next.js) | 3000 | 사용자 진입점 |
 | Backend-Core (Go) | 8080 | `/api/v1/*` |
-| Backend-AI (Python placeholder) | 8000 (예약) | `/ai/*` (M4 도입 예정) |
+| ~~Backend-AI (Python placeholder)~~ | ~~8000 (예약)~~ | **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — 본 row 의 M4 도입 예정 (`/ai/*` nginx location) 폐기. backend-ai placeholder 자체가 사라졌으므로 nginx upstream `devhub_ai` 도 미사용. AI/ML 정공법은 `backend-knowledge/` 의 §3.7 + §3.5.7 로 이관. |
 | Ory Hydra (OIDC OAuth2 provider) | 4444 (public) / 4445 (admin) | OIDC code flow |
 | Ory Kratos (identity / self-service) | 4433 (public) / 4434 (admin) | password flow |
 
@@ -61,7 +61,7 @@ frontend `next.config.ts` 의 rewrites 가 `/api/*` → backend-core 로 proxy (
 ```
 https://devhub.example.com/devhub                   ← Frontend (Next.js, SPA + SSR)
 https://devhub.example.com/devhub/api/v1/*          ← Backend-Core (Go, 8080)
-https://devhub.example.com/devhub/ai/v1/*           ← Backend-AI (M4, placeholder)
+https://devhub.example.com/devhub/ai/v1/*           ← ~~Backend-AI (M4, placeholder)~~ — **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — 본 row 의 Backend-AI M4 carve 폐기. nginx `/devhub/ai/*` location 도 함께 비활성. v0.2.0+ AI/ML 정공법은 `backend-knowledge/` (default backend port 8000, internal-only) 로 이관. frontend 는 `backend-knowledge/web/` 의 7 page (M-v0.2.1+) 로 직접 호출.
 https://devhub.example.com/devhub/auth/hydra/*      ← Hydra public (4444)
 https://devhub.example.com/devhub/auth/kratos/*     ← Kratos public (4433)
 https://devhub.example.com/metrics                  ← Prometheus scrape (admin only, IP allowlist)
@@ -100,11 +100,12 @@ server {
         include /etc/nginx/proxy_common.conf;
     }
 
-    # /devhub/ai/* → backend-ai (M4)
-    location /devhub/ai/ {
-        proxy_pass http://devhub_ai/ai/;
-        include /etc/nginx/proxy_common.conf;
-    }
+    # /devhub/ai/* → backend-ai (M4) — **2026-06-22 M-v0.2.2 폐기 (PR #663)**.
+    # 본 location block 은 더 이상 활성화되지 않음. nginx config 에서 주석 처리 또는 제거 권장.
+    # location /devhub/ai/ {
+    #     proxy_pass http://devhub_ai/ai/;
+    #     include /etc/nginx/proxy_common.conf;
+    # }
 
     # /devhub/auth/hydra/* → Hydra public.
     # Hydra 가 자체 path 처리하므로 prefix 만 strip.
@@ -446,7 +447,7 @@ selfservice:
 
 ## 14. 잔여 carve out / open question
 
-- **(carve)** Backend-AI (M4) 의 `/devhub/ai/*` 경로 — backend-ai placeholder 만 있고 실 service 미진입. M4 RM-M4-04 (AI Gardener gRPC) 진입 시 결정.
+- **(carve, **2026-06-22 폐기**)** Backend-AI (M4) 의 `/devhub/ai/*` 경로 — backend-ai placeholder 만 있고 실 service 미진입. M4 RM-M4-04 (AI Gardener gRPC) 진입 시 결정. → **2026-06-22 M-v0.2.2 backend-ai 폐기 (PR #663)** — 본 carve 폐기. nginx `/devhub/ai/*` location 도 비활성. v0.2.0+ AI/ML 정공법은 `backend-knowledge/` 의 standalone backend 로 이관 (default port 8000, internal-only). frontend 는 `backend-knowledge/web/` 의 7 page (M-v0.2.1+) 로 직접 호출.
 - **(carve)** WebSocket (`/devhub/api/v1/realtime/ws`) — nginx `proxy_http_version 1.1 + Upgrade` 명시 했지만 sticky session 운영 결정은 carve out (multi-instance 진입 시).
 - **(carve)** `/devhub/_next/static/*` 의 캐시 정책 — nginx 의 `Cache-Control: max-age=31536000, immutable` 권장. CDN front 는 별도.
 - **(open)** `/metrics` 엔드포인트의 외부 노출 정책 — IP allowlist (운영자 / Prometheus pull 만) 또는 별도 internal port. ADR-0016 §6 의 5 carve out (push 경로 알림) 과 연계.
