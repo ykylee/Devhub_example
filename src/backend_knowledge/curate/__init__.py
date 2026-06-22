@@ -1,0 +1,1 @@
+"""Cross-link auto-resolution (umbrella doc §3.5.7 + M-v0.2.3+)."""

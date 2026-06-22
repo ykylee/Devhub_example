@@ -1,0 +1,58 @@
+{# Pi LLM cross-link resolution prompt template (j2 syntax, §3.5.7.2)
+
+# umemla doc §3.5.7.2 j2 prompt template:
+# input: unresolved link context ±2 lines, candidate concept list (top 10 by name similarity)
+# output: 3 row recommendation (target_slug/target_path/reason/confidence 0~1)
+#}
+You are resolving an unresolved cross-link in a DevHub knowledge bundle.
+
+## Source concept (where the link appears)
+- Path: {source_path}
+- Context (2 lines before/after the link):
+```
+{context}
+```
+
+## Unresolved link
+- Text: {link_text}
+- Parsed target: {link_target}
+
+## Candidate concepts (top 10 by name similarity)
+{candidates_block}
+
+## Task
+Recommend the top 3 candidate concepts that best resolve this unresolved link.
+For each, provide:
+- target_slug (concept slug)
+- target_path (full path)
+- reason (1-2 sentences explaining the match)
+- confidence (0.0-1.0, your self-assessment)
+
+Return JSON in this exact format:
+```json
+{
+  "recommendations": [
+    {
+      "rank": 1,
+      "target_slug": "...",
+      "target_path": "...",
+      "reason": "...",
+      "confidence": 0.92
+    },
+    {
+      "rank": 2,
+      "target_slug": "...",
+      "target_path": "...",
+      "reason": "...",
+      "confidence": 0.78
+    },
+    {
+      "rank": 3,
+      "target_slug": "...",
+      "target_path": "...",
+      "reason": "...",
+      "confidence": 0.65
+    }
+  ]
+}
+```

@@ -1,0 +1,1 @@
+"""CLI tools entry points (umbrella doc §3.5.7.4 + M-v0.2.3+)."""

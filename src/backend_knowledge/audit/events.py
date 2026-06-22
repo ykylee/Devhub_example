@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AuditEventType(str, Enum):
-    """7 audit event types per §3.6.6.1."""
+    """8 audit event types per §3.6.6.1."""
 
     USER_LOGIN = "audit.user.login"
     CONCEPT_ACCESS = "audit.concept.access"
@@ -23,6 +23,7 @@ class AuditEventType(str, Enum):
     CONCEPT_ARCHIVE = "audit.concept.archive"
     CONCEPT_PUBLISH = "audit.concept.publish"
     CONFIG_CHANGE = "audit.config.change"
+    PI_LINK_RESOLVE = "audit.pi_link_resolve"
 
 
 class AuditEvent(BaseModel):
