@@ -4,7 +4,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령, **v0.1.0 릴리즈 로드맵 (워커 분업 전면 취소 결정 2026-06-09 반영)**, **사외/사내 2-tier 형상관리 분리 (2026-06-10 결정)**
 - 대상 독자: 모든 AI 워커 (Claude/Codex/Gemini/Reasonix/OpenCode/Mavis/기타), 저장소 관리자, workflow 설계자
 - 상태: active
-- 최종 수정일: 2026-06-17 (v0.2.0 umbrella + ADR-0037 OKF + ADR-0038 backend-knowledge 추가, Q&A 11/11 결정 완료)
+- 최종 수정일: 2026-06-23 (`backend-knowledge` → 외부 repo `yklee/ai_library` extraction 결정, vendor import pattern 역방향 — 본 저장소에서 `backend-knowledge/` 디렉터리 삭제됨 + ADR-0037/0038 §6 supersession row + umbrella §1.2 G1 redirect + child doc §8 row + 본 AGENTS.md line 29 redirect. §15 ADR supersession 정공법 정합 — historical supersession (extraction, 외부 repo 이전) + M-v0.2.3+ 부터 supersession 가능 + docs/governance/worker_division.md §4.2 1:1 정합. **상세**: [`docs/planning/release_v0-2_roadmap.md`](docs/planning/release_v0-2_roadmap.md) §9 변경 이력 2026-06-23 row 정공법) + 2026-06-17 (v0.2.0 umbrella + ADR-0037 OKF + ADR-0038 backend-knowledge 추가, Q&A 11/11 결정 완료)
 - 관련 문서: `ai-workflow/MEMORY_GOVERNANCE.md`, `ai-workflow/memory/<agent>/<branch>/state.json`, `ai-workflow/memory/PROJECT_PROFILE.md`, `docs/governance/README.md` (거버넌스 진입점), `docs/governance/document-standards.md`, `docs/governance/worker_division.md` (**§0 워커 분업 전면 취소 + §6 사외/사내 2-tier 분업**), `docs/planning/release_v0-1_roadmap.md` (**v0.1.0 릴리즈 로드맵**), `docs/planning/release_v0-2_roadmap.md` (**v0.2.0 릴리즈 로드맵 — 외부 시스템 연동 + OKF 기반 AI Agent Library**, 2026-06-17 accepted, [ADR-0037 OKF v0.1 채택](./adr/0037-okf-adoption.md) + [ADR-0038 backend-knowledge 신설](./adr/0038-backend-knowledge-creation.md), Q&A 11/11 결정 완료), `docs/traceability/README.md`
 
 ## v0.1.0 릴리즈 로드맵
@@ -26,7 +26,7 @@
 - [`docs/planning/release_v0-2_roadmap.md`](docs/planning/release_v0-2_roadmap.md) — v0.2.0 scope (G1~G7: backend-knowledge 단일화 / 외부 연동 흡수 / OKF 형 bundle / 3가지 기능 / 1차 raw API / 완전 독립 운영 / Q&A 11/11 결정) + 마일스톤 (M-v0.2.0-alpha~v0.3.0 6 단계) + cross-section 정합 (round 1/1.1/2 + §3/§4/§5/§6/§7/§8 self-review)
 
 핵심 결정:
-- **신규 백엔드**: `backend-knowledge/` (Python 3.13+ / FastAPI / OKF / Pi (pi.dev) v0.79.6 LLM enrich, **완전 standalone** — 다른 backend 연결 ❌)
+- **신규 백엔드**: `backend-knowledge/` → **2026-06-23 extraction**: 외부 repo [`yklee/ai_library`](https://homelab.ddn777.synology.me/gitea/yklee/ai_library) (Gitea private). 본 저장소에서 `backend-knowledge/` 디렉터리 삭제됨. (Python 3.13+ / FastAPI / OKF / Pi (pi.dev) v0.79.6 LLM enrich, **완전 standalone** — 다른 backend 연결 ❌, vendored re-introduce 가능)
 - **ADR-0037**: [OKF v0.1 채택](./adr/0037-okf-adoption.md) (1차 출처: Google SPEC.md / README.md, Apache 2.0, 1 concept = 1 .md, frontmatter `type` 1개 필수, 8종 type enum)
 - **ADR-0038**: [`backend-knowledge` 신설](./adr/0038-backend-knowledge-creation.md) (외부 시스템 7종 source 만 단방향, M-v0.2.3 운영 기준: Gitea 4 sub-plugin gitea_repo_pull / gitea_issue / gitea_wiki / gitea_action + homelab + metrics + hrdb, 2026-06-17 A/A 결정 + 2026-06-18 supersession 정합)
 - **backend-ai/ 폐기** (M-v0.2.2, placeholder 정리)
